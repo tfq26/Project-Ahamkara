@@ -43,6 +43,9 @@ From the project root:
 # Debug (symbols, no optimisation, compile_commands.json)
 cmake --preset debug
 
+# Headless debug (remote agents, server/test-heavy work, no GLFW/OpenGL client)
+cmake --preset debug-headless
+
 # Release (optimised)
 cmake --preset release
 ```
@@ -55,7 +58,21 @@ your LSP/clangd at `build/debug/compile_commands.json`.
 ```sh
 cmake --build --preset debug
 # or
+cmake --build --preset debug-headless
+# or
 cmake --build --preset release
+```
+
+## Test
+
+```sh
+ctest --test-dir build/debug --output-on-failure
+```
+
+For the headless preset:
+
+```sh
+ctest --test-dir build/debug-headless --output-on-failure
 ```
 
 Alternatively, invoke `ninja` directly inside the build directory:

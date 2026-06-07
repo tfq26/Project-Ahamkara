@@ -98,6 +98,118 @@ status
 quit
 ```
 
+## Development Workflows
+
+### Local Zed Workflow
+
+Use local Zed development when you want the tightest edit loop on a single
+task.
+
+```sh
+./scripts/setup-dev.sh
+cmake --build --preset debug
+./scripts/run-tests.sh
+```
+
+For the common full-client debug path:
+
+```sh
+./scripts/start.sh
+```
+
+### Coder Remote Workspace Workflow
+
+Use Coder workspaces on `servlenovo1` when you want builds, tests, indexing,
+and agent execution to happen off your laptop.
+
+1. Create a workspace in <https://dev.2helix.org>.
+2. Install the native build dependencies in the workspace image:
+   `git`, `cmake`, `ninja-build`, `g++`, `libglfw3-dev`, `libgl1-mesa-dev`,
+   `pkg-config`, and optionally `ccache`.
+3. Clone the repo and create an isolated task branch:
+
+```sh
+git clone <repo-url> ~/src/Ahamkara
+cd ~/src/Ahamkara
+git fetch origin
+git checkout -b agent/codex/my-task origin/main
+./scripts/setup-dev.sh
+./scripts/run-tests.sh
+```
+
+For non-UI tasks in lighter remote workspaces, the headless preset avoids the
+GLFW/OpenGL client build:
+
+```sh
+./scripts/setup-dev.sh --preset debug-headless
+./scripts/run-tests.sh --preset debug-headless
+```
+
+### Multi-Agent Workflow
+
+Recommended model:
+
+- one agent = one workspace = one branch
+- one active writer per branch
+- Git is the source of truth
+- review diffs before merging manually
+
+Recommended branch naming:
+
+- `agent/<agent-name>/<task-name>`
+- `feature/<feature-name>`
+- `fix/<bug-name>`
+
+Warning: multiple agents should not work on the same branch at the same time.
+
+For larger features, let a parent agent own the workspace and integration
+branch, and let subagents work in separate branches or worktrees. Example:
+
+```sh
+git fetch origin
+git worktree add ../ahamkara-subagent-ui -b agent/deepseek/ui-pass origin/main
+git worktree add ../ahamkara-subagent-tests -b agent/antigravity/test-pass origin/main
+```
+
+The parent agent should review and integrate subagent changes, then rerun the
+build and tests before commit.
+
+### Safe Agent Rules
+
+- do not commit secrets
+- do not modify infrastructure files unless asked
+- do not run destructive commands
+- do not auto-merge to `main`
+- do not rewrite history
+- always summarize changed files and commands run
+
+### Sync, Diff, Commit, Push
+
+Safe sync for a clean workspace:
+
+```sh
+./scripts/sync-main.sh
+```
+
+Inspect diffs:
+
+```sh
+git status
+git diff
+git diff --stat origin/main...HEAD
+```
+
+Commit and push:
+
+```sh
+git add <files>
+git commit -m "Describe the change"
+git push -u origin HEAD
+```
+
+See [`docs/remote-agent-workflow.md`](docs/remote-agent-workflow.md) for the
+full remote-agent playbook.
+
 ## Documentation
 
 - [Architecture overview](docs/architecture.md)
@@ -105,3 +217,4 @@ quit
 - [Building from source](docs/building.md)
 - [Client config](docs/client_config.md)
 - [Asset pipeline](docs/asset_pipeline.md)
+- [Remote agent workflow](docs/remote-agent-workflow.md)
