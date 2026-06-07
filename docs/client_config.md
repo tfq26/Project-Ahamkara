@@ -30,6 +30,13 @@ as a warning and skipped. Invalid values fall back to the default.
 | `fullscreen`        | bool    | `false`       | Start in fullscreen (`true` / `false` or `1` / `0`) |
 | `mouse_sensitivity` | float   | `1.0`         | Mouse look multiplier                 |
 | `server_ip`         | string  | `127.0.0.1`   | Default server IPv4 address           |
+| `audio_enabled`     | bool    | `true`        | Master audio kill switch               |
+| `audio_master_volume` | float | `1.0`         | Master output volume (0.0–1.0)        |
+| `audio_sfx_volume`  | float   | `1.0`         | SFX bus volume (0.0–1.0)              |
+| `audio_weapon_volume`| float  | `1.0`         | Weapon bus volume (0.0–1.0)           |
+| `audio_ui_volume`   | float   | `1.0`         | UI bus volume (0.0–1.0)               |
+| `audio_music_volume`| float   | `1.0`         | Music bus volume (0.0–1.0)            |
+| `audio_ambient_volume`| float | `1.0`         | Ambient bus volume (0.0–1.0)          |
 
 ## Overriding the server IP
 
@@ -56,4 +63,13 @@ window_height    = 1080
 fullscreen       = false
 mouse_sensitivity = 2.5
 server_ip = 127.0.0.1
+
+# Audio (optional, defaults shown)
+audio_enabled       = true
+audio_master_volume = 1.0
+audio_sfx_volume    = 1.0
+audio_weapon_volume = 1.0
+audio_ui_volume     = 1.0
+audio_music_volume  = 1.0
+audio_ambient_volume = 1.0
 ```

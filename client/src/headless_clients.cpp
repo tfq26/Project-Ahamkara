@@ -1,20 +1,28 @@
+#include "ae/core/cli_utils.h"
 #include "ae/core/log.h"
 #include "ae/core/time.h"
+#include "ae/network/cli_helpers.h"
+#include "ae/network/network_clock.h"
+#include "ae/network/network_simulator.h"
+#include "ae/network/snapshot_interpolator.h"
 #include "ae/network/udp_socket.h"
 #include "ae/platform/window.h"
 #include "ae/runtime/application.h"
 #include "ahamkara/client/client_config.h"
+#include "ahamkara/game/client_prediction.h"
 #include "ahamkara/game/net_packets.h"
 #include "ahamkara/game/net_types.h"
 #include "ahamkara/game/world.h"
 
 #include <chrono>
 #include <cctype>
+#include <cmath>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <span>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -24,6 +32,19 @@ namespace {
 
 constexpr float kTickRate = 60.0F;
 constexpr float kDeltaSeconds = 1.0F / kTickRate;
+
+// ── Tick-loop helpers ────────────────────────────────────────────────────────
+
+/**
+ * @brief Compute elapsed seconds since the previous frame and update the
+ *        previous-frame timestamp in-place.
+ */
+inline float compute_frame_dt(std::chrono::steady_clock::time_point& previous) {
+    const auto now = std::chrono::steady_clock::now();
+    const float dt = std::chrono::duration<float>(now - previous).count();
+    previous = now;
+    return dt;
+}
 
 // ── Sandbox helpers ──────────────────────────────────────────────────────────
 
@@ -154,6 +175,43 @@ const char* key_code_name(ae::KeyCode key) {
     }
 }
 
+/**
+ * @brief Diagnostic log comparing the three state representations.
+ *
+ * State ownership:
+ * - `interpolated`: Smoothed render state from SnapshotInterpolator
+ *   (derived from authoritative server snapshots).
+ * - `authoritative`: Raw newest server snapshot — the ground truth
+ *   the server published at `snap_tick`.
+ * - `predicted`:   Client's locally predicted state from
+ *   ClientPredictionManager, ahead of the most recent authoritative.
+ */
+void log_state_comparison(
+    const ahamkara::game::ReplicatedPlayerState& interpolated,
+    const ahamkara::game::ReplicatedPlayerState& authoritative,
+    ae::u32 snap_tick,
+    const ahamkara::game::ReplicatedPlayerState* predicted,
+    float interp_delay,
+    ae::u32 tick)
+{
+    if (tick % 60 != 0) return;  // Log every 60 ticks (1 second).
+
+    std::ostringstream msg;
+    msg << "[Client] tick=" << tick
+        << " interp_delay=" << interp_delay << "s"
+        << " | interp_pos=(" << interpolated.position.x << ", " << interpolated.position.z << ")"
+        << " | auth_pos=(" << authoritative.position.x << ", "
+                           << authoritative.position.z << ")"
+        << " | auth_tick=" << snap_tick;
+
+    if (predicted) {
+        msg << " | pred_pos=(" << predicted->position.x << ", "
+            << predicted->position.z << ")";
+    }
+
+    ae::log_info(msg.str());
+}
+
 }  // namespace
 
 // ── Client entry points ──────────────────────────────────────────────────────
@@ -242,7 +300,7 @@ int run_sandbox_client() {
     return EXIT_SUCCESS;
 }
 
-int run_network_client(const std::string& server_ip) {
+int run_network_client(const std::string& server_ip, int argc, char** argv) {
     ae::Application application(ae::RuntimeMode::Client);
     application.start();
 
@@ -254,23 +312,125 @@ int run_network_client(const std::string& server_ip) {
 
     const ae::NetAddress server_address {server_ip, 7777};
 
+    // ── Simulator config from CLI ─────────────────────────────────────────
+    ae::SimulatorConfig sim_config = ae::build_sim_config(argc, argv);
+    ae::NetworkSimulator sim(socket);
+    sim.configure(sim_config);
+
     {
         std::ostringstream startup_message;
         startup_message << "Client sending input to " << server_address.ip << ":" << server_address.port << ".";
         ae::log_info(startup_message.str());
     }
 
+    // ── Netcode pipeline: three state layers ────────────────────────────
+    //
+    // Layer 1 — PREDICTED:  ClientPredictionManager owns a local World that
+    //                        applies inputs immediately for responsiveness.
+    //                        Represents the client's best guess of where
+    //                        the player *will be* once the server confirms.
+    //
+    // Layer 2 — AUTHORITATIVE:  ServerSnapshot::local_player is the ground
+    //                           truth from the dedicated server.  The
+    //                           interpolator buffers these snapshots.
+    //
+    // Layer 3 — INTERPOLATED:  `SnapshotInterpolator` lerps between two
+    //                          bracketing authoritative snapshots to produce
+    //                          a smooth render state at `now - delay`.
+    //                          This is what the player *sees*.
+    //
+    // Reconciliation: When predicted drifts too far from authoritative,
+    // the prediction world is reset to authoritative and pending inputs
+    // are replayed.  See client_prediction.cpp.
+    ae::NetworkClock clock;
+    ae::SnapshotInterpolator<ahamkara::game::ServerSnapshot, 3> interpolator;
+    ahamkara::game::ClientPredictionManager prediction;
+
     const auto tick_duration = std::chrono::duration<double>(kDeltaSeconds);
     auto next_tick = std::chrono::steady_clock::now();
 
     ae::u32 input_sequence = 0;
     ae::u32 client_tick = 0;
+    bool connected = false;
     ahamkara::game::PlayerInputPacketBuffer input_buffer {};
     ahamkara::game::ServerSnapshotPacketBuffer snapshot_buffer {};
+    ahamkara::game::ClientHelloPacketBuffer hello_buffer {};
+    ahamkara::game::PacketEnvelope envelope {};
+    ahamkara::game::ClientHelloPacket hello_packet {};
+    hello_packet.protocol_version = ahamkara::game::kProtocolVersion;
+    hello_packet.session_token = 0;
+
+    auto previous_frame = std::chrono::steady_clock::now();
+    float interpolation_delay = 1.0F / kTickRate;  // Starts at 1 tick; tuned by interpolator.
 
     while (application.is_running()) {
+        const float frame_dt = compute_frame_dt(previous_frame);
+
+        // Process simulator delayed packets.
+        sim.update(frame_dt);
+
         next_tick += std::chrono::duration_cast<std::chrono::steady_clock::duration>(tick_duration);
 
+        if (!connected) {
+            envelope.sequence++;
+            if (!ahamkara::game::serialize_client_hello_packet(envelope, hello_packet, hello_buffer)
+                || !sim.send_to(server_address, hello_buffer.data(), hello_buffer.size())) {
+                ae::log_warning("Client failed to send handshake hello.");
+            }
+
+            while (true) {
+                ae::NetAddress from {};
+                const ae::i32 received = sim.receive_from(from, snapshot_buffer.data(), snapshot_buffer.size());
+                if (received <= 0) {
+                    break;
+                }
+
+                const auto packet_span = std::span<const std::byte>(
+                    snapshot_buffer.data(), static_cast<ae::usize>(received));
+
+                if (received == static_cast<ae::i32>(ahamkara::game::server_welcome_packet_size())) {
+                    ahamkara::game::ServerWelcomePacket welcome {};
+                    ahamkara::game::PacketEnvelope in_envelope {};
+                    if (!ahamkara::game::deserialize_server_welcome_packet(packet_span, in_envelope, welcome)) {
+                        ae::log_warning("Client rejected an invalid handshake welcome.");
+                        continue;
+                    }
+
+                    if (!ahamkara::game::is_supported_protocol_version(welcome.protocol_version)) {
+                        ae::log_warning("Client received a welcome with an unsupported protocol version.");
+                        return EXIT_FAILURE;
+                    }
+
+                    connected = true;
+                    break;
+                }
+
+                if (received == static_cast<ae::i32>(ahamkara::game::server_reject_packet_size())) {
+                    ahamkara::game::ServerRejectPacket reject {};
+                    ahamkara::game::PacketEnvelope in_envelope {};
+                    if (!ahamkara::game::deserialize_server_reject_packet(packet_span, in_envelope, reject)) {
+                        ae::log_warning("Client rejected an invalid handshake reject.");
+                        continue;
+                    }
+
+                    if (reject.reason == ahamkara::game::HandshakeRejectReason::VersionMismatch) {
+                        ae::log_warning("Client handshake rejected because the protocol version does not match.");
+                    } else {
+                        ae::log_warning("Client handshake rejected by the server.");
+                    }
+                    return EXIT_FAILURE;
+                }
+
+                ae::log_warning("Client received an unexpected handshake packet size.");
+            }
+
+            std::this_thread::sleep_until(next_tick);
+            continue;
+        }
+
+        // ── PREDICTED LAYER: Build, send, and locally apply input ────
+        // The input is sent to the server for authoritative simulation,
+        // and also applied locally for responsive client-side prediction.
         ahamkara::game::PlayerInputCommand input_command {};
         input_command.sequence = input_sequence++;
         input_command.client_tick = client_tick++;
@@ -278,14 +438,22 @@ int run_network_client(const std::string& server_ip) {
         input_command.move_axis.y = 1.0F;
         input_command.sprint_held = true;
 
-        if (!ahamkara::game::serialize_player_input_packet(input_command, input_buffer)
-            || !socket.send_to(server_address, input_buffer.data(), input_buffer.size())) {
+        // Client-side prediction: apply input to local world immediately.
+        prediction.apply_input(input_command, kDeltaSeconds);
+
+        envelope.sequence++;
+        if (!ahamkara::game::serialize_player_input_packet(envelope, input_command, input_buffer)
+            || !sim.send_to(server_address, input_buffer.data(), input_buffer.size())) {
             ae::log_warning("Client failed to send input command.");
         }
 
+        // ── AUTHORITATIVE LAYER: Receive server snapshots ────────────
+        // Snapshot::local_player is the ground truth from the server.
+        // Each snapshot feeds the interpolator (for smooth rendering)
+        // and the prediction manager (for reconciliation).
         while (true) {
             ae::NetAddress from {};
-            const ae::i32 received = socket.receive_from(from, snapshot_buffer.data(), snapshot_buffer.size());
+            const ae::i32 received = sim.receive_from(from, snapshot_buffer.data(), snapshot_buffer.size());
             if (received <= 0) {
                 break;
             }
@@ -295,19 +463,46 @@ int run_network_client(const std::string& server_ip) {
                 continue;
             }
 
+            ahamkara::game::PacketEnvelope in_envelope {};
             ahamkara::game::ServerSnapshot snapshot {};
-            if (!ahamkara::game::deserialize_server_snapshot_packet(snapshot_buffer, snapshot)) {
+            if (!ahamkara::game::deserialize_server_snapshot_packet(snapshot_buffer, in_envelope, snapshot)) {
                 ae::log_warning("Client rejected an invalid snapshot packet.");
                 continue;
             }
 
-            std::ostringstream snapshot_message;
-            snapshot_message << "Snapshot tick=" << snapshot.server_tick
-                             << " position=("
-                             << snapshot.local_player.position.x << ", "
-                             << snapshot.local_player.position.y << ", "
-                             << snapshot.local_player.position.z << ")";
-            ae::log_info(snapshot_message.str());
+            const double arrival_time = ae::now_seconds();
+
+            // Feed clock synchronization.
+            clock.record_snapshot(snapshot.server_tick, kTickRate, arrival_time);
+
+            // Push into interpolator.
+            interpolator.push(snapshot, arrival_time);
+
+            // Update interpolation delay from jitter measurement.
+            interpolation_delay = interpolator.suggest_delay_seconds(kTickRate);
+
+            // ── Reconciliation boundary ────────────────────────────
+            // If the predicted state has diverged from authoritative,
+            // reset to authoritative and replay unacknowledged inputs.
+            prediction.reconcile(snapshot);
+        }
+
+        // ── INTERPOLATED LAYER: Smooth render state ──────────────────
+        // Lerp between two bracketing server snapshots at render_time
+        // (now minus jitter-aware interpolation delay).  This produces
+        // the smoothest visual result by hiding network jitter.
+        const double render_time = ae::now_seconds() - interpolation_delay;
+        ahamkara::game::ReplicatedPlayerState interpolated_player {};
+        if (interpolator.interpolate(render_time, interpolated_player)) {
+            // Get the authoritative state from the newest snapshot
+            // for diagnostic comparison.
+            ahamkara::game::ServerSnapshot older_snap {}, newer_snap {};
+            (void)interpolator.get_bracketing_snapshots(render_time, &older_snap, &newer_snap);
+
+            const auto& pred_state = prediction.world().get_player_state();
+            log_state_comparison(interpolated_player, newer_snap.local_player,
+                                 newer_snap.server_tick, &pred_state,
+                                 interpolation_delay, client_tick);
         }
 
         std::this_thread::sleep_until(next_tick);
@@ -350,11 +545,9 @@ int run_windowed_client(const ahamkara::client::ClientConfig& client_config) {
             break;
         }
 
-        const auto now = std::chrono::steady_clock::now();
-        float delta_seconds = std::chrono::duration<float>(now - previous_frame).count();
-        previous_frame = now;
+        float delta_seconds = compute_frame_dt(previous_frame);
         if (delta_seconds > 0.05F) {
-            delta_seconds = 0.05F;
+            delta_seconds = 0.05F;   // Clamp to avoid huge steps after pause.
         }
 
         ahamkara::game::PlayerInputCommand cmd {};

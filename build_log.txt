@@ -1,0 +1,221 @@
+[1/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/frustum.cpp.o
+[2/86] Building CXX object engine/platform/CMakeFiles/ae_platform.dir/src/window_glfw.cpp.o
+[3/86] Linking CXX static library engine/platform/libae_platform.a
+[4/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/debug_renderer_metrics.cpp.o
+[5/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/debug_renderer_gpu.cpp.o
+[6/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/debug_renderer_effects.cpp.o
+[7/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/debug_renderer_hud.cpp.o
+[8/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/font_atlas.cpp.o
+[9/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/debug_renderer.cpp.o
+[10/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/compiled_texture.cpp.o
+[11/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/compiled_material.cpp.o
+[12/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/humanoid_mesh.cpp.o
+[13/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/text_rasterizer.cpp.o
+[14/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/compiled_mesh.cpp.o
+[15/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/map_geometry.cpp.o
+[16/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/skeletal_animation.cpp.o
+[17/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/platform/mac_text_rasterizer.cpp.o
+[18/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/render_backend_opengl.cpp.o
+[19/86] Building CXX object tools/CMakeFiles/ahamkara_asset_importer.dir/asset_importer.cpp.o
+[20/86] Building C object _deps/miniaudio-build/CMakeFiles/miniaudio_channel_combiner_node.dir/extras/nodes/ma_channel_combiner_node/ma_channel_combiner_node.c.o
+[21/86] Building CXX object tools/CMakeFiles/ahamkara_asset_importer.dir/asset_importer_common.cpp.o
+[22/86] Building C object _deps/miniaudio-build/CMakeFiles/miniaudio_channel_separator_node.dir/extras/nodes/ma_channel_separator_node/ma_channel_separator_node.c.o
+[23/86] Building C object _deps/miniaudio-build/CMakeFiles/miniaudio_ltrim_node.dir/extras/nodes/ma_ltrim_node/ma_ltrim_node.c.o
+[24/86] Building C object _deps/miniaudio-build/CMakeFiles/miniaudio_reverb_node.dir/extras/nodes/ma_reverb_node/ma_reverb_node.c.o
+[25/86] Building C object _deps/miniaudio-build/CMakeFiles/miniaudio_vocoder_node.dir/extras/nodes/ma_vocoder_node/ma_vocoder_node.c.o
+[26/86] Building CXX object tools/CMakeFiles/ahamkara_asset_importer.dir/asset_importer_manifest.cpp.o
+[27/86] Building CXX object engine/render/CMakeFiles/ae_render.dir/src/gltf_loader.cpp.o
+[28/86] Linking CXX static library engine/render/libae_render.a
+[29/86] Building CXX object tools/CMakeFiles/ahamkara_asset_importer.dir/asset_importer_registry.cpp.o
+[30/86] Building CXX object tools/CMakeFiles/ahamkara_asset_importer.dir/asset_importer_texture.cpp.o
+[31/86] Building CXX object engine/collision/CMakeFiles/ae_collision.dir/src/debug.cpp.o
+[32/86] Building CXX object tools/CMakeFiles/ahamkara_asset_importer.dir/asset_importer_material.cpp.o
+[33/86] Building CXX object tools/CMakeFiles/ahamkara_asset_importer.dir/asset_importer_dispatch.cpp.o
+[34/86] Linking CXX executable tools/ahamkara_asset_importer
+[35/86] Building CXX object engine/animation/CMakeFiles/ae_animation.dir/src/types.cpp.o
+[36/86] Building CXX object engine/animation/CMakeFiles/ae_animation.dir/src/aim_recoil.cpp.o
+[37/86] Building CXX object engine/animation/CMakeFiles/ae_animation.dir/src/ik.cpp.o
+[38/86] Building CXX object engine/animation/CMakeFiles/ae_animation.dir/src/animation_driver.cpp.o
+[39/86] Building CXX object engine/animation/CMakeFiles/ae_animation.dir/src/character_weapon.cpp.o
+[40/86] Building CXX object engine/animation/CMakeFiles/ae_animation.dir/src/animation_graph.cpp.o
+[41/86] Building CXX object engine/animation/CMakeFiles/ae_animation.dir/src/state_machine.cpp.o
+[42/86] Building CXX object engine/animation/CMakeFiles/ae_animation.dir/src/debug.cpp.o
+[43/86] Building CXX object engine/collision/CMakeFiles/ae_collision.dir/src/collision_world.cpp.o
+[44/86] Building CXX object engine/collision/CMakeFiles/ae_collision.dir/src/trace.cpp.o
+[45/86] Building CXX object client/CMakeFiles/ahamkara_client.dir/src/client_config.cpp.o
+[46/86] Linking CXX static library engine/collision/libae_collision.a
+[47/86] Building C object _deps/miniaudio-build/CMakeFiles/miniaudio.dir/miniaudio.c.o
+[48/86] Building CXX object client/CMakeFiles/ahamkara_client.dir/src/controller_bindings.cpp.o
+[49/86] Building CXX object client/CMakeFiles/ahamkara_client.dir/src/main.cpp.o
+[50/86] Building CXX object samples/flashback/CMakeFiles/flashback.dir/src/main.cpp.o
+[51/86] Building CXX object tools/CMakeFiles/ahamkara_controller_mapper.dir/controller_mapper.cpp.o
+[52/86] Building CXX object tests/CMakeFiles/ahamkara_smoke_tests.dir/src/camera_smoke_tests.cpp.o
+[53/86] Building CXX object tools/CMakeFiles/ahamkara_controller_mapper.dir/__/client/src/controller_bindings.cpp.o
+[54/86] Building CXX object client/CMakeFiles/ahamkara_client.dir/src/debug_client.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/src/debug_client.cpp:12:
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/include/ahamkara/client/local_play.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[55/86] Building CXX object client/CMakeFiles/ahamkara_client.dir/src/local_play.cpp.o
+FAILED: [code=1] client/CMakeFiles/ahamkara_client.dir/src/local_play.cpp.o 
+/usr/bin/c++ -DJPH_DEBUG_RENDERER -DJPH_PROFILE_ENABLED -D_DEBUG -I/Users/taufeeqali/Projects/Ahamkara/client/include -I/Users/taufeeqali/Projects/Ahamkara/engine/network/include -I/Users/taufeeqali/Projects/Ahamkara/engine/core/include -I/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/glm-src -I/Users/taufeeqali/Projects/Ahamkara/engine/runtime/include -I/Users/taufeeqali/Projects/Ahamkara/engine/render/include -I/Users/taufeeqali/Projects/Ahamkara/engine/platform/include -I/Users/taufeeqali/Projects/Ahamkara/game/include -I/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/jolt-src/Build/.. -I/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src -I/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/miniaudio-src -isystem /opt/homebrew/include -g -std=c++20 -arch arm64 -MD -MT client/CMakeFiles/ahamkara_client.dir/src/local_play.cpp.o -MF client/CMakeFiles/ahamkara_client.dir/src/local_play.cpp.o.d -o client/CMakeFiles/ahamkara_client.dir/src/local_play.cpp.o -c /Users/taufeeqali/Projects/Ahamkara/client/src/local_play.cpp
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/src/local_play.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/include/ahamkara/client/local_play.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+/Users/taufeeqali/Projects/Ahamkara/client/src/local_play.cpp:108:97: error: no member named 'get_particles' in 'ahamkara::game::World'
+  108 | const ahamkara::game::ParticleState* LocalPlaySimulation::get_particles() const { return world_.get_particles(); }
+      |                                                                                          ~~~~~~ ^
+/Users/taufeeqali/Projects/Ahamkara/client/src/local_play.cpp:109:69: error: no member named 'get_particle_count' in 'ahamkara::game::World'
+  109 | int LocalPlaySimulation::get_particle_count() const { return world_.get_particle_count(); }
+      |                                                              ~~~~~~ ^
+/Users/taufeeqali/Projects/Ahamkara/client/src/local_play.cpp:110:91: error: no member named 'get_decals' in 'ahamkara::game::World'
+  110 | const ahamkara::game::DecalState* LocalPlaySimulation::get_decals() const { return world_.get_decals(); }
+      |                                                                                    ~~~~~~ ^
+/Users/taufeeqali/Projects/Ahamkara/client/src/local_play.cpp:111:66: error: no member named 'get_decal_count' in 'ahamkara::game::World'
+  111 | int LocalPlaySimulation::get_decal_count() const { return world_.get_decal_count(); }
+      |                                                           ~~~~~~ ^
+2 warnings and 4 errors generated.
+[56/86] Building CXX object tests/CMakeFiles/ahamkara_smoke_tests.dir/src/network_smoke_tests.cpp.o
+[57/86] Building CXX object client/CMakeFiles/ahamkara_client.dir/src/window_input_provider.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/src/window_input_provider.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/include/ahamkara/client/window_input_provider.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/include/ahamkara/client/local_play.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[58/86] Building CXX object client/CMakeFiles/ahamkara_client.dir/src/headless_clients.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/src/headless_clients.cpp:12:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/client_prediction.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[59/86] Building CXX object tests/CMakeFiles/ahamkara_gameplay_tests.dir/src/gameplay_tests.cpp.o
+FAILED: [code=1] tests/CMakeFiles/ahamkara_gameplay_tests.dir/src/gameplay_tests.cpp.o 
+/usr/bin/c++ -DJPH_DEBUG_RENDERER -DJPH_PROFILE_ENABLED -D_DEBUG -I/Users/taufeeqali/Projects/Ahamkara/game/include -I/Users/taufeeqali/Projects/Ahamkara/engine/core/include -I/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/glm-src -I/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/jolt-src/Build/.. -I/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src -g -std=c++20 -arch arm64 -MD -MT tests/CMakeFiles/ahamkara_gameplay_tests.dir/src/gameplay_tests.cpp.o -MF tests/CMakeFiles/ahamkara_gameplay_tests.dir/src/gameplay_tests.cpp.o.d -o tests/CMakeFiles/ahamkara_gameplay_tests.dir/src/gameplay_tests.cpp.o -c /Users/taufeeqali/Projects/Ahamkara/tests/src/gameplay_tests.cpp
+/Users/taufeeqali/Projects/Ahamkara/tests/src/gameplay_tests.cpp:1:10: fatal error: 'ahamkara/game/gameplay_types.h' file not found
+    1 | #include "ahamkara/game/gameplay_types.h"
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 error generated.
+[60/86] Building CXX object tests/CMakeFiles/ahamkara_movement_tests.dir/src/movement_tests.cpp.o
+[61/86] Building CXX object tests/CMakeFiles/ahamkara_smoke_tests.dir/src/local_play_tests.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/tests/src/local_play_tests.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/tests/../client/include/ahamkara/client/local_play.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[62/86] Building CXX object tests/CMakeFiles/ahamkara_collision_tests.dir/src/collision_tests.cpp.o
+[63/86] Building CXX object tests/CMakeFiles/ahamkara_smoke_tests.dir/__/client/src/local_play.cpp.o
+FAILED: [code=1] tests/CMakeFiles/ahamkara_smoke_tests.dir/__/client/src/local_play.cpp.o 
+/usr/bin/c++ -DJPH_DEBUG_RENDERER -DJPH_PROFILE_ENABLED -D_DEBUG -I/Users/taufeeqali/Projects/Ahamkara/tests/.. -I/Users/taufeeqali/Projects/Ahamkara/tests/../client/include -I/Users/taufeeqali/Projects/Ahamkara/engine/network/include -I/Users/taufeeqali/Projects/Ahamkara/engine/core/include -I/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/glm-src -I/Users/taufeeqali/Projects/Ahamkara/engine/runtime/include -I/Users/taufeeqali/Projects/Ahamkara/game/include -I/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/jolt-src/Build/.. -I/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src -g -std=c++20 -arch arm64 -MD -MT tests/CMakeFiles/ahamkara_smoke_tests.dir/__/client/src/local_play.cpp.o -MF tests/CMakeFiles/ahamkara_smoke_tests.dir/__/client/src/local_play.cpp.o.d -o tests/CMakeFiles/ahamkara_smoke_tests.dir/__/client/src/local_play.cpp.o -c /Users/taufeeqali/Projects/Ahamkara/client/src/local_play.cpp
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/src/local_play.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/tests/../client/include/ahamkara/client/local_play.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+/Users/taufeeqali/Projects/Ahamkara/client/src/local_play.cpp:108:97: error: no member named 'get_particles' in 'ahamkara::game::World'
+  108 | const ahamkara::game::ParticleState* LocalPlaySimulation::get_particles() const { return world_.get_particles(); }
+      |                                                                                          ~~~~~~ ^
+/Users/taufeeqali/Projects/Ahamkara/client/src/local_play.cpp:109:69: error: no member named 'get_particle_count' in 'ahamkara::game::World'
+  109 | int LocalPlaySimulation::get_particle_count() const { return world_.get_particle_count(); }
+      |                                                              ~~~~~~ ^
+/Users/taufeeqali/Projects/Ahamkara/client/src/local_play.cpp:110:91: error: no member named 'get_decals' in 'ahamkara::game::World'
+  110 | const ahamkara::game::DecalState* LocalPlaySimulation::get_decals() const { return world_.get_decals(); }
+      |                                                                                    ~~~~~~ ^
+/Users/taufeeqali/Projects/Ahamkara/client/src/local_play.cpp:111:66: error: no member named 'get_decal_count' in 'ahamkara::game::World'
+  111 | int LocalPlaySimulation::get_decal_count() const { return world_.get_decal_count(); }
+      |                                                           ~~~~~~ ^
+2 warnings and 4 errors generated.
+[64/86] Building CXX object tests/CMakeFiles/ahamkara_world_tests.dir/src/world_tests.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/tests/src/world_tests.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[65/86] Building CXX object tests/CMakeFiles/ahamkara_session_tests.dir/src/session_runtime_tests.cpp.o
+[66/86] Building CXX object client/CMakeFiles/ahamkara_client.dir/src/audio_player.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/src/audio_player.cpp:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/include/ahamkara/client/audio_player.h:5:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+ninja: build stopped: subcommand failed.

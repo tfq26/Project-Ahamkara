@@ -9,6 +9,14 @@ namespace ae {
 struct NetAddress {
     std::string ip {};
     u16 port {0};
+
+    bool operator==(const NetAddress& other) const {
+        return ip == other.ip && port == other.port;
+    }
+
+    bool operator!=(const NetAddress& other) const {
+        return !(*this == other);
+    }
 };
 
 class UdpSocket {

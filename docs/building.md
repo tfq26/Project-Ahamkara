@@ -164,6 +164,22 @@ status
 quit
 ```
 
+### Asset Importer
+
+Build and run the first-slice asset importer:
+
+```sh
+cmake --build --preset debug --target ahamkara_asset_importer
+./build/debug/tools/ahamkara_asset_importer --manifest assets/manifest.assets
+```
+
+The importer currently compiles glTF models to Ahamkara `.aemesh` files,
+compiles uncompressed TGA textures to `.aetex`, compiles text-based materials
+to `.aemat`, and copies early sprite, audio, and data assets into
+`assets/compiled/`. It also writes `assets/compiled/asset_registry.tsv` so the
+pipeline has a stable index of compiled outputs. See `docs/asset_pipeline.md`
+for the manifest format and runtime boundary.
+
 ## Expected Output
 
 ### Debug Render View

@@ -1,0 +1,8 @@
+# Ahamkara asset import manifest.
+#
+# Format:
+#   <kind> <source> <output> [metadata]
+#
+# Paths are relative to this manifest file.
+
+model models/test_box.gltf compiled/models/test_box.aemesh

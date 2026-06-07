@@ -1,8 +1,19 @@
 add_library(ae_render STATIC
+    src/compiled_material.cpp
+    src/compiled_mesh.cpp
+    src/compiled_texture.cpp
     src/debug_renderer.cpp
+    src/debug_renderer_effects.cpp
+    src/debug_renderer_gpu.cpp
+    src/debug_renderer_hud.cpp
+    src/debug_renderer_metrics.cpp
     src/font_atlas.cpp
+    src/frustum.cpp
     src/gltf_loader.cpp
     src/humanoid_mesh.cpp
+    src/map_geometry.cpp
+    src/render_backend_opengl.cpp
+    src/skeletal_animation.cpp
     src/platform/mac_text_rasterizer.cpp
     src/text_rasterizer.cpp
 )

@@ -118,6 +118,35 @@ void apply_line(std::string_view line, ClientConfig& config) {
         return;
     }
 
+    // --- Audio keys ---
+    auto parse_audio_float = [&](float& target, float min_val, float max_val) {
+        const std::string value_str {value};
+        char* end = nullptr;
+        float parsed = std::strtof(value_str.c_str(), &end);
+        if (end != value_str.c_str() && parsed >= min_val && parsed <= max_val) {
+            target = parsed;
+        } else {
+            ae::log_warning("Config audio value is out of range, keeping default.");
+        }
+    };
+
+    if (key == "audio_enabled") {
+        if (value == "true" || value == "1") {
+            config.audio.enabled = true;
+        } else if (value == "false" || value == "0") {
+            config.audio.enabled = false;
+        } else {
+            ae::log_warning("Config audio_enabled value is invalid, keeping default.");
+        }
+        return;
+    }
+    if (key == "audio_master_volume")   { parse_audio_float(config.audio.master_volume,   0.0F, 1.0F); return; }
+    if (key == "audio_sfx_volume")      { parse_audio_float(config.audio.sfx_volume,      0.0F, 1.0F); return; }
+    if (key == "audio_weapon_volume")   { parse_audio_float(config.audio.weapon_volume,   0.0F, 1.0F); return; }
+    if (key == "audio_ui_volume")       { parse_audio_float(config.audio.ui_volume,       0.0F, 1.0F); return; }
+    if (key == "audio_music_volume")    { parse_audio_float(config.audio.music_volume,    0.0F, 1.0F); return; }
+    if (key == "audio_ambient_volume")  { parse_audio_float(config.audio.ambient_volume,  0.0F, 1.0F); return; }
+
     ae::log_warning("Config line contains an unknown key, skipping.");
 }
 

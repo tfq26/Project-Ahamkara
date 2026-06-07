@@ -2,6 +2,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 
 namespace ae {
 
@@ -34,6 +38,11 @@ inline float wrap_degrees(float degrees) {
 struct Vec2 {
     float x {0.0F};
     float y {0.0F};
+
+    constexpr Vec2() = default;
+    constexpr Vec2(float in_x, float in_y) : x(in_x), y(in_y) {}
+    constexpr Vec2(const glm::vec2& v) : x(v.x), y(v.y) {}
+    constexpr operator glm::vec2() const { return {x, y}; }
 
     [[nodiscard]] float length_squared() const {
         return x * x + y * y;
@@ -118,6 +127,11 @@ struct Vec3 {
     float x {0.0F};
     float y {0.0F};
     float z {0.0F};
+
+    constexpr Vec3() = default;
+    constexpr Vec3(float in_x, float in_y, float in_z) : x(in_x), y(in_y), z(in_z) {}
+    constexpr Vec3(const glm::vec3& v) : x(v.x), y(v.y), z(v.z) {}
+    constexpr operator glm::vec3() const { return {x, y, z}; }
 
     [[nodiscard]] float length_squared() const {
         return x * x + y * y + z * z;
@@ -216,6 +230,27 @@ inline Vec3 cross(const Vec3& lhs, const Vec3& rhs) {
 
 struct Mat4 {
     float m[4][4] {};
+
+    constexpr Mat4() = default;
+
+    constexpr Mat4(const glm::mat4& mat) {
+        for (int r = 0; r < 4; ++r) {
+            for (int c = 0; c < 4; ++c) {
+                m[r][c] = mat[c][r];
+            }
+        }
+    }
+
+    constexpr operator glm::mat4() const {
+        glm::mat4 res;
+        for (int r = 0; r < 4; ++r) {
+            for (int c = 0; c < 4; ++c) {
+                res[c][r] = m[r][c];
+            }
+        }
+        return res;
+    }
+
 
     [[nodiscard]] static Mat4 identity() {
         Mat4 result {};

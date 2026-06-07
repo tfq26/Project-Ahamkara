@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ae/core/packet_envelope.h"
 #include "ae/core/types.h"
 
 #include <type_traits>
@@ -22,7 +23,10 @@ enum class MovementState : ae::u8 {
     Walking,
     Sprinting,
     Sliding,
-    Jumping
+    Jumping,
+    OnLadder,
+    LedgeGrab,
+    Mantling
 };
 
 struct PlayerInputCommand {
@@ -65,11 +69,33 @@ struct ProjectileState {
     Vec3 velocity {};
     float lifetime_seconds {0.0F};
     bool alive {false};
+    ae::u32 client_tick {0};
+    bool first_tick {true};
+};
+
+struct ParticleState {
+    Vec3 position {};
+    Vec3 velocity {};
+    float r {1.0F}, g {1.0F}, b {1.0F};
+    float lifetime_seconds {0.0F};
+    float max_lifetime {0.0F};
+    float size {0.05F};
+    bool alive {false};
+};
+
+struct DecalState {
+    Vec3 position {};
+    Vec3 normal {};  // surface normal for orientation
+    float size {0.15F};
+    float r {0.1F}, g {0.1F}, b {0.1F};
+    float lifetime_seconds {5.0F};
+    bool alive {false};
 };
 
 static_assert(std::is_trivially_copyable_v<PlayerInputCommand>);
 static_assert(std::is_trivially_copyable_v<ReplicatedPlayerState>);
 static_assert(std::is_trivially_copyable_v<ServerSnapshot>);
 
-}  // namespace ahamkara::game
+using PacketEnvelope = ae::PacketEnvelope;
 
+}  // namespace ahamkara::game

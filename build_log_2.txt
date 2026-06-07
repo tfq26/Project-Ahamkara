@@ -1,0 +1,277 @@
+[0/1] Re-running CMake...
+CMake Deprecation Warning at build/debug/_deps/glm-src/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+CMake Deprecation Warning at build/debug/_deps/glm-src/CMakeLists.txt:2 (cmake_policy):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+-- GLM: Version 1.0.1
+-- GLM: Disable -Wc++98-compat warnings
+-- GLM: Build with C++ features auto detection
+-- libvorbisfile not found. miniaudio_libvorbis will be excluded.
+-- libopusfile not found. miniaudio_libopus will be excluded.
+-- SDL2 not found. SDL2 examples will be excluded.
+-- SteamAudio not found. miniaudio_engine_steamaudio will be excluded.
+-- Library list: miniaudio;miniaudio_channel_combiner_node;miniaudio_channel_separator_node;miniaudio_ltrim_node;miniaudio_reverb_node;miniaudio_vocoder_node
+-- Configuring done (1.9s)
+-- Generating done (0.1s)
+-- Build files have been written to: /Users/taufeeqali/Projects/Ahamkara/build/debug
+[1/26] Building CXX object game/CMakeFiles/ahamkara_game.dir/src/gameplay_types.cpp.o
+[2/26] Building CXX object game/CMakeFiles/ahamkara_game.dir/src/client_prediction.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/src/client_prediction.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/client_prediction.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[3/26] Building CXX object client/CMakeFiles/ahamkara_client.dir/src/window_input_provider.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/src/window_input_provider.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/include/ahamkara/client/window_input_provider.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/include/ahamkara/client/local_play.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[4/26] Building CXX object client/CMakeFiles/ahamkara_client.dir/src/local_play.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/src/local_play.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/include/ahamkara/client/local_play.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[5/26] Building CXX object client/CMakeFiles/ahamkara_client.dir/src/debug_client.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/src/debug_client.cpp:12:
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/include/ahamkara/client/local_play.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[6/26] Building CXX object game/CMakeFiles/ahamkara_game.dir/src/world_camera.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/src/world_camera.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/src/world_camera.h:5:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[7/26] Building CXX object client/CMakeFiles/ahamkara_client.dir/src/headless_clients.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/src/headless_clients.cpp:12:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/client_prediction.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[8/26] Building CXX object game/CMakeFiles/ahamkara_game.dir/src/world_jolt_bridge.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/src/world_jolt_bridge.cpp:2:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[9/26] Building CXX object game/CMakeFiles/ahamkara_game.dir/src/world_projectile.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/src/world_projectile.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/src/world_projectile.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[10/26] Building CXX object server/CMakeFiles/ahamkara_server.dir/src/dedicated_server_main.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/server/src/dedicated_server_main.cpp:12:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[11/26] Building CXX object tests/CMakeFiles/ahamkara_gameplay_tests.dir/src/gameplay_tests.cpp.o
+[12/26] Building CXX object game/CMakeFiles/ahamkara_game.dir/src/world_dummy_sim.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/src/world_dummy_sim.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/src/world_dummy_sim.h:3:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[13/26] Building CXX object game/CMakeFiles/ahamkara_game.dir/src/world.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/src/world.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[14/26] Building CXX object tests/CMakeFiles/ahamkara_smoke_tests.dir/src/local_play_tests.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/tests/src/local_play_tests.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/tests/../client/include/ahamkara/client/local_play.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[15/26] Building CXX object tests/CMakeFiles/ahamkara_smoke_tests.dir/__/client/src/local_play.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/src/local_play.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/tests/../client/include/ahamkara/client/local_play.h:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[16/26] Building CXX object tests/CMakeFiles/ahamkara_world_tests.dir/src/world_tests.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/tests/src/world_tests.cpp:1:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[17/26] Linking CXX static library game/libahamkara_game.a
+[18/26] Linking CXX executable tests/ahamkara_gameplay_tests
+[19/26] Linking CXX executable tests/ahamkara_movement_tests
+[20/26] Linking CXX executable tools/wish_test_client
+[21/26] Linking CXX executable server/ahamkara_server
+[22/26] Linking CXX executable tests/ahamkara_world_tests
+[23/26] Linking CXX executable tests/ahamkara_smoke_tests
+[24/26] Building CXX object client/CMakeFiles/ahamkara_client.dir/src/audio_player.cpp.o
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/src/audio_player.cpp:4:
+In file included from /Users/taufeeqali/Projects/Ahamkara/client/include/ahamkara/client/audio_player.h:5:
+In file included from /Users/taufeeqali/Projects/Ahamkara/game/include/ahamkara/game/world.h:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/entt.hpp:8:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/any.hpp:11:
+In file included from /Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/type_info.hpp:10:
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:309:50: warning: identifier '_hs' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  309 | [[nodiscard]] constexpr hashed_string operator"" _hs(const char *str, std::size_t) noexcept {
+      |                                       ~~~~~~~~~~~^~~
+      |                                       operator""_hs
+/Users/taufeeqali/Projects/Ahamkara/build/debug/_deps/entt-src/src/entt/core/hashed_string.hpp:318:51: warning: identifier '_hws' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+  318 | [[nodiscard]] constexpr hashed_wstring operator"" _hws(const wchar_t *str, std::size_t) noexcept {
+      |                                        ~~~~~~~~~~~^~~~
+      |                                        operator""_hws
+2 warnings generated.
+[25/26] Linking CXX executable client/ahamkara_client

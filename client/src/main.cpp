@@ -23,7 +23,7 @@ int run_local_client(
 
 int run_windowed_client(const ahamkara::client::ClientConfig& client_config);
 int run_sandbox_client();
-int run_network_client(const std::string& server_ip);
+int run_network_client(const std::string& server_ip, int argc, char** argv);
 
 // ── Path resolution helpers ──────────────────────────────────────────────────
 
@@ -127,5 +127,5 @@ int main(int argc, char** argv) {
     }
 
     const std::string server_ip = argc > 1 ? argv[1] : client_config.server_ip;
-    return run_network_client(server_ip);
+    return run_network_client(server_ip, argc, argv);
 }

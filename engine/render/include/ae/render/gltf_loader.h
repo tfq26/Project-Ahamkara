@@ -16,6 +16,8 @@ namespace ae::render {
 struct GltfMesh {
     std::vector<float> positions;   // interleaved xyz
     std::vector<float> normals;     // interleaved xyz
+    std::vector<float> joint_indices; // 4 indices per vertex
+    std::vector<float> joint_weights; // 4 weights per vertex
     std::vector<std::uint32_t> indices;
     float color_r {1.0F};           // base color (used when no material)
     float color_g {1.0F};
@@ -24,10 +26,64 @@ struct GltfMesh {
 };
 
 /**
- * @brief A complete model made of one or more meshes.
+ * @brief A single joint in a skin, with inverse bind matrix.
+ *
+ * The inverse_bind_matrix is stored as 16 floats in column-major order,
+ * matching the glTF 4x4 matrix convention (element [col*4+row]).
+ */
+struct GltfJoint {
+    std::string name;
+    int node_index {-1};   // glTF node index in the scene graph
+    int parent_index {-1};  // -1 = root joint
+    std::vector<float> inverse_bind_matrix; // 16 floats (column-major 4x4)
+};
+
+/**
+ * @brief A skin associating joints with mesh geometry.
+ */
+struct GltfSkin {
+    std::vector<GltfJoint> joints;
+};
+
+/**
+ * @brief A channel maps a sampler to a node property for animation.
+ */
+struct GltfAnimationChannel {
+    int node_index {-1};
+    std::string path; // "translation", "rotation", "scale"
+    int sampler_index {-1};
+};
+
+/**
+ * @brief A sampler holds keyframe data for an animation property.
+ *
+ * For translation: output_values has 3 floats per keyframe.
+ * For rotation: output_values has 4 floats per keyframe (quaternion).
+ * For scale: output_values has 3 floats per keyframe.
+ */
+struct GltfAnimationSampler {
+    std::vector<float> input_times;
+    std::vector<float> output_values;
+    std::string interpolation; // "LINEAR" or "STEP"
+};
+
+/**
+ * @brief A named animation consisting of channels and samplers.
+ */
+struct GltfAnimation {
+    std::string name;
+    std::vector<GltfAnimationChannel> channels;
+    std::vector<GltfAnimationSampler> samplers;
+};
+
+/**
+ * @brief A complete model made of one or more meshes, with optional
+ *        skins and animations loaded from glTF.
  */
 struct GltfModel {
     std::vector<GltfMesh> meshes;
+    std::vector<GltfSkin> skins;
+    std::vector<GltfAnimation> animations;
 };
 
 /**

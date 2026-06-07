@@ -47,6 +47,26 @@ public:
     [[nodiscard]] int get_ammo_current() const;
     [[nodiscard]] int get_ammo_max() const;
 
+    [[nodiscard]] const ahamkara::game::TargetDummyState* get_dummies() const;
+    [[nodiscard]] int get_dummy_count() const;
+    [[nodiscard]] const ahamkara::game::FloatingDamageNumber* get_damage_numbers() const;
+    [[nodiscard]] int get_damage_number_count() const;
+    [[nodiscard]] float get_hitmarker_time() const;
+    [[nodiscard]] bool get_hitmarker_is_critical() const;
+    [[nodiscard]] float get_muzzle_flash_time() const;
+
+    [[nodiscard]] const ahamkara::game::ParticleState* get_particles() const;
+    [[nodiscard]] int get_particle_count() const;
+    [[nodiscard]] const ahamkara::game::DecalState* get_decals() const;
+    [[nodiscard]] int get_decal_count() const;
+
+    [[nodiscard]] ahamkara::game::Vec3 get_interpolated_player_position(float alpha) const;
+    [[nodiscard]] ahamkara::game::CameraAnchor get_interpolated_camera_anchor(float alpha) const;
+    [[nodiscard]] ahamkara::game::TargetDummyState get_interpolated_dummy(int idx, float alpha) const;
+
+    void set_colliders(const ahamkara::game::ColliderBox* colliders, std::size_t count);
+    void set_audio_player(ahamkara::game::IAudioPlayer* player);
+
 private:
     std::unique_ptr<IInputProvider> input_provider_;
     ahamkara::game::World world_;
@@ -54,6 +74,12 @@ private:
     ae::u32 sequence_ {0};
     float last_delta_seconds_ {0.0F};
     float total_elapsed_seconds_ {0.0F};
+
+    // Interpolation states
+    ahamkara::game::ReplicatedPlayerState previous_player_state_;
+    ahamkara::game::CameraAnchor previous_camera_anchor_;
+    ahamkara::game::TargetDummyState previous_dummies_[ahamkara::game::World::kMaxDummies] {};
+    bool has_previous_state_ {false};
 };
 
 }  // namespace ahamkara::client

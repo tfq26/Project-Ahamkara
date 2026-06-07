@@ -6,6 +6,7 @@ add_executable(ahamkara_client
     src/headless_clients.cpp
     src/local_play.cpp
     src/window_input_provider.cpp
+    src/audio_player.cpp
 )
 
 target_compile_features(ahamkara_client PRIVATE cxx_std_20)
@@ -17,12 +18,11 @@ target_include_directories(ahamkara_client
 
 target_link_libraries(ahamkara_client
     PRIVATE
-        ae_core
         ae_network
-        ae_platform
         ae_runtime
         ae_render
         ahamkara_game
+        miniaudio_lib
 )
 
 set_target_properties(ahamkara_client PROPERTIES

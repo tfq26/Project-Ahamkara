@@ -1,5 +1,6 @@
 #include "ae/core/log.h"
 #include "ae/core/math.h"
+#include "ae/core/tick.h"
 #include "ae/core/time.h"
 #include "ae/platform/window.h"
 #include "ae/runtime/application.h"
@@ -10,9 +11,11 @@
 #include "ahamkara/client/controller_bindings.h"
 #include "ahamkara/client/local_play.h"
 #include "ahamkara/client/window_input_provider.h"
+#include "ahamkara/client/audio_player.h"
 #include "ahamkara/game/movement.h"
 #include "ahamkara/game/net_types.h"
 #include "ahamkara/game/world.h"
+#include <GLFW/glfw3.h>
 
 #include <algorithm>
 #include <cmath>
@@ -97,21 +100,24 @@ struct DebugViewState {
     const ahamkara::client::LocalPlaySimulation& simulation,
     ahamkara::client::CameraMode camera_mode,
     bool metrics_visible,
+    bool gpu_profiler_visible,
     bool always_day,
     bool menu_visible,
     int menu_tab,
     float gamma,
-    const ae::RuntimeMetricsSnapshot& displayed_metrics) {
+    const ae::RuntimeMetricsSnapshot& displayed_metrics,
+    float alpha) {
     // Camera smoothing state
     static ae::Vec3 smooth_eye_pos {0, 2, -5};
     static ae::Vec3 smooth_target_pos {0, 1, 0};
     static bool smooth_initialized = false;
 
     const auto& player_state = simulation.get_player_state();
-    const auto& anchor = simulation.get_camera_anchor();
     const float player_height = simulation.get_player_visual_height();
+    const auto raw_player_pos = simulation.get_interpolated_player_position(alpha);
+    const ae::Vec3 player_position {raw_player_pos.x, raw_player_pos.y, raw_player_pos.z};
+    const auto anchor = simulation.get_interpolated_camera_anchor(alpha);
 
-    const ae::Vec3 player_position {player_state.position.x, player_state.position.y, player_state.position.z};
     const ae::Vec3 player_center {
         player_position.x,
         player_position.y + player_height * 0.5F,
@@ -134,6 +140,33 @@ struct DebugViewState {
     scene.menu_tab = menu_tab;
     scene.gamma = gamma;
 
+    // Sensory feedback
+    scene.hitmarker_time = simulation.get_hitmarker_time();
+    scene.hitmarker_is_critical = simulation.get_hitmarker_is_critical();
+    scene.muzzle_flash_time = simulation.get_muzzle_flash_time();
+
+    // Floating damage numbers
+    const int hnc = simulation.get_damage_number_count();
+    scene.hit_number_count = hnc;
+    for (int i = 0; i < hnc && i < 16; ++i) {
+        const auto& dn = simulation.get_damage_numbers()[i];
+        scene.hit_number_positions[i] = {dn.position.x, dn.position.y, dn.position.z};
+        scene.hit_number_values[i] = dn.value;
+        scene.hit_number_is_critical[i] = dn.is_critical;
+        scene.hit_number_lifetimes[i] = dn.lifetime;
+    }
+
+    // Target dummies
+    const int dc = simulation.get_dummy_count();
+    scene.dummy_count = dc;
+    for (int i = 0; i < dc && i < 16; ++i) {
+        const auto d = simulation.get_interpolated_dummy(i, alpha);
+        scene.dummy_positions[i] = {d.position.x, d.position.y, d.position.z};
+        scene.dummy_yaws[i] = ae::to_radians(d.yaw);
+        scene.dummy_alive[i] = d.alive;
+        scene.dummy_recently_hit[i] = (d.last_hit_timer > 0.0F);
+    }
+
     // Populate projectile data
     const int pc = simulation.get_projectile_count();
     scene.projectile_count = pc;
@@ -144,7 +177,35 @@ struct DebugViewState {
         }
     }
 
+    // Populate particle data
+    const int part_count = simulation.get_particle_count();
+    scene.particle_count = part_count;
+    for (int i = 0; i < part_count && i < 256; ++i) {
+        const auto& p = simulation.get_particles()[i];
+        if (p.alive) {
+            scene.particle_positions[i] = {p.position.x, p.position.y, p.position.z};
+            scene.particle_sizes[i] = p.size;
+            scene.particle_colors_r[i] = p.r;
+            scene.particle_colors_g[i] = p.g;
+            scene.particle_colors_b[i] = p.b;
+            scene.particle_alphas[i] = p.max_lifetime > 0.0F ? p.lifetime_seconds / p.max_lifetime : 0.0F;
+        }
+    }
+
+    // Populate decal data
+    const int dec_count = simulation.get_decal_count();
+    scene.decal_count = dec_count;
+    for (int i = 0; i < dec_count && i < 64; ++i) {
+        const auto& d = simulation.get_decals()[i];
+        if (d.alive) {
+            scene.decal_positions[i] = {d.position.x, d.position.y, d.position.z};
+            scene.decal_normals[i] = {d.normal.x, d.normal.y, d.normal.z};
+            scene.decal_sizes[i] = d.size;
+        }
+    }
+
     scene.metrics_visible = metrics_visible;
+    scene.gpu_profiler_visible = gpu_profiler_visible;
     scene.fps = displayed_metrics.fps;
     scene.frame_time_ms = displayed_metrics.frame_time_ms;
     scene.fps_p1_low = displayed_metrics.fps_p1_low;
@@ -209,6 +270,10 @@ int run_local_client(
     std::unique_ptr<ae::PlatformWindow> window;
     try {
         window = ae::PlatformWindow::create(window_config);
+        GLFWwindow* glfw_win = static_cast<GLFWwindow*>(window->native_handle());
+        if (glfw_win && glfwRawMouseMotionSupported()) {
+            glfwSetInputMode(glfw_win, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        }
     } catch (const std::exception& ex) {
         ae::log_error(ex.what());
         return 1;
@@ -228,9 +293,13 @@ int run_local_client(
         client_config.mouse_sensitivity,
         controller_bindings);
     ahamkara::client::LocalPlaySimulation simulation(std::move(input_provider));
+    ahamkara::client::AudioPlayer audio_player;
+    audio_player.apply_config(client_config.audio);
+    simulation.set_audio_player(&audio_player);
     ae::RuntimeMetricsCollector metrics_collector;
     ae::RuntimeMetricsSnapshot displayed_metrics {};
     bool metrics_visible = false;
+    bool gpu_profiler_visible = false;
     double metrics_update_accumulator = 0.0;
     DebugViewState view_state {};
     bool always_day = false;
@@ -243,14 +312,15 @@ int run_local_client(
         "Debug view started. Keyboard: W/A/S/D move, Shift sprint, Space jump, C slide, Ctrl crouch, "
         "V toggle perspective. Controller: left stick move, right stick look, LB sprint, A jump, B crouch, "
         "X slide, Y reload, RB ability, L3+R3 toggle perspective, Back metrics, Start exit. "
-        "Right trigger = fire, L toggles day/night, F3 toggles metrics.");
+        "Right trigger = fire, L toggles day/night, F3 toggles metrics, F4 toggles GPU profiler.");
 
     window->set_title(build_debug_window_title(window_config.title, view_state.camera_mode, metrics_visible, displayed_metrics));
 
     // Fixed-timestep accumulator — physics runs at a steady 60 Hz regardless
     // of render frame rate, preventing variable-rate physics artifacts.
     constexpr float kFixedDt = 1.0F / 60.0F;
-    double accumulator = 0.0;
+    constexpr int kMaxSimSteps = 8;  // spiral-of-death guard
+    ae::FixedTimestepAccumulator sim_acc(kFixedDt, kMaxSimSteps);
     double last_time = ae::now_seconds();
     float smoothed_delta = 0.0F;
 
@@ -279,8 +349,8 @@ int run_local_client(
 
             // Still render the scene (frozen) with menu overlay
             const ae::render::DebugScene scene =
-                build_debug_scene(simulation, view_state.camera_mode, metrics_visible, always_day,
-                                  menu_visible, menu_tab, client_config.gamma, displayed_metrics);
+                build_debug_scene(simulation, view_state.camera_mode, metrics_visible, gpu_profiler_visible,
+                                  always_day, menu_visible, menu_tab, client_config.gamma, displayed_metrics, 1.0F);
             auto menu_scene = scene;
             menu_scene.controller_buttons = 0;
             if (gamepad.connected) {
@@ -317,6 +387,10 @@ int run_local_client(
             always_day = !always_day;
             ae::log_info(always_day ? "Lighting: always day" : "Lighting: day/night cycle");
         }
+        if (window->is_key_pressed(ae::KeyCode::F4)) {
+            gpu_profiler_visible = !gpu_profiler_visible;
+            ae::log_info(gpu_profiler_visible ? "GPU profiler enabled." : "GPU profiler disabled.");
+        }
 
         const double current_time = ae::now_seconds();
         float raw_delta = static_cast<float>(current_time - last_time);
@@ -333,23 +407,28 @@ int run_local_client(
         }
 
         // Fixed-timestep accumulator: run physics at 60 Hz regardless of frame rate.
-        accumulator += static_cast<double>(smoothed_delta);
-        while (accumulator >= static_cast<double>(kFixedDt)) {
-            simulation.tick(kFixedDt);
+        sim_acc.accumulate(static_cast<double>(smoothed_delta));
+        int steps_run = 0;
+        while (sim_acc.consume() && steps_run < kMaxSimSteps) {
+            simulation.tick(static_cast<float>(sim_acc.step()));
+            ++steps_run;
             const bool compute_percentiles = (metrics_update_accumulator >= 1.0 || displayed_metrics.fps <= 0.0);
             const ae::RuntimeMetricsSnapshot sampled_metrics =
-                metrics_collector.sample(kFixedDt, compute_percentiles);
-            metrics_update_accumulator += kFixedDt;
+                metrics_collector.sample(static_cast<float>(sim_acc.step()), compute_percentiles);
+            metrics_update_accumulator += static_cast<float>(sim_acc.step());
             if (metrics_update_accumulator >= 1.0 || displayed_metrics.fps <= 0.0) {
                 displayed_metrics = sampled_metrics;
                 metrics_update_accumulator = 0.0;
             }
-            accumulator -= static_cast<double>(kFixedDt);
+        }
+        if (steps_run >= kMaxSimSteps) {
+            sim_acc.reset();  // spiral-of-death: reset to avoid accumulating lag
         }
 
+        float alpha = sim_acc.interpolation_alpha();
         const ae::render::DebugScene scene =
-            build_debug_scene(simulation, view_state.camera_mode, metrics_visible, always_day,
-                              menu_visible, menu_tab, client_config.gamma, displayed_metrics);
+            build_debug_scene(simulation, view_state.camera_mode, metrics_visible, gpu_profiler_visible,
+                              always_day, menu_visible, menu_tab, client_config.gamma, displayed_metrics, alpha);
         auto render_scene = scene;
         render_scene.controller_buttons = 0;
         if (gamepad.connected) {

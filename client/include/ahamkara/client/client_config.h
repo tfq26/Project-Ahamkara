@@ -5,6 +5,22 @@
 
 namespace ahamkara::client {
 
+/**
+ * @brief Audio-specific configuration loaded from the client config file.
+ *
+ * Per-category volume is provided for future mixer bus routing.
+ * Currently the master and SFX volumes are the primary controls.
+ */
+struct AudioConfig {
+    bool     enabled           {true};
+    float    master_volume     {1.0f};   ///< 0.0 = mute, 1.0 = nominal
+    float    sfx_volume        {1.0f};   ///< Sound effects (hits, footsteps)
+    float    weapon_volume     {1.0f};   ///< Weapon fire and reload
+    float    ui_volume         {1.0f};   ///< Menu / HUD sounds
+    float    music_volume      {1.0f};   ///< Background music
+    float    ambient_volume    {1.0f};   ///< World ambient
+};
+
 /// Client startup configuration loaded from an optional config file.
 /// Every field has a sensible default so a missing file degrades gracefully.
 struct ClientConfig {
@@ -19,6 +35,9 @@ struct ClientConfig {
 
     // --- Network -------------------------------------------------------------
     std::string server_ip {"127.0.0.1"};
+
+    // --- Audio ---------------------------------------------------------------
+    AudioConfig audio {};
 
     /// Populate fields from the key=value config file at `path`.
     /// Unknown keys are ignored. Invalid values fall back to defaults.

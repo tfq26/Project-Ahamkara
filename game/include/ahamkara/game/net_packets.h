@@ -12,18 +12,50 @@
 namespace ahamkara::game {
 
 constexpr ae::u32 kPacketMagic = 0x41484D4BU;
-constexpr ae::u16 kPacketVersion = 1;
+constexpr ae::u16 kProtocolVersion = 1;
 
 enum class PacketType : ae::u16 {
     PlayerInput = 1,
-    ServerSnapshot = 2
+    ServerSnapshot = 2,
+    ClientHello = 3,
+    ServerWelcome = 4,
+    ServerReject = 5
+};
+
+enum class HandshakeRejectReason : ae::u8 {
+    VersionMismatch = 1,
+    ServerBusy = 2
 };
 
 struct PacketHeader {
     ae::u32 magic {kPacketMagic};
-    ae::u16 version {kPacketVersion};
+    ae::u16 version {kProtocolVersion};
     PacketType type {PacketType::PlayerInput};
 };
+
+struct ClientHelloPacket {
+    ae::u16 protocol_version {kProtocolVersion};
+    ae::u64 session_token {0};
+};
+
+struct ServerWelcomePacket {
+    ae::u16 protocol_version {kProtocolVersion};
+    ae::u64 session_token {0};
+};
+
+struct ServerRejectPacket {
+    ae::u16 protocol_version {kProtocolVersion};
+    ae::u64 session_token {0};
+    HandshakeRejectReason reason {HandshakeRejectReason::VersionMismatch};
+};
+
+[[nodiscard]] constexpr bool is_supported_protocol_version(const ae::u16 version) {
+    return version == kProtocolVersion;
+}
+
+static_assert(std::is_trivially_copyable_v<ClientHelloPacket>);
+static_assert(std::is_trivially_copyable_v<ServerWelcomePacket>);
+static_assert(std::is_trivially_copyable_v<ServerRejectPacket>);
 
 namespace detail {
 
@@ -118,7 +150,7 @@ inline bool read_header(ByteReader& reader, PacketType expected_type) {
     }
 
     return magic == kPacketMagic
-        && version == kPacketVersion
+        && version == kProtocolVersion
         && type == static_cast<ae::u16>(expected_type);
 }
 
@@ -209,47 +241,125 @@ inline bool read_snapshot(ByteReader& reader, ServerSnapshot& snapshot) {
         && read_player_state(reader, snapshot.local_player);
 }
 
+inline bool write_client_hello(ByteWriter& writer, const ClientHelloPacket& packet) {
+    return writer.write(packet.protocol_version)
+        && writer.write(packet.session_token);
+}
+
+inline bool read_client_hello(ByteReader& reader, ClientHelloPacket& packet) {
+    return reader.read(packet.protocol_version)
+        && reader.read(packet.session_token);
+}
+
+inline bool write_server_welcome(ByteWriter& writer, const ServerWelcomePacket& packet) {
+    return writer.write(packet.protocol_version)
+        && writer.write(packet.session_token);
+}
+
+inline bool read_server_welcome(ByteReader& reader, ServerWelcomePacket& packet) {
+    return reader.read(packet.protocol_version)
+        && reader.read(packet.session_token);
+}
+
+inline bool write_server_reject(ByteWriter& writer, const ServerRejectPacket& packet) {
+    return writer.write(packet.protocol_version)
+        && writer.write(packet.session_token)
+        && writer.write(static_cast<ae::u8>(packet.reason));
+}
+
+inline bool read_server_reject(ByteReader& reader, ServerRejectPacket& packet) {
+    ae::u8 reason_value = 0;
+    if (!reader.read(packet.protocol_version)
+        || !reader.read(packet.session_token)
+        || !reader.read(reason_value)
+        || reason_value == 0U
+        || reason_value > static_cast<ae::u8>(HandshakeRejectReason::ServerBusy)) {
+        return false;
+    }
+
+    packet.reason = static_cast<HandshakeRejectReason>(reason_value);
+    return true;
+}
+
+inline bool write_envelope(ByteWriter& writer, const PacketEnvelope& envelope) {
+    return writer.write(envelope.sequence)
+        && writer.write(envelope.ack_sequence)
+        && writer.write(envelope.ack_bitfield);
+}
+
+inline bool read_envelope(ByteReader& reader, PacketEnvelope& envelope) {
+    return reader.read(envelope.sequence)
+        && reader.read(envelope.ack_sequence)
+        && reader.read(envelope.ack_bitfield);
+}
+
 }  // namespace detail
 
+/// Envelope wire size: seq(2B) + ack_seq(2B) + ack_bitfield(4B)
+constexpr ae::usize kEnvelopeWireSize = sizeof(ae::u16) * 2 + sizeof(ae::u32);
+
 constexpr ae::usize player_input_packet_size() {
-    return sizeof(ae::u32)
-        + sizeof(ae::u16)
-        + sizeof(ae::u16)
-        + sizeof(ae::u32)
-        + sizeof(ae::u32)
-        + sizeof(float)
-        + sizeof(float) * 2
-        + sizeof(float) * 2
-        + sizeof(ae::u8) * 7;
+    return sizeof(ae::u32)    // magic
+        + sizeof(ae::u16)     // version
+        + sizeof(ae::u16)     // type
+        + kEnvelopeWireSize   // envelope
+        + sizeof(ae::u32)     // sequence
+        + sizeof(ae::u32)     // client_tick
+        + sizeof(float)       // client_time
+        + sizeof(float) * 2   // move_axis
+        + sizeof(float) * 2   // look_delta
+        + sizeof(ae::u8) * 7; // bools
 }
 
 constexpr ae::usize server_snapshot_packet_size() {
-    return sizeof(ae::u32)
-        + sizeof(ae::u16)
-        + sizeof(ae::u16)
-        + sizeof(ae::u32)
-        + sizeof(ae::u32)
-        + sizeof(ae::u32)
-        + sizeof(ae::u32)
-        + sizeof(float) * 3
-        + sizeof(float) * 3
-        + sizeof(float)
-        + sizeof(ae::u8)
-        + sizeof(float)
-        + sizeof(float);
+    return sizeof(ae::u32)    // magic
+        + sizeof(ae::u16)     // version
+        + sizeof(ae::u16)     // type
+        + kEnvelopeWireSize   // envelope
+        + sizeof(ae::u32)     // server_tick
+        + sizeof(ae::u32)     // last_processed_input
+        + sizeof(ae::u32)     // network_object_id
+        + sizeof(ae::u32)     // player_id
+        + sizeof(float) * 3   // position
+        + sizeof(float) * 3   // velocity
+        + sizeof(float)       // yaw
+        + sizeof(ae::u8)      // movement_state
+        + sizeof(float)       // health
+        + sizeof(float);      // shield
 }
 
 inline bool serialize_player_input_packet(
+    const PacketEnvelope& envelope,
     const PlayerInputCommand& command,
     std::span<std::byte, player_input_packet_size()> buffer) {
     detail::ByteWriter writer(buffer);
     return detail::write_header(writer, PacketType::PlayerInput)
+        && detail::write_envelope(writer, envelope)
         && detail::write_player_input(writer, command)
         && writer.bytes_written() == buffer.size();
 }
 
+constexpr ae::usize client_hello_packet_size() {
+    return sizeof(ae::u32)    // magic
+        + sizeof(ae::u16)     // version
+        + sizeof(ae::u16)     // type
+        + kEnvelopeWireSize   // envelope
+        + sizeof(ae::u16)     // protocol_version
+        + sizeof(ae::u64);    // reserved session token
+}
+
+constexpr ae::usize server_welcome_packet_size() {
+    return client_hello_packet_size();
+}
+
+constexpr ae::usize server_reject_packet_size() {
+    return client_hello_packet_size()
+        + sizeof(ae::u8);    // reject reason
+}
+
 inline bool deserialize_player_input_packet(
     std::span<const std::byte> buffer,
+    PacketEnvelope& envelope,
     PlayerInputCommand& command) {
     if (buffer.size() != player_input_packet_size()) {
         return false;
@@ -257,21 +367,25 @@ inline bool deserialize_player_input_packet(
 
     detail::ByteReader reader(buffer);
     return detail::read_header(reader, PacketType::PlayerInput)
+        && detail::read_envelope(reader, envelope)
         && detail::read_player_input(reader, command)
         && reader.is_complete();
 }
 
 inline bool serialize_server_snapshot_packet(
+    const PacketEnvelope& envelope,
     const ServerSnapshot& snapshot,
     std::span<std::byte, server_snapshot_packet_size()> buffer) {
     detail::ByteWriter writer(buffer);
     return detail::write_header(writer, PacketType::ServerSnapshot)
+        && detail::write_envelope(writer, envelope)
         && detail::write_snapshot(writer, snapshot)
         && writer.bytes_written() == buffer.size();
 }
 
 inline bool deserialize_server_snapshot_packet(
     std::span<const std::byte> buffer,
+    PacketEnvelope& envelope,
     ServerSnapshot& snapshot) {
     if (buffer.size() != server_snapshot_packet_size()) {
         return false;
@@ -279,11 +393,93 @@ inline bool deserialize_server_snapshot_packet(
 
     detail::ByteReader reader(buffer);
     return detail::read_header(reader, PacketType::ServerSnapshot)
+        && detail::read_envelope(reader, envelope)
         && detail::read_snapshot(reader, snapshot)
+        && reader.is_complete();
+}
+
+inline bool serialize_client_hello_packet(
+    const PacketEnvelope& envelope,
+    const ClientHelloPacket& packet,
+    std::span<std::byte, client_hello_packet_size()> buffer) {
+    detail::ByteWriter writer(buffer);
+    return detail::write_header(writer, PacketType::ClientHello)
+        && detail::write_envelope(writer, envelope)
+        && detail::write_client_hello(writer, packet)
+        && writer.bytes_written() == buffer.size();
+}
+
+inline bool deserialize_client_hello_packet(
+    std::span<const std::byte> buffer,
+    PacketEnvelope& envelope,
+    ClientHelloPacket& packet) {
+    if (buffer.size() != client_hello_packet_size()) {
+        return false;
+    }
+
+    detail::ByteReader reader(buffer);
+    return detail::read_header(reader, PacketType::ClientHello)
+        && detail::read_envelope(reader, envelope)
+        && detail::read_client_hello(reader, packet)
+        && reader.is_complete();
+}
+
+inline bool serialize_server_welcome_packet(
+    const PacketEnvelope& envelope,
+    const ServerWelcomePacket& packet,
+    std::span<std::byte, server_welcome_packet_size()> buffer) {
+    detail::ByteWriter writer(buffer);
+    return detail::write_header(writer, PacketType::ServerWelcome)
+        && detail::write_envelope(writer, envelope)
+        && detail::write_server_welcome(writer, packet)
+        && writer.bytes_written() == buffer.size();
+}
+
+inline bool deserialize_server_welcome_packet(
+    std::span<const std::byte> buffer,
+    PacketEnvelope& envelope,
+    ServerWelcomePacket& packet) {
+    if (buffer.size() != server_welcome_packet_size()) {
+        return false;
+    }
+
+    detail::ByteReader reader(buffer);
+    return detail::read_header(reader, PacketType::ServerWelcome)
+        && detail::read_envelope(reader, envelope)
+        && detail::read_server_welcome(reader, packet)
+        && reader.is_complete();
+}
+
+inline bool serialize_server_reject_packet(
+    const PacketEnvelope& envelope,
+    const ServerRejectPacket& packet,
+    std::span<std::byte, server_reject_packet_size()> buffer) {
+    detail::ByteWriter writer(buffer);
+    return detail::write_header(writer, PacketType::ServerReject)
+        && detail::write_envelope(writer, envelope)
+        && detail::write_server_reject(writer, packet)
+        && writer.bytes_written() == buffer.size();
+}
+
+inline bool deserialize_server_reject_packet(
+    std::span<const std::byte> buffer,
+    PacketEnvelope& envelope,
+    ServerRejectPacket& packet) {
+    if (buffer.size() != server_reject_packet_size()) {
+        return false;
+    }
+
+    detail::ByteReader reader(buffer);
+    return detail::read_header(reader, PacketType::ServerReject)
+        && detail::read_envelope(reader, envelope)
+        && detail::read_server_reject(reader, packet)
         && reader.is_complete();
 }
 
 using PlayerInputPacketBuffer = std::array<std::byte, player_input_packet_size()>;
 using ServerSnapshotPacketBuffer = std::array<std::byte, server_snapshot_packet_size()>;
+using ClientHelloPacketBuffer = std::array<std::byte, client_hello_packet_size()>;
+using ServerWelcomePacketBuffer = std::array<std::byte, server_welcome_packet_size()>;
+using ServerRejectPacketBuffer = std::array<std::byte, server_reject_packet_size()>;
 
 }  // namespace ahamkara::game

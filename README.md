@@ -67,6 +67,9 @@ and `Start` to exit.
 The network client connects to the local server over UDP. Both processes
 print tick and position diagnostics to stdout.
 
+For server-only local run and Docker notes, see
+[`docs/wish_engine_local_run.md`](docs/wish_engine_local_run.md).
+
 ### Universal Start Script
 
 Use the universal launcher if you want one entrypoint for configure/build/run:
@@ -101,3 +104,4 @@ quit
 - [Networking model](docs/networking.md)
 - [Building from source](docs/building.md)
 - [Client config](docs/client_config.md)
+- [Asset pipeline](docs/asset_pipeline.md)

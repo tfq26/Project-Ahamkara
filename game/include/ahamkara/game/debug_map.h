@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ahamkara/game/movement.h"
+
 #include <array>
 #include <cstddef>
 
@@ -18,6 +20,7 @@ struct ColliderBox {
     bool wall {false};
     bool jump_through {false};
     bool auto_step {true};
+    SurfaceMaterial surface_material {SurfaceMaterial::Default};
 };
 
 /**

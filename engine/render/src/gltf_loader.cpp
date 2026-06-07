@@ -502,6 +502,123 @@ bool GltfLoader::load_from_string(const std::string& json, const std::string& ba
         }
     }
 
+    // Parse skins (after buffer data is available)
+    if (const auto* skins_arr = json_get_array(root, "skins")) {
+        for (const auto& s : skins_arr->array_val) {
+            GltfSkin skin;
+            std::vector<int> joint_node_indices;
+            if (const auto* joints = json_get_array(s, "joints")) {
+                for (const auto& j : joints->array_val) {
+                    if (j.type == JsonType::Number) {
+                        joint_node_indices.push_back(static_cast<int>(j.number_val));
+                    }
+                }
+            }
+            // Read inverseBindMatrices accessor
+            int ibm_accessor = json_get_int(s, "inverseBindMatrices", -1);
+            std::vector<float> ibm_data;
+            if (ibm_accessor >= 0 && static_cast<std::size_t>(ibm_accessor) < accessors.size()) {
+                const auto& acc = accessors[static_cast<std::size_t>(ibm_accessor)];
+                if (acc.buffer_view >= 0 && static_cast<std::size_t>(acc.buffer_view) < buffer_views.size()) {
+                    const auto& bv = buffer_views[static_cast<std::size_t>(acc.buffer_view)];
+                    if (bv.buffer >= 0 && static_cast<std::size_t>(bv.buffer) < buffer_data.size()) {
+                        read_accessor_data(buffer_data[static_cast<std::size_t>(bv.buffer)], acc, bv, ibm_data);
+                    }
+                }
+            }
+            // Build joints: one per joint node index
+            for (std::size_t ji = 0; ji < joint_node_indices.size(); ++ji) {
+                GltfJoint joint;
+                int node_idx = joint_node_indices[ji];
+                joint.node_index = node_idx;
+                if (node_idx >= 0 && static_cast<std::size_t>(node_idx) < nodes.size()) {
+                    // Determine parent index from node hierarchy within the skin
+                    bool found_parent = false;
+                    for (std::size_t pj = 0; pj < joint_node_indices.size(); ++pj) {
+                        int pidx = joint_node_indices[pj];
+                        if (pidx >= 0 && static_cast<std::size_t>(pidx) < nodes.size()) {
+                            for (int child : nodes[static_cast<std::size_t>(pidx)].children) {
+                                if (child == node_idx) {
+                                    joint.parent_index = static_cast<int>(pj);
+                                    found_parent = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (found_parent) break;
+                    }
+                }
+                // Copy 16 floats of inverse bind matrix for this joint
+                std::size_t ibm_start = ji * 16;
+                if (ibm_start + 16 <= ibm_data.size()) {
+                    joint.inverse_bind_matrix.assign(
+                        ibm_data.begin() + static_cast<std::ptrdiff_t>(ibm_start),
+                        ibm_data.begin() + static_cast<std::ptrdiff_t>(ibm_start + 16));
+                }
+                skin.joints.push_back(std::move(joint));
+            }
+            model.skins.push_back(std::move(skin));
+        }
+    }
+
+    // Parse animations (after buffer data is available)
+    if (const auto* anims_arr = json_get_array(root, "animations")) {
+        for (const auto& a : anims_arr->array_val) {
+            GltfAnimation anim;
+            anim.name = json_get_string(a, "name");
+
+            // Parse samplers
+            if (const auto* samplers_arr = json_get_array(a, "samplers")) {
+                for (const auto& smp : samplers_arr->array_val) {
+                    GltfAnimationSampler sampler;
+                    int input_acc = json_get_int(smp, "input", -1);
+                    int output_acc = json_get_int(smp, "output", -1);
+                    sampler.interpolation = json_get_string(smp, "interpolation");
+                    if (sampler.interpolation.empty()) {
+                        sampler.interpolation = "LINEAR";
+                    }
+
+                    // Read input keyframe times
+                    if (input_acc >= 0 && static_cast<std::size_t>(input_acc) < accessors.size()) {
+                        const auto& acc = accessors[static_cast<std::size_t>(input_acc)];
+                        if (acc.buffer_view >= 0 && static_cast<std::size_t>(acc.buffer_view) < buffer_views.size()) {
+                            const auto& bv = buffer_views[static_cast<std::size_t>(acc.buffer_view)];
+                            if (bv.buffer >= 0 && static_cast<std::size_t>(bv.buffer) < buffer_data.size()) {
+                                read_accessor_data(buffer_data[static_cast<std::size_t>(bv.buffer)], acc, bv, sampler.input_times);
+                            }
+                        }
+                    }
+                    // Read output keyframe values
+                    if (output_acc >= 0 && static_cast<std::size_t>(output_acc) < accessors.size()) {
+                        const auto& acc = accessors[static_cast<std::size_t>(output_acc)];
+                        if (acc.buffer_view >= 0 && static_cast<std::size_t>(acc.buffer_view) < buffer_views.size()) {
+                            const auto& bv = buffer_views[static_cast<std::size_t>(acc.buffer_view)];
+                            if (bv.buffer >= 0 && static_cast<std::size_t>(bv.buffer) < buffer_data.size()) {
+                                read_accessor_data(buffer_data[static_cast<std::size_t>(bv.buffer)], acc, bv, sampler.output_values);
+                            }
+                        }
+                    }
+                    anim.samplers.push_back(std::move(sampler));
+                }
+            }
+
+            // Parse channels
+            if (const auto* channels_arr = json_get_array(a, "channels")) {
+                for (const auto& ch : channels_arr->array_val) {
+                    GltfAnimationChannel channel;
+                    channel.sampler_index = json_get_int(ch, "sampler", -1);
+                    if (const auto* target = json_get_object(ch, "target")) {
+                        channel.node_index = json_get_int(*target, "node", -1);
+                        channel.path = json_get_string(*target, "path");
+                    }
+                    anim.channels.push_back(std::move(channel));
+                }
+            }
+
+            model.animations.push_back(std::move(anim));
+        }
+    }
+
     // Extract meshes from the node tree
     model.meshes.clear();
 
