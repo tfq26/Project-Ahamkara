@@ -12,6 +12,8 @@
 #include <cstdio>
 #include <string>
 
+#include "gl_compat.h"
+
 namespace ae::render {
 
 // ============================================================================
@@ -221,11 +223,19 @@ void draw_hud(const DebugScene& scene, int width, int height, float hud_brightne
     std::snprintf(curr_ammo_buf, sizeof(curr_ammo_buf), "%.0f", static_cast<double>(scene.ammo_current));
     draw_ui_text(card_x + 16.0F, card_y + 12.0F, 3.4F, curr_ammo_buf, low_ammo ? UiTextStyle::Accent : UiTextStyle::Header);
 
-    char reserve_buf[16]{};
+    char reserve_buf[24]{};
     std::snprintf(reserve_buf, sizeof(reserve_buf), "/ %.0f", static_cast<double>(scene.ammo_max));
     draw_ui_text(card_x + 72.0F, card_y + 24.0F, 1.8F, reserve_buf, UiTextStyle::Muted);
 
-    draw_ui_text(card_x + 16.0F, card_y + 52.0F, 1.1F, "STANDARD RIFLE", UiTextStyle::Muted);
+    // Reserve ammo (bottom of card)
+    char total_buf[32]{};
+    std::snprintf(total_buf, sizeof(total_buf), "RESERVE: %d", scene.reserve_ammo);
+    draw_ui_text(card_x + 16.0F, card_y + 62.0F, 0.9F, total_buf, UiTextStyle::Muted);
+
+    // Weapon name
+    if (scene.weapon_name && scene.weapon_name[0]) {
+        draw_ui_text(card_x + 16.0F, card_y + 50.0F, 1.1F, scene.weapon_name, UiTextStyle::Muted);
+    }
 
     const float mag_bar_x = card_x + 16.0F;
     const float mag_bar_y = card_y + 44.0F;
@@ -242,6 +252,47 @@ void draw_hud(const DebugScene& scene, int width, int height, float hud_brightne
         glBegin(GL_QUADS);
         draw_screen_quad(mag_bar_x, mag_bar_y, mag_bar_w * ammo_pct, mag_bar_h);
         glEnd();
+    }
+
+    // --- Enemy health bars (top-right area) ---
+    if (scene.enemy_count > 0) {
+        const float enemy_x = static_cast<float>(width) - 220.0F;
+        const float enemy_start_y = 40.0F;
+        const float enemy_bar_w = 180.0F;
+        const float enemy_bar_h = 8.0F;
+
+        for (int i = 0; i < scene.enemy_count && i < 16; ++i) {
+            if (scene.enemy_max_health[i] <= 0.0F) continue;
+            const float ey = enemy_start_y + static_cast<float>(i) * 32.0F;
+            float enemy_pct = scene.enemy_health[i] / scene.enemy_max_health[i];
+            if (enemy_pct > 1.0F) enemy_pct = 1.0F;
+            if (enemy_pct < 0.0F) enemy_pct = 0.0F;
+
+            // Enemy label
+            char enemy_buf[32]{};
+            std::snprintf(enemy_buf, sizeof(enemy_buf), "ENEMY %d", i + 1);
+            draw_ui_text(enemy_x, ey - 2.0F, 1.0F, enemy_buf, UiTextStyle::Header);
+
+            // Health numeric
+            char hp_buf[24]{};
+            std::snprintf(hp_buf, sizeof(hp_buf), "%.0f/%.0f",
+                          static_cast<double>(scene.enemy_health[i]),
+                          static_cast<double>(scene.enemy_max_health[i]));
+            draw_ui_text(enemy_x + enemy_bar_w - 80.0F, ey - 2.0F, 0.9F, hp_buf, UiTextStyle::Muted);
+
+            // Background bar
+            draw_panel(enemy_x, ey + 12.0F, enemy_bar_w, enemy_bar_h, 0.1F, 0.1F, 0.15F, 0.65F * hud_brightness);
+
+            // Fill bar
+            float bar_r = 0.85F, bar_g = 0.15F, bar_b = 0.15F;
+            if (enemy_pct > 0.5F) { bar_r = 0.2F; bar_g = 0.85F; bar_b = 0.2F; }
+            else if (enemy_pct > 0.25F) { bar_r = 0.85F; bar_g = 0.85F; bar_b = 0.15F; }
+
+            glColor4f(bar_r, bar_g, bar_b, 0.9F * hud_brightness);
+            glBegin(GL_QUADS);
+            draw_screen_quad(enemy_x, ey + 12.0F, enemy_bar_w * enemy_pct, enemy_bar_h);
+            glEnd();
+        }
     }
 
     glDisable(GL_BLEND);
@@ -497,7 +548,7 @@ void draw_menu_overlay(const DebugScene& scene, int width, int height) {
         draw_panel(content_x, content_y + 194.0F, panel_w - sidebar_w - 48.0F, 220.0F, 0.08F, 0.11F, 0.16F, 0.92F);
         draw_panel_outline(content_x, content_y + 194.0F, panel_w - sidebar_w - 48.0F, 220.0F, 0.22F, 0.34F, 0.52F, 0.85F);
         draw_ui_text(content_x + 20.0F, content_y + 210.0F, 2.4F, "GEAR", UiTextStyle::Section);
-        draw_ui_text(content_x + 24.0F, content_y + 248.0F, 2.1F, "PRIMARY   STANDARD RIFLE", UiTextStyle::Body);
+        draw_ui_text(content_x + 24.0F, content_y + 248.0F, 2.1F, "PRIMARY   AR-15", UiTextStyle::Body);
         draw_ui_text(content_x + 24.0F, content_y + 280.0F, 2.1F, "SPECIAL   SHOTGUN", UiTextStyle::Body);
         draw_ui_text(content_x + 24.0F, content_y + 312.0F, 2.1F, "HEAVY     ROCKET", UiTextStyle::Body);
         draw_ui_text(content_x + 24.0F, content_y + 356.0F, 1.9F, "MOBILITY  75", UiTextStyle::Body);

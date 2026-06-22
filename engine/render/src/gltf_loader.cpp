@@ -243,6 +243,7 @@ struct GltfBuffer {
 struct GltfPrimitive {
     int position_accessor {-1};
     int normal_accessor {-1};
+    int texcoord_accessor {-1};
     int indices_accessor {-1};
     int material {-1};
 };
@@ -430,6 +431,7 @@ bool GltfLoader::load_from_string(const std::string& json, const std::string& ba
                     if (const auto* attrs = json_get_object(p, "attributes")) {
                         prim.position_accessor = json_get_int(*attrs, "POSITION", -1);
                         prim.normal_accessor = json_get_int(*attrs, "NORMAL", -1);
+                        prim.texcoord_accessor = json_get_int(*attrs, "TEXCOORD_0", -1);
                     }
                     prim.indices_accessor = json_get_int(p, "indices", -1);
                     prim.material = json_get_int(p, "material", -1);
@@ -666,6 +668,17 @@ bool GltfLoader::load_from_string(const std::string& json, const std::string& ba
                     const auto& bv = buffer_views[static_cast<std::size_t>(acc.buffer_view)];
                     if (bv.buffer >= 0 && static_cast<std::size_t>(bv.buffer) < buffer_data.size()) {
                         read_accessor_data(buffer_data[static_cast<std::size_t>(bv.buffer)], acc, bv, mesh.normals);
+                    }
+                }
+            }
+
+            // Load texture coordinates (TEXCOORD_0)
+            if (prim.texcoord_accessor >= 0 && static_cast<std::size_t>(prim.texcoord_accessor) < accessors.size()) {
+                const auto& acc = accessors[static_cast<std::size_t>(prim.texcoord_accessor)];
+                if (acc.buffer_view >= 0 && static_cast<std::size_t>(acc.buffer_view) < buffer_views.size()) {
+                    const auto& bv = buffer_views[static_cast<std::size_t>(acc.buffer_view)];
+                    if (bv.buffer >= 0 && static_cast<std::size_t>(bv.buffer) < buffer_data.size()) {
+                        read_accessor_data(buffer_data[static_cast<std::size_t>(bv.buffer)], acc, bv, mesh.uvs);
                     }
                 }
             }

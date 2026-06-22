@@ -1,0 +1,4 @@
+interface:
+  display_name: "Subagent Reporting"
+  short_description: "Write shared agent handoff reports"
+  default_prompt: "Use $subagent-reporting to write a structured subagent report and append the master log."

@@ -11,6 +11,8 @@
 #include <cstdio>
 #include <string>
 
+#include "gl_compat.h"
+
 namespace ae::render {
 
 void draw_metrics_overlay(const DebugScene& scene, int width, int height,

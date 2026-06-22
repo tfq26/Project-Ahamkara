@@ -6,23 +6,13 @@
 #include "ae/render/debug_renderer.h"
 #include "ae/render/font_atlas.h"
 #include "ae/render/frustum.h"
+#include "ae/render/gl_platform.h"
 #include "ae/render/render_backend.h"
 #include "ae/render/skeletal_animation.h"
 
 #include <array>
 #include <cstdint>
 #include <string>
-
-// ---------------------------------------------------------------------------
-// Platform-specific GL headers
-// ---------------------------------------------------------------------------
-#if defined(__APPLE__)
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
-#else
-#include <GL/gl.h>
-#include <GL/glext.h>
-#endif
 
 namespace ae::render {
 

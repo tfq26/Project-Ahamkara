@@ -284,6 +284,37 @@ public:
         }
     }
 
+    // --- Textures ---
+    TextureHandle create_texture(int width, int height, const void* rgba8_data) override {
+        GLuint tex = 0;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba8_data);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        return {textures_.allocate(tex)};
+    }
+
+    void destroy_texture(TextureHandle handle) override {
+        GLuint tex = textures_.lookup(handle.id);
+        if (tex != 0) {
+            glDeleteTextures(1, &tex);
+            textures_.release(handle.id);
+        }
+    }
+
+    void bind_texture(TextureHandle handle, int slot) override {
+        GLuint tex = textures_.lookup(handle.id);
+        if (tex != 0) {
+            glActiveTexture(GL_TEXTURE0 + slot);
+            glBindTexture(GL_TEXTURE_2D, tex);
+        }
+    }
+
     // --- GPU mesh helpers ---
     GpuMesh create_gpu_mesh(const GltfMesh& mesh) override {
         GpuMesh gm;
@@ -302,6 +333,11 @@ public:
             gm.vbo_normals = create_vertex_buffer(
                 mesh.normals.data(),
                 mesh.normals.size() * sizeof(float), false);
+        }
+        if (!mesh.uvs.empty()) {
+            gm.vbo_texcoords = create_vertex_buffer(
+                mesh.uvs.data(),
+                mesh.uvs.size() * sizeof(float), false);
         }
         if (!mesh.joint_indices.empty()) {
             gm.vbo_joints = create_vertex_buffer(
@@ -331,6 +367,7 @@ public:
     void destroy_gpu_mesh(GpuMesh& mesh) override {
         destroy_buffer(mesh.vbo_positions);
         destroy_buffer(mesh.vbo_normals);
+        destroy_buffer(mesh.vbo_texcoords);
         destroy_buffer(mesh.vbo_joints);
         destroy_buffer(mesh.vbo_weights);
         destroy_buffer(mesh.ibo_indices);
@@ -555,6 +592,7 @@ private:
     HandlePool<GLuint> buffers_;
     HandlePool<GLuint> shaders_;
     HandlePool<GLuint> queries_;
+    HandlePool<GLuint> textures_;
 };
 
 }  // namespace

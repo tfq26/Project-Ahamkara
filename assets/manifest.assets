@@ -6,3 +6,6 @@
 # Paths are relative to this manifest file.
 
 model models/test_box.gltf compiled/models/test_box.aemesh
+level levels/javelin4.lvl compiled/levels/javelin4.aelevel
+level levels/prototype_arena.lvl compiled/levels/prototype_arena.aelevel
+level levels/prototype_box.lvl compiled/levels/prototype_box.aelevel

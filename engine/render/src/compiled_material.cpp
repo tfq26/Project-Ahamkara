@@ -1,57 +1,10 @@
 #include "ae/render/compiled_material.h"
+#include "ae/render/binary_io.h"
 
 #include <filesystem>
 #include <fstream>
 
 namespace ae::render {
-namespace {
-
-bool write_bytes(std::ofstream& file, const void* data, std::size_t size) {
-    file.write(static_cast<const char*>(data), static_cast<std::streamsize>(size));
-    return static_cast<bool>(file);
-}
-
-template <typename T>
-bool write_value(std::ofstream& file, const T& value) {
-    return write_bytes(file, &value, sizeof(T));
-}
-
-bool read_bytes(std::ifstream& file, void* data, std::size_t size) {
-    file.read(static_cast<char*>(data), static_cast<std::streamsize>(size));
-    return static_cast<bool>(file);
-}
-
-template <typename T>
-bool read_value(std::ifstream& file, T& value) {
-    return read_bytes(file, &value, sizeof(T));
-}
-
-bool write_string(std::ofstream& file, const std::string& value) {
-    const auto size = static_cast<std::uint32_t>(value.size());
-    return write_value(file, size) && write_bytes(file, value.data(), value.size());
-}
-
-bool read_string(std::ifstream& file, std::string& value, std::string& error) {
-    std::uint32_t size = 0;
-    if (!read_value(file, size)) {
-        error = "Failed to read string size";
-        return false;
-    }
-
-    value.resize(size);
-    if (size == 0) {
-        return true;
-    }
-
-    if (!read_bytes(file, value.data(), size)) {
-        error = "Failed to read string data";
-        return false;
-    }
-
-    return true;
-}
-
-} // namespace
 
 bool save_compiled_material(const std::string& path, const MaterialAsset& material, std::string& error) {
     error.clear();

@@ -1,39 +1,59 @@
 #include "ae/core/cli_utils.h"
 #include "ae/core/log.h"
+#include "ae/core/time.h"
 #include "ae/network/cli_helpers.h"
 #include "ae/network/network_simulator.h"
 #include "ae/network/server_history.h"
 #include "ae/network/udp_socket.h"
+#include "ae/render/compiled_level.h"
 #include "ae/runtime/application.h"
+#include "ahamkara/game/activities/deathmatch_activity.h"
+#include "ahamkara/game/activities/horde_activity.h"
+#include "ahamkara/game/activities/social_hub_activity.h"
 #include "ahamkara/game/game_module.h"
+#include "ahamkara/game/gameplay_types.h"
 #include "ahamkara/game/movement.h"
 #include "ahamkara/game/net_packets.h"
 #include "ahamkara/game/net_types.h"
 #include "ahamkara/game/world.h"
 #include "wish/admin/admin_server.h"
 #include "wish/admin/server_config.h"
+#include "wish/core/activity.h"
+#include "wish/core/activity_manager.h"
+#include "wish/integrations/nakama/nakama_bridge.h"
 #include "wish/integrations/nakama/mock_session_services.h"
 #include "wish/session/session_runtime.h"
 
 #include <chrono>
+#include <cstdio>
 #include <cstdlib>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
 #include <thread>
+#include <unordered_map>
+#include <vector>
 
 namespace {
-
-inline float compute_frame_dt(std::chrono::steady_clock::time_point& previous) {
-    const auto now = std::chrono::steady_clock::now();
-    const float dt = std::chrono::duration<float>(now - previous).count();
-    previous = now;
-    return dt;
-}
 
 inline std::string build_remote_endpoint(const ae::NetAddress& address) {
     return address.ip + ":" + std::to_string(address.port);
 }
+
+/// State for one peer connected to this server across all activities.
+struct PeerState {
+    ae::NetAddress address {};
+    bool handshake_complete {false};
+    std::chrono::steady_clock::time_point last_seen {};
+    wish::session::SessionId session_id {};
+    wish::core::ActivityId activity_id {0};
+
+    // Auth state
+    bool session_admitted {false};
+    std::string authenticated_player_id;
+    std::string pending_auth_token;
+};
 
 }  // namespace
 
@@ -43,38 +63,73 @@ int main(int argc, char** argv) {
 
     const wish::admin::ServerConfig server_config = wish::admin::load_server_config(argc, argv);
 
+    // ── Network setup ─────────────────────────────────────────────────────
     ae::UdpSocket socket;
     if (!socket.open(server_config.port)) {
         ae::log_error("Dedicated server failed to open the configured UDP port.");
         return 1;
     }
 
-    // ── Simulator config from CLI ─────────────────────────────────────────
     const ae::SimulatorConfig sim_config = ae::build_sim_config(argc, argv);
-
     ae::NetworkSimulator sim(socket);
     sim.configure(sim_config);
 
-    // ── Server history buffer ─────────────────────────────────────────────
-    ae::ServerHistoryBuffer<ahamkara::game::HistoricalState, 1024> history_buffer;
+    // ── Activity templates ────────────────────────────────────────────────
+    wish::core::ActivityManager activity_mgr;
 
-    // ── Authoritative world ─────────────────────────────────────────────
-    // The server owns the one true simulation.  All state originates here
-    // and is snapshotted for clients.  set_is_client(false) disables
-    // cosmetic-only client effects (hitmarkers) that the server never renders.
-    ahamkara::game::World world;
-    world.set_is_client(false);
+    // Register activity templates (can also be loaded from JSON)
+    activity_mgr.register_template(wish::core::ActivityConfig {
+        .id = 1,
+        .name = "Crucible - Clash",
+        .category = wish::core::ActivityCategory::PvP,
+        .max_players = static_cast<ae::u32>(server_config.max_players),
+        .tick_rate = server_config.tick_rate,
+        .map_path = "default",
+        .allow_spectators = false,
+    });
 
-    ahamkara::game::ServerSnapshot snapshot {};
-    wish::session::SessionRuntime session_runtime(std::chrono::duration_cast<std::chrono::steady_clock::duration>(
-        std::chrono::duration<double>(server_config.disconnect_timeout_seconds)));
-    wish::integrations::nakama::NoopAuthValidator auth_validator;
+    activity_mgr.register_template(wish::core::ActivityConfig {
+        .id = 2,
+        .name = "Horde - Defend the Core",
+        .category = wish::core::ActivityCategory::PvE,
+        .max_players = 4,
+        .tick_rate = 60.0F,
+        .map_path = "default",
+        .allow_spectators = false,
+    });
+
+    activity_mgr.register_template(wish::core::ActivityConfig {
+        .id = 3,
+        .name = "The Tower",
+        .category = wish::core::ActivityCategory::Social,
+        .max_players = 64,
+        .tick_rate = 30.0F,
+        .map_path = "default",
+        .allow_spectators = false,
+    });
+
+    // ── Start up a deathmatch activity by default ─────────────────────────
+    auto dm_activity = std::make_unique<ahamkara::game::activities::DeathmatchActivity>();
+    wish::core::ActivityId default_activity_id =
+        activity_mgr.start_activity(static_cast<wish::core::ActivityId>(1), std::move(dm_activity));
+
+    // Also start a social hub so players have a lobby
+    auto hub_activity = std::make_unique<ahamkara::game::activities::SocialHubActivity>();
+    activity_mgr.start_activity(static_cast<wish::core::ActivityId>(3), std::move(hub_activity));
+
+    // ── Auth services ──────────────────────────────────────────────────────
+    const wish::integrations::nakama::BridgeSettings nakama_bridge =
+        wish::integrations::nakama::load_bridge_settings(argc, argv);
+    std::unique_ptr<wish::core::AuthValidator> auth_validator =
+        wish::integrations::nakama::make_auth_validator(nakama_bridge);
     wish::integrations::nakama::NoopSessionAdmissionService session_admission_service;
     wish::integrations::nakama::NoopMatchResultReporter match_result_reporter;
-    bool session_admitted = false;
-    std::string authenticated_player_id;
-    std::string match_id = "wish-match";
 
+    // ── Peer tracking ─────────────────────────────────────────────────────
+    std::unordered_map<std::string, PeerState> peers;
+    std::vector<ae::NetAddress> handshake_list;  // addresses that completed handshake
+
+    // ── Tick timing ───────────────────────────────────────────────────────
     const float tick_rate = server_config.tick_rate > 0.0F ? server_config.tick_rate : 60.0F;
     const float delta_seconds = 1.0F / tick_rate;
     const auto tick_duration = std::chrono::duration<double>(delta_seconds);
@@ -82,14 +137,15 @@ int main(int argc, char** argv) {
     const auto server_start = next_tick;
     const auto match_start = next_tick;
 
-    ahamkara::game::PlayerInputPacketBuffer packet_buffer {};
-    ahamkara::game::ServerSnapshotPacketBuffer snapshot_buffer {};
-    ahamkara::game::ServerRejectPacketBuffer reject_buffer {};
-    ahamkara::game::ServerWelcomePacketBuffer welcome_buffer {};
-    ahamkara::game::PacketEnvelope envelope {};
-    ae::NetAddress last_client {};
-    bool client_connected = false;
     ae::u32 server_tick = 0;
+    ae::u32 main_envelope_seq = 0;
+
+    // ── Packet buffers ────────────────────────────────────────────────────
+    ahamkara::game::PlayerInputPacketBuffer packet_buffer {};
+    ahamkara::game::ServerWelcomePacketBuffer welcome_buffer {};
+    ahamkara::game::ServerRejectPacketBuffer reject_buffer {};
+
+    // ── Admin HTTP server ─────────────────────────────────────────────────
     wish::admin::HttpAdminServer admin_server;
     wish::admin::ServerStatus admin_status {};
     std::mutex admin_status_mutex;
@@ -107,6 +163,7 @@ int main(int argc, char** argv) {
         status.match_duration_seconds = server_config.match_duration_seconds;
         status.uptime_seconds = std::chrono::duration<float>(now - server_start).count();
         status.match_elapsed_seconds = std::chrono::duration<float>(now - match_start).count();
+
         if (server_config.match_duration_seconds > 0.0F) {
             const float remaining = server_config.match_duration_seconds - status.match_elapsed_seconds;
             status.match_remaining_seconds = remaining > 0.0F ? remaining : 0.0F;
@@ -116,16 +173,14 @@ int main(int argc, char** argv) {
             status.match_active = true;
         }
 
-        session_runtime.for_each_client([&](const wish::session::ClientSession& client) {
-            if (client.connection_state != wish::session::ClientConnectionState::Connected) {
-                return;
-            }
-
+        // Report players from all running activities
+        for (auto& p : peers) {
+            if (!p.second.handshake_complete) continue;
             wish::admin::PlayerStatus player {};
-            player.endpoint = client.identity;
-            player.seconds_since_seen = std::chrono::duration<float>(now - client.last_seen).count();
+            player.endpoint = p.first;
+            player.seconds_since_seen = std::chrono::duration<float>(now - p.second.last_seen).count();
             status.players.push_back(std::move(player));
-        });
+        }
 
         std::lock_guard<std::mutex> lock(admin_status_mutex);
         admin_status = std::move(status);
@@ -139,38 +194,50 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::ostringstream startup_message;
-    startup_message << ahamkara::game::game_name()
-                    << " dedicated server listening on UDP " << server_config.port
-                    << " and admin HTTP " << server_config.admin_port
-                    << " (tick=" << tick_rate
-                    << "Hz, maxPlayers=" << server_config.max_players
-                    << ", disconnectTimeout=" << server_config.disconnect_timeout_seconds
-                    << "s, matchDuration=" << server_config.match_duration_seconds << "s).";
-    ae::log_info(startup_message.str());
+    // ── Startup log ───────────────────────────────────────────────────────
+    {
+        std::ostringstream msg;
+        msg << ahamkara::game::game_name()
+            << " dedicated server listening on UDP " << server_config.port
+            << " and admin HTTP " << server_config.admin_port
+            << " (tick=" << tick_rate
+            << "Hz, maxPlayers=" << server_config.max_players
+            << ", activities=" << activity_mgr.running_count() << ").";
+        if (wish::integrations::nakama::is_enabled(nakama_bridge)) {
+            msg << " Nakama bridge enabled at "
+                << wish::integrations::nakama::describe_bridge(nakama_bridge) << '.';
+        } else {
+            msg << " Nakama bridge disabled; using local no-op auth.";
+        }
+        ae::log_info(msg.str());
+    }
 
     auto previous_frame = std::chrono::steady_clock::now();
 
+    // ── Main loop ─────────────────────────────────────────────────────────
     while (application.is_running()) {
-        const float frame_dt = compute_frame_dt(previous_frame);
+        const float frame_dt = ae::compute_frame_dt(previous_frame);
         const auto frame_now = std::chrono::steady_clock::now();
 
-        // Process simulator delayed packets.
         sim.update(frame_dt);
-
         next_tick += std::chrono::duration_cast<std::chrono::steady_clock::duration>(tick_duration);
 
+        // ── Receive packets ───────────────────────────────────────────
         while (true) {
             ae::NetAddress from {};
             const ae::i32 received = sim.receive_from(from, packet_buffer.data(), packet_buffer.size());
-            if (received <= 0) {
-                break;
-            }
+            if (received <= 0) break;
 
             const auto packet_span = std::span<const std::byte>(
                 packet_buffer.data(), static_cast<ae::usize>(received));
 
-            if (received == static_cast<ae::i32>(ahamkara::game::client_hello_packet_size())) {
+            std::string peer_key = from.ip + ":" + std::to_string(from.port);
+            PeerState& peer = peers[peer_key];
+            peer.address = from;
+            peer.last_seen = frame_now;
+
+            // ── Handshake ──────────────────────────────────────────────
+            if (received >= static_cast<ae::i32>(ahamkara::game::kMinClientHelloWireSize)) {
                 ahamkara::game::ClientHelloPacket hello {};
                 ahamkara::game::PacketEnvelope in_envelope {};
                 if (!ahamkara::game::deserialize_client_hello_packet(packet_span, in_envelope, hello)) {
@@ -181,51 +248,69 @@ int main(int argc, char** argv) {
                 if (!ahamkara::game::is_supported_protocol_version(hello.protocol_version)) {
                     ahamkara::game::ServerRejectPacket reject {};
                     reject.protocol_version = ahamkara::game::kProtocolVersion;
-                    reject.session_token = hello.session_token;
                     reject.reason = ahamkara::game::HandshakeRejectReason::VersionMismatch;
 
-                    envelope.sequence++;
-                    if (!ahamkara::game::serialize_server_reject_packet(envelope, reject, reject_buffer)
+                    ahamkara::game::PacketEnvelope env {};
+                    env.sequence = ++main_envelope_seq;
+                    if (!ahamkara::game::serialize_server_reject_packet(env, reject, reject_buffer)
                         || !sim.send_to(from, reject_buffer.data(), reject_buffer.size())) {
                         ae::log_warning("Dedicated server failed to reject an unsupported protocol version.");
                     }
                     continue;
                 }
 
-                if (client_connected && from != last_client) {
+                if (static_cast<int>(handshake_list.size()) >= server_config.max_players &&
+                    std::find(handshake_list.begin(), handshake_list.end(), from) == handshake_list.end()) {
                     ahamkara::game::ServerRejectPacket reject {};
                     reject.protocol_version = ahamkara::game::kProtocolVersion;
-                    reject.session_token = hello.session_token;
                     reject.reason = ahamkara::game::HandshakeRejectReason::ServerBusy;
 
-                    envelope.sequence++;
-                    if (!ahamkara::game::serialize_server_reject_packet(envelope, reject, reject_buffer)
+                    ahamkara::game::PacketEnvelope env {};
+                    env.sequence = ++main_envelope_seq;
+                    if (!ahamkara::game::serialize_server_reject_packet(env, reject, reject_buffer)
                         || !sim.send_to(from, reject_buffer.data(), reject_buffer.size())) {
                         ae::log_warning("Dedicated server failed to reject an extra client.");
                     }
                     continue;
                 }
 
-                client_connected = true;
-                last_client = from;
+                if (std::find(handshake_list.begin(), handshake_list.end(), from) == handshake_list.end()) {
+                    handshake_list.push_back(from);
+                }
 
                 ahamkara::game::ServerWelcomePacket welcome {};
                 welcome.protocol_version = ahamkara::game::kProtocolVersion;
-                welcome.session_token = hello.session_token;
+                std::snprintf(welcome.player_id, ahamkara::game::kMaxPlayerIdLength, "%s",
+                    peer.authenticated_player_id.empty() ? "pending" : peer.authenticated_player_id.c_str());
 
-                envelope.sequence++;
-                if (!ahamkara::game::serialize_server_welcome_packet(envelope, welcome, welcome_buffer)
+                ahamkara::game::PacketEnvelope env {};
+                env.sequence = ++main_envelope_seq;
+                if (!ahamkara::game::serialize_server_welcome_packet(env, welcome, welcome_buffer)
                     || !sim.send_to(from, welcome_buffer.data(), welcome_buffer.size())) {
                     ae::log_warning("Dedicated server failed to send a handshake welcome.");
                 }
+
+                // Save the auth token for later validation on first input
+                if (hello.auth_token_length > 0 && hello.auth_token_length <= ahamkara::game::kMaxAuthTokenLength) {
+                    peer.pending_auth_token.assign(hello.auth_token, hello.auth_token_length);
+                }
+
+                peer.handshake_complete = true;
                 continue;
             }
 
+            // ── Input packets ──────────────────────────────────────────
             if (received != static_cast<ae::i32>(packet_buffer.size())) {
-                ae::log_warning("Dedicated server received an unexpected packet size.");
+                // Unknown packet size — could be activity-specific
                 continue;
             }
 
+            if (!peer.handshake_complete) {
+                ae::log_warning("Dedicated server received input before handshake completion.");
+                continue;
+            }
+
+            // ── Deserialize input ──────────────────────────────────────
             ahamkara::game::PlayerInputCommand command {};
             ahamkara::game::PacketEnvelope in_envelope {};
             if (!ahamkara::game::deserialize_player_input_packet(packet_span, in_envelope, command)) {
@@ -233,24 +318,24 @@ int main(int argc, char** argv) {
                 continue;
             }
 
-            if (!client_connected || from != last_client) {
-                ae::log_warning("Dedicated server received input before handshake completion.");
-                continue;
-            }
-
-            if (!session_admitted) {
+            // ── Auth / admission (first input) ─────────────────────────
+            if (!peer.session_admitted) {
                 const std::string remote_endpoint = build_remote_endpoint(from);
-                const wish::core::AuthResult auth_result = auth_validator.validate(wish::core::AuthRequest {
-                    .token = "wish-placeholder-token",
-                    .remote_endpoint = remote_endpoint,
-                });
+                const std::string& auth_token = peer.pending_auth_token.empty()
+                    ? "wish-placeholder-token" : peer.pending_auth_token;
+                const wish::core::AuthResult auth_result = auth_validator->validate(
+                    wish::core::AuthRequest {
+                        .token = auth_token,
+                        .remote_endpoint = remote_endpoint,
+                    });
                 if (!auth_result.accepted) {
-                    ae::log_warning("Dedicated server rejected an unauthenticated session.");
+                    ae::log_warning(
+                        "Dedicated server rejected an unauthenticated session: " + auth_result.error_message);
                     continue;
                 }
 
-                const wish::core::SessionAdmissionResult admission_result = session_admission_service.admit(
-                    wish::core::SessionAdmissionRequest {
+                const wish::core::SessionAdmissionResult admission_result =
+                    session_admission_service.admit(wish::core::SessionAdmissionRequest {
                         .player_id = auth_result.player_id,
                         .session_id = auth_result.session_id,
                         .remote_endpoint = remote_endpoint,
@@ -260,52 +345,83 @@ int main(int argc, char** argv) {
                     continue;
                 }
 
-                authenticated_player_id = auth_result.player_id;
-                match_id = admission_result.match_id;
-                session_admitted = true;
+                // Admit the player into the default deathmatch activity
+                auto* dm = static_cast<ahamkara::game::activities::DeathmatchActivity*>(
+                    activity_mgr.get_activity(default_activity_id));
+                if (!dm || !dm->admit_player(wish::core::SessionAdmissionRequest {
+                        .player_id = auth_result.player_id,
+                        .session_id = auth_result.session_id,
+                        .remote_endpoint = remote_endpoint,
+                    })) {
+                    ae::log_warning("Dedicated server could not admit player into activity.");
+                    continue;
+                }
+
+                // Get the player slot
+                auto* slot = dm->first_slot();
+                if (slot) {
+                    slot->address = from;
+                    peer.session_id = slot->session_id;
+                    peer.activity_id = default_activity_id;
+                    peer.session_admitted = true;
+                    peer.authenticated_player_id = auth_result.player_id;
+                }
             }
 
-            auto& session = session_runtime.record_input(from, in_envelope, command, frame_now);
+            // ── Route input to the activity ────────────────────────────
+            auto* activity = activity_mgr.get_activity(peer.activity_id);
+            if (!activity) continue;
 
-            // ── Authoritative tick ────────────────────────────────────
-            // The server simulates the one true state from the received
-            // input.  This is the authoritative ground truth.
-            world.tick(delta_seconds, command);
-            session_runtime.mark_input_processed(session, command.sequence);
+            // Record envelope processing
+            activity->process_input(peer.session_id, in_envelope, command.sequence);
+
+            // Simulate input in deathmatch activity
+            if (auto* dm = dynamic_cast<ahamkara::game::activities::DeathmatchActivity*>(activity)) {
+                dm->simulate_input(peer.session_id, delta_seconds, command);
+            }
         }
 
-        session_runtime.prune_timed_out_clients(frame_now);
-
-        // ── Snapshot boundary ────────────────────────────────────────
-        // Copy authoritative state into the snapshot for transmission.
-        // From this point on, `snapshot.local_player` is a frozen
-        // representation; the authoritative world continues to evolve
-        // independently on the next tick.
-        snapshot.server_tick = server_tick++;
-        snapshot.local_player = world.get_player_state();
-
-        // ── History record ───────────────────────────────────────────
-        // Persist authoritative state into the history buffer for
-        // future replay, lag compensation, and anti-cheat validation.
-        ahamkara::game::HistoricalState hist {};
-        hist.tick = snapshot.server_tick;
-        hist.player_position = snapshot.local_player.position;
-        // Copy dummy state (existing 4-dummy layout).
-        for (int d = 0; d < ahamkara::game::World::kMaxDummies; ++d) {
-            const auto& dummies = world.get_dummies();
-            hist.dummy_positions[d] = dummies[d].position;
-            hist.dummy_alive[d] = dummies[d].alive;
+        // ── Prune timed-out peers ──────────────────────────────────────
+        for (auto it = peers.begin(); it != peers.end(); ) {
+            const auto elapsed = std::chrono::duration<float>(frame_now - it->second.last_seen).count();
+            if (elapsed > server_config.disconnect_timeout_seconds) {
+                auto* activity = activity_mgr.get_activity(it->second.activity_id);
+                if (activity) {
+                    activity->remove_player(it->second.session_id);
+                }
+                handshake_list.erase(
+                    std::remove(handshake_list.begin(), handshake_list.end(), it->second.address),
+                    handshake_list.end());
+                it = peers.erase(it);
+            } else {
+                ++it;
+            }
         }
-        history_buffer.record(snapshot.server_tick, hist);
 
-        // Log history stats every 300 ticks (~5 seconds).
+        // ── Tick all activities ────────────────────────────────────────
+        activity_mgr.tick_all(delta_seconds);
+
+        // ── Broadcast snapshots ────────────────────────────────────────
+        activity_mgr.broadcast_snapshots([&](wish::session::SessionId sid,
+                                              const std::byte* data, ae::usize len) {
+            // Find the client address for this session
+            for (auto& p : peers) {
+                if (p.second.session_id.value == sid.value && p.second.handshake_complete) {
+                    sim.send_to(p.second.address, data, static_cast<ae::i32>(len));
+                    break;
+                }
+            }
+        });
+
+        // ── Periodic stats ─────────────────────────────────────────────
+        server_tick++;
         if (server_tick % 300 == 0) {
-            std::ostringstream hist_msg;
-            hist_msg << "Server history buffer: ticks=[" << history_buffer.oldest_tick()
-                     << ", " << history_buffer.newest_tick()
-                     << "] size=" << history_buffer.size()
-                     << "/" << history_buffer.capacity();
-            ae::log_info(hist_msg.str());
+            std::ostringstream stats;
+            stats << "Server tick=" << server_tick
+                  << " peers=" << peers.size()
+                  << " activities=" << activity_mgr.running_count()
+                  << " players=" << activity_mgr.total_player_count();
+            ae::log_info(stats.str());
 
             if (sim_config.enabled) {
                 const auto& st = sim.stats();
@@ -318,30 +434,24 @@ int main(int argc, char** argv) {
             }
         }
 
-        session_runtime.for_each_connected_client([&](wish::session::ClientSession& client) {
-            snapshot.last_processed_input = client.last_processed_input_sequence;
-
-            const auto envelope = client.sequence_tracker.prepare_outgoing();
-            if (!ahamkara::game::serialize_server_snapshot_packet(envelope, snapshot, snapshot_buffer)
-                || !sim.send_to(client.address, snapshot_buffer.data(), snapshot_buffer.size())) {
-                std::ostringstream warn_msg;
-                warn_msg << "Dedicated server failed to send snapshot to client " << client.identity << ".";
-                ae::log_warning(warn_msg.str());
-            }
-        });
+        refresh_admin_status();
 
         std::this_thread::sleep_until(next_tick);
     }
 
-    if (session_admitted) {
-        match_result_reporter.report_match_result(wish::core::MatchResult {
-            .match_id = match_id,
-            .player_id = authenticated_player_id,
-            .completed = false,
-            .summary = "dedicated server shutdown",
-        });
+    // ── Shutdown ──────────────────────────────────────────────────────────
+    for (auto& p : peers) {
+        if (p.second.session_admitted) {
+            match_result_reporter.report_match_result(wish::core::MatchResult {
+                .match_id = "wish-match",
+                .player_id = p.second.authenticated_player_id,
+                .completed = false,
+                .summary = "dedicated server shutdown",
+            });
+        }
     }
 
+    admin_server.stop();
     application.shutdown();
     return 0;
 }

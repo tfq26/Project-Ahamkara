@@ -11,8 +11,12 @@ target_link_libraries(ahamkara_server
         ae_network
         ae_runtime
         ahamkara_game
-        wish_core
+        wish_engine
 )
+
+if(TARGET ae_render)
+    target_link_libraries(ahamkara_server PRIVATE ae_render)
+endif()
 
 set_target_properties(ahamkara_server PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/server

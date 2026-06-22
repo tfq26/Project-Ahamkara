@@ -1,0 +1,4 @@
+interface:
+  display_name: "Supervisor Loop"
+  short_description: "Coordinate agent teams through review loops"
+  default_prompt: "Use $supervisor-loop to run an Obsidian-backed agent team with task notes, Kanban progress, user steering, reports, and supervisor review."

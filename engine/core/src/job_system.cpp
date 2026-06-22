@@ -1,7 +1,6 @@
 #include "ae/core/job_system.h"
 
 #include <algorithm>
-#include <condition_variable>
 #include <mutex>
 
 namespace ae {
@@ -34,94 +33,193 @@ void JobSystem::shutdown() {
         if (w.thread.joinable()) w.thread.join();
     }
     workers_.clear();
+
+    std::lock_guard<std::mutex> lock(jobs_mutex_);
     jobs_.clear();
+    ready_jobs_.clear();
 }
 
 JobSystem::JobHandle JobSystem::submit(JobFunction fn) {
+    std::lock_guard<std::mutex> lock(jobs_mutex_);
     int idx = static_cast<int>(jobs_.size());
     auto job = std::make_unique<Job>();
     job->function = std::move(fn);
     job->unfinished_parents.store(0, std::memory_order_release);
+    job->completed = false;
     jobs_.push_back(std::move(job));
+    ready_jobs_.push_back(idx);
     jobs_remaining_.fetch_add(1, std::memory_order_release);
     return {idx};
 }
 
 JobSystem::JobHandle JobSystem::submit_after(JobHandle parent, JobFunction fn) {
+    std::lock_guard<std::mutex> lock(jobs_mutex_);
     int idx = static_cast<int>(jobs_.size());
     auto job = std::make_unique<Job>();
     job->function = std::move(fn);
-    job->unfinished_parents.store(1, std::memory_order_release);
+    job->completed = false;
+    
+    bool has_dependency = false;
+    if (parent.valid() && parent.index < idx) {
+        auto& parent_job = jobs_[static_cast<std::size_t>(parent.index)];
+        if (!parent_job->completed) {
+            job->unfinished_parents.store(1, std::memory_order_release);
+            parent_job->children.push_back(idx);
+            has_dependency = true;
+        }
+    }
+
+    if (!has_dependency) {
+        job->unfinished_parents.store(0, std::memory_order_release);
+        ready_jobs_.push_back(idx);
+    }
+
     jobs_.push_back(std::move(job));
     jobs_remaining_.fetch_add(1, std::memory_order_release);
 
-    // Decrement parent's counter for this child
-    if (parent.valid() && parent.index < static_cast<int>(jobs_.size())) {
-        // Mark this job as waiting on the parent
-        // When parent finishes, it decrements child's counter
-    }
     return {idx};
 }
 
 void JobSystem::wait(JobHandle handle) {
     if (!handle.valid()) return;
-    // Spin-wait until the job is done
-    while (jobs_remaining_.load(std::memory_order_acquire) > 0) {
-        // Also try to process jobs on the main thread
-        int start = next_job_index_.load(std::memory_order_acquire);
-        int total = static_cast<int>(jobs_.size());
-        for (int i = start; i < total; ++i) {
-            int expected = i;
-            if (next_job_index_.compare_exchange_strong(expected, i + 1,
-                    std::memory_order_acq_rel, std::memory_order_relaxed)) {
-                auto& job = jobs_[static_cast<std::size_t>(i)];
-                int parents = job->unfinished_parents.load(std::memory_order_acquire);
-                if (parents == 0 && job->function) {
-                    job->function();
-                    job->function = nullptr;
-                    jobs_remaining_.fetch_sub(1, std::memory_order_release);
-                } else {
-                    // Put it back — another worker will pick it up
-                    next_job_index_.compare_exchange_strong(i, i,
-                        std::memory_order_acq_rel, std::memory_order_relaxed);
-                }
+
+    // Spin-wait until the specific job is completed
+    while (true) {
+        {
+            std::lock_guard<std::mutex> lock(jobs_mutex_);
+            if (handle.index < static_cast<int>(jobs_.size()) && jobs_[static_cast<std::size_t>(handle.index)]->completed) {
                 break;
             }
         }
-        std::this_thread::yield();
+
+        // Try to help process ready jobs on the main thread
+        int job_to_run = -1;
+        {
+            std::lock_guard<std::mutex> lock(jobs_mutex_);
+            if (!ready_jobs_.empty()) {
+                job_to_run = ready_jobs_.back();
+                ready_jobs_.pop_back();
+            }
+        }
+
+        if (job_to_run >= 0) {
+            JobFunction job_fn;
+            std::vector<int> children;
+            {
+                std::lock_guard<std::mutex> lock(jobs_mutex_);
+                auto& job = jobs_[static_cast<std::size_t>(job_to_run)];
+                job_fn = std::move(job->function);
+                job->function = nullptr;
+                children = job->children;
+            }
+
+            if (job_fn) job_fn();
+
+            {
+                std::lock_guard<std::mutex> lock(jobs_mutex_);
+                auto& job = jobs_[static_cast<std::size_t>(job_to_run)];
+                job->completed = true;
+
+                for (int child_idx : children) {
+                    auto& child_job = jobs_[static_cast<std::size_t>(child_idx)];
+                    int parents = child_job->unfinished_parents.fetch_sub(1, std::memory_order_acq_rel);
+                    if (parents == 1) { // was 1, now 0
+                        ready_jobs_.push_back(child_idx);
+                    }
+                }
+            }
+            jobs_remaining_.fetch_sub(1, std::memory_order_release);
+        } else {
+            std::this_thread::sleep_for(std::chrono::microseconds(50));
+        }
     }
 }
 
 void JobSystem::wait_all() {
     while (jobs_remaining_.load(std::memory_order_acquire) > 0) {
-        wait({0});
+        int job_to_run = -1;
+        {
+            std::lock_guard<std::mutex> lock(jobs_mutex_);
+            if (!ready_jobs_.empty()) {
+                job_to_run = ready_jobs_.back();
+                ready_jobs_.pop_back();
+            }
+        }
+
+        if (job_to_run >= 0) {
+            JobFunction job_fn;
+            std::vector<int> children;
+            {
+                std::lock_guard<std::mutex> lock(jobs_mutex_);
+                auto& job = jobs_[static_cast<std::size_t>(job_to_run)];
+                job_fn = std::move(job->function);
+                job->function = nullptr;
+                children = job->children;
+            }
+
+            if (job_fn) job_fn();
+
+            {
+                std::lock_guard<std::mutex> lock(jobs_mutex_);
+                auto& job = jobs_[static_cast<std::size_t>(job_to_run)];
+                job->completed = true;
+
+                for (int child_idx : children) {
+                    auto& child_job = jobs_[static_cast<std::size_t>(child_idx)];
+                    int parents = child_job->unfinished_parents.fetch_sub(1, std::memory_order_acq_rel);
+                    if (parents == 1) { // was 1, now 0
+                        ready_jobs_.push_back(child_idx);
+                    }
+                }
+            }
+            jobs_remaining_.fetch_sub(1, std::memory_order_release);
+        } else {
+            std::this_thread::sleep_for(std::chrono::microseconds(50));
+        }
     }
 }
 
 void JobSystem::worker_loop(int worker_index) {
+    (void)worker_index;
     while (running_.load(std::memory_order_acquire)) {
-        int start = next_job_index_.load(std::memory_order_acquire);
-        int total = static_cast<int>(jobs_.size());
-        bool did_work = false;
-
-        for (int i = start; i < total; ++i) {
-            int expected = i;
-            if (next_job_index_.compare_exchange_strong(expected, i + 1,
-                    std::memory_order_acq_rel, std::memory_order_relaxed)) {
-                auto& job = jobs_[static_cast<std::size_t>(i)];
-                int parents = job->unfinished_parents.load(std::memory_order_acquire);
-                if (parents == 0 && job->function) {
-                    job->function();
-                    job->function = nullptr;
-                    jobs_remaining_.fetch_sub(1, std::memory_order_release);
-                    did_work = true;
-                }
-                break;
+        int job_to_run = -1;
+        {
+            std::lock_guard<std::mutex> lock(jobs_mutex_);
+            if (!ready_jobs_.empty()) {
+                job_to_run = ready_jobs_.back();
+                ready_jobs_.pop_back();
             }
         }
 
-        if (!did_work) {
-            std::this_thread::yield();
+        if (job_to_run >= 0) {
+            JobFunction job_fn;
+            std::vector<int> children;
+            {
+                std::lock_guard<std::mutex> lock(jobs_mutex_);
+                auto& job = jobs_[static_cast<std::size_t>(job_to_run)];
+                job_fn = std::move(job->function);
+                job->function = nullptr;
+                children = job->children;
+            }
+
+            if (job_fn) job_fn();
+
+            {
+                std::lock_guard<std::mutex> lock(jobs_mutex_);
+                auto& job = jobs_[static_cast<std::size_t>(job_to_run)];
+                job->completed = true;
+
+                for (int child_idx : children) {
+                    auto& child_job = jobs_[static_cast<std::size_t>(child_idx)];
+                    int parents = child_job->unfinished_parents.fetch_sub(1, std::memory_order_acq_rel);
+                    if (parents == 1) { // was 1, now 0
+                        ready_jobs_.push_back(child_idx);
+                    }
+                }
+            }
+            jobs_remaining_.fetch_sub(1, std::memory_order_release);
+        } else {
+            std::this_thread::sleep_for(std::chrono::microseconds(50));
         }
     }
 }

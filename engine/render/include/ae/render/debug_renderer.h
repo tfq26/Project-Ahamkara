@@ -1,8 +1,10 @@
 #pragma once
 
 #include "ae/render/frustum.h"
+#include "ae/render/render_backend.h"
 #include "ae/platform/window.h"
 
+#include <functional>
 #include <memory>
 
 namespace ae::render {
@@ -51,12 +53,17 @@ struct DebugScene {
     double gpu_time_total_ms {0.0};
     double gpu_time_depth_ms {0.0};
     double gpu_time_map_ms {0.0};
-    double gpu_time_entities_ms {0.0};
     double gpu_time_ui_ms {0.0};
+    double gpu_time_entities_ms {0.0};  // placeholder — not separately measured
     float player_health {100.0F};
     float player_max_health {100.0F};
     float ammo_current {24.0F};
     float ammo_max {30.0F};
+    int reserve_ammo {150};
+    const char* weapon_name {"AR-15"};
+    float enemy_health[16] {};
+    float enemy_max_health[16] {};
+    int enemy_count {0};
     bool always_day {false};
     bool menu_visible {false};
     int menu_tab {0};
@@ -66,6 +73,10 @@ struct DebugScene {
     bool projectile_hit[64] {};
     float hud_brightness {1.0F};  // day/night factor for HUD alpha
     float gamma {1.0F};           // user brightness adjustment
+    float match_time {0.0F};      // match timer
+    ae::u8 match_phase {0};       // MatchPhase enum
+    ae::u32 team_score_red {0};
+    ae::u32 team_score_blue {0};
 
     // Sample/game-provided debug geometry.
     int level_box_count {0};
@@ -125,7 +136,17 @@ public:
     bool initialize(ae::PlatformWindow& window);
     void shutdown();
 
-    void render(DebugScene& scene);
+    void render(DebugScene& scene, const std::function<void()>& draw_world_extra = {});
+    void present();
+    void set_auto_present(bool enabled);
+    RenderBackend* backend();
+
+    // Camera matrices used by the most recent render() call. Column-major,
+    // 16 floats. Valid after render() has run at least once; lets external
+    // passes (e.g. the PBR level pass) draw aligned with the debug world.
+    [[nodiscard]] const float* view_matrix() const;
+    [[nodiscard]] const float* projection_matrix() const;
+    [[nodiscard]] const float* camera_position() const;  // 3 floats
 
     struct Impl;
 

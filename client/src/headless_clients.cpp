@@ -7,6 +7,7 @@
 #include "ae/network/snapshot_interpolator.h"
 #include "ae/network/udp_socket.h"
 #include "ae/platform/window.h"
+#include "ae/render/compiled_level.h"
 #include "ae/runtime/application.h"
 #include "ahamkara/client/client_config.h"
 #include "ahamkara/game/client_prediction.h"
@@ -18,7 +19,9 @@
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <exception>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -32,19 +35,6 @@ namespace {
 
 constexpr float kTickRate = 60.0F;
 constexpr float kDeltaSeconds = 1.0F / kTickRate;
-
-// ── Tick-loop helpers ────────────────────────────────────────────────────────
-
-/**
- * @brief Compute elapsed seconds since the previous frame and update the
- *        previous-frame timestamp in-place.
- */
-inline float compute_frame_dt(std::chrono::steady_clock::time_point& previous) {
-    const auto now = std::chrono::steady_clock::now();
-    const float dt = std::chrono::duration<float>(now - previous).count();
-    previous = now;
-    return dt;
-}
 
 // ── Sandbox helpers ──────────────────────────────────────────────────────────
 
@@ -216,13 +206,29 @@ void log_state_comparison(
 
 // ── Client entry points ──────────────────────────────────────────────────────
 
-int run_sandbox_client() {
+int run_sandbox_client(const char* level_path) {
     ae::Application application(ae::RuntimeMode::Client);
     application.start();
 
     ahamkara::game::World world;
     ae::u32 sequence = 0;
     ae::u32 client_tick = 0;
+
+    // Load level if specified
+    if (level_path != nullptr && level_path[0] != '\0') {
+        ae::render::CompiledLevelLoader loader;
+        ae::render::LevelAsset level;
+        if (loader.load(level_path, level)) {
+            if (world.load_colliders_from_level(level)) {
+                ae::log_info("Sandbox: loaded level " + level.name + " from " + std::string(level_path));
+            } else {
+                ae::log_warning("Sandbox: level has no collision data; using defaults.");
+            }
+        } else {
+            ae::log_warning("Sandbox: failed to load level " + std::string(level_path) +
+                           " (" + loader.last_error() + "); using defaults.");
+        }
+    }
 
     ae::log_info("Ahamkara local sandbox started.");
     print_sandbox_help();
@@ -358,13 +364,36 @@ int run_network_client(const std::string& server_ip, int argc, char** argv) {
     ahamkara::game::PacketEnvelope envelope {};
     ahamkara::game::ClientHelloPacket hello_packet {};
     hello_packet.protocol_version = ahamkara::game::kProtocolVersion;
-    hello_packet.session_token = 0;
+
+    // Load Nakama auth token from CLI arg, env var, or file
+    std::string nakama_token;
+    for (int i = 1; i < argc - 1; ++i) {
+        if (std::strcmp(argv[i], "--nakama-token") == 0) {
+            nakama_token = argv[i + 1];
+            break;
+        }
+    }
+    if (nakama_token.empty()) {
+        const char* env_token = std::getenv("NAKAMA_TOKEN");
+        if (env_token) nakama_token = env_token;
+    }
+    if (nakama_token.empty()) {
+        std::ifstream token_file(std::string(std::getenv("HOME") ? std::getenv("HOME") : ".") + "/nakama_token.txt");
+        if (token_file.is_open()) {
+            std::getline(token_file, nakama_token);
+        }
+    }
+    if (!nakama_token.empty() && nakama_token.size() <= ahamkara::game::kMaxAuthTokenLength) {
+        hello_packet.auth_token_length = static_cast<ae::u16>(nakama_token.size());
+        std::memcpy(hello_packet.auth_token, nakama_token.data(), nakama_token.size());
+        ae::log_info("Network client loaded Nakama auth token.");
+    }
 
     auto previous_frame = std::chrono::steady_clock::now();
     float interpolation_delay = 1.0F / kTickRate;  // Starts at 1 tick; tuned by interpolator.
 
     while (application.is_running()) {
-        const float frame_dt = compute_frame_dt(previous_frame);
+        const float frame_dt = ae::compute_frame_dt(previous_frame);
 
         // Process simulator delayed packets.
         sim.update(frame_dt);
@@ -458,14 +487,71 @@ int run_network_client(const std::string& server_ip, int argc, char** argv) {
                 break;
             }
 
-            if (received != static_cast<ae::i32>(snapshot_buffer.size())) {
-                ae::log_warning("Client received an unexpected snapshot size.");
-                continue;
+            if (received <= static_cast<ae::i32>(sizeof(ae::u32))) {
+                continue; // too small to be a valid packet
             }
 
             ahamkara::game::PacketEnvelope in_envelope {};
+            // Try reading as delta snapshot first
+            ahamkara::game::SnapshotDelta delta {};
+            {
+                ahamkara::game::detail::ByteReader reader(
+                    std::span<const std::byte>(snapshot_buffer.data(), static_cast<ae::usize>(received)));
+                if (ahamkara::game::detail::read_header(reader, ahamkara::game::PacketType::ServerSnapshot)
+                    && ahamkara::game::detail::read_envelope(reader, in_envelope)
+                    && ahamkara::game::read_snapshot_delta(reader, delta)) {
+                    // Apply delta to interpolated state
+                    static ahamkara::game::ReplicatedPlayerState client_player;
+                    ahamkara::game::apply_player_delta(client_player, delta);
+                    ahamkara::game::ServerSnapshot snapshot {};
+                    snapshot.server_tick = delta.server_tick;
+                    snapshot.last_processed_input = delta.last_processed_input;
+                    snapshot.local_player = client_player;
+                    // Read remaining data (projectiles, dummies, match, remote players)
+                    reader.read(snapshot.projectile_count);
+                    for (ae::u8 i = 0; i < snapshot.projectile_count && i < 8; ++i) {
+                        auto& p = snapshot.projectiles[i];
+                        ahamkara::game::detail::read_vec3(reader, p.position);
+                        ahamkara::game::detail::read_vec3(reader, p.velocity);
+                        reader.read(p.lifetime_seconds);
+                        reader.read_bool(p.alive);
+                        reader.read(p.client_tick);
+                    }
+                    reader.read(snapshot.dummy_count);
+                    for (ae::u8 i = 0; i < snapshot.dummy_count && i < 4; ++i) {
+                        auto& d = snapshot.dummies[i];
+                        reader.read(d.dummy_id);
+                        ahamkara::game::detail::read_vec3(reader, d.position);
+                        reader.read(d.yaw);
+                        reader.read(d.health);
+                        reader.read_bool(d.alive);
+                    }
+                    reader.read(snapshot.match_phase);
+                    reader.read(snapshot.match_time);
+                    reader.read(snapshot.team_score_red);
+                    reader.read(snapshot.team_score_blue);
+                    reader.read(snapshot.individual_score);
+                    reader.read(snapshot.remote_player_count);
+                    for (ae::u8 i = 0; i < snapshot.remote_player_count && i < 4; ++i) {
+                        auto& rp = snapshot.remote_players[i];
+                        reader.read(rp.player_id);
+                        ahamkara::game::detail::read_vec3(reader, rp.position);
+                        reader.read(rp.yaw);
+                        reader.read(rp.health);
+                    }
+
+                    const double arrival_time = ae::now_seconds();
+                    clock.record_snapshot(snapshot.server_tick, 60.0F, arrival_time);
+                    interpolator.push(snapshot, arrival_time);
+                    continue;
+                }
+            }
+
+            // Fallback: try full snapshot deserialization
             ahamkara::game::ServerSnapshot snapshot {};
-            if (!ahamkara::game::deserialize_server_snapshot_packet(snapshot_buffer, in_envelope, snapshot)) {
+            if (!ahamkara::game::deserialize_server_snapshot_packet(
+                    std::span<const std::byte>(snapshot_buffer.data(), static_cast<ae::usize>(received)),
+                    in_envelope, snapshot)) {
                 ae::log_warning("Client rejected an invalid snapshot packet.");
                 continue;
             }
@@ -545,7 +631,7 @@ int run_windowed_client(const ahamkara::client::ClientConfig& client_config) {
             break;
         }
 
-        float delta_seconds = compute_frame_dt(previous_frame);
+        float delta_seconds = ae::compute_frame_dt(previous_frame);
         if (delta_seconds > 0.05F) {
             delta_seconds = 0.05F;   // Clamp to avoid huge steps after pause.
         }

@@ -4,34 +4,20 @@
 #include "ahamkara/game/debug_map.h"
 #include "ahamkara/game/movement.h"
 #include "ahamkara/game/net_types.h"
+#include "ahamkara/game/weapon_registry.h"
+#include "ahamkara/game/worlds/world_definition.h"
+#include "ae/render/compiled_level.h"
 
 #include <entt/entt.hpp>
 
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <memory>
 #include <vector>
 #include <string>
 
 namespace ahamkara::game {
-
-struct TargetDummyState {
-    ae::u32 dummy_id {0};
-    Vec3 position {};
-    float yaw {0.0F};
-    float health {100.0F};
-    bool alive {true};
-    Vec3 start_position {};
-    Vec3 move_dir {};
-    float move_timer {0.0F};
-    float move_speed {0.0F};
-    float move_distance {0.0F};
-    float last_hit_timer {0.0F};
-    bool was_hit_precision {false};
-    float last_damage_dealt {0.0F};
-    Vec3 last_hit_position {};
-    float respawn_timer {0.0F};
-};
 
 struct HistoricalState {
     ae::u32 tick {0};
@@ -66,8 +52,10 @@ struct JoltWorldImpl;
 using GamePhysics = JoltWorldImpl;
 
 class World {
+    friend class AhamkaraCharacterContactListener;
 public:
     World();
+    explicit World(const WorldDefinition& definition);
     ~World();
 
     void tick(float delta_seconds, const PlayerInputCommand& input);
@@ -90,11 +78,29 @@ public:
     /// should write through this.
     [[nodiscard]] TargetDummyState* dummies_mut() { return dummies_; }
 
-    [[nodiscard]] int get_ammo_current() const { return ammo_current_; }
-    [[nodiscard]] int get_ammo_max() const { return ammo_max_; }
+    [[nodiscard]] int get_ammo_current() const { return weapon_state_.ammo_in_magazine; }
+    [[nodiscard]] int get_ammo_max() const { return weapon_state_.magazine_capacity; }
+    [[nodiscard]] int get_reserve_ammo() const { return weapon_state_.reserve_ammo; }
+    [[nodiscard]] int get_active_weapon_index() const { return weapon_state_.definition_index; }
+    [[nodiscard]] const WeaponDefinition& get_active_weapon_def() const;
+    [[nodiscard]] const WeaponState& get_weapon_state() const { return weapon_state_; }
+
+    void switch_weapon(int slot);
+    void start_reload();
+    bool consume_ammo();
+    void tick_weapon(float delta_seconds, bool fire_held);
+    [[nodiscard]] bool can_fire() const { return weapon_state_.can_fire(); }
+
+    [[nodiscard]] entt::registry& registry() { return registry_; }
+    [[nodiscard]] const entt::registry& registry() const { return registry_; }
 
     void set_player_state(const ReplicatedPlayerState& state);
     void set_colliders(const ColliderBox* colliders, std::size_t count);
+
+    /// Load collision boxes and world settings from a compiled level.
+    /// LevelAsset is defined in ae::render::compiled_level.h (no GL deps).
+    /// Returns false if the level asset is invalid.
+    bool load_colliders_from_level(const ae::render::LevelAsset& level);
 
     static constexpr int kMaxDummies = 4;
     [[nodiscard]] const TargetDummyState* get_dummies() const { return dummies_; }
@@ -128,14 +134,35 @@ public:
     void spawn_bullet_hole_decal(const Vec3& position, const Vec3& normal);
 
     /// Fire cooldown (seconds remaining).  Negative means ready to fire.
-    /// Exposed for projectile system which needs to check and decrement.
-    [[nodiscard]] float fire_cooldown_timer() const { return fire_cooldown_timer_; }
-    void set_fire_cooldown_timer(float t) { fire_cooldown_timer_ = t; }
+    /// Delegates to the active weapon state.
+    [[nodiscard]] float fire_cooldown_timer() const { return weapon_state_.fire_cooldown; }
+    void set_fire_cooldown_timer(float t) { weapon_state_.fire_cooldown = t; }
 
     void spawn_damage_number(const Vec3& position, float damage, bool is_critical);
     void queue_audio_event(const AudioEvent& event);
+    [[nodiscard]] HistoricalState get_historical_state(ae::u32 target_tick) const;
+
+    void apply_damage_to_player(float damage, const Vec3& attacker_pos);
+    [[nodiscard]] bool is_player_alive() const { return player_state_.health > 0.0F; }
+    void respawn_player();
+    [[nodiscard]] ae::u32 get_player_kills() const { return player_kills_; }
+    [[nodiscard]] ae::u32 get_player_deaths() const { return player_deaths_; }
+    [[nodiscard]] float get_match_time() const { return match_time_; }
+    [[nodiscard]] ae::u8 get_match_phase() const;
+    [[nodiscard]] ae::u32 get_team_score_red() const { return 0; }
+    [[nodiscard]] ae::u32 get_team_score_blue() const { return player_kills_; }
+    [[nodiscard]] bool is_match_over() const { return match_over_; }
+    void restart_match();
+    [[nodiscard]] const std::vector<ColliderBox>& get_world_colliders() const { return owned_colliders_; }
+
+    void on_dummy_killed(ae::u32 dummy_id, const Vec3& death_pos);
+    void set_is_server(bool is_server) { is_server_ = is_server; }
+    [[nodiscard]] bool is_server() const { return is_server_; }
 
 private:
+    void apply_world_definition(const WorldDefinition& definition);
+    void reset_player_to_spawn();
+    void reset_weapon_state();
     void tick_internal(float delta_seconds, const PlayerInputCommand& input);
     void update_movement_state(const PlayerInputCommand& input);
     void update_camera(const PlayerInputCommand& input, float delta_seconds);
@@ -155,27 +182,34 @@ private:
     void recreate_physics_colliders();
     void populate_movement_debug(float delta_seconds, const PlayerInputCommand& input);
     [[nodiscard]] bool is_on_ground() const;
-    [[nodiscard]] HistoricalState get_historical_state(ae::u32 target_tick) const;
     void flush_audio_events();
 
     static constexpr int kMaxAudioEventsPerTick = 16;
 
     ReplicatedPlayerState player_state_;
     CameraAnchor camera_anchor_;
+    PlayerSpawnDefinition player_spawn_ {};
     float slide_timer_seconds_ {0.0F};
     bool crouch_active_ {false};
     const ColliderBox* colliders_ {nullptr};
     std::size_t collider_count_ {0};
+    std::vector<ColliderBox> owned_colliders_;
     static constexpr int kMaxProjectiles = 64;
     ProjectileState projectiles_[kMaxProjectiles] {};
     int projectile_count_ {0};
 
-    int ammo_current_ {30};
-    int ammo_max_ {30};
+    WeaponState weapon_state_;
+    Loadout loadout_;
+    int fire_recoil_index_ {0};
+    bool reload_key_was_down_ {false};
+    bool weapon_switch_queued_ {false};
+    int queued_weapon_slot_ {-1};
+    float reload_timer_ {0.0F};
 
     TargetDummyState dummies_[kMaxDummies] {};
     int dummy_count_ {0};
     bool is_client_ {true};
+    bool is_server_ {false};
 
     FloatingDamageNumber damage_numbers_[kMaxDamageNumbers] {};
     int damage_number_count_ {0};
@@ -192,16 +226,21 @@ private:
 
     IAudioPlayer* audio_player_ {nullptr};
 
-    float fire_cooldown_timer_ {0.0F};
-
     std::unique_ptr<GamePhysics> jolt_;
     MovementSimState movement_sim_state_;
     MovementDebugState movement_debug_;
     entt::registry registry_;
     ae::u32 current_tick_ {0};
-    std::vector<HistoricalState> history_buffer_;
+    std::deque<HistoricalState> history_buffer_;
     AudioEvent audio_event_queue_[kMaxAudioEventsPerTick] {};
     int audio_event_count_ {0};
+
+    float respawn_timer_ {0.0F};
+    ae::u32 player_kills_ {0};
+    ae::u32 player_deaths_ {0};
+    float match_time_ {0.0F};
+    bool match_over_ {false};
+    float damage_feedback_timer_ {0.0F};
 };
 
 }  // namespace ahamkara::game

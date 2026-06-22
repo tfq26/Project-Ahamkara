@@ -418,9 +418,9 @@ void test_match_state_add_score() {
     assert(ms.individual_score[1] == 5);
     assert(ms.match_winner_id == 1);
 
-    ms.add_score(Team::Blue, 3, 3);
-    assert(ms.team_score_blue == 3);
-    assert(ms.individual_score[3] == 3);
+    ms.add_score(Team::Blue, 3, 6);
+    assert(ms.team_score_blue == 6);
+    assert(ms.individual_score[3] == 6);
     assert(ms.match_winner_id == 3);
 
     // FFA / no team: individual only

@@ -1,5 +1,6 @@
 #include "ahamkara/client/local_play.h"
 #include "ae/core/math.h"
+#include "ae/render/compiled_level.h"
 #include <cstring>
 
 namespace ahamkara::client {
@@ -22,26 +23,34 @@ void LocalPlaySimulation::tick(float delta_seconds) {
         return;
     }
 
-    // Save previous state
-    previous_player_state_ = world_.get_player_state();
-    previous_camera_anchor_ = world_.get_camera_anchor();
-    std::memcpy(previous_dummies_, world_.get_dummies(), sizeof(previous_dummies_));
-    has_previous_state_ = true;
+    last_frame_delta_seconds_ = delta_seconds;
+    fixed_timestep_.begin_frame();
+    fixed_timestep_.accumulate(delta_seconds);
 
-    // Gather input
-    ahamkara::game::PlayerInputCommand command = input_provider_->gather_input(delta_seconds);
+    const ahamkara::game::PlayerInputCommand frame_input = input_provider_->gather_input(delta_seconds);
+    int steps_consumed = 0;
 
-    // Populate frame sequencing and timing fields
-    command.sequence = sequence_++;
-    command.client_tick = ++current_tick_;
-    command.client_time = total_elapsed_seconds_;
+    while (fixed_timestep_.can_consume() && steps_consumed < fixed_timestep_.max_steps()) {
+        // Save the previous fixed-step state so the renderer can interpolate
+        // between stable simulation snapshots instead of variable frame deltas.
+        previous_player_state_ = world_.get_player_state();
+        previous_camera_anchor_ = world_.get_camera_anchor();
+        std::memcpy(previous_dummies_, world_.get_dummies(), sizeof(previous_dummies_));
+        has_previous_state_ = true;
 
-    // Tick the shared game world simulation
-    world_.tick(delta_seconds, command);
+        ahamkara::game::PlayerInputCommand command = frame_input;
+        command.sequence = sequence_++;
+        command.client_tick = ++current_tick_;
+        command.client_time = total_elapsed_seconds_;
 
-    // Record per-frame timing metrics
-    last_delta_seconds_ = delta_seconds;
-    total_elapsed_seconds_ += delta_seconds;
+        const float fixed_step_seconds = static_cast<float>(fixed_timestep_.step());
+        world_.tick(fixed_step_seconds, command);
+
+        last_delta_seconds_ = fixed_step_seconds;
+        total_elapsed_seconds_ += fixed_step_seconds;
+        fixed_timestep_.consume();
+        ++steps_consumed;
+    }
 }
 
 const ahamkara::game::ReplicatedPlayerState& LocalPlaySimulation::get_player_state() const {
@@ -60,12 +69,24 @@ float LocalPlaySimulation::get_last_delta_seconds() const {
     return last_delta_seconds_;
 }
 
+float LocalPlaySimulation::get_last_frame_delta_seconds() const {
+    return last_frame_delta_seconds_;
+}
+
 float LocalPlaySimulation::get_total_elapsed_seconds() const {
     return total_elapsed_seconds_;
 }
 
 ae::u32 LocalPlaySimulation::get_current_tick() const {
     return current_tick_;
+}
+
+float LocalPlaySimulation::get_interpolation_alpha() const {
+    return fixed_timestep_.interpolation_alpha();
+}
+
+double LocalPlaySimulation::get_fixed_step_seconds() const {
+    return fixed_timestep_.step();
 }
 
 const ahamkara::game::ProjectileState* LocalPlaySimulation::get_projectiles() const {
@@ -82,6 +103,14 @@ int LocalPlaySimulation::get_ammo_current() const {
 
 int LocalPlaySimulation::get_ammo_max() const {
     return world_.get_ammo_max();
+}
+
+int LocalPlaySimulation::get_reserve_ammo() const {
+    return world_.get_reserve_ammo();
+}
+
+int LocalPlaySimulation::get_active_weapon_index() const {
+    return world_.get_active_weapon_index();
 }
 
 const ahamkara::game::TargetDummyState* LocalPlaySimulation::get_dummies() const {
@@ -181,6 +210,51 @@ void LocalPlaySimulation::set_colliders(const ahamkara::game::ColliderBox* colli
 
 void LocalPlaySimulation::set_audio_player(ahamkara::game::IAudioPlayer* player) {
     world_.set_audio_player(player);
+}
+
+bool LocalPlaySimulation::load_level(const std::string& path) {
+    ae::render::CompiledLevelLoader loader;
+    ae::render::LevelAsset level;
+    if (!loader.load(path, level)) {
+        return false;
+    }
+    return world_.load_colliders_from_level(level);
+}
+
+ae::u32 LocalPlaySimulation::get_player_kills() const {
+    return world_.get_player_kills();
+}
+
+ae::u32 LocalPlaySimulation::get_player_deaths() const {
+    return world_.get_player_deaths();
+}
+
+float LocalPlaySimulation::get_match_time() const {
+    return world_.get_match_time();
+}
+
+ae::u8 LocalPlaySimulation::get_match_phase() const {
+    return world_.get_match_phase();
+}
+
+bool LocalPlaySimulation::is_match_over() const {
+    return world_.is_match_over();
+}
+
+bool LocalPlaySimulation::is_player_alive() const {
+    return world_.is_player_alive();
+}
+
+float LocalPlaySimulation::get_damage_feedback_timer() const {
+    return 0.0F;
+}
+
+void LocalPlaySimulation::restart_match() {
+    world_.restart_match();
+    current_tick_ = 0;
+    sequence_ = 0;
+    total_elapsed_seconds_ = 0.0F;
+    has_previous_state_ = false;
 }
 
 }  // namespace ahamkara::client

@@ -6,6 +6,8 @@
 #include <cmath>
 #include <vector>
 
+#include "gl_compat.h"
+
 namespace ae::render {
 
 void draw_particles(RenderBackend& backend, BufferHandle& particle_vbo,

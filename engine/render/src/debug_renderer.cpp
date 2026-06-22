@@ -37,6 +37,8 @@
 #include <string>
 #include <vector>
 
+#include "gl_compat.h"
+
 namespace ae::render {
 
 // ============================================================================
@@ -465,7 +467,8 @@ void draw_screen_quad(float x, float y, float width, float height) {
 void draw_text(float x, float y, float scale, const std::string& text) {
     FontAtlas& atlas = shared_ui_font_atlas();
     if (atlas.is_ready()) {
-        atlas.draw_text(x, y, scale, text);
+        auto& st = ae::gl_compat::state();
+        atlas.draw_text(x, y, scale, text, st.current_r, st.current_g, st.current_b, st.current_a);
         return;
     }
 
@@ -668,6 +671,7 @@ std::string format_memory_line(const char* label, double used_mb, double total_m
 struct DebugRenderer::Impl {
     GLFWwindow* window {nullptr};  // cached for glfwGetTime / context management
     std::unique_ptr<RenderBackend> backend;
+    bool auto_present {true};
     ShaderHandle shader_program;
     ShaderHandle depth_program;  // depth-only pre-pass shader
     int u_color_loc {-1};
@@ -676,10 +680,14 @@ struct DebugRenderer::Impl {
     int u_camera_pos_loc {-1};
     int u_use_skinning_loc {-1};
     int u_joint_matrices_loc {-1};
+    int u_modelview_loc {-1};
+    int u_projection_loc {-1};
     GpuModel humanoid_vbo;      // LOD0: full detail
     GpuModel humanoid_vbo_lod1; // LOD1: medium
     GpuModel humanoid_vbo_lod2; // LOD2: low
     MapGeometry map_geometry;
+    int cached_visible_cells[MapGeometry::kTotalCells]{};
+    int cached_visible_count = 0;
     BufferHandle ground_grid_vbo;
     BufferHandle ground_grid_color_vbo;
     int ground_grid_vertex_count {0};
@@ -710,6 +718,12 @@ struct DebugRenderer::Impl {
     // Per-frame render stats
     RenderStats render_stats;
 
+    // Camera matrices from the most recent render() (column-major). Exposed via
+    // DebugRenderer getters so external passes (PBR level meshes) stay aligned.
+    float last_view[16] {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+    float last_projection[16] {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+    float last_camera_pos[3] {0.0F, 0.0F, 0.0F};
+
     // Frame-time history ring buffer for sparkline in metrics overlay
     static constexpr int kSparklineHistorySize = 200;
     std::array<double, kSparklineHistorySize> frame_time_history {};
@@ -732,6 +746,23 @@ DebugRenderer::~DebugRenderer() {
 }
 
 // No need for manual delete — unique_ptr handles it
+
+namespace {
+const float kIdentityMatrix4[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+const float kZeroVec3[3] = {0.0F, 0.0F, 0.0F};
+}  // namespace
+
+const float* DebugRenderer::view_matrix() const {
+    return impl_ ? impl_->last_view : kIdentityMatrix4;
+}
+
+const float* DebugRenderer::projection_matrix() const {
+    return impl_ ? impl_->last_projection : kIdentityMatrix4;
+}
+
+const float* DebugRenderer::camera_position() const {
+    return impl_ ? impl_->last_camera_pos : kZeroVec3;
+}
 
 // ============================================================================
 // Initialization
@@ -793,61 +824,73 @@ bool DebugRenderer::initialize(ae::PlatformWindow& window) {
     // --- Main shader program ---
     {
         const char* vs_src =
-            "#version 120\n"
-            "attribute vec4 aJoints;\n"
-            "attribute vec4 aWeights;\n"
+            "#version 330 core\n"
+            "layout(location = 0) in vec3 aPosition;\n"
+            "layout(location = 1) in vec4 aJoints;\n"
+            "layout(location = 2) in vec4 aWeights;\n"
+            "layout(location = 3) in vec3 aNormal;\n"
+            "uniform mat4 uModelView;\n"
+            "uniform mat4 uProjection;\n"
             "uniform mat4 uJointMatrices[8];\n"
             "uniform int uUseSkinning;\n"
-            "varying vec3 vNormal;\n"
-            "varying vec3 vViewDir;\n"
-            "varying vec3 vWorldPos;\n"
-            "varying vec3 vViewPos;\n"
             "uniform vec3 uCameraPos;\n"
+            "out vec3 vNormal;\n"
+            "out vec3 vViewDir;\n"
+            "out vec3 vWorldPos;\n"
+            "out vec3 vViewPos;\n"
             "void main() {\n"
-            "    vec4 position = gl_Vertex;\n"
-            "    vec3 normal = gl_Normal;\n"
+            "    vec4 position = vec4(aPosition, 1.0);\n"
+            "    vec3 normal = aNormal;\n"
             "    if (uUseSkinning != 0) {\n"
             "        mat4 skinMat = uJointMatrices[int(aJoints.x)] * aWeights.x +\n"
             "                       uJointMatrices[int(aJoints.y)] * aWeights.y +\n"
             "                       uJointMatrices[int(aJoints.z)] * aWeights.z +\n"
             "                       uJointMatrices[int(aJoints.w)] * aWeights.w;\n"
-            "        position = skinMat * gl_Vertex;\n"
-            "        normal = mat3(skinMat) * gl_Normal;\n"
+            "        position = skinMat * vec4(aPosition, 1.0);\n"
+            "        normal = mat3(skinMat) * aNormal;\n"
             "    }\n"
-            "    vec4 worldPos = gl_ModelViewMatrix * position;\n"
+            "    vec4 worldPos = uModelView * position;\n"
             "    vWorldPos = worldPos.xyz;\n"
             "    vViewPos = vec3(worldPos);\n"
-            "    gl_Position = gl_ProjectionMatrix * worldPos;\n"
-            "    vNormal = normalize(gl_NormalMatrix * normal);\n"
+            "    gl_Position = uProjection * worldPos;\n"
+            "    vNormal = normalize(mat3(uModelView) * normal);\n"
             "    vViewDir = normalize(-vec3(worldPos));\n"
             "}\n";
 
         const char* fs_src =
-            "#version 120\n"
-            "varying vec3 vNormal;\n"
-            "varying vec3 vViewDir;\n"
-            "varying vec3 vWorldPos;\n"
-            "varying vec3 vViewPos;\n"
+            "#version 330 core\n"
+            "in vec3 vNormal;\n"
+            "in vec3 vViewDir;\n"
+            "in vec3 vWorldPos;\n"
+            "in vec3 vViewPos;\n"
             "uniform vec4 uColor;\n"
             "uniform vec3 uFogColor;\n"
             "uniform vec2 uFogParams;\n"
             "uniform vec3 uCameraPos;\n"
+            "uniform vec3 uLightModelAmbient;\n"
+            "uniform vec3 uLight0Position;\n"
+            "uniform vec3 uLight0Diffuse;\n"
+            "uniform vec3 uLight0Specular;\n"
+            "uniform vec3 uLight1Position;\n"
+            "uniform vec3 uLight1Diffuse;\n"
+            "uniform vec3 uLight1Specular;\n"
+            "out vec4 fragColor;\n"
             "void main() {\n"
             "    vec3 N = normalize(vNormal);\n"
             "    vec3 V = normalize(vViewDir);\n"
-            "    vec3 ambient = gl_LightModel.ambient.rgb * uColor.rgb;\n"
-            "    vec3 L0 = normalize(gl_LightSource[0].position.xyz);\n"
+            "    vec3 ambient = uLightModelAmbient * uColor.rgb;\n"
+            "    vec3 L0 = normalize(uLight0Position);\n"
             "    float diff0 = max(dot(N, L0), 0.0);\n"
-            "    vec3 diffuse0 = gl_LightSource[0].diffuse.rgb * uColor.rgb * diff0;\n"
+            "    vec3 diffuse0 = uLight0Diffuse * uColor.rgb * diff0;\n"
             "    vec3 H0 = normalize(L0 + V);\n"
             "    float spec0 = pow(max(dot(N, H0), 0.0), 32.0);\n"
-            "    vec3 specular0 = gl_LightSource[0].specular.rgb * spec0 * 0.5;\n"
-            "    vec3 L1 = normalize(gl_LightSource[1].position.xyz);\n"
+            "    vec3 specular0 = uLight0Specular * spec0 * 0.5;\n"
+            "    vec3 L1 = normalize(uLight1Position);\n"
             "    float diff1 = max(dot(N, L1), 0.0);\n"
-            "    vec3 diffuse1 = gl_LightSource[1].diffuse.rgb * uColor.rgb * diff1;\n"
+            "    vec3 diffuse1 = uLight1Diffuse * uColor.rgb * diff1;\n"
             "    vec3 H1 = normalize(L1 + V);\n"
             "    float spec1 = pow(max(dot(N, H1), 0.0), 32.0);\n"
-            "    vec3 specular1 = gl_LightSource[1].specular.rgb * spec1 * 0.3;\n"
+            "    vec3 specular1 = uLight1Specular * spec1 * 0.3;\n"
             "    float noise = sin(vWorldPos.x * 12.0) * sin(vWorldPos.y * 12.0) * sin(vWorldPos.z * 12.0);\n"
             "    noise += sin(vWorldPos.x * 23.0 + vWorldPos.z * 17.0) * 0.5;\n"
             "    vec3 detailContrib = N * noise * 0.03;\n"
@@ -856,12 +899,12 @@ bool DebugRenderer::initialize(ae::PlatformWindow& window) {
             "    float fogFactor = exp(-uFogParams.x * dist);\n"
             "    fogFactor = clamp(fogFactor, 0.0, 1.0);\n"
             "    finalColor = mix(uFogColor, finalColor, fogFactor);\n"
-            "    gl_FragColor = vec4(finalColor, uColor.a);\n"
+            "    fragColor = vec4(finalColor, uColor.a);\n"
             "}\n";
 
-        const int main_attrib_locs[] = {1, 2};
-        const char* main_attrib_names[] = {"aJoints", "aWeights"};
-        ShaderProgramDesc main_desc{vs_src, fs_src, main_attrib_locs, main_attrib_names, 2};
+        const int main_attrib_locs[] = {0, 1, 2, 3};
+        const char* main_attrib_names[] = {"aPosition", "aJoints", "aWeights", "aNormal"};
+        ShaderProgramDesc main_desc{vs_src, fs_src, main_attrib_locs, main_attrib_names, 4};
         impl_->shader_program = impl_->backend->create_shader_program(main_desc);
     }
 
@@ -872,35 +915,41 @@ bool DebugRenderer::initialize(ae::PlatformWindow& window) {
         impl_->u_camera_pos_loc  = impl_->backend->get_uniform_location(impl_->shader_program, "uCameraPos");
         impl_->u_use_skinning_loc  = impl_->backend->get_uniform_location(impl_->shader_program, "uUseSkinning");
         impl_->u_joint_matrices_loc = impl_->backend->get_uniform_location(impl_->shader_program, "uJointMatrices");
+        impl_->u_modelview_loc     = impl_->backend->get_uniform_location(impl_->shader_program, "uModelView");
+        impl_->u_projection_loc    = impl_->backend->get_uniform_location(impl_->shader_program, "uProjection");
     }
 
     // --- Depth-only pre-pass shader ---
     {
         const char* depth_vs =
-            "#version 120\n"
-            "attribute vec4 aJoints;\n"
-            "attribute vec4 aWeights;\n"
+            "#version 330 core\n"
+            "layout(location = 0) in vec3 aPosition;\n"
+            "layout(location = 1) in vec4 aJoints;\n"
+            "layout(location = 2) in vec4 aWeights;\n"
+            "uniform mat4 uModelView;\n"
+            "uniform mat4 uProjection;\n"
             "uniform mat4 uJointMatrices[8];\n"
             "uniform int uUseSkinning;\n"
             "void main() {\n"
-            "    vec4 position = gl_Vertex;\n"
+            "    vec4 position = vec4(aPosition, 1.0);\n"
             "    if (uUseSkinning != 0) {\n"
             "        mat4 skinMat = uJointMatrices[int(aJoints.x)] * aWeights.x +\n"
             "                       uJointMatrices[int(aJoints.y)] * aWeights.y +\n"
             "                       uJointMatrices[int(aJoints.z)] * aWeights.z +\n"
             "                       uJointMatrices[int(aJoints.w)] * aWeights.w;\n"
-            "        position = skinMat * gl_Vertex;\n"
+            "        position = skinMat * vec4(aPosition, 1.0);\n"
             "    }\n"
-            "    gl_Position = gl_ModelViewProjectionMatrix * position;\n"
+            "    gl_Position = uProjection * uModelView * position;\n"
             "}\n";
         const char* depth_fs =
-            "#version 120\n"
+            "#version 330 core\n"
+            "out vec4 fragColor;\n"
             "void main() {\n"
-            "    gl_FragColor = vec4(1.0);\n"
+            "    fragColor = vec4(1.0);\n"
             "}\n";
 
-        const int depth_attrib_locs[] = {1, 2};
-        const char* depth_attrib_names[] = {"aJoints", "aWeights"};
+        const int depth_attrib_locs[] = {0, 1, 2};
+        const char* depth_attrib_names[] = {"aPosition", "aJoints", "aWeights"};
         ShaderProgramDesc depth_desc{depth_vs, depth_fs, depth_attrib_locs, depth_attrib_names, 2};
         impl_->depth_program = impl_->backend->create_shader_program(depth_desc);
     }
@@ -951,6 +1000,8 @@ bool DebugRenderer::initialize(ae::PlatformWindow& window) {
     impl_->humanoid_vbo_lod1 = impl_->backend->create_gpu_model(humanoid_lod1);
     const GltfModel humanoid_lod2 = generate_humanoid_mesh(HumanoidLod::Low);
     impl_->humanoid_vbo_lod2 = impl_->backend->create_gpu_model(humanoid_lod2);
+
+    ae::gl_compat::init();
 
     log_info("DebugRenderer initialized with OpenGL backend (VBO map, depth pre-pass, fog, specular).");
     return true;
@@ -1004,12 +1055,18 @@ void DebugRenderer::shutdown() {
     impl_->backend->destroy_gpu_model(impl_->humanoid_vbo_lod1);
     impl_->backend->destroy_gpu_model(impl_->humanoid_vbo_lod2);
 
+    ae::gl_compat::shutdown();
+
     // Detach the backend (releases context)
     impl_->backend->shutdown();
     impl_->backend.reset();
 
     glfwMakeContextCurrent(nullptr);
     impl_.reset();
+}
+
+RenderBackend* DebugRenderer::backend() {
+    return impl_ ? impl_->backend.get() : nullptr;
 }
 
 // ============================================================================
@@ -1131,13 +1188,10 @@ void DebugRenderer::Impl::draw_depth_pre_pass(const DebugScene& scene, const Fru
 
     // Draw map cells
     {
-        int visible_cells[MapGeometry::kTotalCells];
-        int visible_count = 0;
-        map_geometry.collect_visible(frustum, visible_cells, visible_count);
-
-        if (visible_count > 0) {
-            for (int vi = 0; vi < visible_count; ++vi) {
-                const auto& cell = map_geometry.cells[static_cast<std::size_t>(visible_cells[vi])];
+        const int vc = cached_visible_count;
+        if (vc > 0) {
+            for (int vi = 0; vi < vc; ++vi) {
+                const auto& cell = map_geometry.cells[static_cast<std::size_t>(cached_visible_cells[vi])];
                 if (cell.triangle_count > 0) {
                     glBindBuffer(GL_ARRAY_BUFFER, cell.vbo_positions);
                     glVertexPointer(3, GL_FLOAT, 0, nullptr);
@@ -1227,14 +1281,11 @@ void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
 
     // Draw spatially-culled map
     if (scene.draw_default_map) {
-        int visible_cells[MapGeometry::kTotalCells];
-        int visible_count = 0;
-        map_geometry.collect_visible(frustum, visible_cells, visible_count);
-        render_stats.map_cells_visible = visible_count;
+        render_stats.map_cells_visible = cached_visible_count;
         render_stats.map_cells_total = MapGeometry::kTotalCells;
 
-        for (int vi = 0; vi < visible_count; ++vi) {
-            const auto& cell = map_geometry.cells[static_cast<std::size_t>(visible_cells[vi])];
+        for (int vi = 0; vi < cached_visible_count; ++vi) {
+            const auto& cell = map_geometry.cells[static_cast<std::size_t>(cached_visible_cells[vi])];
             if (cell.triangle_count > 0) {
                 glEnableClientState(GL_VERTEX_ARRAY);
                 glBindBuffer(GL_ARRAY_BUFFER, cell.vbo_positions);
@@ -1258,8 +1309,8 @@ void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
 
         // Draw line geometry for map (direction markers etc)
         glDisable(GL_LIGHTING);
-        for (int vi = 0; vi < visible_count; ++vi) {
-            const auto& cell = map_geometry.cells[static_cast<std::size_t>(visible_cells[vi])];
+        for (int vi = 0; vi < cached_visible_count; ++vi) {
+            const auto& cell = map_geometry.cells[static_cast<std::size_t>(cached_visible_cells[vi])];
             if (cell.line_count > 0) {
                 glEnableClientState(GL_VERTEX_ARRAY);
                 glBindBuffer(GL_ARRAY_BUFFER, cell.vbo_positions);
@@ -1429,7 +1480,7 @@ void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
 // Main render entry point — orchestrates all render passes
 // ============================================================================
 
-void DebugRenderer::render(DebugScene& scene) {
+void DebugRenderer::render(DebugScene& scene, const std::function<void()>& draw_world_extra) {
     if (impl_ == nullptr || impl_->window == nullptr) {
         return;
     }
@@ -1460,6 +1511,8 @@ void DebugRenderer::render(DebugScene& scene) {
 
     impl_->backend->set_viewport(0, 0, width, height);
     impl_->backend->clear_color_and_depth();
+
+    ae::gl_compat::begin_frame(width, height);
 
     // Record frame time for sparkline
     impl_->frame_time_history[impl_->sparkline_index] = scene.frame_time_ms;
@@ -1497,6 +1550,14 @@ void DebugRenderer::render(DebugScene& scene) {
     const LocalMat4 projection = perspective(60.0F * kPi / 180.0F, aspect_ratio, 0.05F, 250.0F);
     const LocalMat4 view = look_at(scene.camera_position, scene.camera_target, {0.0F, 1.0F, 0.0F});
 
+    for (int i = 0; i < 16; ++i) {
+        impl_->last_view[i] = view.values[static_cast<std::size_t>(i)];
+        impl_->last_projection[i] = projection.values[static_cast<std::size_t>(i)];
+    }
+    impl_->last_camera_pos[0] = scene.camera_position.x;
+    impl_->last_camera_pos[1] = scene.camera_position.y;
+    impl_->last_camera_pos[2] = scene.camera_position.z;
+
     // --- Build MVP and extract frustum for culling ---
     LocalMat4 mvp;
     {
@@ -1513,6 +1574,10 @@ void DebugRenderer::render(DebugScene& scene) {
     }
     const Frustum frustum = Frustum::from_matrix(mvp.values.data());
     impl_->render_stats.reset();
+
+    // Compute visible cells once for both passes
+    impl_->cached_visible_count = 0;
+    impl_->map_geometry.collect_visible(frustum, impl_->cached_visible_cells, impl_->cached_visible_count);
 
     glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(projection.values.data());
@@ -1542,6 +1607,13 @@ void DebugRenderer::render(DebugScene& scene) {
     }
 
     impl_->draw_main_color_pass(scene, frustum, view, static_cast<float>(day_factor));
+
+    // Extra world-space geometry (e.g. PBR level meshes) drawn in the 3D phase,
+    // after the main color pass but before screen-space overlays, so it cannot
+    // overwrite the HUD/crosshair/menu.
+    if (draw_world_extra) {
+        draw_world_extra();
+    }
 
     // --- End main color pass timer, begin UI pass timer ---
     if (impl_->gpu_timers_supported) {
@@ -1711,11 +1783,29 @@ void DebugRenderer::render(DebugScene& scene) {
     scene.gpu_time_total_ms = impl_->gpu_time_total_ms;
     scene.gpu_time_depth_ms = impl_->gpu_time_depth_ms;
     scene.gpu_time_map_ms = impl_->gpu_time_map_ms;
-    scene.gpu_time_entities_ms = impl_->gpu_time_entities_ms;
+    scene.gpu_time_entities_ms = 0.0; // removed — placeholder
     scene.gpu_time_ui_ms = impl_->gpu_time_ui_ms;
     scene.gpu_usage_available = impl_->gpu_timers_supported;
 
+    if (impl_->auto_present) {
+        present();
+    }
+}
+
+void DebugRenderer::present() {
+    if (impl_ == nullptr || impl_->backend == nullptr) {
+        return;
+    }
+
     impl_->backend->end_frame();
+}
+
+void DebugRenderer::set_auto_present(bool enabled) {
+    if (impl_ == nullptr) {
+        return;
+    }
+
+    impl_->auto_present = enabled;
 }
 
 }  // namespace ae::render

@@ -1,5 +1,6 @@
 #include "ahamkara/game/world.h"
 #include "ahamkara/game/movement.h"
+#include "ahamkara/game/worlds/debug_javelin4_world.h"
 #include "ae/core/math.h"
 
 #include "game_physics.h"
@@ -45,15 +46,20 @@ constexpr float kCoyoteTime = 0.10F;
 
 // --- World Implementation ----------------------------------------------------
 
-World::World() {
+World::World() : World(worlds::debug_javelin4()) {}
+
+World::World(const WorldDefinition& definition) {
     initialize_jolt_once();
 
+    reset_weapon_state();
+    loadout_ = {};
+    loadout_.weapons[static_cast<int>(WeaponSlot::Primary)] = 0;    // AR-15
+    loadout_.weapons[static_cast<int>(WeaponSlot::Secondary)] = 1;  // Shotgun
+    loadout_.weapons[static_cast<int>(WeaponSlot::Melee)] = 2;      // Rocket Launcher
+
     player_state_ = {};
-    player_state_.position.x = -12.0F;  // Alpha spawn
     camera_anchor_ = {};
-    camera_anchor_.position.x = -12.0F;
-    colliders_ = kDebugMapColliders.data();
-    collider_count_ = kDebugMapColliders.size();
+    apply_world_definition(definition);
 
     jolt_ = std::make_unique<GamePhysics>(this);
 
@@ -96,43 +102,6 @@ World::World() {
     );
     jolt_->character->SetListener(&jolt_->contact_listener);
 
-    // Initialize target dummies
-    dummy_count_ = 3;
-
-    // Dummy 0: Static Dummy on the central platform
-    dummies_[0].dummy_id = 1;
-    dummies_[0].position = {0.0F, 1.5F, 3.0F};
-    dummies_[0].start_position = {0.0F, 1.5F, 3.0F};
-    dummies_[0].health = 100.0F;
-    dummies_[0].alive = true;
-    dummies_[0].yaw = 180.0F; // Facing player spawn
-
-    // Dummy 1: Moving left-right along X axis on the NE bridge
-    dummies_[1].dummy_id = 2;
-    dummies_[1].position = {6.0F, 1.15F, 7.0F};
-    dummies_[1].start_position = {6.0F, 1.15F, 7.0F};
-    dummies_[1].health = 100.0F;
-    dummies_[1].alive = true;
-    dummies_[1].move_dir = {1.0F, 0.0F, 0.0F};
-    dummies_[1].move_speed = 3.0F;
-    dummies_[1].move_distance = 1.5F;
-    dummies_[1].yaw = 90.0F;
-
-    // Dummy 2: Moving forward-backward along Z axis on the SW bridge
-    dummies_[2].dummy_id = 3;
-    dummies_[2].position = {-7.0F, 1.15F, -6.0F};
-    dummies_[2].start_position = {-7.0F, 1.15F, -6.0F};
-    dummies_[2].health = 100.0F;
-    dummies_[2].alive = true;
-    dummies_[2].move_dir = {0.0F, 0.0F, 1.0F};
-    dummies_[2].move_speed = 4.0F;
-    dummies_[2].move_distance = 2.0F;
-    dummies_[2].yaw = 270.0F;
-
-    for (int i = dummy_count_; i < kMaxDummies; ++i) {
-        dummies_[i].alive = false;
-    }
-
     for (int i = 0; i < dummy_count_; ++i) {
         auto entity = registry_.create();
         registry_.emplace<TargetDummyComponent>(entity, dummies_[i]);
@@ -154,6 +123,49 @@ World::World() {
 
 World::~World() = default;
 
+void World::apply_world_definition(const WorldDefinition& definition) {
+    player_spawn_ = definition.player_spawn;
+    reset_player_to_spawn();
+
+    if (definition.map) {
+        colliders_ = definition.map->colliders;
+        collider_count_ = definition.map->collider_count;
+    } else {
+        colliders_ = nullptr;
+        collider_count_ = 0;
+    }
+
+    const auto requested_count = definition.target_dummies ? definition.target_dummy_count : 0U;
+    const auto source_count = std::min(requested_count, static_cast<std::size_t>(kMaxDummies));
+    dummy_count_ = static_cast<int>(source_count);
+    for (std::size_t idx = 0; idx < source_count; ++idx) {
+        dummies_[idx] = definition.target_dummies[idx];
+    }
+    for (std::size_t idx = source_count; idx < static_cast<std::size_t>(kMaxDummies); ++idx) {
+        dummies_[idx] = {};
+        dummies_[idx].alive = false;
+    }
+}
+
+void World::reset_player_to_spawn() {
+    player_state_.position = player_spawn_.position;
+    player_state_.velocity = {};
+    player_state_.yaw = player_spawn_.yaw;
+    player_state_.health = 100.0F;
+    player_state_.shield = 100.0F;
+    camera_anchor_.position = player_spawn_.position;
+    camera_anchor_.yaw = player_spawn_.yaw;
+    camera_anchor_.pitch = 0.0F;
+}
+
+void World::reset_weapon_state() {
+    weapon_state_ = {};
+    weapon_state_.definition_index = 0;
+    weapon_state_.ammo_in_magazine = kWeaponRegistry[0].magazine_size;
+    weapon_state_.magazine_capacity = kWeaponRegistry[0].magazine_size;
+    weapon_state_.reserve_ammo = 150;
+}
+
 void World::tick(float delta_seconds, const PlayerInputCommand& input) {
     constexpr float kFixedStep = 1.0F / 60.0F;
     float time_remaining = delta_seconds;
@@ -167,10 +179,38 @@ void World::tick(float delta_seconds, const PlayerInputCommand& input) {
 void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) {
     current_tick_++;
 
+    // Match time tracking
+    match_time_ += delta_seconds;
+
+    // --- Handle player respawn -----------------------------------------------
+    if (!is_player_alive() && respawn_timer_ > 0.0F) {
+        respawn_timer_ -= delta_seconds;
+        if (respawn_timer_ <= 0.0F) {
+            respawn_player();
+            respawn_timer_ = 0.0F;
+        }
+    }
+    if (!is_player_alive()) {
+        flush_audio_events();
+        return;
+    }
+
+    // --- Damage feedback timer -----------------------------------------------
+    if (damage_feedback_timer_ > 0.0F) {
+        damage_feedback_timer_ = std::max(0.0F, damage_feedback_timer_ - delta_seconds);
+    }
+
     // --- Dummy simulation (extracted) -----------------------------------------
-    tick_dummies(registry_, dummies_, dummy_count_, current_tick_, delta_seconds);
+    if (!is_client_) {
+        tick_dummies(registry_, delta_seconds);
+    }
     if (jolt_) {
-        sync_dummies_to_jolt(jolt_->physics_system, jolt_->dummy_bodies, dummies_, dummy_count_);
+        sync_dummies_to_jolt(jolt_->physics_system, jolt_->dummy_bodies, registry_);
+    }
+
+    // --- Dummy AI (shoot at player) ------------------------------------------
+    if (!is_client_) {
+        tick_dummy_ai(registry_, delta_seconds, player_state_.position, owned_colliders_, *this);
     }
 
     // --- Feedback timers ------------------------------------------------------
@@ -421,10 +461,21 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
 
     populate_movement_debug(delta_seconds, input);
 
-    ammo_current_ = ammo_max_;
+    // Handle reload input
+    if (input.reload_pressed) start_reload();
+    // Handle weapon switch from input
+    if (input.weapon_slot != static_cast<ae::u8>(loadout_.active_slot) && input.weapon_slot < static_cast<ae::u8>(WeaponSlot::Count))
+        switch_weapon(input.weapon_slot);
+
+    // Weapon tick
+    tick_weapon(delta_seconds, input.fire_held);
 
     if (input.fire_held) {
-        spawn_projectile(input);
+        const auto& def = get_active_weapon_def();
+        if (def.fire_mode == FireMode::Hitscan || def.fire_mode == FireMode::Automatic)
+            fire_hitscan(*this, input);
+        else
+            spawn_projectile(input);
     }
 
     update_projectiles(delta_seconds);
@@ -441,7 +492,7 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
     }
     history_buffer_.push_back(hist);
     if (history_buffer_.size() > 120) {
-        history_buffer_.erase(history_buffer_.begin());
+        history_buffer_.pop_front();
     }
 
     flush_audio_events();
@@ -487,6 +538,96 @@ void World::set_colliders(const ColliderBox* colliders, std::size_t count) {
     colliders_ = colliders;
     collider_count_ = count;
     recreate_physics_colliders();
+}
+
+bool World::load_colliders_from_level(const ae::render::LevelAsset& level) {
+    if (level.collision_boxes.empty()) return false;
+    std::vector<ColliderBox> boxes;
+    boxes.reserve(level.collision_boxes.size());
+    for (const auto& lcb : level.collision_boxes) {
+        ColliderBox cb {};
+        cb.min_x = lcb.min_x; cb.min_z = lcb.min_z;
+        cb.max_x = lcb.max_x; cb.max_z = lcb.max_z;
+        cb.top_y = lcb.top_y; cb.bottom_y = lcb.bottom_y;
+        cb.wall = lcb.wall; cb.jump_through = lcb.jump_through;
+        cb.auto_step = lcb.auto_step;
+        cb.surface_material = static_cast<SurfaceMaterial>(
+            std::min(lcb.surface_material, static_cast<std::uint32_t>(SurfaceMaterial::Count) - 1));
+        boxes.push_back(cb);
+    }
+    if (!level.spawn_points.empty()) {
+        const auto& sp = level.spawn_points[0];
+        player_state_.position = {sp.pos_x, sp.pos_y, sp.pos_z};
+        camera_anchor_.position = player_state_.position;
+        player_state_.yaw = sp.yaw; camera_anchor_.yaw = sp.yaw;
+        if (jolt_ && jolt_->character)
+            jolt_->character->SetPosition(JPH::RVec3(sp.pos_x, sp.pos_y, sp.pos_z));
+    }
+    owned_colliders_ = std::move(boxes);
+    colliders_ = owned_colliders_.data();
+    collider_count_ = owned_colliders_.size();
+    recreate_physics_colliders();
+    return true;
+}
+
+const WeaponDefinition& World::get_active_weapon_def() const {
+    const int idx = weapon_state_.definition_index;
+    if (idx >= 0 && static_cast<std::size_t>(idx) < kWeaponRegistrySize)
+        return kWeaponRegistry[idx];
+    return kWeaponRegistry[0];
+}
+
+void World::switch_weapon(int slot) {
+    const int idx = static_cast<int>(slot);
+    if (idx < 0 || idx >= static_cast<int>(WeaponSlot::Count)) return;
+    const int def_idx = loadout_.weapons[idx];
+    if (def_idx < 0 || static_cast<std::size_t>(def_idx) >= kWeaponRegistrySize) return;
+    if (def_idx == weapon_state_.definition_index) return;
+    weapon_state_.definition_index = def_idx;
+    const auto& def = kWeaponRegistry[def_idx];
+    weapon_state_.magazine_capacity = def.magazine_size;
+    weapon_state_.ammo_in_magazine = def.magazine_size;
+    weapon_state_.reserve_ammo = def.magazine_size * 3;
+    weapon_state_.fire_cooldown = 0.0F;
+    weapon_state_.is_reloading = false;
+    weapon_state_.is_equipping = false;
+    fire_recoil_index_ = 0;
+    loadout_.active_slot = idx;
+}
+
+void World::start_reload() {
+    if (weapon_state_.can_reload()) {
+        weapon_state_.is_reloading = true;
+        reload_timer_ = 2.0F;
+    }
+}
+
+bool World::consume_ammo() {
+    if (weapon_state_.ammo_in_magazine <= 0) return false;
+    weapon_state_.ammo_in_magazine--;
+    return true;
+}
+
+void World::tick_weapon(float delta_seconds, bool fire_held) {
+    (void)fire_held;
+    if (weapon_state_.fire_cooldown > 0.0F)
+        weapon_state_.fire_cooldown -= delta_seconds;
+    if (weapon_state_.is_reloading) {
+        reload_timer_ -= delta_seconds;
+        if (reload_timer_ <= 0.0F) {
+            const int needed = weapon_state_.magazine_capacity - weapon_state_.ammo_in_magazine;
+            const int available = std::min(needed, weapon_state_.reserve_ammo);
+            weapon_state_.ammo_in_magazine += available;
+            weapon_state_.reserve_ammo -= available;
+            weapon_state_.is_reloading = false;
+            reload_timer_ = 0.0F;
+        }
+    }
+    if (weapon_switch_queued_) {
+        switch_weapon(queued_weapon_slot_);
+        weapon_switch_queued_ = false;
+        queued_weapon_slot_ = -1;
+    }
 }
 
 void World::recreate_physics_colliders() {
@@ -810,6 +951,116 @@ void World::update_decals(float delta_seconds) {
         }
     }
     decal_count_ = active;
+}
+
+void World::apply_damage_to_player(float damage, const Vec3& attacker_pos) {
+    if (!is_player_alive()) return;
+
+    float actual_damage = damage;
+    if (player_state_.shield > 0.0F) {
+        constexpr float kArmorAbsorption = 0.66F;
+        float armor_dmg = actual_damage * kArmorAbsorption;
+        if (armor_dmg > player_state_.shield) {
+            armor_dmg = player_state_.shield;
+        }
+        player_state_.shield -= armor_dmg;
+        actual_damage = damage - armor_dmg;
+    }
+    player_state_.health -= actual_damage;
+    if (player_state_.health < 0.0F) player_state_.health = 0.0F;
+
+    damage_feedback_timer_ = 0.3F;
+
+    // Spawn damage number at player position
+    Vec3 num_pos = player_state_.position;
+    num_pos.y += 1.8F;
+    spawn_damage_number(num_pos, actual_damage, false);
+
+    // Hit audio
+    queue_audio_event(AudioEvent{"player_hit", 1.0f, AudioCategory::SFX});
+
+    if (player_state_.health <= 0.0F) {
+        player_deaths_++;
+        respawn_timer_ = 3.0F;
+    }
+}
+
+void World::respawn_player() {
+    reset_player_to_spawn();
+
+    if (jolt_ && jolt_->character) {
+        jolt_->character->SetPosition(JPH::RVec3(
+            player_state_.position.x,
+            player_state_.position.y,
+            player_state_.position.z
+        ));
+        jolt_->character->SetLinearVelocity(JPH::Vec3(0, 0, 0));
+    }
+
+    reset_weapon_state();
+}
+
+void World::on_dummy_killed(ae::u32 dummy_id, const Vec3& death_pos) {
+    player_kills_++;
+
+    Vec3 num_pos = death_pos;
+    num_pos.y += 1.5F;
+    spawn_damage_number(num_pos, 0.0F, false);
+
+    // Check win condition: kill all dummies
+    int alive_count = 0;
+    for (int i = 0; i < dummy_count_; ++i) {
+        if (dummies_[i].alive) alive_count++;
+    }
+    if (alive_count == 0 && player_kills_ >= 3) {
+        match_over_ = true;
+    }
+
+    (void)dummy_id;
+}
+
+void World::restart_match() {
+    player_kills_ = 0;
+    player_deaths_ = 0;
+    match_time_ = 0.0F;
+    match_over_ = false;
+    respawn_timer_ = 0.0F;
+    damage_feedback_timer_ = 0.0F;
+
+    reset_player_to_spawn();
+    if (jolt_ && jolt_->character) {
+        jolt_->character->SetPosition(JPH::RVec3(
+            player_state_.position.x,
+            player_state_.position.y,
+            player_state_.position.z
+        ));
+        jolt_->character->SetLinearVelocity(JPH::Vec3(0, 0, 0));
+    }
+
+    reset_weapon_state();
+
+    // Respawn all dummies
+    auto view = registry_.view<TargetDummyComponent>();
+    for (auto entity : view) {
+        auto& comp = view.get<TargetDummyComponent>(entity);
+        auto& d = comp.state;
+        d.alive = true;
+        d.health = 100.0F;
+        d.armor = 50.0F;
+        d.position = d.start_position;
+        d.last_hit_timer = 0.0F;
+        d.respawn_timer = 0.0F;
+        comp.fire_timer = 1.0F + (static_cast<float>(std::rand() % 100) / 100.0F) * 2.0F;
+        comp.burst_timer = 0.0F;
+        comp.burst_count = 0;
+    }
+    sync_dummies_to_array();
+}
+
+ae::u8 World::get_match_phase() const {
+    if (match_over_) return 6;
+    if (respawn_timer_ > 0.0F) return 3;
+    return 3;
 }
 
 }  // namespace ahamkara::game

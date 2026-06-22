@@ -10,6 +10,8 @@
 
 #include <chrono>
 #include <cstdlib>
+#include <cstring>
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -39,6 +41,7 @@ struct ClientOptions {
     bool fire_held {false};
     bool print_events {true};
     bool print_snapshots {true};
+    std::string nakama_token;
 };
 
 struct ClientSlot {
@@ -50,6 +53,7 @@ struct ClientSlot {
     bool handshake_done {false};
     int handshake_ticks {0};
     bool connected_banner_printed {false};
+    std::string nakama_token;
 };
 
 bool is_flag(std::string_view arg, std::string_view flag) {
@@ -141,6 +145,7 @@ void print_usage() {
         << "  --look-x=<float>        Look input X delta (default: 0)\n"
         << "  --look-y=<float>        Look input Y delta (default: 0)\n"
         << "  --fire                  Hold fire input on every tick\n"
+        << "  --nakama-token=<jwt>    Nakama session token for auth\n"
         << "  --no-events             Suppress input/event logs\n"
         << "  --no-snapshots          Suppress snapshot logs\n"
         << "  --simulate*             Forwarded to the network simulator\n"
@@ -253,6 +258,11 @@ bool parse_options(int argc, char** argv, ClientOptions& options) {
             continue;
         }
 
+        if (is_prefixed(arg, "--nakama-token=")) {
+            options.nakama_token = std::string(arg.substr(std::string_view("--nakama-token=").size()));
+            continue;
+        }
+
         if (is_flag(arg, "--no-events")) {
             options.print_events = false;
             continue;
@@ -277,6 +287,7 @@ bool parse_options(int argc, char** argv, ClientOptions& options) {
 std::unique_ptr<ClientSlot> make_client_slot(const ClientOptions& options, int index, const ae::SimulatorConfig& sim_config) {
     auto slot = std::make_unique<ClientSlot>();
     slot->label = build_label(options, index);
+    slot->nakama_token = options.nakama_token;
 
     if (!slot->socket.open(0)) {
         throw std::runtime_error("failed to open an ephemeral UDP socket");
@@ -303,7 +314,11 @@ void log_start_banner(const ClientOptions& options, const ClientSlot& slot) {
 bool send_hello(ClientSlot& slot, const ae::NetAddress& server_address) {
     ahamkara::game::ClientHelloPacket hello {};
     hello.protocol_version = ahamkara::game::kProtocolVersion;
-    hello.session_token = 0;
+
+    if (!slot.nakama_token.empty() && slot.nakama_token.size() <= ahamkara::game::kMaxAuthTokenLength) {
+        hello.auth_token_length = static_cast<ae::u16>(slot.nakama_token.size());
+        std::memcpy(hello.auth_token, slot.nakama_token.data(), slot.nakama_token.size());
+    }
 
     const ahamkara::game::PacketEnvelope envelope = slot.sequence_tracker.prepare_outgoing();
     ahamkara::game::ClientHelloPacketBuffer buffer {};

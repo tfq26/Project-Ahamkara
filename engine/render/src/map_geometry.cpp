@@ -28,9 +28,19 @@ struct CellBuilder {
     float min_x {1e9F}, min_y {1e9F}, min_z {1e9F};
     float max_x {-1e9F}, max_y {-1e9F}, max_z {-1e9F};
 
+    // Cell spatial bounds (set by build(), immutable after)
+    float cell_min_x {0}, cell_max_x {0}, cell_min_z {0}, cell_max_z {0};
+
+    bool overlaps_xz(float bx_min_x, float bx_max_x, float bx_min_z, float bx_max_z) const {
+        return !(bx_max_x < cell_min_x || bx_min_x > cell_max_x ||
+                 bx_max_z < cell_min_z || bx_min_z > cell_max_z);
+    }
+
     void add_box(float minx, float miny, float minz,
                  float maxx, float maxy, float maxz,
                  float r, float g, float b) {
+        if (!overlaps_xz(minx, maxx, minz, maxz)) return;
+
         // Expand bounds
         min_x = std::min(min_x, minx); max_x = std::max(max_x, maxx);
         min_y = std::min(min_y, miny); max_y = std::max(max_y, maxy);
@@ -81,6 +91,9 @@ struct CellBuilder {
                   float x3, float y3, float z3,
                   float nx, float ny, float nz,
                   float r, float g, float b) {
+        if (!overlaps_xz(std::min({x0, x1, x2, x3}), std::max({x0, x1, x2, x3}),
+                         std::min({z0, z1, z2, z3}), std::max({z0, z1, z2, z3}))) return;
+
         // Expand bounds
         auto expand = [&](float x, float y, float z) {
             min_x = std::min(min_x, x); max_x = std::max(max_x, x);
@@ -109,6 +122,9 @@ struct CellBuilder {
     void add_line(float x0, float y0, float z0,
                   float x1, float y1, float z1,
                   float r, float g, float b) {
+        if (!overlaps_xz(std::min(x0, x1), std::max(x0, x1),
+                         std::min(z0, z1), std::max(z0, z1))) return;
+
         expand_bounds(x0, y0, z0);
         expand_bounds(x1, y1, z1);
         line_positions.push_back(x0); line_positions.push_back(y0); line_positions.push_back(z0);
@@ -402,10 +418,11 @@ void MapGeometry::build() {
     for (int cz = 0; cz < kGridSize; ++cz) {
         for (int cx = 0; cx < kGridSize; ++cx) {
             int idx = cz * kGridSize + cx;
-            builders[static_cast<std::size_t>(idx)].min_x = world_min_x + cx * cell_w;
-            builders[static_cast<std::size_t>(idx)].max_x = world_min_x + (cx + 1) * cell_w;
-            builders[static_cast<std::size_t>(idx)].min_z = world_min_z + cz * cell_h;
-            builders[static_cast<std::size_t>(idx)].max_z = world_min_z + (cz + 1) * cell_h;
+            auto& b = builders[static_cast<std::size_t>(idx)];
+            b.cell_min_x = world_min_x + cx * cell_w;
+            b.cell_max_x = world_min_x + (cx + 1) * cell_w;
+            b.cell_min_z = world_min_z + cz * cell_h;
+            b.cell_max_z = world_min_z + (cz + 1) * cell_h;
         }
     }
 

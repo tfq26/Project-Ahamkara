@@ -1,0 +1,4 @@
+interface:
+  display_name: "Subagent Collaboration Protocol"
+  short_description: "Coordinate agents like teammates"
+  default_prompt: "Use $subagent-collaboration-protocol to coordinate subagents with shared ownership, handoff, and validation rules."

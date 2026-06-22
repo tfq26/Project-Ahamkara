@@ -5,6 +5,18 @@
 namespace ae {
 
 /**
+ * @brief Trim leading and trailing whitespace from a string.
+ *
+ * Returns a string_view into the original string to avoid allocation.
+ */
+inline std::string_view trim(std::string_view s) {
+    const auto first = s.find_first_not_of(" \t\r\n");
+    if (first == std::string_view::npos) return {};
+    const auto last = s.find_last_not_of(" \t\r\n");
+    return s.substr(first, last - first + 1);
+}
+
+/**
  * @brief Parse a "--key=value" CLI argument as a float.
  *
  * If arg starts with "--<key>=", attempts to parse the suffix as float.

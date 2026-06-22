@@ -3,6 +3,8 @@
 
 #include "debug_renderer_internal.h"
 
+#include "gl_compat.h"
+
 namespace ae::render {
 
 void draw_gpu_model(RenderBackend& backend,

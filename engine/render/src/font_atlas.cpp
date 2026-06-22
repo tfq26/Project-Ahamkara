@@ -11,9 +11,9 @@
 #include <vector>
 
 #if defined(__APPLE__)
-#include <OpenGL/gl.h>
+#include <OpenGL/gl3.h>
 #else
-#include <GL/gl.h>
+#include <GL/glcorearb.h>
 #endif
 
 namespace ae::render {
@@ -27,6 +27,56 @@ constexpr int kAtlasPadding = 2;
 constexpr float kDefaultFontPixelSize = 48.0F;
 constexpr float kBaseFontTargetSize = 10.0F;
 constexpr std::string_view kDefaultFontName = "Menlo";
+
+// Font shader — GLSL 330 Core Profile
+static const char* kFontVS =
+    "#version 330 core\n"
+    "layout(location = 0) in vec2 aPos;\n"
+    "layout(location = 1) in vec2 aTexCoord;\n"
+    "layout(location = 2) in vec4 aColor;\n"
+    "uniform mat4 uProjection;\n"
+    "out vec2 vTexCoord;\n"
+    "out vec4 vColor;\n"
+    "void main() {\n"
+    "    gl_Position = uProjection * vec4(aPos, 0.0, 1.0);\n"
+    "    vTexCoord = aTexCoord;\n"
+    "    vColor = aColor;\n"
+    "}\n";
+
+static const char* kFontFS =
+    "#version 330 core\n"
+    "in vec2 vTexCoord;\n"
+    "in vec4 vColor;\n"
+    "uniform sampler2D uTexture;\n"
+    "out vec4 fragColor;\n"
+    "void main() {\n"
+    "    float a = texture(uTexture, vTexCoord).a;\n"
+    "    fragColor = vec4(vColor.rgb, vColor.a * a);\n"
+    "}\n";
+
+static GLuint compile_font_shader(const char* vs, const char* fs) {
+    GLuint v = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(v, 1, &vs, nullptr);
+    glCompileShader(v);
+    GLuint f = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(f, 1, &fs, nullptr);
+    glCompileShader(f);
+    GLuint p = glCreateProgram();
+    glAttachShader(p, v); glAttachShader(p, f);
+    glBindAttribLocation(p, 0, "aPos");
+    glBindAttribLocation(p, 1, "aTexCoord");
+    glBindAttribLocation(p, 2, "aColor");
+    glLinkProgram(p);
+    glDeleteShader(v); glDeleteShader(f);
+    return p;
+}
+
+// Batch vertex for text quads
+struct TextVertex {
+    float x, y;
+    float u, v;
+    float r, g, b, a;
+};
 
 struct GlyphPlacement {
     int x {0};
@@ -54,6 +104,12 @@ struct FontAtlas::Impl {
     float ascent {0.0F};
     float base_line_height {0.0F};
     Glyph glyphs[kGlyphCount] {};
+
+    // Core Profile font rendering resources
+    GLuint font_program {0};
+    GLuint font_vao {0};
+    GLuint font_vbo {0};
+    GLint  u_font_proj_loc {-1};
 };
 
 FontAtlas::~FontAtlas() {
@@ -166,7 +222,6 @@ bool FontAtlas::initialize_default() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     glTexImage2D(
         GL_TEXTURE_2D,
         0,
@@ -179,6 +234,12 @@ bool FontAtlas::initialize_default() {
         pixels.data());
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
+    impl_->font_program = compile_font_shader(kFontVS, kFontFS);
+    impl_->u_font_proj_loc = glGetUniformLocation(impl_->font_program, "uProjection");
+
+    glGenVertexArrays(1, &impl_->font_vao);
+    glGenBuffers(1, &impl_->font_vbo);
+
     impl_->ready = true;
     return true;
 }
@@ -190,6 +251,15 @@ void FontAtlas::shutdown() {
 
     if (impl_->texture_id != 0) {
         glDeleteTextures(1, &impl_->texture_id);
+    }
+    if (impl_->font_program != 0) {
+        glDeleteProgram(impl_->font_program);
+    }
+    if (impl_->font_vao != 0) {
+        glDeleteVertexArrays(1, &impl_->font_vao);
+    }
+    if (impl_->font_vbo != 0) {
+        glDeleteBuffers(1, &impl_->font_vbo);
     }
 
     delete impl_;
@@ -229,42 +299,92 @@ float FontAtlas::line_height(float scale) const {
     return impl_->base_line_height * size_multiplier;
 }
 
-void FontAtlas::draw_text(float x, float y, float scale, std::string_view text) const {
-    if (!is_ready()) {
-        return;
-    }
+void FontAtlas::draw_text(float x, float y, float scale, std::string_view text,
+                          float r, float g, float b, float a) const {
+    if (!is_ready()) return;
 
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, impl_->texture_id);
-    glBegin(GL_QUADS);
-
+    // Build glyph quads on CPU
+    std::vector<TextVertex> verts;
     const float size_multiplier = (kBaseFontTargetSize / kDefaultFontPixelSize) * scale;
     float cursor_x = x;
     const float baseline_y = std::round(y + impl_->ascent * size_multiplier);
+
     for (const char character : text) {
         if (character < kFirstAscii || character > kLastAscii) {
             cursor_x += 10.0F * size_multiplier;
             continue;
         }
-
         const auto& glyph = impl_->glyphs[static_cast<std::size_t>(character - kFirstAscii)];
-        if (glyph.has_bitmap) {
-            const float left = std::round(cursor_x + glyph.bearing_x * size_multiplier);
-            const float top = std::round(baseline_y - glyph.bearing_y * size_multiplier);
-            const float right = std::round(left + glyph.width * size_multiplier);
-            const float bottom = std::round(top + glyph.height * size_multiplier);
-
-            glTexCoord2f(glyph.u0, glyph.v0); glVertex2f(left, top);
-            glTexCoord2f(glyph.u1, glyph.v0); glVertex2f(right, top);
-            glTexCoord2f(glyph.u1, glyph.v1); glVertex2f(right, bottom);
-            glTexCoord2f(glyph.u0, glyph.v1); glVertex2f(left, bottom);
+        if (!glyph.has_bitmap) {
+            cursor_x += glyph.advance * size_multiplier;
+            continue;
         }
+
+        const float left   = std::round(cursor_x + glyph.bearing_x * size_multiplier);
+        const float top    = std::round(baseline_y - glyph.bearing_y * size_multiplier);
+        const float right  = std::round(left + glyph.width * size_multiplier);
+        const float bottom = std::round(top + glyph.height * size_multiplier);
+
+        verts.push_back({left,  top,    glyph.u0, glyph.v0, r,g,b,a});
+        verts.push_back({right, top,    glyph.u1, glyph.v0, r,g,b,a});
+        verts.push_back({right, bottom, glyph.u1, glyph.v1, r,g,b,a});
+        verts.push_back({left,  top,    glyph.u0, glyph.v0, r,g,b,a});
+        verts.push_back({right, bottom, glyph.u1, glyph.v1, r,g,b,a});
+        verts.push_back({left,  bottom, glyph.u0, glyph.v1, r,g,b,a});
 
         cursor_x += glyph.advance * size_multiplier;
     }
 
-    glEnd();
-    glDisable(GL_TEXTURE_2D);
+    if (verts.empty()) return;
+
+    // Get viewport for orthographic projection
+    GLint vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+    float ortho[16] = {
+        2.0f/vp[2], 0, 0, 0,
+        0, -2.0f/vp[3], 0, 0,
+        0, 0, -1, 0,
+        -1, 1, 0, 1
+    };
+
+    // Save state
+    GLboolean depth_was_on = glIsEnabled(GL_DEPTH_TEST);
+    GLboolean blend_was_on = glIsEnabled(GL_BLEND);
+    GLint prev_program = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &prev_program);
+
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glUseProgram(impl_->font_program);
+    glUniformMatrix4fv(impl_->u_font_proj_loc, 1, GL_FALSE, ortho);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, impl_->texture_id);
+
+    glBindVertexArray(impl_->font_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, impl_->font_vbo);
+    glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(TextVertex),
+                 verts.data(), GL_STREAM_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(TextVertex),
+                          (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(TextVertex),
+                          (void*)(sizeof(float)*2));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(TextVertex),
+                          (void*)(sizeof(float)*4));
+    glEnableVertexAttribArray(2);
+
+    glDrawArrays(GL_TRIANGLES, 0, (GLsizei)verts.size());
+
+    // Restore state
+    glBindVertexArray(0);
+    glUseProgram((GLuint)prev_program);
+    if (depth_was_on) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+    if (!blend_was_on) glDisable(GL_BLEND);
 }
 
 }  // namespace ae::render

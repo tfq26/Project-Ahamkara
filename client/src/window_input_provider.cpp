@@ -85,6 +85,14 @@ ahamkara::game::PlayerInputCommand WindowInputProvider::gather_input(float delta
         || window_.is_key_down(ae::KeyCode::RightControl);
     command.slide_pressed = window_.is_key_pressed(ae::KeyCode::C);
 
+    // Weapon switching: 1=AR-15 (Primary slot 0), 2=Shotgun (Secondary slot 1), 3=Rocket (Melee slot 2)
+    if (window_.is_key_pressed(ae::KeyCode::Num1))
+        command.weapon_slot = 0;
+    else if (window_.is_key_pressed(ae::KeyCode::Num2))
+        command.weapon_slot = 1;
+    else if (window_.is_key_pressed(ae::KeyCode::Num3))
+        command.weapon_slot = 2;
+
     const auto mouse = window_.mouse_state();
     command.fire_held = mouse.button_down[static_cast<ae::usize>(ae::MouseButton::Left)];
     command.reload_pressed = window_.is_key_pressed(ae::KeyCode::R);
@@ -93,6 +101,10 @@ ahamkara::game::PlayerInputCommand WindowInputProvider::gather_input(float delta
     command.look_delta.y = mouse.delta_y * mouse_sensitivity_;
 
     return command;
+}
+
+void WindowInputProvider::set_mouse_sensitivity(float mouse_sensitivity) {
+    mouse_sensitivity_ = mouse_sensitivity;
 }
 
 }  // namespace ahamkara::client

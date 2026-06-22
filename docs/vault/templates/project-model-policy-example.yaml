@@ -1,0 +1,27 @@
+# Example project-level model policy
+#
+# This is a non-secret reference example for project-config.yaml.
+
+model_policy:
+  allowed_roles:
+    worker:
+      - worker_model
+    primary_reviewer:
+      - primary_reviewer_model
+    secondary_reviewer:
+      - secondary_reviewer_model
+    classifier:
+      - classifier_model
+    bookkeeping_reviewer:
+      - bookkeeping_reviewer_model
+
+  denied_model_refs: []
+
+  role_requirements:
+    secondary_reviewer:
+      escalation_tier: high
+
+    bookkeeping_reviewer:
+      task_type:
+        - docs
+        - bookkeeping

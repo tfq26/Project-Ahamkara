@@ -53,6 +53,27 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(jolt glm entt miniaudio)
 
+option(AHAMKARA_BUILD_WISH_ADMIN "Build the Wish admin HTTP server (requires Lua/sol2)" OFF)
+
+if(AHAMKARA_BUILD_WISH_ADMIN)
+    # Lua (CMake-compatible repo wrapper)
+    FetchContent_Declare(
+        lua
+        GIT_REPOSITORY https://github.com/marovira/lua.git
+        GIT_TAG        master
+    )
+
+    # sol2 (C++ bindings for Lua)
+    set(SOL2_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(
+        sol2
+        GIT_REPOSITORY https://github.com/ThePhD/sol2.git
+        GIT_TAG        v3.3.0
+    )
+
+    FetchContent_MakeAvailable(lua sol2)
+endif()
+
 # Jolt v5.0.0 uses memset/memcpy on non-trivially-copyable types which
 # triggers -Wnontrivial-memcall under Apple Clang.  Jolt enables -Werror
 # so we need to suppress this specific diagnostic on the Jolt target.
@@ -74,6 +95,7 @@ option(AHAMKARA_BUILD_SAMPLES "Build sample games that consume the engine" ON)
 
 add_subdirectory(engine/core)
 add_subdirectory(engine/collision)
+add_subdirectory(engine/physics)
 add_subdirectory(engine/network)
 add_subdirectory(engine/runtime)
 add_subdirectory(wish)
@@ -85,6 +107,9 @@ if(AHAMKARA_BUILD_CLIENT)
     add_subdirectory(engine/platform)
     add_subdirectory(engine/render)
     add_subdirectory(engine/animation)
+    add_subdirectory(engine/ui)
+    add_subdirectory(engine/input)
+    add_subdirectory(engine/audio)
     add_subdirectory(client)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/CMakeLists.txt")
         add_subdirectory(tools)

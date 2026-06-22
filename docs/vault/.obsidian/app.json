@@ -1,0 +1,10 @@
+{
+  "alwaysUpdateLinks": true,
+  "attachmentFolderPath": "attachments",
+  "newFileLocation": "current",
+  "promptDelete": false,
+  "showUnsupportedFiles": true,
+  "userIgnoreFilters": [
+    "attachments/"
+  ]
+}

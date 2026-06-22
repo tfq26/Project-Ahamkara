@@ -18,11 +18,12 @@
 // ── Forward declarations ─────────────────────────────────────────────────────
 
 int run_local_client(
-    const ahamkara::client::ClientConfig& client_config,
-    const ahamkara::client::ControllerBindings& controller_bindings);
+    ahamkara::client::ClientConfig& client_config,
+    const ahamkara::client::ControllerBindings& controller_bindings,
+    const char* level_path);
 
 int run_windowed_client(const ahamkara::client::ClientConfig& client_config);
-int run_sandbox_client();
+int run_sandbox_client(const char* level_path);
 int run_network_client(const std::string& server_ip, int argc, char** argv);
 
 // ── Path resolution helpers ──────────────────────────────────────────────────
@@ -114,8 +115,17 @@ int main(int argc, char** argv) {
         ae::log_info("No controller bindings file found, using defaults.");
     }
 
+    // Parse --level <path> early
+    const char* level_path = nullptr;
+    for (int i = 1; i < argc; ++i) {
+        if ((std::string(argv[i]) == "--level" || std::string(argv[i]) == "-l") && i + 1 < argc) {
+            level_path = argv[i + 1];
+            break;
+        }
+    }
+
     if (argc > 1 && (std::string(argv[1]) == "--local" || std::string(argv[1]) == "--debug-view")) {
-        return run_local_client(client_config, controller_bindings);
+        return run_local_client(client_config, controller_bindings, level_path);
     }
 
     if (argc > 1 && std::string(argv[1]) == "--window") {
@@ -123,7 +133,7 @@ int main(int argc, char** argv) {
     }
 
     if (argc > 1 && std::string(argv[1]) == "--sandbox") {
-        return run_sandbox_client();
+        return run_sandbox_client(level_path);
     }
 
     const std::string server_ip = argc > 1 ? argv[1] : client_config.server_ip;

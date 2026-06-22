@@ -23,10 +23,13 @@ ahamkara/
 ├── build/                  # Generated build trees (git-ignored)
 ├── client/                 # Playable client executable
 │   └── src/client_main.cpp
-├── docs/                   # Architecture & build docs
-│   ├── architecture.md
-│   ├── building.md
-│   └── networking.md
+├── docs/                   # Guides, system docs, roadmaps, reports, vault
+│   ├── README.md
+│   ├── guides/
+│   ├── systems/
+│   ├── roadmap/
+│   ├── reports/
+│   └── vault/
 ├── editor/                 # Editor tooling (future)
 ├── engine/                 # Engine libraries (core, network, platform, render, runtime)
 ├── game/                   # Game-facing types & logic
@@ -46,7 +49,7 @@ ahamkara/
 - **C++20 compiler** (GCC 11+, Clang 14+, or Apple Clang 14+)
 - **GLFW 3.3+** (`libglfw3-dev` on Ubuntu, `glfw` via Homebrew on macOS)
 
-See [`docs/building.md`](docs/building.md) for per-OS install instructions.
+See [`docs/guides/building.md`](docs/guides/building.md) for per-OS install instructions.
 
 ### Build & Run
 
@@ -68,7 +71,7 @@ The network client connects to the local server over UDP. Both processes
 print tick and position diagnostics to stdout.
 
 For server-only local run and Docker notes, see
-[`docs/wish_engine_local_run.md`](docs/wish_engine_local_run.md).
+[`docs/wish/local_run.md`](docs/wish/local_run.md).
 
 ### Universal Start Script
 
@@ -207,14 +210,15 @@ git commit -m "Describe the change"
 git push -u origin HEAD
 ```
 
-See [`docs/remote-agent-workflow.md`](docs/remote-agent-workflow.md) for the
+See [`docs/guides/remote-agent-workflow.md`](docs/guides/remote-agent-workflow.md) for the
 full remote-agent playbook.
 
 ## Documentation
 
-- [Architecture overview](docs/architecture.md)
-- [Networking model](docs/networking.md)
-- [Building from source](docs/building.md)
-- [Client config](docs/client_config.md)
-- [Asset pipeline](docs/asset_pipeline.md)
-- [Remote agent workflow](docs/remote-agent-workflow.md)
+- [Docs index](docs/README.md)
+- [Architecture overview](docs/systems/architecture.md)
+- [Networking model](docs/systems/networking.md)
+- [Building from source](docs/guides/building.md)
+- [Client config](docs/systems/client_config.md)
+- [Asset pipeline](docs/systems/asset_pipeline.md)
+- [Remote agent workflow](docs/guides/remote-agent-workflow.md)
