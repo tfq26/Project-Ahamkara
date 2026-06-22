@@ -154,3 +154,16 @@ if(TARGET ae_render)
 
     add_test(NAME ahamkara_level_render_tests COMMAND ahamkara_level_render_tests)
 endif()
+
+add_executable(ahamkara_reliable_channel_tests
+    src/reliable_channel_tests.cpp
+)
+
+target_compile_features(ahamkara_reliable_channel_tests PRIVATE cxx_std_20)
+
+target_link_libraries(ahamkara_reliable_channel_tests
+    PRIVATE
+        ae_network
+)
+
+add_test(NAME ahamkara_reliable_channel_tests COMMAND ahamkara_reliable_channel_tests)

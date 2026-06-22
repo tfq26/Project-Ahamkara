@@ -6,6 +6,10 @@
 # Paths are relative to this manifest file.
 
 model models/test_box.gltf compiled/models/test_box.aemesh
+model models/textured_cube.gltf compiled/models/textured_cube.aemesh
+texture textures/cube_albedo.tga compiled/textures/cube_albedo.aetex
+material materials/cube.mat compiled/materials/cube.aemat
 level levels/javelin4.lvl compiled/levels/javelin4.aelevel
 level levels/prototype_arena.lvl compiled/levels/prototype_arena.aelevel
 level levels/prototype_box.lvl compiled/levels/prototype_box.aelevel
+level levels/textured_showcase.lvl compiled/levels/textured_showcase.aelevel

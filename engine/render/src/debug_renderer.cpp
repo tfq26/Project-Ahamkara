@@ -672,6 +672,11 @@ struct DebugRenderer::Impl {
     GLFWwindow* window {nullptr};  // cached for glfwGetTime / context management
     std::unique_ptr<RenderBackend> backend;
     bool auto_present {true};
+
+    // Level-driven environment override (set via DebugRenderer::set_level_environment).
+    bool has_level_env {false};
+    float level_sky[3] {0.3F, 0.4F, 0.6F};
+    float level_ambient[3] {0.05F, 0.05F, 0.1F};
     ShaderHandle shader_program;
     ShaderHandle depth_program;  // depth-only pre-pass shader
     int u_color_loc {-1};
@@ -1266,6 +1271,11 @@ void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
     float ambient_r = (kMinAmbientR + (0.18F - kMinAmbientR) * static_cast<float>(day_factor)) * gamma;
     float ambient_g = (kMinAmbientG + (0.22F - kMinAmbientG) * static_cast<float>(day_factor)) * gamma;
     float ambient_b = (kMinAmbientB + (0.28F - kMinAmbientB) * static_cast<float>(day_factor)) * gamma;
+    if (has_level_env) {
+        ambient_r = level_ambient[0] * gamma;
+        ambient_g = level_ambient[1] * gamma;
+        ambient_b = level_ambient[2] * gamma;
+    }
     GLfloat ambient[] = {ambient_r, ambient_g, ambient_b, 1.0F};
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
     GLfloat diffuse[] = {0.95F * light_brightness, 0.9F * light_brightness, 0.8F * light_brightness, 1.0F};
@@ -1500,6 +1510,15 @@ void DebugRenderer::render(DebugScene& scene, const std::function<void()>& draw_
     float cr = night_r + (day_r - night_r) * static_cast<float>(day_factor);
     float cg = night_g + (day_g - night_g) * static_cast<float>(day_factor);
     float cb = night_b + (day_b - night_b) * static_cast<float>(day_factor);
+
+    // Level-driven sky: when a level provides environment settings, its sky
+    // color drives the clear color, the sky-gradient pass, and the fog color
+    // (all derived from cr/cg/cb below).
+    if (impl_->has_level_env) {
+        cr = impl_->level_sky[0];
+        cg = impl_->level_sky[1];
+        cb = impl_->level_sky[2];
+    }
     glClearColor(cr, cg, cb, 1.0F);
 
     int framebuffer_width = 1;
@@ -1787,6 +1806,10 @@ void DebugRenderer::render(DebugScene& scene, const std::function<void()>& draw_
     scene.gpu_time_ui_ms = impl_->gpu_time_ui_ms;
     scene.gpu_usage_available = impl_->gpu_timers_supported;
 
+    // Legacy auto-present: present() is only called here when auto_present is
+    // true (the default, for simple/non-staged callers). Staged frame loops
+    // disable it via set_auto_present(false) and call present() in their own
+    // present stage, so render() means "draw" and present() means "swap".
     if (impl_->auto_present) {
         present();
     }
@@ -1806,6 +1829,26 @@ void DebugRenderer::set_auto_present(bool enabled) {
     }
 
     impl_->auto_present = enabled;
+}
+
+void DebugRenderer::set_level_environment(float sky_r, float sky_g, float sky_b,
+                                          float ambient_r, float ambient_g, float ambient_b) {
+    if (impl_ == nullptr) {
+        return;
+    }
+    impl_->level_sky[0] = sky_r;
+    impl_->level_sky[1] = sky_g;
+    impl_->level_sky[2] = sky_b;
+    impl_->level_ambient[0] = ambient_r;
+    impl_->level_ambient[1] = ambient_g;
+    impl_->level_ambient[2] = ambient_b;
+    impl_->has_level_env = true;
+}
+
+void DebugRenderer::clear_level_environment() {
+    if (impl_ != nullptr) {
+        impl_->has_level_env = false;
+    }
 }
 
 }  // namespace ae::render

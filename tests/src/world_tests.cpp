@@ -1,4 +1,5 @@
 #include "ahamkara/game/world.h"
+#include "ahamkara/game/client_prediction.h"
 #include "ahamkara/game/net_types.h"
 
 #include <cassert>
@@ -374,6 +375,50 @@ void test_rollback_lag_compensation() {
     std::cout << "test_rollback_lag_compensation passed.\n";
 }
 
+void test_first_snapshot_reconciliation() {
+    using namespace ahamkara::game;
+    constexpr float kStep = 1.0F / 60.0F;
+
+    ClientPredictionManager cpm;
+
+    // Two unacknowledged forward inputs (server has processed nothing yet).
+    PlayerInputCommand in1{}; in1.sequence = 1; in1.move_axis.y = 1.0F;
+    PlayerInputCommand in2{}; in2.sequence = 2; in2.move_axis.y = 1.0F;
+    cpm.apply_input(in1, kStep);
+    cpm.apply_input(in2, kStep);
+
+    // First snapshot: last_processed_input == 0, authoritative far from predicted
+    // so reconciliation triggers a reset.
+    ServerSnapshot snap{};
+    snap.last_processed_input = 0;
+    snap.local_player.position = {0.0F, 0.0F, 0.0F};
+
+    cpm.reconcile(snap);
+
+    // Independently: authoritative reset + replay of the SAME inputs.
+    World expected;
+    expected.set_is_client(true);
+    expected.set_player_state(snap.local_player);
+    expected.tick(kStep, in1);
+    expected.tick(kStep, in2);
+    const auto& exp = expected.get_player_state().position;
+    const auto& got = cpm.world().get_player_state().position;
+
+    auto close = [](float a, float b) { return std::fabs(a - b) < 1e-3F; };
+
+    // The replayed inputs must actually move the player, else the test is vacuous.
+    assert((std::fabs(exp.x - snap.local_player.position.x) > 1e-3F ||
+            std::fabs(exp.y - snap.local_player.position.y) > 1e-3F ||
+            std::fabs(exp.z - snap.local_player.position.z) > 1e-3F) &&
+           "test inputs must move the player");
+
+    // The fix: first-snapshot reconciliation replays unacked inputs, so the
+    // result equals authoritative-then-replay (not the bare authoritative state).
+    assert(close(got.x, exp.x) && close(got.y, exp.y) && close(got.z, exp.z));
+
+    std::cout << "test_first_snapshot_reconciliation passed.\n";
+}
+
 } // namespace
 
 int main() {
@@ -389,6 +434,7 @@ int main() {
     test_world_jump_through();
     test_bullet_magnetism();
     test_rollback_lag_compensation();
+    test_first_snapshot_reconciliation();
     
     std::cout << "All world tests passed!\n";
     return 0;

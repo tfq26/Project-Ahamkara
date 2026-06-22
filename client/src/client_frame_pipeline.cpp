@@ -114,15 +114,16 @@ void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
     const auto& gamepad = window_.gamepad_state();
     const auto& debug_state = window_.gamepad_debug_state();
 
-    // ESC / controller start → menu toggle
+    // ESC / controller start → menu toggle.
+    // ESC edge detection is owned by the platform window: is_key_pressed() is
+    // edge-triggered (window_glfw.cpp resets per-frame edge state in
+    // poll_events()). This previously also kept a raw glfwGetKey + process-static
+    // edge-detect that duplicated the same press and bypassed the platform
+    // abstraction; removed in favor of the single is_key_pressed path.
     GLFWwindow* glfw_win = static_cast<GLFWwindow*>(window_.native_handle());
-    static bool esc_was_down = false;
-    bool esc_is_down = (glfw_win && glfwGetKey(glfw_win, GLFW_KEY_ESCAPE) == GLFW_PRESS);
-    bool esc_just_pressed = esc_is_down && !esc_was_down;
-    esc_was_down = esc_is_down;
 
-    const bool menu_toggle = esc_just_pressed
-        || window_.is_key_pressed(ae::KeyCode::Escape)
+    const bool menu_toggle =
+        window_.is_key_pressed(ae::KeyCode::Escape)
         || debug_state.is_code_pressed(controller_bindings_.menu);
 
     const auto toggle_actions = ui_controller_.handle_menu_toggle(menu_toggle, client_config_);

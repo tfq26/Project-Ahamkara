@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: open
+status: blocked
 created: 2026-06-20
 queued_by: codex
 assigned_to: opencode

@@ -49,16 +49,15 @@ void ClientPredictionManager::reconcile(const ServerSnapshot& snapshot) {
         // Reset prediction world to authoritative state.
         world_->set_player_state(authoritative);
 
-        // Replay unacknowledged inputs on the corrected state.
-        // NOTE: On the first snapshot (last_ack_ == 0 before reconcile),
-        // pending inputs accumulated before this snapshot are effectively
-        // dropped because we don't replay.  This is a known gap — see
-        // phase4a_network_ownership.md future work item #1.
-        if (last_ack_ != 0) {
-            constexpr float kFixedStep = 1.0F / 60.0F;
-            for (const auto& pending : pending_inputs_) {
-                world_->tick(kFixedStep, pending);
-            }
+        // Replay all unacknowledged inputs on the corrected state. The pending
+        // queue already had server-acknowledged inputs removed above, so it
+        // holds exactly the unacked inputs and is correct to replay on every
+        // snapshot — including the first one. (Previously a `last_ack_ != 0`
+        // guard skipped replay on the first snapshot, dropping pre-snapshot
+        // inputs; that Phase 4 gap is now closed.)
+        constexpr float kFixedStep = 1.0F / 60.0F;
+        for (const auto& pending : pending_inputs_) {
+            world_->tick(kFixedStep, pending);
         }
     }
 }

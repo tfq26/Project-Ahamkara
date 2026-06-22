@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: open
+status: complete
 created: 2026-06-15
 queued_by: codex
 assigned_to: opencode
@@ -9,7 +9,7 @@ subsystems:
   - engine/render
   - client
 related_feature: ../../features/2026-06-15-client-runtime-cleanup.md
-report:
+report: ../../../reports/subagents/TASK-20260615-1215-render-present-semantics-report.md
 ---
 # TASK-20260615-1215-render-present-semantics
 

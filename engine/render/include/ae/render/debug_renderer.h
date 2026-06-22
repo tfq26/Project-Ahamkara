@@ -136,10 +136,30 @@ public:
     bool initialize(ae::PlatformWindow& window);
     void shutdown();
 
+    /// Draw this frame's world (plus any `draw_world_extra` world-phase
+    /// geometry) and screen-space overlays. This does NOT swap/display the
+    /// frame by itself unless legacy auto-present is enabled (see
+    /// set_auto_present). Staged frame loops should call present() explicitly.
     void render(DebugScene& scene, const std::function<void()>& draw_world_extra = {});
+
+    /// Present (swap/display) the frame previously drawn by render(). Calls the
+    /// backend's end_frame(). Call once per frame, after render(). Does not draw.
     void present();
+
+    /// Legacy convenience: when enabled (the default), render() calls present()
+    /// itself at the end. Staged frame loops set this false and call present()
+    /// in their own present stage, keeping rendering and presentation separate.
     void set_auto_present(bool enabled);
+
     RenderBackend* backend();
+
+    /// Drive sky/clear/fog color and ambient lighting from a loaded level's
+    /// environment settings. Call once after loading a level. Without it, the
+    /// renderer uses its built-in day/night palette.
+    void set_level_environment(float sky_r, float sky_g, float sky_b,
+                               float ambient_r, float ambient_g, float ambient_b);
+    /// Revert to the built-in day/night environment.
+    void clear_level_environment();
 
     // Camera matrices used by the most recent render() call. Column-major,
     // 16 floats. Valid after render() has run at least once; lets external

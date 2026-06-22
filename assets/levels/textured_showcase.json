@@ -1,0 +1,15 @@
+{
+  "name": "Textured Showcase",
+  "sky_color": [0.3, 0.4, 0.6],
+  "ambient": [0.08, 0.08, 0.12],
+  "gravity": 20.0,
+  "spawns": [
+    {"pos": [0.0, 1.5, 4.0], "yaw": 180.0, "team": 1}
+  ],
+  "collision": [
+    {"min": [-10.0, -10.0], "max": [10.0, 10.0], "top_y": 0.0, "bottom_y": -0.5, "wall": false, "jump_through": false, "auto_step": true, "surface": 0}
+  ],
+  "meshes": [
+    {"mesh": "assets/compiled/models/textured_cube.aemesh", "material": "assets/compiled/materials/cube.aemat", "pos": [0.0, 1.0, 0.0], "yaw": 0.0, "pitch": 0.0, "roll": 0.0, "scale": [2.0, 2.0, 2.0]}
+  ]
+}

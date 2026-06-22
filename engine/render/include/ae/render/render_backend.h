@@ -116,7 +116,9 @@ public:
     /// Called at the start of each frame.
     virtual void begin_frame() = 0;
 
-    /// Swap buffers / present the frame.  Called at the very end.
+    /// Present the frame by swapping the back/front buffers. This is the
+    /// presentation step only (DebugRenderer::present() calls this) and draws
+    /// nothing. Called once at the very end of a frame.
     virtual void end_frame() = 0;
 
     /// Query the current framebuffer size in pixels.

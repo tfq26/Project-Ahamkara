@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: open
+status: blocked
 created: 2026-06-20
 queued_by: codex
 assigned_to: opencode
@@ -13,7 +13,7 @@ subsystems:
   - tools
   - engine/render
 related_feature:
-report:
+report: ../../../reports/subagents/TASK-20260620-1500-textured-material-showcase-report.md
 ---
 
 # TASK-20260620-1500-textured-material-showcase

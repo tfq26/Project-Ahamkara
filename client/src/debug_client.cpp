@@ -78,6 +78,9 @@ int run_local_client(
         ae::render::LevelAsset level_asset;
         if (level_loader.load(level_path, level_asset)) {
             level_scene.build(level_asset, *renderer.backend(), "");
+            renderer.set_level_environment(
+                level_asset.sky_color_r, level_asset.sky_color_g, level_asset.sky_color_b,
+                level_asset.ambient_r, level_asset.ambient_g, level_asset.ambient_b);
         }
     }
 
