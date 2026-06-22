@@ -1,4 +1,5 @@
 #include "ahamkara/game/world.h"
+#include "ahamkara/game/game_module.h"
 #include "ahamkara/game/client_prediction.h"
 #include "ahamkara/game/net_types.h"
 
@@ -419,6 +420,19 @@ void test_first_snapshot_reconciliation() {
     std::cout << "test_first_snapshot_reconciliation passed.\n";
 }
 
+void test_movement_config_wiring() {
+    using namespace ahamkara::game;
+    // The runtime movement model now sources speeds/jump/gravity from the
+    // game.player_* config vars. Defaults are behavior-preserving — they match
+    // the prior world.cpp constants (walk 3.0, sprint 6.0, jump 5.5, gravity 18.0).
+    auto close = [](float a, float b) { return std::fabs(a - b) < 1e-4F; };
+    assert(close(cfg_walk_speed(), 3.0F));
+    assert(close(cfg_sprint_speed(), 6.0F));   // walk(3.0) * sprint_mult(2.0)
+    assert(close(cfg_jump_speed(), 5.5F));
+    assert(close(cfg_gravity(), 18.0F));
+    std::cout << "test_movement_config_wiring passed.\n";
+}
+
 } // namespace
 
 int main() {
@@ -435,6 +449,7 @@ int main() {
     test_bullet_magnetism();
     test_rollback_lag_compensation();
     test_first_snapshot_reconciliation();
+    test_movement_config_wiring();
     
     std::cout << "All world tests passed!\n";
     return 0;

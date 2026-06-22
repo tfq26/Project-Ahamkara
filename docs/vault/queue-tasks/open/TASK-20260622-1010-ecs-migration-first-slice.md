@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: review-needed
+status: open
 created: 2026-06-22
 queued_by: codex
 assigned_to: opencode
@@ -12,6 +12,7 @@ subsystems:
   - game
 related_feature:
 report: ../../../reports/subagents/TASK-20260622-1010-ecs-migration-first-slice-report.md
+review: ../../../reports/subagents/TASK-20260622-1010-ecs-migration-first-slice-codex-review.md
 ---
 
 # TASK-20260622-1010-ecs-migration-first-slice

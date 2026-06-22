@@ -1,5 +1,6 @@
 #include "ahamkara/game/world.h"
 #include "ahamkara/game/movement.h"
+#include "ahamkara/game/game_module.h"
 #include "ahamkara/game/worlds/debug_javelin4_world.h"
 #include "ae/core/math.h"
 
@@ -21,10 +22,6 @@ namespace ahamkara::game {
 namespace {
 
 constexpr float kGroundHeight = 0.0F;
-constexpr float kJumpSpeed = 5.5F;
-constexpr float kGravity = 18.0F;
-constexpr float kWalkSpeed = 3.0F;
-constexpr float kSprintSpeed = 6.0F;
 constexpr float kSlideSpeed = 10.0F;
 constexpr float kSlideDurationSeconds = 0.45F;
 constexpr float kStandingEyeHeight = 0.58F;
@@ -272,6 +269,12 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
     }
 
     // --- Movement acceleration (Quake-style) ----------------------------------
+    // Speeds/jump/gravity are tunable via the game.player_* config vars
+    // (hot-reloadable; defaults match the prior constants, so behavior-preserving).
+    const float kWalkSpeed   = cfg_walk_speed();
+    const float kSprintSpeed = cfg_sprint_speed();
+    const float kJumpSpeed   = cfg_jump_speed();
+    const float kGravity     = cfg_gravity();
     float move_speed = kWalkSpeed;
     if (slide_timer_seconds_ > 0.0F) {
         move_speed = kSlideSpeed;

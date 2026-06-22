@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: review-needed
+status: complete
 created: 2026-06-22
 queued_by: codex
 assigned_to: opencode
@@ -12,6 +12,7 @@ subsystems:
   - game
 related_feature:
 report: ../../../reports/subagents/TASK-20260622-1100-phase4-reconciliation-replay-fix-report.md
+review: ../../../reports/subagents/TASK-20260622-1100-phase4-reconciliation-replay-fix-codex-review.md
 ---
 
 # TASK-20260622-1100-phase4-reconciliation-replay-fix

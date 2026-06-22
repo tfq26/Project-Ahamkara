@@ -58,6 +58,18 @@ Authored a UV-mapped textured cube (new tools/levelgen/gen_textured_cube.py: glT
 Accepted: the report and diff clarify render vs present semantics without behavior change. Review: reports/subagents/TASK-20260615-1215-render-present-semantics-codex-review.md
 ## TASK-20260615-1245-input-routing-cleanup — Completed 2026-06-22
 Accepted: the raw GLFW ESC path was removed, the single platform edge-trigger remains, and build + tests are green. Review: reports/subagents/TASK-20260615-1245-input-routing-cleanup-codex-review.md
+## TASK-20260622-1100-phase4-reconciliation-replay-fix — Completed 2026-06-22
+Accepted: the first-snapshot replay guard is removed and the deterministic regression test covers the fix. Review: reports/subagents/TASK-20260622-1100-phase4-reconciliation-replay-fix-codex-review.md
+## TASK-20260622-1110-phase4-reliable-channel — Completed 2026-06-22
+Accepted: the header-only reliable channel and unit tests satisfy the transport-agnostic reliability slice. Review: reports/subagents/TASK-20260622-1110-phase4-reliable-channel-codex-review.md
+## TASK-20260622-1020-deterministic-character-controller — Self-validated (batched for milestone review) 2026-06-22
+Implemented the residual: wired the game.player_* ConfigVars into world.cpp's runtime movement (walk/sprint/jump/gravity) via game_module accessors; aligned ConfigVar defaults to the prior constants (behavior-preserving) so tuning is now hot-reloadable. Added test_movement_config_wiring. Build (debug) + 11/11 tests pass. Per the current workflow this is self-validated, not sent to Codex individually. Report: reports/subagents/TASK-20260622-1020-deterministic-character-controller-impl-report.md
+## TASK-20260622-1300-ai-navgrid-astar — Self-validated (batched for milestone review) 2026-06-22
+Phase 8 AI start: header-only NavGrid + deterministic A* (game/include/ahamkara/game/ai/nav_grid.h) with 4/8-connectivity, no corner-cutting, stable tie-break. New ahamkara_nav_grid_tests (7 cases). Build (debug) + 12/12 tests pass. Navigation math only; not yet wired into World. Self-validated, batched. Report: reports/subagents/TASK-20260622-1300-ai-navgrid-astar-report.md
+## TASK-20260622-1010-ecs-migration-first-slice — Revise 2026-06-22
+The report is honest about the residual arrays: the task's fixed-array removal acceptance bar is not yet met. Review: reports/subagents/TASK-20260622-1010-ecs-migration-first-slice-codex-review.md
+## TASK-20260622-1020-deterministic-character-controller — Revise 2026-06-22
+Movement is already deterministic, but the ConfigVar wiring required by the task is still missing. Review: reports/subagents/TASK-20260622-1020-deterministic-character-controller-codex-review.md
 ## TASK-20260622-1000-fixed-timestep-sim-adoption — Verified already-done, review needed 2026-06-22
 Verify-first: LocalPlaySimulation already runs on FixedTimestepAccumulator (fixed-dt world.tick + spiral guard) and exposes interpolation alpha plumbed to snapshots. No code changed. Residual: headless/dedicated path still ticks on variable delta. Report: reports/subagents/TASK-20260622-1000-fixed-timestep-sim-adoption-report.md
 ## TASK-20260622-1010-ecs-migration-first-slice — Verified substantially-done, review needed 2026-06-22

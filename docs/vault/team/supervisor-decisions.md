@@ -180,3 +180,92 @@ Completion Bar:
 - The cleanup is localized, behavior-preserving, and validated.
 User Visible Notes:
 - Accepted as complete.
+
+## 2026-06-22 - TASK-20260622-1100-phase4-reconciliation-replay-fix - complete
+
+Supervisor: codex-lead-supervisor
+Worker: opencode
+Decision: complete
+Evidence Checked:
+- `docs/reports/subagents/TASK-20260622-1100-phase4-reconciliation-replay-fix-report.md`
+- `docs/reports/subagents/TASK-20260622-1100-phase4-reconciliation-replay-fix-codex-review.md`
+- `docs/vault/queue-tasks/completed/TASK-20260622-1100-phase4-reconciliation-replay-fix.md`
+- `game/src/client_prediction.cpp`
+- `tests/src/world_tests.cpp`
+Reason:
+- The first-snapshot replay guard has been removed.
+- The deterministic regression test proves the fix.
+Next Actions:
+- None.
+Completion Bar:
+- First-snapshot reconciliation replays unacked inputs.
+User Visible Notes:
+- Accepted as complete.
+
+## 2026-06-22 - TASK-20260622-1110-phase4-reliable-channel - complete
+
+Supervisor: codex-lead-supervisor
+Worker: opencode
+Decision: complete
+Evidence Checked:
+- `docs/reports/subagents/TASK-20260622-1110-phase4-reliable-channel-report.md`
+- `docs/reports/subagents/TASK-20260622-1110-phase4-reliable-channel-codex-review.md`
+- `docs/vault/queue-tasks/completed/TASK-20260622-1110-phase4-reliable-channel.md`
+- `engine/network/include/ae/network/reliable_channel.h`
+- `tests/src/reliable_channel_tests.cpp`
+Reason:
+- The transport-agnostic reliable channel satisfies the requested ACK and
+  retransmit behavior.
+- Unit tests cover ACK removal, timeout retransmits, and wraparound.
+Next Actions:
+- None.
+Completion Bar:
+- Reliable channel implemented and unit-tested.
+User Visible Notes:
+- Accepted as complete.
+
+## 2026-06-22 - TASK-20260622-1010-ecs-migration-first-slice - revise
+
+Supervisor: codex-lead-supervisor
+Worker: opencode
+Decision: revise
+Evidence Checked:
+- `docs/reports/subagents/TASK-20260622-1010-ecs-migration-first-slice-report.md`
+- `docs/reports/subagents/TASK-20260622-1010-ecs-migration-first-slice-codex-review.md`
+- `game/include/ahamkara/game/world.h`
+- `game/src/world.cpp`
+- `game/src/world_projectile.cpp`
+- `game/src/world_dummy_sim.cpp`
+Reason:
+- The fixed arrays are still present and still back the public accessors.
+- The acceptance bar explicitly requires removing the fixed array.
+Next Actions:
+- Implement the array-removal/accessor rewrite or rescope the migration into a
+  smaller reviewed slice.
+Completion Bar:
+- One entity type is registry-only and the fixed array is gone.
+User Visible Notes:
+- Needs a real implementation slice, not just verification.
+
+## 2026-06-22 - TASK-20260622-1020-deterministic-character-controller - revise
+
+Supervisor: codex-lead-supervisor
+Worker: opencode
+Decision: revise
+Evidence Checked:
+- `docs/reports/subagents/TASK-20260622-1020-deterministic-character-controller-report.md`
+- `docs/reports/subagents/TASK-20260622-1020-deterministic-character-controller-codex-review.md`
+- `game/src/movement.cpp`
+- `game/include/ahamkara/game/movement.h`
+- `game/src/game_module.cpp`
+- `tests/src/movement_tests.cpp`
+Reason:
+- The movement path is deterministic, but the tunable `ConfigVar`s are not wired
+  into the active `MovementConfig`.
+- That means the hot-reloadable tuning requirement is still unmet.
+Next Actions:
+- Wire the config vars into movement and extend tests for the live tuning path.
+Completion Bar:
+- Movement tuning is driven by the registered `ConfigVar`s.
+User Visible Notes:
+- Needs the config wiring slice before completion.

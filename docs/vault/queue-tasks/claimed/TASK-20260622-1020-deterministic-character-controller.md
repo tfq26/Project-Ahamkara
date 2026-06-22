@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: review-needed
+status: self-validated
 created: 2026-06-22
 queued_by: codex
 assigned_to: opencode
@@ -11,8 +11,9 @@ secondary_reviewer:
 subsystems:
   - game
   - engine/runtime
-related_feature:
-report: ../../../reports/subagents/TASK-20260622-1020-deterministic-character-controller-report.md
+related_feature: ../../features/2026-06-15-client-runtime-cleanup.md
+report: ../../../reports/subagents/TASK-20260622-1020-deterministic-character-controller-impl-report.md
+review: ../../../reports/subagents/TASK-20260622-1020-deterministic-character-controller-codex-review.md
 ---
 
 # TASK-20260622-1020-deterministic-character-controller

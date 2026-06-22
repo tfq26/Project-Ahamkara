@@ -167,3 +167,12 @@ target_link_libraries(ahamkara_reliable_channel_tests
 )
 
 add_test(NAME ahamkara_reliable_channel_tests COMMAND ahamkara_reliable_channel_tests)
+
+add_executable(ahamkara_nav_grid_tests
+    src/nav_grid_tests.cpp
+)
+
+target_compile_features(ahamkara_nav_grid_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_nav_grid_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../game/include)
+
+add_test(NAME ahamkara_nav_grid_tests COMMAND ahamkara_nav_grid_tests)
