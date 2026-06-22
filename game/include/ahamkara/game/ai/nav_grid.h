@@ -180,4 +180,36 @@ private:
     return path;
 }
 
+/// Axis-aligned blocker rectangle in world space (x/z plane). Matches the layout
+/// of a level collision box's footprint (min_x/min_z/max_x/max_z), so callers can
+/// rasterize level collision into a nav grid.
+struct NavAABB {
+    float min_x {0.0F};
+    float min_z {0.0F};
+    float max_x {0.0F};
+    float max_z {0.0F};
+};
+
+/// Build a `width` x `height` NavGrid of `cell_size`, anchored at
+/// (origin_x, origin_z) in world space. A cell is blocked when its center lies
+/// inside any blocker AABB. Grid Y maps to world Z. Deterministic.
+[[nodiscard]] inline NavGrid build_nav_grid(int width, int height, float cell_size,
+                                            float origin_x, float origin_z,
+                                            const std::vector<NavAABB>& blockers) {
+    NavGrid grid(width, height);
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            const float cx = origin_x + (static_cast<float>(x) + 0.5F) * cell_size;
+            const float cz = origin_z + (static_cast<float>(y) + 0.5F) * cell_size;
+            for (const auto& b : blockers) {
+                if (cx >= b.min_x && cx <= b.max_x && cz >= b.min_z && cz <= b.max_z) {
+                    grid.set_blocked({x, y}, true);
+                    break;
+                }
+            }
+        }
+    }
+    return grid;
+}
+
 }  // namespace ahamkara::game::ai
