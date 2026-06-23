@@ -15,16 +15,7 @@
 #include <unistd.h>
 #endif
 
-// ── Forward declarations ─────────────────────────────────────────────────────
-
-int run_local_client(
-    ahamkara::client::ClientConfig& client_config,
-    const ahamkara::client::ControllerBindings& controller_bindings,
-    const char* level_path);
-
-int run_windowed_client(const ahamkara::client::ClientConfig& client_config);
-int run_sandbox_client(const char* level_path);
-int run_network_client(const std::string& server_ip, int argc, char** argv);
+#include "ahamkara/client/client_entry.h"
 
 // ── Path resolution helpers ──────────────────────────────────────────────────
 
