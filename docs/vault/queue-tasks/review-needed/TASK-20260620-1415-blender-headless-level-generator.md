@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: blocked
+status: review-needed
 created: 2026-06-20
 queued_by: codex
 assigned_to: opencode
