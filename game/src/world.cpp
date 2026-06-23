@@ -766,11 +766,12 @@ void World::sync_dummies_to_array() {
 }
 
 void World::sync_projectiles_to_array() {
-    // Projectiles are managed directly via the array (not EnTT-backed yet).
-    // This method exists as the documented sync boundary for when projectiles
-    // migrate to EnTT.  Currently a no-op pass-through.
-    // Future: auto view = registry_.view<ProjectileComponent>();
-    //         iterate and populate projectiles_[] from EnTT.
+    auto view = registry_.view<const WorldProjectileComponent>();
+    projectiles_.clear();
+    projectiles_.reserve(view.size());
+    for (auto entity : view) {
+        projectiles_.push_back(view.get<const WorldProjectileComponent>(entity).state);
+    }
 }
 
 // --- Camera / movement state (delegated) --------------------------------------

@@ -36,6 +36,12 @@ target_link_libraries(ahamkara_game
         EnTT
         wish_engine
     PRIVATE
-        ae_render
         ae_physics
 )
+
+# ae_render is only built in GUI (non-headless) configs.  ahamkara_game compiles
+# the GL-free compiled_level.cpp itself and references no other render symbols,
+# so link the render library only when the target exists (keeps headless linking).
+if(TARGET ae_render)
+    target_link_libraries(ahamkara_game PRIVATE ae_render)
+endif()

@@ -28,8 +28,12 @@ target_link_libraries(ahamkara_smoke_tests
         ae_network
         ae_runtime
         ahamkara_game
-        ae_render
 )
+
+# ae_render only exists in GUI (non-headless) configs; link it when available.
+if(TARGET ae_render)
+    target_link_libraries(ahamkara_smoke_tests PRIVATE ae_render)
+endif()
 
 target_link_libraries(ahamkara_world_tests
     PRIVATE

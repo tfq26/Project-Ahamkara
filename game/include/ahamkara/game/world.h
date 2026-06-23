@@ -64,14 +64,13 @@ public:
     [[nodiscard]] const CameraAnchor& get_camera_anchor() const { return camera_anchor_; }
     [[nodiscard]] float get_player_visual_height() const;
 
-    [[nodiscard]] const ProjectileState* get_projectiles() const { return projectiles_; }
-    [[nodiscard]] int get_projectile_count() const { return projectile_count_; }
+    /// Projectiles live in the EnTT registry (the authoritative store).  The
+    /// `projectiles_` member is a per-tick projection refreshed from the
+    /// registry view via sync_projectiles_to_array(); these accessors keep
+    /// their original pointer/count shape and are NOT a fixed-size array.
+    [[nodiscard]] const ProjectileState* get_projectiles() const { return projectiles_.data(); }
+    [[nodiscard]] int get_projectile_count() const { return static_cast<int>(projectiles_.size()); }
     [[nodiscard]] int get_max_projectiles() const { return kMaxProjectiles; }
-    void set_projectile_count(int count) { projectile_count_ = count; }
-
-    /// Mutable access to the projectile array for the fire/step systems.
-    /// Only simulation code (world_projectile.cpp) should write through this.
-    [[nodiscard]] ProjectileState* projectiles_mut() { return projectiles_; }
 
     /// Mutable access to the dummy array for the simulation systems.
     /// Only simulation code (world_dummy_sim.cpp, world_projectile.cpp)
@@ -195,8 +194,9 @@ private:
     std::size_t collider_count_ {0};
     std::vector<ColliderBox> owned_colliders_;
     static constexpr int kMaxProjectiles = 64;
-    ProjectileState projectiles_[kMaxProjectiles] {};
-    int projectile_count_ {0};
+    // Registry-backed projection of projectile state (refreshed per tick).
+    // The EnTT registry is the authoritative store; this is a render cache.
+    std::vector<ProjectileState> projectiles_;
 
     WeaponState weapon_state_;
     Loadout loadout_;
