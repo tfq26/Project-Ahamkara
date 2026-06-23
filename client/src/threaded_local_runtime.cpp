@@ -1,7 +1,10 @@
 #include "ahamkara/client/threaded_local_runtime.h"
 
+#include "ae/core/log.h"
+
 #include <algorithm>
 #include <chrono>
+#include <string>
 #include <thread>
 
 namespace ahamkara::client {
@@ -24,6 +27,12 @@ void ThreadedLocalRuntime::ThreadSafeInputProvider::set_input(const ahamkara::ga
 ahamkara::game::PlayerInputCommand ThreadedLocalRuntime::ThreadSafeInputProvider::gather_input(float) {
     std::lock_guard<std::mutex> lock(mutex_);
     ahamkara::game::PlayerInputCommand command = command_;
+
+    static int s_look_diag = 0;
+    if ((command.look_delta.x != 0.0F || command.look_delta.y != 0.0F) || (s_look_diag++ % 60) == 0) {
+        ae::log_info_cat("LookDiag", "[B] sim gather_input look_delta=(" +
+            std::to_string(command.look_delta.x) + ", " + std::to_string(command.look_delta.y) + ")");
+    }
 
     command_.jump_pressed = false;
     command_.slide_pressed = false;
@@ -60,6 +69,13 @@ void ThreadedLocalRuntime::stop() {
 }
 
 void ThreadedLocalRuntime::submit_input(const ahamkara::game::PlayerInputCommand& command) {
+    // While paused (e.g. the menu is open) the sim thread is NOT draining input,
+    // so accumulating here would batch up every frame's look_delta and dump it
+    // all on the first tick after unpausing — slamming the camera pitch to its
+    // clamp (you end up staring straight at the sky). Drop input while paused.
+    if (paused_) {
+        return;
+    }
     if (input_provider_view_ != nullptr) {
         input_provider_view_->set_input(command);
     }

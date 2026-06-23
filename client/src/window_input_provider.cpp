@@ -1,7 +1,9 @@
 #include "ahamkara/client/window_input_provider.h"
 
 #include <cmath>
+#include <string>
 
+#include "ae/core/log.h"
 #include "ae/core/math.h"
 #include "ae/platform/gamepad.h"
 #include "ae/platform/mouse.h"
@@ -99,6 +101,13 @@ ahamkara::game::PlayerInputCommand WindowInputProvider::gather_input(float delta
     command.ability_pressed = window_.is_key_pressed(ae::KeyCode::E);
     command.look_delta.x = mouse.delta_x * mouse_sensitivity_;
     command.look_delta.y = mouse.delta_y * mouse_sensitivity_;
+
+    static int s_look_diag_a = 0;
+    if ((mouse.delta_x != 0.0F || mouse.delta_y != 0.0F) || (s_look_diag_a++ % 60) == 0) {
+        ae::log_info_cat("LookDiag", "[A] client submit look_delta=(" +
+            std::to_string(command.look_delta.x) + ", " +
+            std::to_string(command.look_delta.y) + ")");
+    }
 
     return command;
 }

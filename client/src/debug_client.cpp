@@ -41,8 +41,13 @@ int run_local_client(
     try {
         window = ae::PlatformWindow::create(window_config);
         GLFWwindow* glfw_win = static_cast<GLFWwindow*>(window->native_handle());
-        if (glfw_win && glfwRawMouseMotionSupported())
-            glfwSetInputMode(glfw_win, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        // Keep GLFW_RAW_MOUSE_MOTION OFF: under GLFW_CURSOR_DISABLED (in-game
+        // look mode) raw motion stops delivering trackpad deltas on macOS — the
+        // cursor-pos callback goes silent and mouse-look dies. With raw motion
+        // off, GLFW reports virtual (accelerated) deltas, which work for both
+        // trackpads and mice.
+        if (glfw_win)
+            glfwSetInputMode(glfw_win, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
         ae::ui::initialize_ui(glfw_win, "#version 330 core");
     } catch (const std::exception& ex) {
         ae::log_error(ex.what());
@@ -81,7 +86,21 @@ int run_local_client(
             renderer.set_level_environment(
                 level_asset.sky_color_r, level_asset.sky_color_g, level_asset.sky_color_b,
                 level_asset.ambient_r, level_asset.ambient_g, level_asset.ambient_b);
+            ae::log_info("Loaded level '" + level_asset.name + "' from " +
+                std::string(level_path) + " (" +
+                std::to_string(level_asset.mesh_instances.size()) + " mesh instances in spec, " +
+                std::to_string(level_scene.instance_count()) + " rendered).");
+            if (!level_asset.mesh_instances.empty() && level_scene.instance_count() == 0) {
+                ae::log_warning("Level has mesh instances but NONE resolved to GPU meshes; "
+                    "mesh asset paths likely did not resolve (run from repo root).");
+            }
+        } else {
+            ae::log_warning("Failed to load level from " + std::string(level_path) +
+                " (path is resolved relative to the working directory; launch via "
+                "./scripts/start.sh local so cwd is the repo root).");
         }
+    } else {
+        ae::log_info("No --level specified; starting with an empty world (no level meshes).");
     }
 
     ahamkara::client::AudioPlayer audio_player;

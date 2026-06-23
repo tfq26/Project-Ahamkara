@@ -161,6 +161,14 @@ void ClientFramePipeline::stage_gather_gameplay_input() {
 void ClientFramePipeline::stage_pull_snapshots() {
     simulation_.get_snapshots(prev_snap_, curr_snap_, alpha_);
 
+    static int s_look_diag_d = 0;
+    if ((s_look_diag_d++ % 60) == 0) {
+        ae::log_info_cat("LookDiag", "[D] render snapshot camera yaw: prev=" +
+            std::to_string(prev_snap_.camera_anchor.yaw) + " curr=" +
+            std::to_string(curr_snap_.camera_anchor.yaw) + " alpha=" +
+            std::to_string(alpha_));
+    }
+
     static bool was_menu_visible = true;
     if (was_menu_visible && !menu_state_.visible() && curr_snap_.match_over) {
         simulation_.restart_match();
@@ -181,6 +189,15 @@ void ClientFramePipeline::stage_build_scene() {
             .displayed_metrics   = &frontend_state_.displayed_metrics,
             .alpha               = alpha_,
         });
+
+    static int s_look_diag_e = 0;
+    if ((s_look_diag_e++ % 60) == 0) {
+        ae::log_info_cat("LookDiag", std::string("[E] scene camera mode=") + scene_.camera_mode_name +
+            " pos=(" + std::to_string(scene_.camera_position.x) + ", " +
+            std::to_string(scene_.camera_position.y) + ", " + std::to_string(scene_.camera_position.z) +
+            ") target=(" + std::to_string(scene_.camera_target.x) + ", " +
+            std::to_string(scene_.camera_target.y) + ", " + std::to_string(scene_.camera_target.z) + ")");
+    }
 
     render_submission_ = build_debug_render_submission(
         curr_snap_, window_.gamepad_state(), scene_);
