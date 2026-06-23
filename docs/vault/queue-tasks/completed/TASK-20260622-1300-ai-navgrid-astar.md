@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: self-validated
+status: complete
 created: 2026-06-22
 queued_by: opencode
 assigned_to: opencode
@@ -12,6 +12,7 @@ subsystems:
   - game
 related_feature:
 report: ../../../reports/subagents/TASK-20260622-1300-ai-navgrid-astar-report.md
+review: ../../../reports/subagents/TASK-20260622-1330-milestone-review-ai-nav-and-movement-report.md
 ---
 
 # TASK-20260622-1300-ai-navgrid-astar

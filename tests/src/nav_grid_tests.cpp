@@ -1,5 +1,6 @@
 #include "ahamkara/game/ai/nav_grid.h"
 #include "ahamkara/game/ai/path_follower.h"
+#include "ahamkara/game/ai/nav_agent.h"
 
 #include <iostream>
 #include <string>
@@ -155,6 +156,40 @@ int test_build_nav_grid_empty() {
     return 0;
 }
 
+int test_nav_agent_end_to_end() {
+    using namespace ahamkara::game::ai;
+    // Build a 10x10 grid from a partial wall (x in [4,6], z in [0,8]).
+    const std::vector<NavAABB> blockers = {{4.0F, 0.0F, 6.0F, 8.0F}};
+    const NavGrid grid = build_nav_grid(10, 10, 1.0F, 0.0F, 0.0F, blockers);
+
+    NavAgent agent(grid, NavSpace{1.0F, 0.0F, 0.0F}, /*allow_diagonal*/ true);
+    agent.set_position({0.5F, 0.5F});                  // cell (0,0)
+    if (!agent.set_goal({9.5F, 0.5F})) return fail("agent should plan a path around the wall");
+    if (!agent.has_path()) return fail("agent should have a path");
+    if (!walkable_path(grid, agent.path_cells())) return fail("planned path crosses the wall");
+
+    for (int i = 0; i < 100000 && !agent.at_goal(); ++i) {
+        agent.update(5.0F, 1.0F / 60.0F, 0.02F);
+    }
+    if (!agent.at_goal()) return fail("agent should reach the goal");
+    auto near = [](float a, float b) { return std::fabs(a - b) < 0.1F; };
+    if (!near(agent.position().x, 9.5F) || !near(agent.position().y, 0.5F)) {
+        return fail("agent should end at the goal position");
+    }
+    return 0;
+}
+
+int test_nav_agent_no_path() {
+    using namespace ahamkara::game::ai;
+    const std::vector<NavAABB> blockers = {{4.0F, 0.0F, 6.0F, 10.0F}};  // full wall
+    const NavGrid grid = build_nav_grid(10, 10, 1.0F, 0.0F, 0.0F, blockers);
+    NavAgent agent(grid, NavSpace{1.0F, 0.0F, 0.0F}, false);
+    agent.set_position({0.5F, 0.5F});
+    if (agent.set_goal({9.5F, 0.5F})) return fail("walled-off goal should have no path");
+    if (agent.has_path()) return fail("no path expected after a failed plan");
+    return 0;
+}
+
 }  // namespace
 
 int main() {
@@ -170,6 +205,8 @@ int main() {
     if (int r = test_path_follower_multi(); r) return r;
     if (int r = test_build_nav_grid_from_blockers(); r) return r;
     if (int r = test_build_nav_grid_empty(); r) return r;
+    if (int r = test_nav_agent_end_to_end(); r) return r;
+    if (int r = test_nav_agent_no_path(); r) return r;
     std::cout << "nav_grid_tests passed\n";
     return 0;
 }

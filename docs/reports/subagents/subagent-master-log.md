@@ -70,6 +70,8 @@ Phase 8 AI start: header-only NavGrid + deterministic A* (game/include/ahamkara/
 Phase 8 AI: header-only PathFollower + grid_path_to_waypoints (game/include/ahamkara/game/ai/path_follower.h); steers a point along grid-derived waypoints at fixed speed, deterministic. Tests folded into nav_grid_tests (3 cases). Build (debug) + 12/12 tests pass. Self-validated, batched. Report: reports/subagents/TASK-20260622-1310-ai-path-follower-report.md
 ## TASK-20260622-1320-ai-navgrid-from-collision — Self-validated (batched for milestone review) 2026-06-22
 Phase 8 AI: added NavAABB + build_nav_grid (rasterize world-space collision rects into a NavGrid; decoupled from LevelAsset) to ai/nav_grid.h. Tests folded into nav_grid_tests (2 cases). Build (debug) + 12/12 tests pass. Completes the AI nav foundation (grid/A* + path follower + build-from-collision). Self-validated, batched. Report: reports/subagents/TASK-20260622-1320-ai-navgrid-from-collision-report.md
+## TASK-20260622-1340-ai-nav-agent — Self-validated (batched for milestone review) 2026-06-22
+Phase 8 AI: NavSpace (world↔cell) + NavAgent (plan A* path to a world goal, follow on fixed dt) in ai/nav_agent.h. End-to-end tests in nav_grid_tests: collision rects → grid → A* → follow → reach goal; no-path case. Build (debug) + 12/12 tests pass. Self-validated, batched (added to TASK-20260622-1330). Report: reports/subagents/TASK-20260622-1340-ai-nav-agent-report.md
 ## TASK-20260622-1010-ecs-migration-first-slice — Revise 2026-06-22
 The report is honest about the residual arrays: the task's fixed-array removal acceptance bar is not yet met. Review: reports/subagents/TASK-20260622-1010-ecs-migration-first-slice-codex-review.md
 ## TASK-20260622-1020-deterministic-character-controller — Revise 2026-06-22
@@ -84,3 +86,15 @@ Verify-first: deterministic accelerate_movement + MovementConfig + substantive m
 Phase 4 #3: removed the `last_ack_ != 0` guard in ClientPredictionManager::reconcile so unacked inputs replay on the first snapshot too (was dropping pre-snapshot inputs). Added test_first_snapshot_reconciliation (asserts authoritative-then-replay; distinguishes fixed vs buggy). Build (debug) + 10/10 tests pass. Report: reports/subagents/TASK-20260622-1100-phase4-reconciliation-replay-fix-report.md
 ## TASK-20260622-1110-phase4-reliable-channel — Review needed 2026-06-22
 Phase 4 #1: added header-only ae::ReliableChannel (buffer reliable packets by seq; on_ack removes acked incl. bitfield + 16-bit wraparound; collect_retransmits returns timed-out unacked seqs + refreshes). New ahamkara_reliable_channel_tests; build (debug) + 11/11 tests pass. Not yet wired into live client/server loops (follow-up). Report: reports/subagents/TASK-20260622-1110-phase4-reliable-channel-report.md
+## TASK-20260622-1200-phase4-netcode-milestone-review — Completed 2026-06-22
+Accepted the Phase 4 milestone review: the reconciliation replay fix and reliable channel are complete, and the remaining live-loop socket integration remains a separate follow-up. Report: reports/subagents/TASK-20260622-1200-phase4-netcode-milestone-review-report.md
+## TASK-20260622-1020-deterministic-character-controller — Completed 2026-06-22
+Accepted the hot-reloadable movement-tuning slice: `game.player_*` ConfigVars now drive the runtime movement path, defaults preserve prior behavior, and the movement config wiring test passes. Review: reports/subagents/TASK-20260622-1020-deterministic-character-controller-codex-review.md
+## TASK-20260622-1300-ai-navgrid-astar — Completed 2026-06-22
+Accepted the first AI nav slice: `NavGrid` plus deterministic A* are in place and headless-tested. Reviewed as part of the AI nav/movement milestone. Report: reports/subagents/TASK-20260622-1300-ai-navgrid-astar-report.md
+## TASK-20260622-1310-ai-path-follower — Completed 2026-06-22
+Accepted the second AI nav slice: `PathFollower` and grid-to-waypoint conversion are implemented and tested. Reviewed as part of the AI nav/movement milestone. Report: reports/subagents/TASK-20260622-1310-ai-path-follower-report.md
+## TASK-20260622-1320-ai-navgrid-from-collision — Completed 2026-06-22
+Accepted the third AI nav slice: collision rectangles now rasterize into a `NavGrid`, and the pathfinding foundation is complete. Reviewed as part of the AI nav/movement milestone. Report: reports/subagents/TASK-20260622-1320-ai-navgrid-from-collision-report.md
+## TASK-20260622-1330-milestone-review-ai-nav-and-movement — Completed 2026-06-22
+Accepted the AI nav/movement milestone review: movement tuning and the nav foundation are complete, with the batch promoted to `completed/`. Report: reports/subagents/TASK-20260622-1330-milestone-review-ai-nav-and-movement-report.md

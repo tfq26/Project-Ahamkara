@@ -5,9 +5,9 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/open/TASK-20260622-1020-deterministic-character-controller.md
-report: TASK-20260622-1020-deterministic-character-controller-report.md
-decision: revise
+task: ../../vault/queue-tasks/completed/TASK-20260622-1020-deterministic-character-controller.md
+report: TASK-20260622-1020-deterministic-character-controller-impl-report.md
+decision: complete
 escalation_tier: low
 secondary_review:
 subsystems:
@@ -19,42 +19,47 @@ subsystems:
 
 ## Task
 
-[TASK-20260622-1020-deterministic-character-controller](../../vault/queue-tasks/open/TASK-20260622-1020-deterministic-character-controller.md)
+[TASK-20260622-1020-deterministic-character-controller](../../vault/queue-tasks/completed/TASK-20260622-1020-deterministic-character-controller.md)
 
 ## Report
 
-[TASK-20260622-1020-deterministic-character-controller-report.md](TASK-20260622-1020-deterministic-character-controller-report.md)
+[TASK-20260622-1020-deterministic-character-controller-impl-report.md](TASK-20260622-1020-deterministic-character-controller-impl-report.md)
 
 ## Decision
 
-`revise`
+`complete`
 
 ## Scope Check
 
-The movement implementation is already largely deterministic, but the task's
-acceptance bar specifically requires `ConfigVar`-driven tuning. That wiring is
-still missing.
+The residual hot-reloadable movement tuning slice is implemented cleanly and
+behavior-preservingly.
 
 ## Evidence Checked
 
-- `docs/reports/subagents/TASK-20260622-1020-deterministic-character-controller-report.md`
-- `game/src/movement.cpp`
-- `game/include/ahamkara/game/movement.h`
+- `docs/reports/subagents/TASK-20260622-1020-deterministic-character-controller-impl-report.md`
+- `game/include/ahamkara/game/game_module.h`
 - `game/src/game_module.cpp`
-- `tests/src/movement_tests.cpp`
+- `game/src/world.cpp`
+- `tests/src/world_tests.cpp`
 
 ## Findings
 
-1. `MovementConfig` and deterministic fixed-dt movement are already present.
-2. The `game.player_*` `ConfigVar`s are still logging-only and do not feed the
-   config used by `accelerate_movement`.
+1. The runtime movement path now reads the hot-reloadable `game.player_*`
+   values via accessors.
+2. The defaults are aligned with the prior constants, so the change preserves
+   movement feel while making it tunable.
+3. `test_movement_config_wiring` proves the accessors are ConfigVar-backed.
 
 ## Validation Assessment
 
-This is a real missing requirement, not just an evidence gap. The task should
-not be accepted yet.
+The implementation report's build/test evidence is sufficient for this
+headless slice, and the code matches the report.
+
+## Risks
+
+- None beyond the standard need to keep client/server config aligned when
+  using the values in prediction contexts.
 
 ## Next Action
 
-Wire the `game.player_*` config vars into the actual movement config path and
-resubmit with a deterministic test that covers the hot-reloadable values.
+Move the task to `completed/`.

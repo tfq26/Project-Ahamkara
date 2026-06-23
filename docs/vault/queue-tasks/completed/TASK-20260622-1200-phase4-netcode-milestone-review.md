@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: open
+status: complete
 created: 2026-06-22
 queued_by: opencode
 assigned_to: codex
@@ -12,7 +12,7 @@ subsystems:
   - game
   - engine/network
 related_feature:
-report:
+report: ../../../reports/subagents/TASK-20260622-1200-phase4-netcode-milestone-review-report.md
 ---
 
 # TASK-20260622-1200-phase4-netcode-milestone-review

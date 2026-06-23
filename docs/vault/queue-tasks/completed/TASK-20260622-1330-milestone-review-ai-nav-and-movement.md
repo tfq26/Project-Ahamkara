@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: open
+status: complete
 created: 2026-06-22
 queued_by: opencode
 assigned_to: codex
@@ -11,7 +11,7 @@ secondary_reviewer:
 subsystems:
   - game
 related_feature:
-report:
+report: ../../../reports/subagents/TASK-20260622-1330-milestone-review-ai-nav-and-movement-report.md
 ---
 
 # TASK-20260622-1330-milestone-review-ai-nav-and-movement

@@ -117,6 +117,51 @@ Completion Bar:
 User Visible Notes:
 - Keep blocked until Blender can be executed.
 
+## 2026-06-22 - TASK-20260620-1500-textured-material-showcase - blocked
+
+Supervisor: codex-lead-supervisor
+Worker: opencode
+Decision: blocked
+Evidence Checked:
+- `docs/reports/subagents/TASK-20260620-1500-textured-material-showcase-report.md`
+- `docs/vault/queue-tasks/blocked/TASK-20260620-1500-textured-material-showcase.md`
+- `tools/levelgen/gen_textured_cube.py`
+- `assets/manifest.assets`
+Reason:
+- The authored cube, material, and importer path are implemented and build-test
+  clean.
+- The acceptance bar still requires visible runtime confirmation of texture
+  sampling, which this environment cannot provide.
+Next Actions:
+- Re-run the showcase on a display-capable machine and confirm the texture is
+  visibly sampling on the mesh.
+Completion Bar:
+- The textured showcase is visually confirmed in the client.
+User Visible Notes:
+- Keep blocked until the display-backed verification exists.
+
+## 2026-06-22 - TASK-20260620-1510-level-driven-sky-and-fog - blocked
+
+Supervisor: codex-lead-supervisor
+Worker: opencode
+Decision: blocked
+Evidence Checked:
+- `docs/reports/subagents/TASK-20260620-1510-level-driven-sky-and-fog-report.md`
+- `docs/vault/queue-tasks/blocked/TASK-20260620-1510-level-driven-sky-and-fog.md`
+- `engine/render/src/debug_renderer.cpp`
+- `client/src/debug_client.cpp`
+Reason:
+- The level environment override is implemented and build-validated.
+- The acceptance bar still requires a visible GL-backed check of the sky/fog
+  change, which this environment cannot provide.
+Next Actions:
+- Re-run the level on a display-capable machine and confirm the environment
+  override is visible.
+Completion Bar:
+- The sky/fog override is visually confirmed in the client.
+User Visible Notes:
+- Keep blocked until the display-backed verification exists.
+
 ## 2026-06-22 - TASK-20260620-1520-runtime-confirm-prototype-levels - blocked
 
 Supervisor: codex-lead-supervisor
@@ -269,3 +314,127 @@ Completion Bar:
 - Movement tuning is driven by the registered `ConfigVar`s.
 User Visible Notes:
 - Needs the config wiring slice before completion.
+
+## 2026-06-22 - TASK-20260622-1200-phase4-netcode-milestone-review - complete
+
+Supervisor: codex-lead-supervisor
+Worker: opencode
+Decision: complete
+Evidence Checked:
+- `docs/reports/subagents/TASK-20260622-1200-phase4-netcode-milestone-review-report.md`
+- `docs/reports/subagents/TASK-20260622-1100-phase4-reconciliation-replay-fix-report.md`
+- `docs/reports/subagents/TASK-20260622-1110-phase4-reliable-channel-report.md`
+- `game/src/client_prediction.cpp`
+- `engine/network/include/ae/network/reliable_channel.h`
+Reason:
+- The reviewed Phase 4 slices are complete and regression-tested.
+- The remaining live-loop socket integration is correctly separated as a follow-up.
+Next Actions:
+- Track the socket-capable live-loop wiring as a separate task.
+Completion Bar:
+- Phase 4 milestone review accepted and closed.
+User Visible Notes:
+- The milestone is complete; the socket integration follow-up remains open.
+
+## 2026-06-22 - TASK-20260622-1020-deterministic-character-controller - complete
+
+Supervisor: codex-lead-supervisor
+Worker: opencode
+Decision: complete
+Evidence Checked:
+- `docs/reports/subagents/TASK-20260622-1020-deterministic-character-controller-codex-review.md`
+- `docs/reports/subagents/TASK-20260622-1020-deterministic-character-controller-impl-report.md`
+- `game/include/ahamkara/game/game_module.h`
+- `game/src/game_module.cpp`
+- `game/src/world.cpp`
+- `tests/src/world_tests.cpp`
+Reason:
+- The movement config vars are wired into the runtime movement path.
+- The defaults preserve the previous feel while making tuning hot-reloadable.
+Next Actions:
+- None.
+Completion Bar:
+- Movement tuning is driven by the registered `game.player_*` ConfigVars.
+User Visible Notes:
+- Accepted as complete after the config wiring landed.
+
+## 2026-06-22 - TASK-20260622-1300-ai-navgrid-astar - complete
+
+Supervisor: codex-lead-supervisor
+Worker: opencode
+Decision: complete
+Evidence Checked:
+- `docs/reports/subagents/TASK-20260622-1300-ai-navgrid-astar-report.md`
+- `docs/reports/subagents/TASK-20260622-1330-milestone-review-ai-nav-and-movement-report.md`
+- `game/include/ahamkara/game/ai/nav_grid.h`
+- `tests/src/nav_grid_tests.cpp`
+Reason:
+- The deterministic `NavGrid` and A* foundation is implemented and covered by tests.
+- The milestone review accepted the batch as complete.
+Next Actions:
+- None.
+Completion Bar:
+- AI nav grid and pathfinding foundation implemented and validated.
+User Visible Notes:
+- Accepted as part of the AI nav/movement milestone.
+
+## 2026-06-22 - TASK-20260622-1310-ai-path-follower - complete
+
+Supervisor: codex-lead-supervisor
+Worker: opencode
+Decision: complete
+Evidence Checked:
+- `docs/reports/subagents/TASK-20260622-1310-ai-path-follower-report.md`
+- `docs/reports/subagents/TASK-20260622-1330-milestone-review-ai-nav-and-movement-report.md`
+- `game/include/ahamkara/game/ai/path_follower.h`
+- `tests/src/nav_grid_tests.cpp`
+Reason:
+- The path follower and waypoint conversion are implemented and unit-tested.
+- The milestone review accepted the batch as complete.
+Next Actions:
+- None.
+Completion Bar:
+- Path follower slice implemented and validated.
+User Visible Notes:
+- Accepted as part of the AI nav/movement milestone.
+
+## 2026-06-22 - TASK-20260622-1320-ai-navgrid-from-collision - complete
+
+Supervisor: codex-lead-supervisor
+Worker: opencode
+Decision: complete
+Evidence Checked:
+- `docs/reports/subagents/TASK-20260622-1320-ai-navgrid-from-collision-report.md`
+- `docs/reports/subagents/TASK-20260622-1330-milestone-review-ai-nav-and-movement-report.md`
+- `game/include/ahamkara/game/ai/nav_grid.h`
+- `tests/src/nav_grid_tests.cpp`
+Reason:
+- Collision-to-grid rasterization is implemented and tested.
+- The milestone review accepted the batch as complete.
+Next Actions:
+- None.
+Completion Bar:
+- Nav-grid-from-collision slice implemented and validated.
+User Visible Notes:
+- Accepted as part of the AI nav/movement milestone.
+
+## 2026-06-22 - TASK-20260622-1330-milestone-review-ai-nav-and-movement - complete
+
+Supervisor: codex-lead-supervisor
+Worker: opencode
+Decision: complete
+Evidence Checked:
+- `docs/reports/subagents/TASK-20260622-1330-milestone-review-ai-nav-and-movement-report.md`
+- `docs/reports/subagents/TASK-20260622-1020-deterministic-character-controller-impl-report.md`
+- `docs/reports/subagents/TASK-20260622-1300-ai-navgrid-astar-report.md`
+- `docs/reports/subagents/TASK-20260622-1310-ai-path-follower-report.md`
+- `docs/reports/subagents/TASK-20260622-1320-ai-navgrid-from-collision-report.md`
+Reason:
+- The movement-config wiring and AI navigation foundation are complete.
+- The review correctly accepted the full headless batch.
+Next Actions:
+- None.
+Completion Bar:
+- AI nav/movement milestone review accepted and closed.
+User Visible Notes:
+- The batch is complete and promoted to `completed/`.

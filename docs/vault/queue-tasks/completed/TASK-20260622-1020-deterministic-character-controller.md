@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: self-validated
+status: complete
 created: 2026-06-22
 queued_by: codex
 assigned_to: opencode
