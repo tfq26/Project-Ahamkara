@@ -29,6 +29,8 @@ int run_local_client(
     const ahamkara::client::ControllerBindings& controller_bindings,
     const char* level_path) {
 
+    ae::init_file_logging("logs");
+
     // ── Window + ImGui ──────────────────────────────────────────────────
     ae::WindowConfig window_config {};
     window_config.title = "Flashback";
@@ -77,20 +79,22 @@ int run_local_client(
     ahamkara::client::ThreadedLocalRuntime simulation;
 
     ae::render::LevelRenderScene level_scene;
+    ae::render::LevelAsset loaded_level_asset;
+    const ae::render::LevelAsset* loaded_level_asset_view = nullptr;
     if (level_path != nullptr && level_path[0] != '\0') {
         simulation.load_level(level_path);
         ae::render::CompiledLevelLoader level_loader;
-        ae::render::LevelAsset level_asset;
-        if (level_loader.load(level_path, level_asset)) {
-            level_scene.build(level_asset, *renderer.backend(), "");
+        if (level_loader.load(level_path, loaded_level_asset)) {
+            loaded_level_asset_view = &loaded_level_asset;
+            level_scene.build(loaded_level_asset, *renderer.backend(), "");
             renderer.set_level_environment(
-                level_asset.sky_color_r, level_asset.sky_color_g, level_asset.sky_color_b,
-                level_asset.ambient_r, level_asset.ambient_g, level_asset.ambient_b);
-            ae::log_info("Loaded level '" + level_asset.name + "' from " +
+                loaded_level_asset.sky_color_r, loaded_level_asset.sky_color_g, loaded_level_asset.sky_color_b,
+                loaded_level_asset.ambient_r, loaded_level_asset.ambient_g, loaded_level_asset.ambient_b);
+            ae::log_info("Loaded level '" + loaded_level_asset.name + "' from " +
                 std::string(level_path) + " (" +
-                std::to_string(level_asset.mesh_instances.size()) + " mesh instances in spec, " +
+                std::to_string(loaded_level_asset.mesh_instances.size()) + " mesh instances in spec, " +
                 std::to_string(level_scene.instance_count()) + " rendered).");
-            if (!level_asset.mesh_instances.empty() && level_scene.instance_count() == 0) {
+            if (!loaded_level_asset.mesh_instances.empty() && level_scene.instance_count() == 0) {
                 ae::log_warning("Level has mesh instances but NONE resolved to GPU meshes; "
                     "mesh asset paths likely did not resolve (run from repo root).");
             }
@@ -128,7 +132,8 @@ int run_local_client(
     ahamkara::client::ClientFramePipeline pipeline(
         *window, application, renderer, simulation, *window_input,
         frontend_state, ui_controller, menu_state, client_config,
-        controller_bindings, audio_engine, shadow_pass, pbr_renderer, &level_scene);
+        controller_bindings, audio_engine, shadow_pass, pbr_renderer,
+        &level_scene, loaded_level_asset_view);
 
     while (application.is_running()) {
         if (!pipeline.run_one_frame()) break;
@@ -140,5 +145,6 @@ int run_local_client(
     pbr_renderer.shutdown();
     renderer.shutdown();
     application.shutdown();
+    ae::shutdown_file_logging();
     return EXIT_SUCCESS;
 }

@@ -1,6 +1,5 @@
 #include "ahamkara/client/client_frame_pipeline.h"
 
-#include "ae/core/log.h"
 #include "ae/core/math.h"
 #include "ae/platform/window.h"
 #include "ae/ui/ahamkara_ui.h"
@@ -11,7 +10,6 @@
 #include "ahamkara/game/net_types.h"
 
 #include <GLFW/glfw3.h>
-#include <cmath>
 #include <string>
 
 namespace ahamkara::client {
@@ -30,7 +28,8 @@ ClientFramePipeline::ClientFramePipeline(
     ae::audio::AudioEngine& audio_engine,
     ae::render::ShadowPass& shadow_pass,
     ae::render::PbrRenderer& pbr_renderer,
-    const ae::render::LevelRenderScene* level_scene)
+    const ae::render::LevelRenderScene* level_scene,
+    const ae::render::LevelAsset* level_asset)
     : window_(window)
     , application_(application)
     , renderer_(renderer)
@@ -44,7 +43,8 @@ ClientFramePipeline::ClientFramePipeline(
     , audio_engine_(audio_engine)
     , shadow_pass_(shadow_pass)
     , pbr_renderer_(pbr_renderer)
-    , level_scene_(level_scene) {}
+    , level_scene_(level_scene)
+    , level_asset_(level_asset) {}
 
 bool ClientFramePipeline::run_one_frame() {
     // =====================================================================
@@ -138,7 +138,7 @@ void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
     // Cursor mode
     if (glfw_win) {
         glfwSetInputMode(glfw_win, GLFW_CURSOR,
-            menu_state_.visible() ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+            menu_state_.cursor_should_capture() ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
     }
 
     // Hotkeys + metrics
@@ -154,20 +154,15 @@ void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
 }
 
 void ClientFramePipeline::stage_gather_gameplay_input() {
+    simulation_.set_paused(menu_state_.simulation_should_pause());
     raw_input_ = window_input_.gather_input(smoothed_delta_);
-    simulation_.submit_input(raw_input_);
+    if (menu_state_.gameplay_input_enabled()) {
+        simulation_.submit_input(raw_input_);
+    }
 }
 
 void ClientFramePipeline::stage_pull_snapshots() {
     simulation_.get_snapshots(prev_snap_, curr_snap_, alpha_);
-
-    static int s_look_diag_d = 0;
-    if ((s_look_diag_d++ % 60) == 0) {
-        ae::log_info_cat("LookDiag", "[D] render snapshot camera yaw: prev=" +
-            std::to_string(prev_snap_.camera_anchor.yaw) + " curr=" +
-            std::to_string(curr_snap_.camera_anchor.yaw) + " alpha=" +
-            std::to_string(alpha_));
-    }
 
     static bool was_menu_visible = true;
     if (was_menu_visible && !menu_state_.visible() && curr_snap_.match_over) {
@@ -183,21 +178,13 @@ void ClientFramePipeline::stage_build_scene() {
             .metrics_visible     = frontend_state_.metrics_visible,
             .gpu_profiler_visible = frontend_state_.gpu_profiler_visible,
             .always_day          = frontend_state_.always_day,
-            .menu_visible        = ui_controller_.visible(),
+            .menu_visible        = menu_state_.visible(),
             .menu_tab            = ui_controller_.active_menu_tab(),
             .gamma               = client_config_.gamma,
             .displayed_metrics   = &frontend_state_.displayed_metrics,
             .alpha               = alpha_,
+            .level_asset         = level_asset_,
         });
-
-    static int s_look_diag_e = 0;
-    if ((s_look_diag_e++ % 60) == 0) {
-        ae::log_info_cat("LookDiag", std::string("[E] scene camera mode=") + scene_.camera_mode_name +
-            " pos=(" + std::to_string(scene_.camera_position.x) + ", " +
-            std::to_string(scene_.camera_position.y) + ", " + std::to_string(scene_.camera_position.z) +
-            ") target=(" + std::to_string(scene_.camera_target.x) + ", " +
-            std::to_string(scene_.camera_target.y) + ", " + std::to_string(scene_.camera_target.z) + ")");
-    }
 
     render_submission_ = build_debug_render_submission(
         curr_snap_, window_.gamepad_state(), scene_);

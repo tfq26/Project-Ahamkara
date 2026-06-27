@@ -1,7 +1,7 @@
 # Current State
 
 Status: Seed
-Last updated: 2026-06-14
+Last updated: 2026-06-25
 
 This note captures durable project memory for agents. Verify implementation
 details in source before changing code.
@@ -34,6 +34,21 @@ Canonical build and test commands live in
 [docs/guides/building.md](../../guides/building.md).
 For headless agent work, prefer the `debug-headless` preset when UI/OpenGL work
 is not required.
+
+## Renderer Upgrade Path
+
+The client/debug renderer is in an OpenGL 3.3 core-profile setup, but several
+older draw sites still exist. The migration direction is to keep the core
+profile and route legacy-style draws through `engine/render/src/gl_compat.*`
+or explicit backend helpers, rather than reintroducing raw fixed-function
+client-state calls. In `gl_compat.h`, direct `glEnableClientState`-style calls
+are intentionally no-ops. Fixed-function lighting is also no longer a source
+of truth; the main renderer now feeds lighting values to shader uniforms
+explicitly.
+
+The overlay cleanup is now following the same pattern: the shared UI primitive
+helpers in `debug_renderer.cpp` draw through a small shader/VBO path, while the
+remaining text and more complex debug shapes are still in transition.
 
 ## Vault Bootstrap
 

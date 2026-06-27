@@ -1,7 +1,7 @@
 # Known Traps
 
 Status: Active
-Last updated: 2026-06-14
+Last updated: 2026-06-25
 
 Use this note for recurring issues that future humans and agents should not
 rediscover the hard way.
@@ -13,6 +13,13 @@ rediscover the hard way.
 - A compile pass is not runtime validation. Say exactly which command ran.
 - Obsidian graph edges only appear for explicit links. Isolated historical
   reports are expected unless they are linked from an index.
+- In renderer files that include `engine/render/src/gl_compat.h`, direct
+  `glEnableClientState` / `glVertexPointer`-style legacy calls are not real
+  fixed-function behavior. They are shimmed away and must be replaced with the
+  compat helpers or backend draw paths.
+- In the same renderer files, `glLight*`, `GL_LIGHTING`, and related
+  fixed-function lighting toggles are also shimmed away. If a shader expects
+  lighting, the renderer must feed the corresponding uniforms explicitly.
 
 ## Documentation
 

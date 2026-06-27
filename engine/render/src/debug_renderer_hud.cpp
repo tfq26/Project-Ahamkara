@@ -16,6 +16,31 @@
 
 namespace ae::render {
 
+namespace {
+
+struct MatrixSnapshot {
+    ae::gl_compat::Mat4 projection;
+    ae::gl_compat::Mat4 modelview;
+};
+
+MatrixSnapshot begin_screen_space(int width, int height) {
+    auto& st = ae::gl_compat::state();
+    MatrixSnapshot snapshot {st.projection, st.modelview};
+    st.projection = ae::gl_compat::mat4_ortho(0.0F, static_cast<float>(width),
+                                              static_cast<float>(height), 0.0F,
+                                              -1.0F, 1.0F);
+    st.modelview = ae::gl_compat::Mat4::identity();
+    return snapshot;
+}
+
+void end_screen_space(const MatrixSnapshot& snapshot) {
+    auto& st = ae::gl_compat::state();
+    st.projection = snapshot.projection;
+    st.modelview = snapshot.modelview;
+}
+
+}  // namespace
+
 // ============================================================================
 // Crosshair overlay
 // ============================================================================
@@ -26,27 +51,15 @@ void draw_crosshair_overlay(const DebugScene& scene, int width, int height) {
     constexpr float arm_length = 8.0F;
     constexpr float gap = 4.0F;
 
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0.0, static_cast<double>(width), static_cast<double>(height), 0.0, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+    const MatrixSnapshot snapshot = begin_screen_space(width, height);
 
     glDisable(GL_DEPTH_TEST);
     glLineWidth(2.0F);
     glColor3f(1.0F, 0.9F, 0.1F);  // Bright yellow crosshair
-    glBegin(GL_LINES);
-    glVertex2f(center_x - arm_length, center_y);
-    glVertex2f(center_x - gap, center_y);
-    glVertex2f(center_x + gap, center_y);
-    glVertex2f(center_x + arm_length, center_y);
-    glVertex2f(center_x, center_y - arm_length);
-    glVertex2f(center_x, center_y - gap);
-    glVertex2f(center_x, center_y + gap);
-    glVertex2f(center_x, center_y + arm_length);
-    glEnd();
+    draw_screen_line(center_x - arm_length, center_y, center_x - gap, center_y);
+    draw_screen_line(center_x + gap, center_y, center_x + arm_length, center_y);
+    draw_screen_line(center_x, center_y - arm_length, center_x, center_y - gap);
+    draw_screen_line(center_x, center_y + gap, center_x, center_y + arm_length);
 
     if (scene.hitmarker_time > 0.0F) {
         float alpha = scene.hitmarker_time;
@@ -58,55 +71,29 @@ void draw_crosshair_overlay(const DebugScene& scene, int width, int height) {
         glLineWidth(2.0F);
         constexpr float h_gap = 6.0F;
         constexpr float h_size = 12.0F;
-        glBegin(GL_LINES);
-        // Top-left
-        glVertex2f(center_x - h_gap, center_y - h_gap);
-        glVertex2f(center_x - h_size, center_y - h_size);
-        // Top-right
-        glVertex2f(center_x + h_gap, center_y - h_gap);
-        glVertex2f(center_x + h_size, center_y - h_size);
-        // Bottom-left
-        glVertex2f(center_x - h_gap, center_y + h_gap);
-        glVertex2f(center_x - h_size, center_y + h_size);
-        // Bottom-right
-        glVertex2f(center_x + h_gap, center_y + h_gap);
-        glVertex2f(center_x + h_size, center_y + h_size);
+        draw_screen_line(center_x - h_gap, center_y - h_gap, center_x - h_size, center_y - h_size);
+        draw_screen_line(center_x + h_gap, center_y - h_gap, center_x + h_size, center_y - h_size);
+        draw_screen_line(center_x - h_gap, center_y + h_gap, center_x - h_size, center_y + h_size);
+        draw_screen_line(center_x + h_gap, center_y + h_gap, center_x + h_size, center_y + h_size);
 
         if (scene.hitmarker_is_critical) {
-            // Draw neat brackets around the reticle
             constexpr float b_offset = 15.0F;
             constexpr float b_len = 5.0F;
-            // Top-left bracket
-            glVertex2f(center_x - b_offset, center_y - b_offset);
-            glVertex2f(center_x - b_offset + b_len, center_y - b_offset);
-            glVertex2f(center_x - b_offset, center_y - b_offset);
-            glVertex2f(center_x - b_offset, center_y - b_offset + b_len);
-            // Top-right bracket
-            glVertex2f(center_x + b_offset, center_y - b_offset);
-            glVertex2f(center_x + b_offset - b_len, center_y - b_offset);
-            glVertex2f(center_x + b_offset, center_y - b_offset);
-            glVertex2f(center_x + b_offset, center_y - b_offset + b_len);
-            // Bottom-left bracket
-            glVertex2f(center_x - b_offset, center_y + b_offset);
-            glVertex2f(center_x - b_offset + b_len, center_y + b_offset);
-            glVertex2f(center_x - b_offset, center_y + b_offset);
-            glVertex2f(center_x - b_offset, center_y + b_offset - b_len);
-            // Bottom-right bracket
-            glVertex2f(center_x + b_offset, center_y + b_offset);
-            glVertex2f(center_x + b_offset - b_len, center_y + b_offset);
-            glVertex2f(center_x + b_offset, center_y + b_offset);
-            glVertex2f(center_x + b_offset, center_y + b_offset - b_len);
+            draw_screen_line(center_x - b_offset, center_y - b_offset, center_x - b_offset + b_len, center_y - b_offset);
+            draw_screen_line(center_x - b_offset, center_y - b_offset, center_x - b_offset, center_y - b_offset + b_len);
+            draw_screen_line(center_x + b_offset, center_y - b_offset, center_x + b_offset - b_len, center_y - b_offset);
+            draw_screen_line(center_x + b_offset, center_y - b_offset, center_x + b_offset, center_y - b_offset + b_len);
+            draw_screen_line(center_x - b_offset, center_y + b_offset, center_x - b_offset + b_len, center_y + b_offset);
+            draw_screen_line(center_x - b_offset, center_y + b_offset, center_x - b_offset, center_y + b_offset - b_len);
+            draw_screen_line(center_x + b_offset, center_y + b_offset, center_x + b_offset - b_len, center_y + b_offset);
+            draw_screen_line(center_x + b_offset, center_y + b_offset, center_x + b_offset, center_y + b_offset - b_len);
         }
-        glEnd();
     }
 
     glLineWidth(1.0F);
     glEnable(GL_DEPTH_TEST);
 
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
+    end_screen_space(snapshot);
 }
 
 // ============================================================================
@@ -115,18 +102,11 @@ void draw_crosshair_overlay(const DebugScene& scene, int width, int height) {
 
 void draw_hud(const DebugScene& scene, int width, int height, float hud_brightness) {
     // --- Screen-space setup (health bar + ammo) ---
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0.0, static_cast<double>(width), static_cast<double>(height), 0.0, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+    const MatrixSnapshot snapshot = begin_screen_space(width, height);
 
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_LIGHTING);
 
     // --- Health Bar (bottom-center) ---
     constexpr float hb_w = 320.0F;
@@ -182,7 +162,6 @@ void draw_hud(const DebugScene& scene, int width, int height, float hud_brightne
         const float segment_w = (hb_w - total_spacing_w) / num_segments;
 
         glColor4f(bar_r, bar_g, bar_b, 0.9F * hud_brightness);
-        glBegin(GL_QUADS);
         for (int i = 0; i < num_segments; ++i) {
             const float seg_x = hb_x + static_cast<float>(i) * (segment_w + segment_spacing);
             const float seg_mid = (static_cast<float>(i) + 0.5F) / static_cast<float>(num_segments);
@@ -190,7 +169,6 @@ void draw_hud(const DebugScene& scene, int width, int height, float hud_brightne
                 draw_screen_quad(seg_x, hb_y, segment_w, hb_h);
             }
         }
-        glEnd();
     }
 
     draw_xbox_button_legend(scene.controller_buttons, hb_x + hb_w + 24.0F, hb_y - 30.0F);
@@ -249,9 +227,7 @@ void draw_hud(const DebugScene& scene, int width, int height, float hud_brightne
         } else {
             glColor4f(0.96F, 0.84F, 0.16F, 0.9F * hud_brightness);
         }
-        glBegin(GL_QUADS);
         draw_screen_quad(mag_bar_x, mag_bar_y, mag_bar_w * ammo_pct, mag_bar_h);
-        glEnd();
     }
 
     // --- Enemy health bars (top-right area) ---
@@ -289,19 +265,14 @@ void draw_hud(const DebugScene& scene, int width, int height, float hud_brightne
             else if (enemy_pct > 0.25F) { bar_r = 0.85F; bar_g = 0.85F; bar_b = 0.15F; }
 
             glColor4f(bar_r, bar_g, bar_b, 0.9F * hud_brightness);
-            glBegin(GL_QUADS);
             draw_screen_quad(enemy_x, ey + 12.0F, enemy_bar_w * enemy_pct, enemy_bar_h);
-            glEnd();
         }
     }
 
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
 
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
+    end_screen_space(snapshot);
 
     // --- Minimap (bottom-right, separate world-space ortho) ---
     constexpr float mm_size = 150.0F;
@@ -311,15 +282,13 @@ void draw_hud(const DebugScene& scene, int width, int height, float hud_brightne
 
     glViewport(mm_x, mm_y, static_cast<int>(mm_size), static_cast<int>(mm_size));
 
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    // Map 30x30m arena (-15..15) to circular radar
-    constexpr double world_extent = 16.0;
-    glOrtho(-world_extent, world_extent, world_extent, -world_extent, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+    constexpr float world_extent = 16.0F;
+    auto& st = ae::gl_compat::state();
+    const MatrixSnapshot radar_snapshot {st.projection, st.modelview};
+    st.projection = ae::gl_compat::mat4_ortho(-world_extent, world_extent,
+                                              world_extent, -world_extent,
+                                              -1.0F, 1.0F);
+    st.modelview = ae::gl_compat::Mat4::identity();
 
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
@@ -328,49 +297,33 @@ void draw_hud(const DebugScene& scene, int width, int height, float hud_brightne
     // Dark semi-transparent background circle
     constexpr float r_inner = 14.5F;
     glColor4f(0.02F, 0.04F, 0.08F, 0.75F);
-    glBegin(GL_TRIANGLE_FAN);
-    glVertex2f(0.0F, 0.0F);
+    float radar_circle[(36 + 2) * 2];
+    radar_circle[0] = 0.0F;
+    radar_circle[1] = 0.0F;
     for (int step = 0; step <= 36; ++step) {
         const float angle = static_cast<float>(step) / 36.0F * 2.0F * kPi;
-        glVertex2f(std::cos(angle) * r_inner, std::sin(angle) * r_inner);
+        const int base = (step + 1) * 2;
+        radar_circle[base] = std::cos(angle) * r_inner;
+        radar_circle[base + 1] = std::sin(angle) * r_inner;
     }
-    glEnd();
+    draw_screen_triangle_fan(radar_circle, 38);
 
     // Arena boundary outline (white)
     glColor3f(0.6F, 0.6F, 0.6F);
     glLineWidth(1.0F);
-    glBegin(GL_LINE_LOOP);
-    glVertex2f(-15.0F, -15.0F);
-    glVertex2f(15.0F, -15.0F);
-    glVertex2f(15.0F, 15.0F);
-    glVertex2f(-15.0F, 15.0F);
-    glEnd();
+    const float arena_outline[] = {-15.0F, -15.0F, 15.0F, -15.0F, 15.0F, 15.0F, -15.0F, 15.0F};
+    draw_screen_line_loop(arena_outline, 4);
 
     // Central platform (blue square, +/-4)
     glColor3f(0.18F, 0.38F, 0.78F);
-    glBegin(GL_QUADS);
-    glVertex2f(-4.0F, -4.0F);
-    glVertex2f(4.0F, -4.0F);
-    glVertex2f(4.0F, 4.0F);
-    glVertex2f(-4.0F, 4.0F);
-    glEnd();
+    draw_screen_quad(-4.0F, -4.0F, 8.0F, 8.0F);
 
     // Alpha Spawn (gray, X=-13..-10, Z=-3..3)
     glColor3f(0.35F, 0.35F, 0.35F);
-    glBegin(GL_QUADS);
-    glVertex2f(-13.0F, -3.0F);
-    glVertex2f(-10.0F, -3.0F);
-    glVertex2f(-10.0F, 3.0F);
-    glVertex2f(-13.0F, 3.0F);
-    glEnd();
+    draw_screen_quad(-13.0F, -3.0F, 3.0F, 6.0F);
 
     // Bravo Spawn (gray, X=10..13, Z=-3..3)
-    glBegin(GL_QUADS);
-    glVertex2f(10.0F, -3.0F);
-    glVertex2f(13.0F, -3.0F);
-    glVertex2f(13.0F, 3.0F);
-    glVertex2f(10.0F, 3.0F);
-    glEnd();
+    draw_screen_quad(10.0F, -3.0F, 3.0F, 6.0F);
 
     // Draw projectiles on the radar (tactical orange pings)
     for (int i = 0; i < scene.projectile_count && i < 64; ++i) {
@@ -379,47 +332,47 @@ void draw_hud(const DebugScene& scene, int width, int height, float hud_brightne
         if (dist < r_inner) {
             glColor4f(1.0F, 0.55F, 0.1F, 0.85F);
             glPointSize(4.0F);
-            glBegin(GL_POINTS);
-            glVertex2f(pp.x, pp.z);
-            glEnd();
+            const float projectile_point[] = {pp.x, pp.z};
+            draw_screen_points(projectile_point, 1);
         }
     }
     glPointSize(1.0F);
 
     // Radar sweep line with fade trailing
     const float sweep_angle = -static_cast<float>(glfwGetTime()) * 1.5F;
-    glBegin(GL_LINES);
     for (int i = 0; i < 5; ++i) {
         float angle = sweep_angle + static_cast<float>(i) * 0.05F;
         float alpha = 0.4F * (1.0F - static_cast<float>(i) / 5.0F);
         glColor4f(0.0F, 1.0F, 0.4F, alpha);
-        glVertex2f(0.0F, 0.0F);
-        glVertex2f(std::cos(angle) * r_inner, std::sin(angle) * r_inner);
+        draw_screen_line(0.0F, 0.0F, std::cos(angle) * r_inner, std::sin(angle) * r_inner);
     }
-    glEnd();
 
     // Mask out the corners of the viewport to make the minimap circular
     glColor4f(0.05F, 0.07F, 0.11F, 1.0F);
-    glBegin(GL_QUAD_STRIP);
     constexpr float r_outer = 30.0F;
+    float mask_ring[(36 + 1) * 4];
     for (int step = 0; step <= 36; ++step) {
         const float angle = static_cast<float>(step) / 36.0F * 2.0F * kPi;
         const float cos_a = std::cos(angle);
         const float sin_a = std::sin(angle);
-        glVertex2f(cos_a * r_inner, sin_a * r_inner);
-        glVertex2f(cos_a * r_outer, sin_a * r_outer);
+        const int base = step * 4;
+        mask_ring[base + 0] = cos_a * r_inner;
+        mask_ring[base + 1] = sin_a * r_inner;
+        mask_ring[base + 2] = cos_a * r_outer;
+        mask_ring[base + 3] = sin_a * r_outer;
     }
-    glEnd();
+    draw_screen_triangle_strip(mask_ring, (36 + 1) * 2);
 
     // High-tech circular outer border
     glColor4f(0.22F, 0.5F, 0.85F, 0.8F);
     glLineWidth(2.0F);
-    glBegin(GL_LINE_LOOP);
+    float border_points[36 * 2];
     for (int step = 0; step < 36; ++step) {
         const float angle = static_cast<float>(step) / 36.0F * 2.0F * kPi;
-        glVertex2f(std::cos(angle) * r_inner, std::sin(angle) * r_inner);
+        border_points[step * 2] = std::cos(angle) * r_inner;
+        border_points[step * 2 + 1] = std::sin(angle) * r_inner;
     }
-    glEnd();
+    draw_screen_line_loop(border_points, 36);
     glLineWidth(1.0F);
 
     // Player directional arrow
@@ -436,31 +389,23 @@ void draw_hud(const DebugScene& scene, int width, int height, float hud_brightne
     float arrow_pulse = 0.8F + 0.2F * std::sin(static_cast<float>(glfwGetTime()) * 5.0F);
 
     glColor4f(0.0F, 1.0F, 0.3F, arrow_pulse);
-    glBegin(GL_TRIANGLES);
-    glVertex2f(px + dx * arrow_len, pz + dz * arrow_len);
-    glVertex2f(px - dx * 0.8F + tx * arrow_width, pz - dz * 0.8F + tz * arrow_width);
-    glVertex2f(px - dx * 0.8F - tx * arrow_width, pz - dz * 0.8F - tz * arrow_width);
-    glEnd();
+    const float arrow_points[] = {
+        px + dx * arrow_len, pz + dz * arrow_len,
+        px - dx * 0.8F + tx * arrow_width, pz - dz * 0.8F + tz * arrow_width,
+        px - dx * 0.8F - tx * arrow_width, pz - dz * 0.8F - tz * arrow_width,
+    };
+    draw_screen_triangles(arrow_points, 3);
 
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
 
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
+    end_screen_space(radar_snapshot);
 
     // Restore full viewport
     glViewport(0, 0, width, height);
 
     // Draw Compass letters in screen-space overlay (N, S, E, W)
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0.0, static_cast<double>(width), static_cast<double>(height), 0.0, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+    const MatrixSnapshot compass_snapshot = begin_screen_space(width, height);
 
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
@@ -473,12 +418,8 @@ void draw_hud(const DebugScene& scene, int width, int height, float hud_brightne
     draw_ui_text(mm_cx + 64.0F, mm_cy - 5.0F, 1.1F, "E", UiTextStyle::Header);
 
     glDisable(GL_BLEND);
+    end_screen_space(compass_snapshot);
     glEnable(GL_DEPTH_TEST);
-
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
 }
 
 // ============================================================================
@@ -486,18 +427,11 @@ void draw_hud(const DebugScene& scene, int width, int height, float hud_brightne
 // ============================================================================
 
 void draw_menu_overlay(const DebugScene& scene, int width, int height) {
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0.0, static_cast<double>(width), static_cast<double>(height), 0.0, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+    const MatrixSnapshot snapshot = begin_screen_space(width, height);
 
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_LIGHTING);
 
     draw_panel(0.0F, 0.0F, static_cast<float>(width), static_cast<float>(height), 0.0F, 0.0F, 0.0F, 0.72F);
 
@@ -586,12 +520,7 @@ void draw_menu_overlay(const DebugScene& scene, int width, int height) {
 
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
-
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
+    end_screen_space(snapshot);
 }
 
 // ============================================================================
@@ -604,18 +533,11 @@ void draw_scene_overlay(const DebugScene& scene, int width, int height) {
         return;
     }
 
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0.0, static_cast<double>(width), static_cast<double>(height), 0.0, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+    const MatrixSnapshot snapshot = begin_screen_space(width, height);
 
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_LIGHTING);
 
     if (scene.overlay_title != nullptr || scene.overlay_body != nullptr || scene.overlay_hint != nullptr) {
         const float panel_w = std::min(620.0F, static_cast<float>(width) - 80.0F);
@@ -646,12 +568,7 @@ void draw_scene_overlay(const DebugScene& scene, int width, int height) {
 
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
-
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
+    end_screen_space(snapshot);
 }
 
 }  // namespace ae::render

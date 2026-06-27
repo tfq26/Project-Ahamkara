@@ -51,18 +51,13 @@ Mat4 mat4_translate(float x, float y, float z);
 Mat4 mat4_rotate(float degrees, float x, float y, float z);
 Mat4 mat4_scale(float x, float y, float z);
 Mat4 mat4_perspective(float fov_rad, float aspect, float near, float far);
+Mat4 mat4_ortho(float left, float right, float bottom, float top, float near, float far);
 
 // --- Context (per-thread singleton) ------------------------------------------
 
 struct GLCompatState {
-    // Current matrix mode
-    enum { kModelView, kProjection } matrix_mode {kModelView};
     Mat4 modelview;
     Mat4 projection;
-    Mat4 modelview_stack[16];
-    int modelview_stack_depth {0};
-    Mat4 projection_stack[16];
-    int projection_stack_depth {0};
 
     // Current color
     float current_r {1.0f}, current_g {1.0f}, current_b {1.0f}, current_a {1.0f};
@@ -98,17 +93,22 @@ void init();
 void shutdown();
 void begin_frame(int viewport_w, int viewport_h);
 
-// --- Public API (called via remapped GL names) -------------------------------
+// Diagnostics: was the compat shader built, and how much geometry was flushed.
+bool ready();
+void diag_reset();
+int diag_vertices();
+int diag_draws();
 
-void aecMatrixMode(int mode);
-void aecLoadIdentity();
-void aecLoadMatrixf(const float* m);
-void aecPushMatrix();
-void aecPopMatrix();
-void aecTranslatef(float x, float y, float z);
-void aecRotatef(float angle, float x, float y, float z);
-void aecScalef(float x, float y, float z);
-void aecGetFloatv(int pname, float* params);
+// Core-profile replacement for legacy client-array draws: render user VBOs
+// (position at attrib 0, optional color at attrib 1) through the compat
+// shader + VAO using the current matrix state. Flat-shaded (normals ignored).
+// If vbo_col == 0, the current gl_compat color is used as a flat uniform color.
+// If ibo != 0, draws indexed (index_count GL_UNSIGNED_INT); else glDrawArrays.
+void draw_user_arrays(unsigned int vbo_pos, unsigned int vbo_col, int color_components,
+                      unsigned int ibo, int index_count,
+                      unsigned int mode, int first, int count);
+
+// --- Public API (called via remapped GL names) -------------------------------
 
 void aecBegin(int mode);
 void aecEnd();
@@ -184,15 +184,6 @@ void aecColorPointer(int size, int type, int stride, const void* ptr);
 #define glEnable(cap)           ae::gl_compat::aecEnable(cap)
 #define glDisable(cap)          ae::gl_compat::aecDisable(cap)
 #define glLightfv(light,pname,p) ae::gl_compat::aecLightfv(light,pname,p)
-#define glLoadIdentity()    ae::gl_compat::aecLoadIdentity()
-#define glLoadMatrixf(m)    ae::gl_compat::aecLoadMatrixf(m)
-#define glPushMatrix()      ae::gl_compat::aecPushMatrix()
-#define glPopMatrix()       ae::gl_compat::aecPopMatrix()
-#define glTranslatef(x,y,z) ae::gl_compat::aecTranslatef(x,y,z)
-#define glRotatef(a,x,y,z)  ae::gl_compat::aecRotatef(a,x,y,z)
-#define glScalef(x,y,z)     ae::gl_compat::aecScalef(x,y,z)
-#define glGetFloatv(p,params) ae::gl_compat::aecGetFloatv(p,params)
-
 #define glBegin(m)    ae::gl_compat::aecBegin(m)
 #define glEnd()       ae::gl_compat::aecEnd()
 

@@ -2,3 +2,4 @@
 /assets/compiled/
 .DS_Store
 /ahamkara_perf_*.csv
+logs/

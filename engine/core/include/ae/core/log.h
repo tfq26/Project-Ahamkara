@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <string_view>
 
 namespace ae {
@@ -20,6 +21,12 @@ void log_error(std::string_view message);
 void log_info_cat(std::string_view category, std::string_view message);
 void log_warning_cat(std::string_view category, std::string_view message);
 void log_error_cat(std::string_view category, std::string_view message);
+
+// File‑backed logging. When enabled, every log line is additionally written to
+// `logs/ahamkara.log` (relative to the working directory). Call once at startup
+// and shutdown when the application exits.
+void init_file_logging(const std::filesystem::path& log_dir = "logs");
+void shutdown_file_logging();
 
 }  // namespace ae
 

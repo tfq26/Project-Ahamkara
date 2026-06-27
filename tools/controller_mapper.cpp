@@ -10,6 +10,8 @@
 #include <GL/gl.h>
 #endif
 
+#include "../engine/render/src/gl_compat.h"
+
 #include <cstdio>
 #include <filesystem>
 #include <sstream>
@@ -214,11 +216,13 @@ int main() {
         glClearColor(0.05F, 0.07F, 0.11F, 1.0F);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        glOrtho(0.0, static_cast<double>(fb_w), static_cast<double>(fb_h), 0.0, -1.0, 1.0);
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
+        auto& gl_state = ae::gl_compat::state();
+        const ae::gl_compat::Mat4 saved_projection = gl_state.projection;
+        const ae::gl_compat::Mat4 saved_modelview = gl_state.modelview;
+        gl_state.projection = ae::gl_compat::mat4_ortho(0.0F, static_cast<float>(fb_w),
+                                                        static_cast<float>(fb_h), 0.0F,
+                                                        -1.0F, 1.0F);
+        gl_state.modelview = ae::gl_compat::Mat4::identity();
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -306,6 +310,8 @@ int main() {
         draw_text(font_atlas, 44.0F, static_cast<float>(fb_h) - 84.0F, 1.2F, status, status_r, status_g, status_b);
         draw_text(font_atlas, 44.0F, static_cast<float>(fb_h) - 52.0F, 1.0F, "UP/DOWN SELECT  ENTER CAPTURE  S SAVE  ESC EXIT", 0.62F, 0.68F, 0.76F);
 
+        gl_state.projection = saved_projection;
+        gl_state.modelview = saved_modelview;
         glfwSwapBuffers(native);
     }
 

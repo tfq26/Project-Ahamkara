@@ -2,7 +2,7 @@
 #include "ae/render/render_backend.h"
 
 #if defined(__APPLE__)
-#include <OpenGL/gl.h>
+#include <OpenGL/gl3.h>
 #else
 #include <GL/gl.h>
 #endif
@@ -12,6 +12,7 @@ namespace ae::render {
 struct ShadowPass::Impl {
     RenderBackend* backend = nullptr;
     GLuint fbo = 0;
+    GLuint vao = 0;
     GLuint cube_vbo = 0;
     GLuint cube_ibo = 0;
     TextureHandle depth_map;
@@ -25,6 +26,7 @@ struct ShadowPass::Impl {
         resolution = res;
 
         glGenFramebuffers(1, &fbo);
+        glGenVertexArrays(1, &vao);
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
         // Create depth texture
@@ -101,6 +103,7 @@ struct ShadowPass::Impl {
 
     void shutdown() {
         if (fbo) { glDeleteFramebuffers(1, &fbo); fbo = 0; }
+        if (vao) { glDeleteVertexArrays(1, &vao); vao = 0; }
         if (cube_vbo) { glDeleteBuffers(1, &cube_vbo); cube_vbo = 0; }
         if (cube_ibo) { glDeleteBuffers(1, &cube_ibo); cube_ibo = 0; }
         if (shader) { backend->destroy_shader(shader); shader = {}; }
@@ -136,7 +139,7 @@ struct ShadowPass::Impl {
     }
 
     void submit_box_caster(const ShadowBoxCaster& caster) {
-        if (!shader || cube_vbo == 0 || cube_ibo == 0 || u_model_loc == -1) {
+        if (!shader || vao == 0 || cube_vbo == 0 || cube_ibo == 0 || u_model_loc == -1) {
             return;
         }
 
@@ -151,6 +154,7 @@ struct ShadowPass::Impl {
         };
 
         glUniformMatrix4fv(u_model_loc, 1, GL_FALSE, model);
+        glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, cube_vbo);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
         glEnableVertexAttribArray(0);
@@ -159,6 +163,7 @@ struct ShadowPass::Impl {
         glDisableVertexAttribArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
     }
 
     void bind_shadow_map(int slot) {

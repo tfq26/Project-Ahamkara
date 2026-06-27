@@ -1,10 +1,7 @@
 #include "ahamkara/client/threaded_local_runtime.h"
 
-#include "ae/core/log.h"
-
 #include <algorithm>
 #include <chrono>
-#include <string>
 #include <thread>
 
 namespace ahamkara::client {
@@ -27,12 +24,6 @@ void ThreadedLocalRuntime::ThreadSafeInputProvider::set_input(const ahamkara::ga
 ahamkara::game::PlayerInputCommand ThreadedLocalRuntime::ThreadSafeInputProvider::gather_input(float) {
     std::lock_guard<std::mutex> lock(mutex_);
     ahamkara::game::PlayerInputCommand command = command_;
-
-    static int s_look_diag = 0;
-    if ((command.look_delta.x != 0.0F || command.look_delta.y != 0.0F) || (s_look_diag++ % 60) == 0) {
-        ae::log_info_cat("LookDiag", "[B] sim gather_input look_delta=(" +
-            std::to_string(command.look_delta.x) + ", " + std::to_string(command.look_delta.y) + ")");
-    }
 
     command_.jump_pressed = false;
     command_.slide_pressed = false;
@@ -97,7 +88,15 @@ void ThreadedLocalRuntime::set_audio_player(ahamkara::game::IAudioPlayer* player
 
 bool ThreadedLocalRuntime::load_level(const std::string& path) {
     std::lock_guard<std::mutex> lock(sim_mutex_);
-    return simulation_.load_level(path);
+    const bool loaded = simulation_.load_level(path);
+    if (loaded) {
+        ClientSimulationSnapshot snapshot = build_snapshot_locked();
+        std::lock_guard<std::mutex> snap_lock(snapshot_mutex_);
+        prev_snapshot_ = snapshot;
+        curr_snapshot_ = snapshot;
+        last_tick_time_ = std::chrono::steady_clock::now();
+    }
+    return loaded;
 }
 
 void ThreadedLocalRuntime::restart_match() {

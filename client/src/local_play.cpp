@@ -1,9 +1,7 @@
 #include "ahamkara/client/local_play.h"
-#include "ae/core/log.h"
 #include "ae/core/math.h"
 #include "ae/render/compiled_level.h"
 #include <cstring>
-#include <string>
 
 namespace ahamkara::client {
 
@@ -52,15 +50,6 @@ void LocalPlaySimulation::tick(float delta_seconds) {
         total_elapsed_seconds_ += fixed_step_seconds;
         fixed_timestep_.consume();
         ++steps_consumed;
-    }
-
-    static int s_look_diag_c = 0;
-    if ((frame_input.look_delta.x != 0.0F || frame_input.look_delta.y != 0.0F) || (s_look_diag_c++ % 60) == 0) {
-        ae::log_info_cat("LookDiag", "[C] LocalPlay tick: steps_consumed=" +
-            std::to_string(steps_consumed) + " frame_look=(" +
-            std::to_string(frame_input.look_delta.x) + ", " +
-            std::to_string(frame_input.look_delta.y) + ") -> camera_yaw=" +
-            std::to_string(world_.get_camera_anchor().yaw));
     }
 }
 
@@ -229,7 +218,12 @@ bool LocalPlaySimulation::load_level(const std::string& path) {
     if (!loader.load(path, level)) {
         return false;
     }
-    return world_.load_colliders_from_level(level);
+    const bool loaded = world_.load_colliders_from_level(level);
+    if (loaded) {
+        has_previous_state_ = false;
+        fixed_timestep_ = ae::FixedTimestepAccumulator {1.0 / 60.0};
+    }
+    return loaded;
 }
 
 ae::u32 LocalPlaySimulation::get_player_kills() const {

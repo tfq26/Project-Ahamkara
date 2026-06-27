@@ -1,7 +1,7 @@
 #include "ae/render/pbr_renderer.h"
 
 #if defined(__APPLE__)
-#include <OpenGL/gl.h>
+#include <OpenGL/gl3.h>
 #else
 #include <GL/gl.h>
 #endif
@@ -14,6 +14,7 @@ struct PbrRenderer::Impl {
     RenderBackend* backend = nullptr;
     ShaderHandle pbr_shader;
     PbrLight light;
+    GLuint vao = 0;
 
     // Uniform locations
     int u_model = -1, u_view = -1, u_projection = -1;
@@ -122,6 +123,7 @@ struct PbrRenderer::Impl {
         ShaderProgramDesc desc{vert_src, frag_src, aloc, anam, 4};
         pbr_shader = backend->create_shader_program(desc);
         if (!pbr_shader) return false;
+        glGenVertexArrays(1, &vao);
 
         u_model     = backend->get_uniform_location(pbr_shader, "uModel");
         u_view      = backend->get_uniform_location(pbr_shader, "uView");
@@ -169,8 +171,9 @@ struct PbrRenderer::Impl {
     }
 
     void submit(const PbrDrawCall& dc) {
-        if (!pbr_shader) return;
+        if (!pbr_shader || vao == 0) return;
         backend->use_shader(pbr_shader);
+        glBindVertexArray(vao);
 
         // Per-frame uniforms
         glUniformMatrix4fv(u_view, 1, GL_FALSE, view);
@@ -276,6 +279,18 @@ struct PbrRenderer::Impl {
         if (skin) { glDisableVertexAttribArray(2); glDisableVertexAttribArray(3); }
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+
+    void shutdown() {
+        if (vao != 0) {
+            glDeleteVertexArrays(1, &vao);
+            vao = 0;
+        }
+        if (pbr_shader) {
+            backend->destroy_shader(pbr_shader);
+            pbr_shader = {};
+        }
     }
 
     void end_frame() {}
@@ -284,7 +299,7 @@ struct PbrRenderer::Impl {
 PbrRenderer::PbrRenderer() : impl_(std::make_unique<Impl>()) {}
 PbrRenderer::~PbrRenderer() = default;
 bool PbrRenderer::initialize(RenderBackend* backend) { return impl_->initialize(backend); }
-void PbrRenderer::shutdown() { impl_->backend->destroy_shader(impl_->pbr_shader); }
+void PbrRenderer::shutdown() { impl_->shutdown(); }
 void PbrRenderer::begin_frame(const float* v, const float* p, const float* c, ShadowPass* s) { impl_->begin_frame(v, p, c, s); }
 void PbrRenderer::submit(const PbrDrawCall& dc) { impl_->submit(dc); }
 void PbrRenderer::end_frame() { impl_->end_frame(); }

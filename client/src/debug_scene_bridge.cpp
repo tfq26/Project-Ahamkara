@@ -42,6 +42,26 @@ constexpr float kDebugFollowLeadDistance = 1.5F;
     return {value.x, value.y, value.z};
 }
 
+void add_level_mesh_debug_boxes(
+    ae::render::DebugScene& scene,
+    const ae::render::LevelAsset& level_asset) {
+    for (const auto& mesh : level_asset.mesh_instances) {
+        if (scene.level_box_count >= 64) {
+            break;
+        }
+
+        const float half_x = std::max(0.1F, mesh.scale_x * 0.5F);
+        const float half_y = std::max(0.1F, mesh.scale_y * 0.5F);
+        const float half_z = std::max(0.1F, mesh.scale_z * 0.5F);
+        auto& box = scene.level_boxes[scene.level_box_count++];
+        box.min = {mesh.pos_x - half_x, mesh.pos_y - half_y, mesh.pos_z - half_z};
+        box.max = {mesh.pos_x + half_x, mesh.pos_y + half_y, mesh.pos_z + half_z};
+        box.red = 0.95F;
+        box.green = 0.62F;
+        box.blue = 0.18F;
+    }
+}
+
 }  // namespace
 
 namespace ahamkara::client {
@@ -104,6 +124,9 @@ ae::render::DebugScene build_debug_scene(
     scene.match_phase = current_snapshot.match_phase;
     scene.team_score_red = current_snapshot.team_score_red;
     scene.team_score_blue = current_snapshot.team_score_blue;
+    if (inputs.level_asset != nullptr) {
+        add_level_mesh_debug_boxes(scene, *inputs.level_asset);
+    }
 
     scene.hitmarker_time = current_snapshot.hitmarker_time;
     scene.hitmarker_is_critical = current_snapshot.hitmarker_is_critical;

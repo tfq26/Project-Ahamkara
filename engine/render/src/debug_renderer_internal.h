@@ -41,6 +41,12 @@ void draw_axes();
 void draw_box(Vec3 min, Vec3 max);
 void draw_player_marker(Vec3 position, float height, float yaw);
 void draw_screen_quad(float x, float y, float width, float height);
+void draw_screen_line(float x1, float y1, float x2, float y2);
+void draw_screen_line_loop(const float* points, int point_count);
+void draw_screen_triangle_fan(const float* points, int point_count);
+void draw_screen_triangle_strip(const float* points, int point_count);
+void draw_screen_triangles(const float* points, int point_count);
+void draw_screen_points(const float* points, int point_count);
 
 // --- Bitmap font glyph lookup (defined in debug_renderer.cpp) ---------------
 const std::array<std::uint8_t, 7>* glyph_for_char(char character);

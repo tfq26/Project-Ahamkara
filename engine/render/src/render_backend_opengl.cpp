@@ -19,6 +19,11 @@
 #include <GL/glext.h>
 #endif
 
+// Use the compat layer's core-profile draw helper without remapping this file's
+// own (real) GL calls.
+#define AE_GL_COMPAT_NO_REMAP
+#include "gl_compat.h"
+
 #include <cstdio>
 #include <string>
 #include <unordered_map>
@@ -384,77 +389,21 @@ public:
     // --- Draw calls ---
     void draw_gpu_mesh(const GpuMesh& mesh) override {
         if (mesh.vertex_count == 0) return;
-
-        GLuint vbo_pos = buffers_.lookup(mesh.vbo_positions.id);
-        GLuint vbo_nrm = buffers_.lookup(mesh.vbo_normals.id);
-        GLuint ibo     = buffers_.lookup(mesh.ibo_indices.id);
-
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
-        glVertexPointer(3, GL_FLOAT, 0, nullptr);
-
-        if (vbo_nrm) {
-            glEnableClientState(GL_NORMAL_ARRAY);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_nrm);
-            glNormalPointer(GL_FLOAT, 0, nullptr);
-        }
-
-        if (ibo) {
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-            glDrawElements(GL_TRIANGLES, mesh.index_count, GL_UNSIGNED_INT, nullptr);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        } else {
-            glDrawArrays(GL_TRIANGLES, 0, mesh.vertex_count);
-        }
-
-        glDisableClientState(GL_VERTEX_ARRAY);
-        if (vbo_nrm) glDisableClientState(GL_NORMAL_ARRAY);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        const GLuint vbo_pos = buffers_.lookup(mesh.vbo_positions.id);
+        const GLuint ibo     = buffers_.lookup(mesh.ibo_indices.id);
+        // Core-profile draw via the compat shader+VAO using the current matrix
+        // state (flat-shaded; normals not used).
+        ae::gl_compat::draw_user_arrays(vbo_pos, 0, 0, ibo, mesh.index_count,
+                                        GL_TRIANGLES, 0, mesh.vertex_count);
     }
 
     void draw_gpu_mesh_skinned(const GpuMesh& mesh) override {
+        // Flat-shaded via the compat path; skinning not yet ported, so static pose.
         if (mesh.vertex_count == 0) return;
-
-        GLuint vbo_pos = buffers_.lookup(mesh.vbo_positions.id);
-        GLuint vbo_nrm = buffers_.lookup(mesh.vbo_normals.id);
-        GLuint vbo_jnt = buffers_.lookup(mesh.vbo_joints.id);
-        GLuint vbo_wgt = buffers_.lookup(mesh.vbo_weights.id);
-        GLuint ibo     = buffers_.lookup(mesh.ibo_indices.id);
-
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
-        glVertexPointer(3, GL_FLOAT, 0, nullptr);
-
-        if (vbo_nrm) {
-            glEnableClientState(GL_NORMAL_ARRAY);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_nrm);
-            glNormalPointer(GL_FLOAT, 0, nullptr);
-        }
-
-        if (vbo_jnt) {
-            glEnableVertexAttribArray(1);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_jnt);
-            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
-        }
-        if (vbo_wgt) {
-            glEnableVertexAttribArray(2);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_wgt);
-            glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
-        }
-
-        if (ibo) {
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-            glDrawElements(GL_TRIANGLES, mesh.index_count, GL_UNSIGNED_INT, nullptr);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        } else {
-            glDrawArrays(GL_TRIANGLES, 0, mesh.vertex_count);
-        }
-
-        if (vbo_jnt) glDisableVertexAttribArray(1);
-        if (vbo_wgt) glDisableVertexAttribArray(2);
-        glDisableClientState(GL_VERTEX_ARRAY);
-        if (vbo_nrm) glDisableClientState(GL_NORMAL_ARRAY);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        const GLuint vbo_pos = buffers_.lookup(mesh.vbo_positions.id);
+        const GLuint ibo     = buffers_.lookup(mesh.ibo_indices.id);
+        ae::gl_compat::draw_user_arrays(vbo_pos, 0, 0, ibo, mesh.index_count,
+                                        GL_TRIANGLES, 0, mesh.vertex_count);
     }
 
     void draw_arrays_vnc(BufferHandle vbo_positions,
@@ -462,43 +411,17 @@ public:
                          BufferHandle vbo_colors,
                          int first, int count,
                          int color_components = 3) override {
-        GLuint vbo_pos = buffers_.lookup(vbo_positions.id);
-        GLuint vbo_nrm = buffers_.lookup(vbo_normals.id);
-        GLuint vbo_col = buffers_.lookup(vbo_colors.id);
-
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
-        glVertexPointer(3, GL_FLOAT, 0, nullptr);
-
-        if (vbo_nrm) {
-            glEnableClientState(GL_NORMAL_ARRAY);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_nrm);
-            glNormalPointer(GL_FLOAT, 0, nullptr);
-        }
-
-        if (vbo_col) {
-            glEnableClientState(GL_COLOR_ARRAY);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_col);
-            glColorPointer(color_components, GL_FLOAT, 0, nullptr);
-        }
-
-        glDrawArrays(GL_TRIANGLES, first, count);
-
-        glDisableClientState(GL_VERTEX_ARRAY);
-        if (vbo_nrm) glDisableClientState(GL_NORMAL_ARRAY);
-        if (vbo_col) glDisableClientState(GL_COLOR_ARRAY);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        (void)vbo_normals;  // flat-shaded; normals ignored
+        const GLuint vbo_pos = buffers_.lookup(vbo_positions.id);
+        const GLuint vbo_col = buffers_.lookup(vbo_colors.id);
+        ae::gl_compat::draw_user_arrays(vbo_pos, vbo_col, color_components, 0, 0,
+                                        GL_TRIANGLES, first, count);
     }
 
     void draw_arrays_positions(BufferHandle vbo_positions,
                                int first, int count) override {
-        GLuint vbo_pos = buffers_.lookup(vbo_positions.id);
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
-        glVertexPointer(3, GL_FLOAT, 0, nullptr);
-        glDrawArrays(GL_LINES, first, count);
-        glDisableClientState(GL_VERTEX_ARRAY);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        const GLuint vbo_pos = buffers_.lookup(vbo_positions.id);
+        ae::gl_compat::draw_user_arrays(vbo_pos, 0, 0, 0, 0, GL_LINES, first, count);
     }
 
     // --- Queries ---

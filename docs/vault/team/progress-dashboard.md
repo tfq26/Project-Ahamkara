@@ -10,7 +10,7 @@ Tasks Claimed: 3
 Tasks Needing Review: 0
 Tasks Blocked: 5
 Tasks Stopped: 0
-Tasks Complete: 14
+Tasks Complete: 16
 
 ## Active Work
 
@@ -24,6 +24,8 @@ Tasks Complete: 14
 - Complete: TASK-20260615-1245-input-routing-cleanup
 - Complete: TASK-20260622-1100-phase4-reconciliation-replay-fix
 - Complete: TASK-20260622-1110-phase4-reliable-channel
+- Complete: TASK-20260622-1010-ecs-migration-first-slice
+- Complete: TASK-20260620-1415-blender-headless-level-generator
 - Complete: TASK-20260622-1020-deterministic-character-controller
 - Complete: TASK-20260622-1200-phase4-netcode-milestone-review
 - Complete: TASK-20260622-1300-ai-navgrid-astar
@@ -46,6 +48,11 @@ Tasks Complete: 14
   completed.
 - The Phase 4 milestone review and the AI nav/movement milestone review were
   accepted, and their batched task files were promoted to `completed/`.
+- The ECS migration first slice was accepted after revision: the projectile
+  migration now preserves the accessor contract and the headless link path is
+  guarded.
+- The Blender headless level generator was accepted after the Blender 5.1.2
+  headless command produced byte-identical `.lvl` output to Path A.
 - The Path A, Path B, display-gated showcase, and runtime-confirm tasks are
   blocked by missing runtime/display/tooling capability in this environment.
 

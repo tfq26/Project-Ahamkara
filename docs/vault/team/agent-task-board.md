@@ -16,7 +16,7 @@
 
 ## Review Needed
 
-- _No tasks_
+- TASK-20260623-1700-debug-client-frozen-view-investigation
 
 ## Complete
 
@@ -26,6 +26,8 @@
 - TASK-20260615-1300-ui-screen-split-plan
 - TASK-20260622-1100-phase4-reconciliation-replay-fix
 - TASK-20260622-1110-phase4-reliable-channel
+- TASK-20260622-1010-ecs-migration-first-slice
+- TASK-20260620-1415-blender-headless-level-generator
 - TASK-20260622-1020-deterministic-character-controller
 - TASK-20260622-1200-phase4-netcode-milestone-review
 - TASK-20260620-1200-level-driven-world-meshes

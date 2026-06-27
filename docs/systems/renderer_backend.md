@@ -114,8 +114,6 @@ The following remain as direct GL calls in `debug_renderer.cpp`:
 |---------|--------|
 | `glBegin` / `glEnd` immediate mode | Debug-only; replaced by production pipeline |
 | Fixed-function lighting (`glLight*`, `glLightModel*`) | Legacy GL 2.1 feature |
-| Matrix stack (`glMatrixMode`, `glLoadMatrixf`) | Immediate-mode projection setup |
-| `glGetFloatv(GL_MODELVIEW_MATRIX, ...)` | Per-frame projection math for HUD |
 | Occlusion queries (raw `GL_SAMPLES_PASSED`) | Legacy; future GPU-driven culling |
 | `MapGeometry` cell VBO management | Owned by `map_geometry.cpp`; migrates later |
 | Dynamic VBO mapping (`glMapBuffer`) for particles | Migrates with particle system refactor |

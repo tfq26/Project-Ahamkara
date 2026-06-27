@@ -162,6 +162,57 @@ Completion Bar:
 User Visible Notes:
 - Keep blocked until the display-backed verification exists.
 
+## 2026-06-23 - TASK-20260622-1010-ecs-migration-first-slice - complete
+
+Supervisor: codex-lead-supervisor
+Worker: opencode
+Decision: complete
+Evidence Checked:
+- `docs/reports/subagents/TASK-20260622-1010-ecs-migration-first-slice-report.md`
+- `docs/reports/subagents/TASK-20260622-1010-ecs-migration-first-slice-codex-review.md`
+- `game/include/ahamkara/game/world.h`
+- `game/src/world.cpp`
+- `game/CMakeLists.txt`
+- `tests/CMakeLists.txt`
+- `client/include/ahamkara/client/local_play.h`
+- `client/src/local_play.cpp`
+- `client/src/threaded_local_runtime.cpp`
+- `game/src/activities/deathmatch_activity.cpp`
+Reason:
+- The projectile slice now preserves the original accessor contract while using
+  the registry as the authoritative store.
+- The fixed-size projectile array is removed and the headless render link gap
+  is guarded, so the documented validation now passes.
+Next Actions:
+- None.
+Completion Bar:
+- Projectile ECS migration accepted and closed.
+User Visible Notes:
+- Accepted after the second pass fixed the accessor contract and headless
+  validation path.
+
+## 2026-06-23 - TASK-20260620-1415-blender-headless-level-generator - complete
+
+Supervisor: codex-lead-supervisor
+Worker: opencode
+Decision: complete
+Evidence Checked:
+- `docs/reports/subagents/TASK-20260620-1415-blender-headless-level-generator-report.md`
+- `docs/reports/subagents/TASK-20260620-1415-blender-headless-level-generator-codex-review.md`
+- `tools/blender/build_level.py`
+- `tools/blender/test_build_level.py`
+- `docs/vault/queue-tasks/completed/TASK-20260620-1415-blender-headless-level-generator.md`
+Reason:
+- The shared `.lvl` writer is reused, the bpy-free layer is testable, and the
+  Blender headless command was actually executed and validated.
+- The produced `.lvl` matches Path A byte-for-byte for both prototype specs.
+Next Actions:
+- None.
+Completion Bar:
+- Headless Blender generator accepted and closed.
+User Visible Notes:
+- Accepted after the Blender execution proof was produced.
+
 ## 2026-06-22 - TASK-20260620-1520-runtime-confirm-prototype-levels - blocked
 
 Supervisor: codex-lead-supervisor

@@ -123,6 +123,17 @@ Mat4 mat4_perspective(float fov_rad, float aspect, float near, float far) {
     return r;
 }
 
+Mat4 mat4_ortho(float left, float right, float bottom, float top, float near, float far) {
+    Mat4 r;
+    r.m[0] = 2.0f / (right - left);
+    r.m[5] = 2.0f / (top - bottom);
+    r.m[10] = -2.0f / (far - near);
+    r.m[12] = -(right + left) / (right - left);
+    r.m[13] = -(top + bottom) / (top - bottom);
+    r.m[14] = -(far + near) / (far - near);
+    return r;
+}
+
 // ============================================================================
 // State
 // ============================================================================
@@ -130,6 +141,61 @@ Mat4 mat4_perspective(float fov_rad, float aspect, float near, float far) {
 GLCompatState& state() {
     static GLCompatState s;
     return s;
+}
+
+// --- Diagnostics ------------------------------------------------------------
+static int s_diag_verts = 0;
+static int s_diag_draws = 0;
+bool ready() { return s_compat_shader != 0; }
+void diag_reset() { s_diag_verts = 0; s_diag_draws = 0; }
+int diag_vertices() { return s_diag_verts; }
+int diag_draws() { return s_diag_draws; }
+
+void draw_user_arrays(unsigned int vbo_pos, unsigned int vbo_col, int color_components,
+                      unsigned int ibo, int index_count,
+                      unsigned int mode, int first, int count) {
+    if (s_compat_shader == 0 || s_compat_vao == 0 || vbo_pos == 0) return;
+    auto& st = state();
+
+    glUseProgram(s_compat_shader);
+    Mat4 mvp = st.projection * st.modelview;
+    glUniformMatrix4fv(s_u_mvp_loc, 1, GL_FALSE, mvp.m);
+
+    glBindVertexArray(s_compat_vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, static_cast<GLuint>(vbo_pos));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+    if (vbo_col != 0 && color_components > 0) {
+        if (s_u_color_loc != -1) glUniform4f(s_u_color_loc, 1.0f, 1.0f, 1.0f, 1.0f);
+        glBindBuffer(GL_ARRAY_BUFFER, static_cast<GLuint>(vbo_col));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, color_components, GL_FLOAT, GL_FALSE, 0, (void*)0);
+    } else {
+        if (s_u_color_loc != -1)
+            glUniform4f(s_u_color_loc, st.current_r, st.current_g, st.current_b, st.current_a);
+        glDisableVertexAttribArray(1);
+        glVertexAttrib4f(1, 1.0f, 1.0f, 1.0f, 1.0f);
+    }
+
+    int drawn = 0;
+    if (ibo != 0 && index_count > 0) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLuint>(ibo));
+        glDrawElements(static_cast<GLenum>(mode), index_count, GL_UNSIGNED_INT, (void*)0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        drawn = index_count;
+    } else if (count > 0) {
+        glDrawArrays(static_cast<GLenum>(mode), first, count);
+        drawn = count;
+    }
+    s_diag_verts += drawn;
+    ++s_diag_draws;
+
+    glDisableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glUseProgram(0);
 }
 
 // ============================================================================
@@ -218,6 +284,8 @@ static void flush_batch_3d() {
         default: break;
     }
 
+    s_diag_verts += static_cast<int>(st.batch_vertices.size());
+    ++s_diag_draws;
     glDrawArrays(mode, 0, (GLsizei)st.batch_vertices.size());
 
     glBindVertexArray(0);
@@ -279,6 +347,8 @@ static void flush_batch_2d() {
         default: break;
     }
 
+    s_diag_verts += static_cast<int>(st.batch_vertices_2d.size());
+    ++s_diag_draws;
     glDrawArrays(mode, 0, (GLsizei)st.batch_vertices_2d.size());
 
     glBindVertexArray(0);
@@ -323,89 +393,6 @@ void shutdown() {
 void begin_frame(int vp_w, int vp_h) {
     s_viewport_w = vp_w;
     s_viewport_h = vp_h;
-}
-
-// ============================================================================
-// Matrix stack
-// ============================================================================
-
-void aecMatrixMode(int mode) {
-    state().matrix_mode = (mode == 0x1701) ? GLCompatState::kProjection : GLCompatState::kModelView;
-}
-
-void aecLoadIdentity() {
-    auto& st = state();
-    if (st.matrix_mode == GLCompatState::kProjection)
-        st.projection = Mat4::identity();
-    else
-        st.modelview = Mat4::identity();
-}
-
-void aecLoadMatrixf(const float* m) {
-    auto& st = state();
-    Mat4 mat;
-    std::memcpy(mat.m, m, sizeof(mat.m));
-    if (st.matrix_mode == GLCompatState::kProjection)
-        st.projection = mat;
-    else
-        st.modelview = mat;
-}
-
-void aecPushMatrix() {
-    auto& st = state();
-    if (st.matrix_mode == GLCompatState::kProjection) {
-        if (st.projection_stack_depth < 16)
-            st.projection_stack[st.projection_stack_depth++] = st.projection;
-    } else {
-        if (st.modelview_stack_depth < 16)
-            st.modelview_stack[st.modelview_stack_depth++] = st.modelview;
-    }
-}
-
-void aecPopMatrix() {
-    auto& st = state();
-    if (st.matrix_mode == GLCompatState::kProjection) {
-        if (st.projection_stack_depth > 0)
-            st.projection = st.projection_stack[--st.projection_stack_depth];
-    } else {
-        if (st.modelview_stack_depth > 0)
-            st.modelview = st.modelview_stack[--st.modelview_stack_depth];
-    }
-}
-
-void aecTranslatef(float x, float y, float z) {
-    auto& st = state();
-    Mat4 t = mat4_translate(x, y, z);
-    if (st.matrix_mode == GLCompatState::kProjection)
-        st.projection = st.projection * t;
-    else
-        st.modelview = st.modelview * t;
-}
-
-void aecRotatef(float angle, float x, float y, float z) {
-    auto& st = state();
-    Mat4 r = mat4_rotate(angle, x, y, z);
-    if (st.matrix_mode == GLCompatState::kProjection)
-        st.projection = st.projection * r;
-    else
-        st.modelview = st.modelview * r;
-}
-
-void aecScalef(float x, float y, float z) {
-    auto& st = state();
-    Mat4 s = mat4_scale(x, y, z);
-    if (st.matrix_mode == GLCompatState::kProjection)
-        st.projection = st.projection * s;
-    else
-        st.modelview = st.modelview * s;
-}
-
-void aecGetFloatv(int pname, float* params) {
-    auto& st = state();
-    if (pname == 0x0BA6)  // GL_MODELVIEW_MATRIX
-        std::memcpy(params, st.modelview.m, 16 * sizeof(float));
-    else if (pname == 0x0BA7)  // GL_PROJECTION_MATRIX
-        std::memcpy(params, st.projection.m, 16 * sizeof(float));
 }
 
 // ============================================================================

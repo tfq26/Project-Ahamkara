@@ -78,3 +78,34 @@ order:
 5. Only then revisit fidelity (HDR/post/lighting).
 
 See `docs/roadmap/roadmap.md` for the full phased plan.
+
+## 2026-06-25 - Keep Core Profile, Migrate Legacy Draws Through Compat Shim
+
+Decision: Keep the OpenGL 3.3 core-profile client context and continue the
+renderer upgrade by routing legacy-style draws through `engine/render/src/gl_compat.*`
+or explicit backend helpers instead of reintroducing raw fixed-function client
+state.
+
+Rationale: The renderer already mixes shader-based passes, PBR/VAO paths, and
+legacy immediate-mode-era drawing. Reverting the context to compatibility mode
+would preserve old behavior but extend technical debt; migrating the remaining
+draw sites makes the engine more portable and keeps the upgrade path coherent.
+
+Implication: Any remaining direct `glEnableClientState` / `glVertexPointer`
+style calls in files that include `gl_compat.h` should be treated as migration
+work, not as working fixed-function code.
+
+## 2026-06-25 - Drive Main Lighting Through Shader Uniforms
+
+Decision: Treat the shader lighting uniforms in `debug_renderer.cpp` as the
+authoritative lighting path and populate them explicitly from renderer state
+each frame instead of relying on `glLight*` / `GL_LIGHTING`.
+
+Rationale: The compat shim intentionally turns the legacy lighting calls into
+no-ops under the core-profile context, so leaving those calls in place creates
+a false signal that lighting is configured when it is not. Feeding uniforms
+directly keeps the runtime behavior aligned with the GLSL program.
+
+Implication: Any future renderer cleanup should update the shader uniforms or
+backend abstractions directly; legacy fixed-function lighting calls should be
+treated as dead code in core-profile files.

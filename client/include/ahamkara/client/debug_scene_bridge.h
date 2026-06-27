@@ -2,6 +2,7 @@
 
 #include "ae/core/types.h"
 #include "ae/runtime/metrics.h"
+#include "ae/render/compiled_level.h"
 #include "ae/render/debug_renderer.h"
 #include "ahamkara/client/camera_mode.h"
 #include "ahamkara/game/world.h"
@@ -64,6 +65,7 @@ struct DebugSceneBuildInputs {
     float gamma {1.0F};
     const ae::RuntimeMetricsSnapshot* displayed_metrics {nullptr};
     float alpha {1.0F};
+    const ae::render::LevelAsset* level_asset {nullptr};
 };
 
 [[nodiscard]] ae::render::DebugScene build_debug_scene(

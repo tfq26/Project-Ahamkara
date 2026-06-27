@@ -12,6 +12,7 @@
 #include "ahamkara/game/net_types.h"
 #include "ae/audio/audio_engine.h"
 #include "ae/input/input_map.h"
+#include "ae/render/compiled_level.h"
 #include "ae/render/debug_renderer.h"
 #include "ae/render/pbr_renderer.h"
 #include "ae/render/shadow_pass.h"
@@ -47,7 +48,8 @@ public:
         ae::audio::AudioEngine& audio_engine,
         ae::render::ShadowPass& shadow_pass,
         ae::render::PbrRenderer& pbr_renderer,
-        const ae::render::LevelRenderScene* level_scene);
+        const ae::render::LevelRenderScene* level_scene,
+        const ae::render::LevelAsset* level_asset);
 
     /// Run one full frame. Returns false when the window or application
     /// requests shutdown.
@@ -89,6 +91,7 @@ private:
     ae::render::ShadowPass& shadow_pass_;
     ae::render::PbrRenderer& pbr_renderer_;
     const ae::render::LevelRenderScene* level_scene_ {nullptr};
+    const ae::render::LevelAsset* level_asset_ {nullptr};
     ae::input::InputMap input_map_ {};
 
     float smoothed_delta_ {0.0F};

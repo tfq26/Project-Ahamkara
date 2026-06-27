@@ -13,6 +13,8 @@ OpenCode should not place tasks here directly.
 - [[queue-tasks/completed/TASK-20260622-1100-phase4-reconciliation-replay-fix]]
 - [[queue-tasks/completed/TASK-20260622-1110-phase4-reliable-channel]]
 - [[queue-tasks/completed/TASK-20260622-1020-deterministic-character-controller]]
+- [[queue-tasks/completed/TASK-20260622-1010-ecs-migration-first-slice]]
+- [[queue-tasks/completed/TASK-20260620-1415-blender-headless-level-generator]]
 - [[queue-tasks/completed/TASK-20260622-1200-phase4-netcode-milestone-review]]
 - [[queue-tasks/completed/TASK-20260622-1300-ai-navgrid-astar]]
 - [[queue-tasks/completed/TASK-20260622-1310-ai-path-follower]]

@@ -26,6 +26,7 @@ constexpr const char* kDefaultShowcaseLevel =
 }  // namespace
 
 int main(int argc, char** argv) {
+    ae::init_file_logging("logs");
     const char* level_path = kDefaultShowcaseLevel;
     for (int i = 1; i + 1 < argc; ++i) {
         if (std::string(argv[i]) == "--level") {
@@ -42,5 +43,7 @@ int main(int argc, char** argv) {
     ae::log_info(std::string("Flashback demo: booting the engine on level '") +
                  level_path + "'. (Run from the repo root so assets resolve.)");
 
-    return run_local_client(client_config, controller_bindings, level_path);
+    const int result = run_local_client(client_config, controller_bindings, level_path);
+    ae::shutdown_file_logging();
+    return result;
 }

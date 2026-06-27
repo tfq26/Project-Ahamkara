@@ -360,18 +360,27 @@ DebugUiActions DebugUiController::render(
     switch (menu_state_.screen()) {
     case ae::ui::MenuScreen::MainMenu:
         ae::ui::render_main_menu(ui, &actions.quit_application);
-        if (!ui.visible) {
-            menu_state_.close_menu();
+        if (!ui.visible || ui.screen == ae::ui::MenuScreen::None) {
+            menu_state_.start_gameplay();
+        } else if (ui.screen == ae::ui::MenuScreen::Settings) {
+            menu_state_.open_settings();
         }
         break;
     case ae::ui::MenuScreen::PauseOverlay:
         ae::ui::render_pause_overlay(ui, &quit_to_menu);
-        if (!ui.visible) {
-            menu_state_.close_menu();
+        if (!ui.visible || ui.screen == ae::ui::MenuScreen::None) {
+            menu_state_.resume_gameplay();
+        } else if (ui.screen == ae::ui::MenuScreen::Settings) {
+            menu_state_.open_settings();
+        } else if (ui.screen == ae::ui::MenuScreen::Character) {
+            menu_state_.open_character();
         }
         break;
     case ae::ui::MenuScreen::Settings:
         ae::ui::render_settings(ui);
+        if (ui.screen != ae::ui::MenuScreen::Settings) {
+            menu_state_.back_from_settings();
+        }
         break;
     case ae::ui::MenuScreen::Character: {
         int ammo = static_cast<int>(current_snapshot.ammo_current);
@@ -380,7 +389,7 @@ DebugUiActions DebugUiController::render(
         const char* weapon_name = ahamkara::game::weapon_name(current_snapshot.weapon_index);
         if (ae::ui::render_character_sheet(&hp, 100.0F, ammo, max_ammo,
             weapon_name, current_snapshot.reserve_ammo)) {
-            ui.screen = ae::ui::MenuScreen::PauseOverlay;
+            menu_state_.back_to_pause();
         }
         break;
     }
