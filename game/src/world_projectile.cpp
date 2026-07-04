@@ -86,6 +86,7 @@ void fire_projectile(World& world, const PlayerInputCommand& input) {
 
     // Consume ammunition
     world.consume_ammo();
+    world.notify_weapon_fired();
 
     ae::log_info("Fired: " + std::string(weapon_name(world.get_active_weapon_index())) +
                  " | ammo=" + std::to_string(world.get_ammo_current()) +
@@ -431,6 +432,7 @@ void fire_hitscan(World& world, const PlayerInputCommand& input) {
     }
 
     world.consume_ammo();
+    world.notify_weapon_fired();
 
     ae::log_info("Fired: " + std::string(weapon_name(world.get_active_weapon_index())) +
                  " | ammo=" + std::to_string(world.get_ammo_current()) +

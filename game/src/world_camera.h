@@ -1,8 +1,8 @@
 #pragma once
 
+#include "ahamkara/game/camera_anchor.h"
 #include "ahamkara/game/net_types.h"
 #include "ahamkara/game/movement.h"
-#include "ahamkara/game/world.h"
 
 #include <cmath>
 

@@ -13,6 +13,19 @@ DeathmatchActivity::DeathmatchActivity() {
     world_.set_is_client(false);
 }
 
+bool DeathmatchActivity::load_map(const std::string& path) {
+    ae::render::CompiledLevelLoader loader;
+    ae::render::LevelAsset asset;
+    if (!loader.load(path, asset)) {
+        return false;
+    }
+    ae::log_info(std::string("Deathmatch activity loading map: ") + asset.name +
+                 " (" + std::to_string(asset.collision_boxes.size()) + " colliders, " +
+                 std::to_string(asset.spawn_points.size()) + " spawns)");
+    world_.load_colliders_from_level(asset);
+    return true;
+}
+
 bool DeathmatchActivity::initialize(const wish::core::ActivityConfig& cfg) {
     config_ = cfg;
 
@@ -28,6 +41,12 @@ bool DeathmatchActivity::initialize(const wish::core::ActivityConfig& cfg) {
     ae::log_info(std::string("Deathmatch activity '") + std::string(cfg.name)
                  + "' initialized (max_players=" + std::to_string(cfg.max_players)
                  + ", tick_rate=" + std::to_string(cfg.tick_rate) + ")");
+
+    if (!cfg.map_path.empty() && cfg.map_path != "default") {
+        if (!load_map(std::string(cfg.map_path))) {
+            ae::log_warning(std::string("Deathmatch activity using fallback map (") + std::string(cfg.map_path) + " failed to load)");
+        }
+    }
     return true;
 }
 

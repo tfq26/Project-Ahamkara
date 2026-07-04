@@ -128,6 +128,10 @@ public:
     const World& world() const { return world_; }
     World& world() { return world_; }
 
+    /// Load colliders and spawn points from a compiled .aelevel file.
+    /// Overwrites any previously loaded map data.
+    bool load_map(const std::string& path);
+
     /// Get the first slot (for single-player local test).
     PlayerSlot* first_slot();
 

@@ -29,6 +29,13 @@ struct DebugScene {
     float player_yaw {0.0F};
     Vec3 camera_position {};
     Vec3 camera_target {0.0F, 0.0F, 1.0F};
+    // First-person rig anchor. When the game is in first-person, these are
+    // populated from the active camera anchor so the viewmodel can follow the
+    // same source of truth instead of re-deriving it from general camera state.
+    Vec3 viewmodel_position {};
+    Vec3 viewmodel_forward {0.0F, 0.0F, 1.0F};
+    Vec3 viewmodel_right {1.0F, 0.0F, 0.0F};
+    Vec3 viewmodel_up {0.0F, 1.0F, 0.0F};
     bool show_player_marker {true};
     bool show_crosshair {false};
     bool draw_default_map {true};
@@ -59,8 +66,21 @@ struct DebugScene {
     float player_max_health {100.0F};
     float ammo_current {24.0F};
     float ammo_max {30.0F};
+    int weapon_index {0};
     int reserve_ammo {150};
     const char* weapon_name {"AR-15"};
+    const GpuModel* weapon_model {nullptr};
+    bool weapon_animation_override {false};
+    float weapon_animation_transform[16] {
+        1.0F, 0.0F, 0.0F, 0.0F,
+        0.0F, 1.0F, 0.0F, 0.0F,
+        0.0F, 0.0F, 1.0F, 0.0F,
+        0.0F, 0.0F, 0.0F, 1.0F,
+    };
+    // GPU skinning joint matrices for the current viewmodel.
+    // Flat array of 8 * 16 = 128 floats (column-major 4x4 each).
+    float weapon_joint_matrices[128] {};
+    int weapon_joint_count {0};
     float enemy_health[16] {};
     float enemy_max_health[16] {};
     int enemy_count {0};

@@ -8,8 +8,13 @@ add_library(ahamkara_game STATIC
     src/world_dummy_sim.cpp
     src/world_projectile.cpp
     src/world_camera.cpp
+    src/player_movement_controller.cpp
     src/client_prediction.cpp
+    src/player.cpp
+    src/weapon_loader.cpp
+    src/weapon_runtime.cpp
     src/item_registry.cpp
+    src/map.cpp
     src/deathmatch_mode.cpp
     src/activities/deathmatch_activity.cpp
     src/activities/horde_activity.cpp

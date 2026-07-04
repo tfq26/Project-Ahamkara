@@ -9,10 +9,16 @@ namespace ahamkara::game {
 
 constexpr std::size_t kWeaponRegistrySize = 3;
 
-// Flashback weapon lineup:
-//   Slot 0 (Primary):   AR-15 — 400 RPM, 50-round mag, 20 dmg/bullet, automatic hitscan
-//   Slot 1 (Secondary): Shotgun — 100 RPM, 8 pellets × 10 dmg (80 total), 8-shell mag, hitscan
-//   Slot 2 (Heavy):     Rocket Launcher — 100 dmg projectile, 1-round mag, projectile fire mode
+// Flashback weapon lineup — gameplay definitions only.
+//
+// Viewmodel meshes, transforms, and animation data are owned by the client
+// presentation layer (client/include/ahamkara/client/weapon_viewmodel_data.h).
+// Perks and archetype authoring live in tools/blender/weapons/.
+//
+// Current weapons:
+//   Slot 0 (Primary):   AR-15          — 400 RPM, 50-round mag, 20 dmg/bullet, automatic hitscan
+//   Slot 1 (Secondary): Shotgun        — 100 RPM, 8 pellets × 10 dmg, 8-shell mag, hitscan
+//   Slot 2 (Heavy):     Rocket Launcher — 30 RPM, 1-round mag, 100 dmg projectile
 
 inline const std::array<WeaponDefinition, kWeaponRegistrySize> kWeaponRegistry = {{
     // 0: AR-15 (primary) — 400 RPM automatic

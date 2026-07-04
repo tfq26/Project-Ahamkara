@@ -28,6 +28,28 @@ void test_world_initialization() {
     std::cout << "test_world_initialization passed.\n";
 }
 
+void test_world_respawn_and_restart_reset_weapon_runtime() {
+    ahamkara::game::World world;
+
+    world.switch_weapon(static_cast<int>(ahamkara::game::WeaponSlot::Secondary));
+    assert(world.get_active_weapon_index() == 1);
+
+    world.respawn_player();
+    assert(world.get_active_weapon_index() == 0);
+    assert(world.get_ammo_current() == world.get_ammo_max());
+    assert(world.get_reserve_ammo() == 150);
+
+    world.switch_weapon(static_cast<int>(ahamkara::game::WeaponSlot::Secondary));
+    assert(world.get_active_weapon_index() == 1);
+
+    world.restart_match();
+    assert(world.get_active_weapon_index() == 0);
+    assert(world.get_ammo_current() == world.get_ammo_max());
+    assert(world.get_reserve_ammo() == 150);
+
+    std::cout << "test_world_respawn_and_restart_reset_weapon_runtime passed.\n";
+}
+
 void test_world_custom_definition() {
     const ahamkara::game::MapDefinition empty_map {
         "empty_test_map",
@@ -437,6 +459,7 @@ void test_movement_config_wiring() {
 
 int main() {
     test_world_initialization();
+    test_world_respawn_and_restart_reset_weapon_runtime();
     test_world_custom_definition();
     test_world_tick_movement();
     test_world_tick_rotation();

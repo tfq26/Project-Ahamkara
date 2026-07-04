@@ -21,23 +21,9 @@
 namespace ahamkara::game {
 namespace {
 
-constexpr float kGroundHeight = 0.0F;
-constexpr float kSlideSpeed = 10.0F;
-constexpr float kSlideDurationSeconds = 0.45F;
-constexpr float kStandingEyeHeight = 0.58F;
-constexpr float kCrouchingEyeHeight = 0.32F;
 constexpr float kStandingVisualHeight = 0.65F;
 constexpr float kCrouchingVisualHeight = 0.35F;
 constexpr float kPlayerCollisionRadius = 0.22F;
-
-// Quake/Source-style acceleration constants
-constexpr float kGroundAccel = 12.0F;
-constexpr float kAirAccel = 1.5F;
-constexpr float kGroundFriction = 8.0F;
-constexpr float kAirFriction = 0.5F;
-constexpr float kMaxAirSpeed = 30.0F;
-constexpr float kJumpBufferTime = 0.15F;
-constexpr float kCoyoteTime = 0.10F;
 
 }  // namespace
 
@@ -48,14 +34,7 @@ World::World() : World(worlds::debug_javelin4()) {}
 World::World(const WorldDefinition& definition) {
     initialize_jolt_once();
 
-    reset_weapon_state();
-    loadout_ = {};
-    loadout_.weapons[static_cast<int>(WeaponSlot::Primary)] = 0;    // AR-15
-    loadout_.weapons[static_cast<int>(WeaponSlot::Secondary)] = 1;  // Shotgun
-    loadout_.weapons[static_cast<int>(WeaponSlot::Melee)] = 2;      // Rocket Launcher
-
-    player_state_ = {};
-    camera_anchor_ = {};
+    player_.reset();
     apply_world_definition(definition);
 
     jolt_ = std::make_unique<GamePhysics>(this);
@@ -93,7 +72,7 @@ World::World(const WorldDefinition& definition) {
 
     jolt_->character = new JPH::CharacterVirtual(
         &char_settings,
-        JPH::RVec3(player_state_.position.x, player_state_.position.y, player_state_.position.z),
+        JPH::RVec3(player_.state().position.x, player_.state().position.y, player_.state().position.z),
         JPH::Quat::sIdentity(),
         &jolt_->physics_system
     );
@@ -110,7 +89,7 @@ World::World(const WorldDefinition& definition) {
     // Save initial historical state
     HistoricalState hist {};
     hist.tick = 0;
-    hist.player_position = player_state_.position;
+    hist.player_position = player_.state().position;
     for (int i = 0; i < dummy_count_ && i < HistoricalState::kMaxDummies; ++i) {
         hist.dummy_positions[i] = dummies_[i].position;
         hist.dummy_alive[i] = dummies_[i].alive;
@@ -145,22 +124,8 @@ void World::apply_world_definition(const WorldDefinition& definition) {
 }
 
 void World::reset_player_to_spawn() {
-    player_state_.position = player_spawn_.position;
-    player_state_.velocity = {};
-    player_state_.yaw = player_spawn_.yaw;
-    player_state_.health = 100.0F;
-    player_state_.shield = 100.0F;
-    camera_anchor_.position = player_spawn_.position;
-    camera_anchor_.yaw = player_spawn_.yaw;
-    camera_anchor_.pitch = 0.0F;
-}
-
-void World::reset_weapon_state() {
-    weapon_state_ = {};
-    weapon_state_.definition_index = 0;
-    weapon_state_.ammo_in_magazine = kWeaponRegistry[0].magazine_size;
-    weapon_state_.magazine_capacity = kWeaponRegistry[0].magazine_size;
-    weapon_state_.reserve_ammo = 150;
+    player_.reset_to_spawn(player_spawn_);
+    movement_controller_.reset_to_spawn(player_spawn_);
 }
 
 void World::tick(float delta_seconds, const PlayerInputCommand& input) {
@@ -176,10 +141,8 @@ void World::tick(float delta_seconds, const PlayerInputCommand& input) {
 void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) {
     current_tick_++;
 
-    // Match time tracking
     match_time_ += delta_seconds;
 
-    // --- Handle player respawn -----------------------------------------------
     if (!is_player_alive() && respawn_timer_ > 0.0F) {
         respawn_timer_ -= delta_seconds;
         if (respawn_timer_ <= 0.0F) {
@@ -192,12 +155,10 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
         return;
     }
 
-    // --- Damage feedback timer -----------------------------------------------
     if (damage_feedback_timer_ > 0.0F) {
         damage_feedback_timer_ = std::max(0.0F, damage_feedback_timer_ - delta_seconds);
     }
 
-    // --- Dummy simulation (extracted) -----------------------------------------
     if (!is_client_) {
         tick_dummies(registry_, delta_seconds);
     }
@@ -205,12 +166,10 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
         sync_dummies_to_jolt(jolt_->physics_system, jolt_->dummy_bodies, registry_);
     }
 
-    // --- Dummy AI (shoot at player) ------------------------------------------
     if (!is_client_) {
-        tick_dummy_ai(registry_, delta_seconds, player_state_.position, owned_colliders_, *this);
+        tick_dummy_ai(registry_, delta_seconds, player_.state().position, owned_colliders_, *this);
     }
 
-    // --- Feedback timers ------------------------------------------------------
     if (hitmarker_timer_ > 0.0F) {
         hitmarker_timer_ = std::max(0.0F, hitmarker_timer_ - delta_seconds);
     }
@@ -218,7 +177,6 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
         muzzle_flash_timer_ = std::max(0.0F, muzzle_flash_timer_ - delta_seconds);
     }
 
-    // --- Floating damage numbers ----------------------------------------------
     int active_numbers = 0;
     for (int idx = 0; idx < damage_number_count_; ++idx) {
         auto& dn = damage_numbers_[idx];
@@ -233,16 +191,25 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
     }
     damage_number_count_ = active_numbers;
 
-    // --- Slide / crouch -------------------------------------------------------
-    slide_timer_seconds_ = std::max(0.0F, slide_timer_seconds_ - delta_seconds);
-    if (input.slide_pressed && is_on_ground() && has_move_input(input)) {
-        slide_timer_seconds_ = kSlideDurationSeconds;
-    }
+    const bool on_ground = is_on_ground();
+    const JPH::Vec3 current_vel = jolt_->character->GetLinearVelocity();
 
-    crouch_active_ = input.crouch_held || slide_timer_seconds_ > 0.0F;
+    movement_controller_.begin_frame(
+        player_.state(),
+        input,
+        delta_seconds,
+        on_ground,
+        {
+            static_cast<float>(current_vel.GetX()),
+            static_cast<float>(current_vel.GetY()),
+            static_cast<float>(current_vel.GetZ())
+        },
+        cfg_walk_speed(),
+        cfg_sprint_speed(),
+        cfg_jump_speed(),
+        cfg_gravity());
 
-    // --- Stance transition checks ---------------------------------------------
-    bool want_crouch = crouch_active_;
+    bool want_crouch = movement_controller_.crouch_active();
     if (!want_crouch && jolt_->character->GetShape() == jolt_->crouching_shape) {
         bool allowed = jolt_->character->SetShape(
             jolt_->standing_shape,
@@ -251,10 +218,9 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
             jolt_->physics_system.GetDefaultLayerFilter(Layers::MOVING),
             JPH::BodyFilter(),
             JPH::ShapeFilter(),
-            jolt_->temp_allocator
-        );
+            jolt_->temp_allocator);
         if (!allowed) {
-            crouch_active_ = true; // Stay crouched
+            want_crouch = true;
         }
     } else if (want_crouch && jolt_->character->GetShape() == jolt_->standing_shape) {
         jolt_->character->SetShape(
@@ -264,153 +230,19 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
             jolt_->physics_system.GetDefaultLayerFilter(Layers::MOVING),
             JPH::BodyFilter(),
             JPH::ShapeFilter(),
-            jolt_->temp_allocator
-        );
+            jolt_->temp_allocator);
     }
 
-    // --- Movement acceleration (Quake-style) ----------------------------------
-    // Speeds/jump/gravity are tunable via the game.player_* config vars
-    // (hot-reloadable; defaults match the prior constants, so behavior-preserving).
-    const float kWalkSpeed   = cfg_walk_speed();
-    const float kSprintSpeed = cfg_sprint_speed();
-    const float kJumpSpeed   = cfg_jump_speed();
-    const float kGravity     = cfg_gravity();
-    float move_speed = kWalkSpeed;
-    if (slide_timer_seconds_ > 0.0F) {
-        move_speed = kSlideSpeed;
-    } else if (input.sprint_held) {
-        move_speed = kSprintSpeed;
-    }
-
-    const float yaw_rad = ae::to_radians(player_state_.yaw);
-    const float forward_x = std::sin(yaw_rad);
-    const float forward_z = std::cos(yaw_rad);
-    const float right_x = std::cos(yaw_rad);
-    const float right_z = -std::sin(yaw_rad);
-
-    const float input_magnitude = std::min(
-        std::sqrt(input.move_axis.x * input.move_axis.x + input.move_axis.y * input.move_axis.y),
-        1.0F);
-    const float wish_speed = move_speed * input_magnitude;
-
-    bool on_ground = is_on_ground();
-    JPH::Vec3 current_vel = jolt_->character->GetLinearVelocity();
-
-    // --- Tick jump buffer timer ----------------------------------------------
-    if (input.jump_pressed) {
-        movement_sim_state_.jump_buffer_timer = kJumpBufferTime;
-    } else if (movement_sim_state_.jump_buffer_timer > 0.0F) {
-        movement_sim_state_.jump_buffer_timer =
-            std::max(0.0F, movement_sim_state_.jump_buffer_timer - delta_seconds);
-    }
-
-    // --- Tick coyote timer ---------------------------------------------------
-    if (!on_ground && movement_sim_state_.was_on_ground) {
-        movement_sim_state_.coyote_timer = kCoyoteTime;
-    } else if (movement_sim_state_.coyote_timer > 0.0F) {
-        movement_sim_state_.coyote_timer =
-            std::max(0.0F, movement_sim_state_.coyote_timer - delta_seconds);
-    }
-
-    // --- Resolve jump --------------------------------------------------------
-    const bool can_jump = on_ground || (movement_sim_state_.coyote_timer > 0.0F);
-    const bool want_jump = input.jump_pressed || (movement_sim_state_.jump_buffer_timer > 0.0F);
-
-    float desired_vy = current_vel.GetY();
-
-    if (want_jump && can_jump && slide_timer_seconds_ <= 0.0F) {
-        desired_vy = kJumpSpeed;
-        movement_sim_state_.jump_buffer_timer = 0.0F;
-        movement_sim_state_.coyote_timer = 0.0F;
-    } else if (!on_ground) {
-        desired_vy -= kGravity * delta_seconds;
-    } else {
-        desired_vy = 0.0f;
-    }
-
-    // --- Horizontal acceleration / friction (Quake-style) --------------------
-    float surf_speed_mult = surface_speed_multiplier(
-        movement_sim_state_.ground_material, MovementConfig{});
-    float surf_fric_mult = surface_friction_multiplier(
-        movement_sim_state_.ground_material, MovementConfig{});
-
-    float desired_vx = current_vel.GetX();
-    float desired_vz = current_vel.GetZ();
-
-    if (input_magnitude > 0.001F && slide_timer_seconds_ <= 0.0F) {
-        const float inv_mag = 1.0F / input_magnitude;
-        const float wish_x = input.move_axis.x * inv_mag;
-        const float wish_y = input.move_axis.y * inv_mag;
-        const float wish_dir_x = wish_x * right_x + wish_y * forward_x;
-        const float wish_dir_z = wish_x * right_z + wish_y * forward_z;
-
-        const float current_speed = desired_vx * wish_dir_x + desired_vz * wish_dir_z;
-        const float add_speed = wish_speed * surf_speed_mult - current_speed;
-
-        if (add_speed > 0.0F) {
-            float accel_rate = on_ground ? kGroundAccel : kAirAccel;
-            if (input.sprint_held && on_ground) accel_rate *= 1.0F;
-            float accel_speed = accel_rate * delta_seconds * wish_speed * surf_speed_mult;
-            if (accel_speed > add_speed) {
-                accel_speed = add_speed;
-            }
-            desired_vx += accel_speed * wish_dir_x;
-            desired_vz += accel_speed * wish_dir_z;
-        }
-    } else if (on_ground) {
-        float h_speed = std::sqrt(desired_vx * desired_vx + desired_vz * desired_vz);
-        if (h_speed > 0.001F) {
-            float drop = kGroundFriction * surf_fric_mult * delta_seconds * h_speed;
-            if (drop > h_speed) drop = h_speed;
-            float scale = (h_speed - drop) / h_speed;
-            desired_vx *= scale;
-            desired_vz *= scale;
-        }
-    } else {
-        float h_speed = std::sqrt(desired_vx * desired_vx + desired_vz * desired_vz);
-        if (h_speed > 0.001F) {
-            float drop = kAirFriction * delta_seconds * h_speed;
-            if (drop > h_speed) drop = h_speed;
-            float scale = (h_speed - drop) / h_speed;
-            desired_vx *= scale;
-            desired_vz *= scale;
-        }
-    }
-
-    // --- Air speed cap -------------------------------------------------------
-    if (!on_ground) {
-        float total_speed = std::sqrt(
-            desired_vx * desired_vx + desired_vy * desired_vy + desired_vz * desired_vz);
-        if (total_speed > kMaxAirSpeed) {
-            float scale = kMaxAirSpeed / total_speed;
-            desired_vx *= scale;
-            desired_vy *= scale;
-            desired_vz *= scale;
-        }
-    }
-
-    // Apply look delta & yaw
-    player_state_.yaw += input.look_delta.x;
-
-    // Persist ground state for next tick
-    movement_sim_state_.was_on_ground = on_ground;
-
-    // Capture pre-update vertical velocity for landing impulse
-    float prev_vy = player_state_.velocity.y;
-
-    // --- Resolve moving platform (area 37) ----------------------------------
-    resolve_moving_platform(delta_seconds);
-
-    // Apply motion to Jolt KCC
-    jolt_->character->SetLinearVelocity(JPH::Vec3(desired_vx, desired_vy, desired_vz));
+    const Vec3& desired_velocity = movement_controller_.desired_velocity();
+    jolt_->character->SetLinearVelocity(JPH::Vec3(desired_velocity.x, desired_velocity.y, desired_velocity.z));
 
     JPH::CharacterVirtual::ExtendedUpdateSettings update_settings;
-    update_settings.mStickToFloorStepDown = JPH::Vec3(0.0f, -0.5f, 0.0f);
+    update_settings.mStickToFloorStepDown = JPH::Vec3(0.0f, -0.35f, 0.0f);  // gentler step-down
     update_settings.mWalkStairsStepUp = JPH::Vec3(0.0f, 0.4f, 0.0f);
 
     jolt_->character->ExtendedUpdate(
         delta_seconds,
-        JPH::Vec3(0.0f, -kGravity, 0.0f),
+        JPH::Vec3(0.0f, -cfg_gravity(), 0.0f),
         update_settings,
         jolt_->physics_system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
         jolt_->physics_system.GetDefaultLayerFilter(Layers::MOVING),
@@ -422,73 +254,81 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
     // Sync player state back from KCC
     JPH::RVec3 pos = jolt_->character->GetPosition();
     JPH::Vec3 vel = jolt_->character->GetLinearVelocity();
-    player_state_.position.x = static_cast<float>(pos.GetX());
-    player_state_.position.y = static_cast<float>(pos.GetY());
-    player_state_.position.z = static_cast<float>(pos.GetZ());
-    player_state_.velocity.x = static_cast<float>(vel.GetX());
-    player_state_.velocity.y = static_cast<float>(vel.GetY());
-    player_state_.velocity.z = static_cast<float>(vel.GetZ());
+    player_.state().position.x = static_cast<float>(pos.GetX());
+    player_.state().position.y = static_cast<float>(pos.GetY());
+    player_.state().position.z = static_cast<float>(pos.GetZ());
+    player_.state().velocity.x = static_cast<float>(vel.GetX());
+    player_.state().velocity.y = static_cast<float>(vel.GetY());
+    player_.state().velocity.z = static_cast<float>(vel.GetZ());
 
-    // Clamp to ground floor (0.0F)
-    if (player_state_.position.y <= 0.0001F) {
-        player_state_.position.y = 0.0F;
-        if (player_state_.velocity.y < 0.0F) {
-            player_state_.velocity.y = 0.0F;
+    // --- Slope slide: slide down steep slopes beyond max_walkable ---
+    bool on_ground_after = is_on_ground();
+    if (on_ground_after && jolt_->character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround) {
+        JPH::Vec3 jolt_gn = jolt_->character->GetGroundNormal();
+        Vec3 ground_normal = {
+            static_cast<float>(jolt_gn.GetX()),
+            static_cast<float>(jolt_gn.GetY()),
+            static_cast<float>(jolt_gn.GetZ())
+        };
+        float slope_deg = compute_slope_angle(ground_normal);
+        constexpr MovementConfig kDefaultCfg;
+        if (slope_deg > kDefaultCfg.max_walkable_slope) {
+            Vec3 vel_slide = player_.state().velocity;
+            apply_slope_physics(vel_slide, ground_normal, delta_seconds, kDefaultCfg);
+            player_.state().velocity = vel_slide;
+            jolt_->character->SetLinearVelocity(JPH::Vec3(vel_slide.x, vel_slide.y, vel_slide.z));
         }
-        jolt_->character->SetPosition(JPH::RVec3(player_state_.position.x, 0.0F, player_state_.position.z));
     }
 
-    // Mantle detection
-    resolve_mantle();
+    // Ground floor clamp — fallthrough safety net for the implicit floor
+    if (player_.state().position.y <= 0.0001F) {
+        player_.state().position.y = 0.0F;
+        if (player_.state().velocity.y < 0.0F) {
+            player_.state().velocity.y = 0.0F;
+        }
+        jolt_->character->SetPosition(JPH::RVec3(player_.state().position.x, 0.0F, player_.state().position.z));
+    }
 
-    // Ladder / Ledge detection (area 36)
-    resolve_ladder_and_ledge(input);
-
-    // Floor limit check
-    if (player_state_.position.y < -20.0F) {
-        player_state_.position = { -12.0F, 2.0F, 0.0F };
-        player_state_.velocity = {};
-        jolt_->character->SetPosition(JPH::RVec3(player_state_.position.x, player_state_.position.y, player_state_.position.z));
+    // Fall-death reset
+    if (player_.state().position.y < -20.0F) {
+        player_.state().position = { -12.0F, 2.0F, 0.0F };
+        player_.state().velocity = {};
+        jolt_->character->SetPosition(JPH::RVec3(player_.state().position.x, player_.state().position.y, player_.state().position.z));
         jolt_->character->SetLinearVelocity(JPH::Vec3(0, 0, 0));
     }
 
-    update_movement_state(input);
-    update_camera(input, delta_seconds);
+    movement_controller_.finish_frame(
+        player_.state(),
+        input,
+        delta_seconds,
+        is_on_ground(),
+        colliders_,
+        collider_count_,
+        jolt_->character);
 
-    // Landing impulse camera jolt
-    if (is_on_ground() && !movement_sim_state_.was_on_ground && prev_vy < -0.01F) {
-        Vec3 landing = compute_landing_impulse(std::abs(prev_vy), MovementConfig{});
-        camera_anchor_.position.x += landing.x;
-        camera_anchor_.position.y += landing.y;
+    if (input.reload_pressed) start_reload();
+    if (input.weapon_slot != static_cast<ae::u8>(player_.loadout().active_slot) && input.weapon_slot < static_cast<ae::u8>(WeaponSlot::Count)) {
+        switch_weapon(input.weapon_slot);
     }
 
-    populate_movement_debug(delta_seconds, input);
-
-    // Handle reload input
-    if (input.reload_pressed) start_reload();
-    // Handle weapon switch from input
-    if (input.weapon_slot != static_cast<ae::u8>(loadout_.active_slot) && input.weapon_slot < static_cast<ae::u8>(WeaponSlot::Count))
-        switch_weapon(input.weapon_slot);
-
-    // Weapon tick
     tick_weapon(delta_seconds, input.fire_held);
 
     if (input.fire_held) {
         const auto& def = get_active_weapon_def();
-        if (def.fire_mode == FireMode::Hitscan || def.fire_mode == FireMode::Automatic)
+        if (def.fire_mode == FireMode::Hitscan || def.fire_mode == FireMode::Automatic) {
             fire_hitscan(*this, input);
-        else
+        } else {
             spawn_projectile(input);
+        }
     }
 
     update_projectiles(delta_seconds);
     update_particles(delta_seconds);
     update_decals(delta_seconds);
 
-    // Save historical state for rollback lag compensation
     HistoricalState hist {};
     hist.tick = current_tick_;
-    hist.player_position = player_state_.position;
+    hist.player_position = player_.state().position;
     for (int idx = 0; idx < dummy_count_ && idx < HistoricalState::kMaxDummies; ++idx) {
         hist.dummy_positions[idx] = dummies_[idx].position;
         hist.dummy_alive[idx] = dummies_[idx].alive;
@@ -499,14 +339,12 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
     }
 
     flush_audio_events();
-
-    // Centralized sync: EnTT registry → output arrays for renderer consumption.
     sync_dummies_to_array();
     sync_projectiles_to_array();
 }
 
 void World::set_player_state(const ReplicatedPlayerState& state) {
-    player_state_ = state;
+    player_.set_state(state);
     if (jolt_ && jolt_->character) {
         jolt_->character->SetPosition(JPH::RVec3(state.position.x, state.position.y, state.position.z));
         jolt_->character->SetLinearVelocity(JPH::Vec3(state.velocity.x, state.velocity.y, state.velocity.z));
@@ -518,11 +356,11 @@ void World::set_player_state(const ReplicatedPlayerState& state) {
             jolt_->temp_allocator
         );
     }
-    update_camera(PlayerInputCommand {}, 0.0F);
+    movement_controller_.finish_frame(player_.state(), PlayerInputCommand {}, 0.0F, is_on_ground(), colliders_, collider_count_, jolt_ ? jolt_->character : nullptr);
 }
 
 float World::get_player_visual_height() const {
-    return crouch_active_ ? kCrouchingVisualHeight : kStandingVisualHeight;
+    return movement_controller_.player_visual_height();
 }
 
 bool World::is_on_ground() const {
@@ -531,7 +369,7 @@ bool World::is_on_ground() const {
             return true;
         }
     }
-    if (collider_count_ == 0 && player_state_.position.y <= 0.05F) {
+    if (collider_count_ == 0 && player_.state().position.y <= 0.05F) {
         return true;
     }
     return false;
@@ -560,9 +398,9 @@ bool World::load_colliders_from_level(const ae::render::LevelAsset& level) {
     }
     if (!level.spawn_points.empty()) {
         const auto& sp = level.spawn_points[0];
-        player_state_.position = {sp.pos_x, sp.pos_y, sp.pos_z};
-        camera_anchor_.position = player_state_.position;
-        player_state_.yaw = sp.yaw; camera_anchor_.yaw = sp.yaw;
+        player_.state().position = {sp.pos_x, sp.pos_y, sp.pos_z};
+        player_.state().yaw = sp.yaw;
+        movement_controller_.reset_to_spawn({player_.state().position, sp.yaw});
         if (jolt_ && jolt_->character)
             jolt_->character->SetPosition(JPH::RVec3(sp.pos_x, sp.pos_y, sp.pos_z));
     }
@@ -574,58 +412,28 @@ bool World::load_colliders_from_level(const ae::render::LevelAsset& level) {
 }
 
 const WeaponDefinition& World::get_active_weapon_def() const {
-    const int idx = weapon_state_.definition_index;
-    if (idx >= 0 && static_cast<std::size_t>(idx) < kWeaponRegistrySize)
-        return kWeaponRegistry[idx];
-    return kWeaponRegistry[0];
+    return player_.get_active_weapon_def();
 }
 
 void World::switch_weapon(int slot) {
-    const int idx = static_cast<int>(slot);
-    if (idx < 0 || idx >= static_cast<int>(WeaponSlot::Count)) return;
-    const int def_idx = loadout_.weapons[idx];
-    if (def_idx < 0 || static_cast<std::size_t>(def_idx) >= kWeaponRegistrySize) return;
-    if (def_idx == weapon_state_.definition_index) return;
-    weapon_state_.definition_index = def_idx;
-    const auto& def = kWeaponRegistry[def_idx];
-    weapon_state_.magazine_capacity = def.magazine_size;
-    weapon_state_.ammo_in_magazine = def.magazine_size;
-    weapon_state_.reserve_ammo = def.magazine_size * 3;
-    weapon_state_.fire_cooldown = 0.0F;
-    weapon_state_.is_reloading = false;
-    weapon_state_.is_equipping = false;
-    fire_recoil_index_ = 0;
-    loadout_.active_slot = idx;
-}
-
-void World::start_reload() {
-    if (weapon_state_.can_reload()) {
-        weapon_state_.is_reloading = true;
-        reload_timer_ = 2.0F;
+    const int prev_slot = player_.loadout().active_slot;
+    player_.switch_weapon(slot);
+    if (player_.loadout().active_slot != prev_slot) {
+        fire_recoil_index_ = 0;
     }
 }
 
+void World::start_reload() {
+    player_.start_reload();
+}
+
 bool World::consume_ammo() {
-    if (weapon_state_.ammo_in_magazine <= 0) return false;
-    weapon_state_.ammo_in_magazine--;
-    return true;
+    return player_.consume_ammo();
 }
 
 void World::tick_weapon(float delta_seconds, bool fire_held) {
     (void)fire_held;
-    if (weapon_state_.fire_cooldown > 0.0F)
-        weapon_state_.fire_cooldown -= delta_seconds;
-    if (weapon_state_.is_reloading) {
-        reload_timer_ -= delta_seconds;
-        if (reload_timer_ <= 0.0F) {
-            const int needed = weapon_state_.magazine_capacity - weapon_state_.ammo_in_magazine;
-            const int available = std::min(needed, weapon_state_.reserve_ammo);
-            weapon_state_.ammo_in_magazine += available;
-            weapon_state_.reserve_ammo -= available;
-            weapon_state_.is_reloading = false;
-            reload_timer_ = 0.0F;
-        }
-    }
+    player_.tick_weapon(delta_seconds);
     if (weapon_switch_queued_) {
         switch_weapon(queued_weapon_slot_);
         weapon_switch_queued_ = false;
@@ -636,106 +444,6 @@ void World::tick_weapon(float delta_seconds, bool fire_held) {
 void World::recreate_physics_colliders() {
     if (!jolt_) return;
     rebuild_jolt_colliders(*jolt_, colliders_, collider_count_, dummies_, dummy_count_, jolt_->standing_shape);
-}
-
-void World::resolve_mantle() {
-    if (player_state_.velocity.y <= 0.5F) return;
-
-    const float feet_y = player_state_.position.y;
-    const float eye_y = feet_y + (crouch_active_ ? kCrouchingEyeHeight : kStandingEyeHeight);
-    const float px = player_state_.position.x;
-    const float pz = player_state_.position.z;
-    constexpr float mantle_margin = 0.3F;
-
-    for (std::size_t i = 0; i < collider_count_; ++i) {
-        const auto& c = colliders_[i];
-        if (c.wall || c.jump_through || !c.auto_step) continue;
-
-        const bool in_x = px >= c.min_x - mantle_margin && px <= c.max_x + mantle_margin;
-        const bool in_z = pz >= c.min_z - mantle_margin && pz <= c.max_z + mantle_margin;
-        if (!in_x || !in_z) continue;
-
-        if (eye_y < c.top_y) continue;
-
-        const float dist_below = c.top_y - feet_y;
-        if (dist_below < 0.2F || dist_below > 1.3F) continue;
-
-        player_state_.position.y = c.top_y;
-        player_state_.velocity.y = 0.0F;
-
-        if (jolt_ && jolt_->character) {
-            jolt_->character->SetPosition(JPH::RVec3(player_state_.position.x, player_state_.position.y, player_state_.position.z));
-            jolt_->character->SetLinearVelocity(JPH::Vec3(player_state_.velocity.x, player_state_.velocity.y, player_state_.velocity.z));
-        }
-        return;
-    }
-}
-
-void World::resolve_moving_platform(float delta_seconds) {
-    (void)delta_seconds;
-    if (!is_on_ground()) {
-        movement_sim_state_.on_moving_platform = false;
-        return;
-    }
-
-    JPH::BodyID ground_body_id = jolt_->character->GetGroundBodyID();
-    if (ground_body_id.IsInvalid()) {
-        movement_sim_state_.on_moving_platform = false;
-        return;
-    }
-
-    auto& bi = jolt_->physics_system.GetBodyInterface();
-    JPH::uint64 user_data = bi.GetUserData(ground_body_id);
-
-    if (user_data >= collider_count_) {
-        movement_sim_state_.on_moving_platform = false;
-        return;
-    }
-
-    JPH::RVec3 current_pos = bi.GetPosition(ground_body_id);
-
-    if (!movement_sim_state_.on_moving_platform) {
-        movement_sim_state_.on_moving_platform = true;
-        movement_sim_state_.platform_last_pos = {
-            static_cast<float>(current_pos.GetX()),
-            static_cast<float>(current_pos.GetY()),
-            static_cast<float>(current_pos.GetZ())
-        };
-    } else {
-        Vec3 delta = {
-            static_cast<float>(current_pos.GetX()) - movement_sim_state_.platform_last_pos.x,
-            static_cast<float>(current_pos.GetY()) - movement_sim_state_.platform_last_pos.y,
-            static_cast<float>(current_pos.GetZ()) - movement_sim_state_.platform_last_pos.z
-        };
-        JPH::RVec3 char_pos = jolt_->character->GetPosition();
-        jolt_->character->SetPosition(JPH::RVec3(
-            char_pos.GetX() + delta.x,
-            char_pos.GetY() + delta.y,
-            char_pos.GetZ() + delta.z
-        ));
-        movement_sim_state_.platform_last_pos = {
-            static_cast<float>(current_pos.GetX()),
-            static_cast<float>(current_pos.GetY()),
-            static_cast<float>(current_pos.GetZ())
-        };
-    }
-}
-
-void World::resolve_ladder_and_ledge(const PlayerInputCommand& input) {
-    if (movement_sim_state_.ground_material == SurfaceMaterial::Ladder) {
-        movement_sim_state_.on_ladder = true;
-    } else if (movement_sim_state_.on_ladder && is_on_ground()) {
-        movement_sim_state_.on_ladder = false;
-    }
-    if (movement_sim_state_.on_ladder) {
-        float ladder_vy = input.move_axis.y * 4.0F;
-        jolt_->character->SetLinearVelocity(JPH::Vec3(
-            jolt_->character->GetLinearVelocity().GetX(),
-            ladder_vy,
-            jolt_->character->GetLinearVelocity().GetZ()
-        ));
-    }
-    (void)input;
 }
 
 // --- Projectiles (delegated) --------------------------------------------------
@@ -772,20 +480,6 @@ void World::sync_projectiles_to_array() {
     for (auto entity : view) {
         projectiles_.push_back(view.get<const WorldProjectileComponent>(entity).state);
     }
-}
-
-// --- Camera / movement state (delegated) --------------------------------------
-
-void World::update_camera(const PlayerInputCommand& input, float delta_seconds) {
-    update_camera_state(camera_anchor_, player_state_, movement_sim_state_, delta_seconds, input, crouch_active_);
-}
-
-void World::update_movement_state(const PlayerInputCommand& input) {
-    resolve_movement_state(player_state_, slide_timer_seconds_, movement_sim_state_, input, is_on_ground());
-}
-
-void World::populate_movement_debug(float delta_seconds, const PlayerInputCommand& input) {
-    fill_movement_debug(movement_debug_, player_state_, movement_sim_state_, slide_timer_seconds_, delta_seconds, input, is_on_ground());
 }
 
 // --- Damage numbers -----------------------------------------------------------
@@ -837,7 +531,7 @@ HistoricalState World::get_historical_state(ae::u32 target_tick) const {
     if (history_buffer_.empty()) {
         HistoricalState hist {};
         hist.tick = current_tick_;
-        hist.player_position = player_state_.position;
+        hist.player_position = player_.state().position;
         for (int i = 0; i < dummy_count_ && i < HistoricalState::kMaxDummies; ++i) {
             hist.dummy_positions[i] = dummies_[i].position;
             hist.dummy_alive[i] = dummies_[i].alive;
@@ -960,30 +654,19 @@ void World::update_decals(float delta_seconds) {
 void World::apply_damage_to_player(float damage, const Vec3& attacker_pos) {
     if (!is_player_alive()) return;
 
-    float actual_damage = damage;
-    if (player_state_.shield > 0.0F) {
-        constexpr float kArmorAbsorption = 0.66F;
-        float armor_dmg = actual_damage * kArmorAbsorption;
-        if (armor_dmg > player_state_.shield) {
-            armor_dmg = player_state_.shield;
-        }
-        player_state_.shield -= armor_dmg;
-        actual_damage = damage - armor_dmg;
-    }
-    player_state_.health -= actual_damage;
-    if (player_state_.health < 0.0F) player_state_.health = 0.0F;
+    const float actual_damage = player_.apply_damage(damage);
 
     damage_feedback_timer_ = 0.3F;
 
     // Spawn damage number at player position
-    Vec3 num_pos = player_state_.position;
+    Vec3 num_pos = player_.state().position;
     num_pos.y += 1.8F;
     spawn_damage_number(num_pos, actual_damage, false);
 
     // Hit audio
     queue_audio_event(AudioEvent{"player_hit", 1.0f, AudioCategory::SFX});
 
-    if (player_state_.health <= 0.0F) {
+    if (!player_.is_alive()) {
         player_deaths_++;
         respawn_timer_ = 3.0F;
     }
@@ -991,17 +674,16 @@ void World::apply_damage_to_player(float damage, const Vec3& attacker_pos) {
 
 void World::respawn_player() {
     reset_player_to_spawn();
+    player_.reset_weapon_runtime(0, 150);
 
     if (jolt_ && jolt_->character) {
         jolt_->character->SetPosition(JPH::RVec3(
-            player_state_.position.x,
-            player_state_.position.y,
-            player_state_.position.z
+            player_.state().position.x,
+            player_.state().position.y,
+            player_.state().position.z
         ));
         jolt_->character->SetLinearVelocity(JPH::Vec3(0, 0, 0));
     }
-
-    reset_weapon_state();
 }
 
 void World::on_dummy_killed(ae::u32 dummy_id, const Vec3& death_pos) {
@@ -1032,16 +714,15 @@ void World::restart_match() {
     damage_feedback_timer_ = 0.0F;
 
     reset_player_to_spawn();
+    player_.reset_weapon_runtime(0, 150);
     if (jolt_ && jolt_->character) {
         jolt_->character->SetPosition(JPH::RVec3(
-            player_state_.position.x,
-            player_state_.position.y,
-            player_state_.position.z
+            player_.state().position.x,
+            player_.state().position.y,
+            player_.state().position.z
         ));
         jolt_->character->SetLinearVelocity(JPH::Vec3(0, 0, 0));
     }
-
-    reset_weapon_state();
 
     // Respawn all dummies
     auto view = registry_.view<TargetDummyComponent>();
