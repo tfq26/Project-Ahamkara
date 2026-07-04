@@ -55,26 +55,68 @@ Hardened WeaponRuntime seam (on_fire hook, reload_timer accessor, subclass contr
 ### Phase 10 — Tooling & Performance (5 tasks)
 1700-job-system-frame-allocator, 1710-profiling-budgets, 1720-authoring-inspector-tooling, 1730-telemetry-crash-reporting, 1740-ci-packaging
 
-## Orchestration Plan
+## Orchestration Model: Continuous Pipeline
 
-Each phase should be completed in order. Within each phase, launch child agents in parallel (one per task), each in its own git worktree, each pushing its own branch. After all subagents complete, create an integration branch merging all per-task branches and run the full test suite. Then move to the next phase.
+All 35+ tasks run in parallel across all phases. The pipeline has three agent roles:
 
-### Per-Task Workflow (for each subagent)
-1. Read the task file from `docs/vault/queue-tasks/open/TASK-*.md`
-2. Move it to `claimed/`
-3. Create a git worktree on branch `agent/opencode/<task-slug>`
-4. Implement the changes
-5. Build and test (`cmake --build --preset debug && ./scripts/run-tests.sh --preset debug`)
-6. Write report to `docs/reports/subagents/`
-7. Append to `docs/reports/subagents/subagent-master-log.md`
-8. Move task to `review-needed/`
-9. Push the branch
+### Roles
 
-### Merge Strategy
-- After each phase completes, create an integration branch merging all per-task branches
-- Resolve conflicts if any
-- Run full test suite
-- Report results
+#### 1. Workers (many instances)
+Continuously loop:
+1. Scan `docs/vault/queue-tasks/open/` for an unclaimed task
+2. Read the task file
+3. Move it to `claimed/`
+4. Create git worktree on branch `agent/opencode/<task-slug>`
+5. Implement the changes
+6. Build and test (`cmake --build --preset debug && ./scripts/run-tests.sh --preset debug`)
+7. Write report to `docs/reports/subagents/<task-slug>-report.md`
+8. Append to `docs/reports/subagents/subagent-master-log.md`
+9. Move task to `review-needed/` (update status + report path in frontmatter)
+10. Push the branch to origin
+11. Loop back to step 1
+
+If a claimed task is blocked, move it to `blocked/` with a note and report.
+
+#### 2. Reviewers ("codex" instances, multiple)
+Continuously loop:
+1. Scan `docs/vault/queue-tasks/review-needed/` for an unreviewed task
+2. Read the task file, the subagent report, and the diff/branch
+3. Review for correctness, boundary compliance, and test status
+4. If accepted: move task to `completed/`, update frontmatter
+5. If rejected: move task back to `open/` with review notes in the task file
+6. Loop back to step 1
+
+#### 3. Integrator (one agent)
+Periodically:
+1. Scan completed tasks that haven't been merged
+2. Create an integration branch from `codex/remote-agent-workflow`
+3. Merge completed task branches, resolve conflicts
+4. Run full test suite (`cmake --build --preset debug && ./scripts/run-tests.sh --preset debug`)
+5. Push the integration branch
+
+### Task Queue Lifecycle
+
+```
+open/ ──→ claimed/ ──→ review-needed/ ──→ completed/
+  ↑                          │
+  └── (rejected) ←───────────┘
+```
+
+### Worker Concurrency Guidelines
+
+- Each worker needs its own git worktree at `../Ahamkara-<slug>`
+- Avoid workers claiming tasks that touch the same files (check Likely Files in the task)
+- If files conflict, let the integrator resolve merges
+- Run `git fetch origin codex/remote-agent-workflow` before each loop to see new tasks
+
+### Reviewer Guidelines
+
+Check that:
+- The runtime seam stays gameplay-only (no presentation leaks)
+- Player-owned state doesn't drift back into World
+- No new render/animation headers in gameplay code
+- Build and tests pass
+- The subagent report is honest about gaps
 
 ## Validation
 - Build: `cmake --build --preset debug`
