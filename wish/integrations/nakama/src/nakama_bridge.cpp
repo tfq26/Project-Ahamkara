@@ -1,3 +1,4 @@
+#include "ae/core/log.h"
 #include "wish/integrations/nakama/nakama_bridge.h"
 
 #include "ae/core/cli_utils.h"

@@ -4,6 +4,7 @@
 // collision_world.cpp and trace.cpp.
 
 #include "ae/collision/world.h"
+#include "ae/core/log.h"
 
 #include <Jolt/Jolt.h>
 #include <Jolt/RegisterTypes.h>
@@ -44,12 +45,14 @@ namespace jolt_helpers {
 
     constexpr JPH::ObjectLayer kJoltNumLayers = 16;
 
-    inline JPH::ObjectLayer to_jolt_layer(CollisionLayer layer) {
+    inline     JPH::ObjectLayer to_jolt_layer(CollisionLayer layer) {
         if (layer <= 9) return static_cast<JPH::ObjectLayer>(layer);
         if (layer >= GameLayers::GAME_LAYER_FIRST) {
             u32 offset = layer - GameLayers::GAME_LAYER_FIRST;
             return static_cast<JPH::ObjectLayer>(10 + offset);
         }
+        ae::log_warning_cat("Collision", "to_jolt_layer: unexpected layer " + std::to_string(static_cast<int>(layer)) +
+                            " — falling back to Static");
         return kJoltLayerStatic;
     }
 
@@ -137,6 +140,7 @@ public:
         : Impl(ensure_jolt_initialized()) {}
 
     ~Impl() {
+        std::size_t body_count = bodies.size();
         auto& bi = physics_system.GetBodyInterface();
         for (auto& [handle, body] : bodies) {
             if (!body.jolt_id.IsInvalid()) {
@@ -145,6 +149,8 @@ public:
             }
         }
         bodies.clear();
+        ae::log_info_cat("Collision", "Jolt Physics system shut down (" +
+                         std::to_string(body_count) + " bodies destroyed)");
     }
 
     [[nodiscard]] JPH::ShapeRefC create_shape(const ColliderDef& def) {
@@ -194,6 +200,8 @@ public:
                     JPH::MeshShapeSettings settings(std::move(vertices), std::move(indices));
                     result = settings.Create();
                 } else {
+                    ae::log_warning_cat("Collision",
+                                        "create_shape: TriangleMesh has 0 triangles; falling back to 0.01 unit box");
                     JPH::BoxShapeSettings settings(JPH::Vec3(0.01F, 0.01F, 0.01F));
                     result = settings.Create();
                 }
@@ -210,8 +218,12 @@ public:
         }
 
         if (result.HasError()) {
+            ae::log_warning_cat("Collision", "create_shape: shape creation failed — " +
+                                std::string(result.GetError().c_str()));
             return nullptr;
         }
+        ae::log_debug_cat("Collision", "create_shape: created " +
+                          std::to_string(static_cast<int>(def.shape)) + " shape");
         return result.Get();
     }
 
@@ -223,6 +235,7 @@ private:
         JPH::RegisterDefaultAllocator();
         JPH::Factory::sInstance = new JPH::Factory();
         JPH::RegisterTypes();
+        ae::log_info_cat("Collision", "Jolt Physics: registered default allocator, factory, and types");
     }};
     static const JoltInitToken& ensure_jolt_initialized() {
         static JoltInitToken token;
@@ -242,6 +255,8 @@ private:
             ob_bp_filter,
             ob_ob_filter
         );
+        ae::log_info_cat("Collision", "Jolt Physics system initialized: max_bodies=2048, "
+                         "max_pairs=2048, max_contacts=4096, temp_allocator=10MB, worker_threads=1");
     }
 };
 

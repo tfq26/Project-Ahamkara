@@ -1,8 +1,11 @@
+#include "ae/core/log.h"
 #include "ahamkara/client/threaded_local_runtime.h"
 
 #include <algorithm>
 #include <chrono>
 #include <thread>
+
+#define AE_LOG_CATEGORY "Client"
 
 namespace ahamkara::client {
 

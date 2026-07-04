@@ -1,11 +1,14 @@
 #include "ae/input/input_map.h"
 #include "ae/platform/window.h"
 #include "ae/core/cli_utils.h"
+#include "ae/core/log.h"
 
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <cstring>
+
+#define AE_LOG_CATEGORY "Input"
 
 namespace ae::input {
 namespace {
@@ -77,7 +80,10 @@ void InputMap::clear_bindings() { bindings_.clear(); }
 
 void InputMap::poll(const void* window_ptr, const ae::GamepadState& gamepad) {
     auto* w = static_cast<const ae::PlatformWindow*>(window_ptr);
-    if (!w) return;
+    if (!w) {
+        log_warning_cat(AE_LOG_CATEGORY, "poll called with null window pointer");
+        return;
+    }
 
     // Reset edge triggers
     for (auto& [_, st] : state_) { st.pressed = false; st.released = false; }
@@ -125,7 +131,10 @@ void InputMap::update_action(int idx, float value, bool pressed) {
 
 bool InputMap::load_from_file(const std::string& path) {
     std::ifstream f(path);
-    if (!f) return false;
+    if (!f) {
+        log_warning_cat(AE_LOG_CATEGORY, "Cannot open input bindings file: " + path);
+        return false;
+    }
     std::string line;
     while (std::getline(f, line)) {
         auto eq = line.find('=');
@@ -143,12 +152,16 @@ bool InputMap::load_from_file(const std::string& path) {
             bind(static_cast<InputAction>(ai), static_cast<ae::KeyCode>(kid));
         }
     }
+    log_info_cat(AE_LOG_CATEGORY, "Input bindings loaded from " + path);
     return true;
 }
 
 bool InputMap::save_to_file(const std::string& path) const {
     std::ofstream f(path);
-    if (!f) return false;
+    if (!f) {
+        log_warning_cat(AE_LOG_CATEGORY, "Cannot write input bindings file: " + path);
+        return false;
+    }
     for (int i = 0; i < static_cast<int>(InputAction::Count); ++i) {
         auto it = bindings_.find(i);
         if (it == bindings_.end()) continue;

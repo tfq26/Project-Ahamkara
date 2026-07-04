@@ -8,6 +8,7 @@
 
 #include <GLFW/glfw3.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <string>
@@ -48,18 +49,29 @@ void end_screen_space(const MatrixSnapshot& snapshot) {
 void draw_crosshair_overlay(const DebugScene& scene, int width, int height) {
     const float center_x = static_cast<float>(width) * 0.5F;
     const float center_y = static_cast<float>(height) * 0.5F;
-    constexpr float arm_length = 8.0F;
+    constexpr float arm_length = 14.0F;
     constexpr float gap = 4.0F;
 
     const MatrixSnapshot snapshot = begin_screen_space(width, height);
 
     glDisable(GL_DEPTH_TEST);
-    glLineWidth(2.0F);
-    glColor3f(1.0F, 0.9F, 0.1F);  // Bright yellow crosshair
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glLineWidth(3.0F);
+    glColor4f(0.02F, 0.02F, 0.02F, 1.0F);
+    draw_screen_line(center_x - arm_length - 1.0F, center_y, center_x - gap + 1.0F, center_y);
+    draw_screen_line(center_x + gap - 1.0F, center_y, center_x + arm_length + 1.0F, center_y);
+    draw_screen_line(center_x, center_y - arm_length - 1.0F, center_x, center_y - gap + 1.0F);
+    draw_screen_line(center_x, center_y + gap - 1.0F, center_x, center_y + arm_length + 1.0F);
+
+    glColor4f(1.0F, 0.22F, 0.18F, 1.0F);
     draw_screen_line(center_x - arm_length, center_y, center_x - gap, center_y);
     draw_screen_line(center_x + gap, center_y, center_x + arm_length, center_y);
     draw_screen_line(center_x, center_y - arm_length, center_x, center_y - gap);
     draw_screen_line(center_x, center_y + gap, center_x, center_y + arm_length);
+    draw_screen_quad(center_x - 2.5F, center_y - 2.5F, 5.0F, 5.0F);
+    glColor4f(0.02F, 0.02F, 0.02F, 1.0F);
+    draw_screen_quad(center_x - 1.5F, center_y - 1.5F, 3.0F, 3.0F);
 
     if (scene.hitmarker_time > 0.0F) {
         float alpha = scene.hitmarker_time;
@@ -91,6 +103,7 @@ void draw_crosshair_overlay(const DebugScene& scene, int width, int height) {
     }
 
     glLineWidth(1.0F);
+    glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
 
     end_screen_space(snapshot);
@@ -516,6 +529,50 @@ void draw_menu_overlay(const DebugScene& scene, int width, int height) {
         draw_ui_text(content_x + 24.0F, content_y + 496.0F, 2.0F, "RELOAD      Y", UiTextStyle::Body);
 
         draw_xbox_button_legend(scene.controller_buttons, content_x + panel_w - sidebar_w - 292.0F, content_y + 348.0F);
+    }
+
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    end_screen_space(snapshot);
+}
+
+// ============================================================================
+// First-person weapon placeholder
+// ============================================================================
+
+void draw_viewmodel_placeholder(const DebugScene& scene, int width, int height) {
+    if (!scene.show_crosshair || scene.menu_visible) {
+        return;
+    }
+
+    const MatrixSnapshot snapshot = begin_screen_space(width, height);
+
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // A small stylized silhouette in the lower-right corner. This is a
+    // renderer-owned fallback until a real weapon mesh/viewmodel is wired in.
+    const float base_x = static_cast<float>(width) - 272.0F;
+    const float base_y = static_cast<float>(height) - 156.0F;
+    const float flash = scene.muzzle_flash_time > 0.0F ? scene.muzzle_flash_time : 0.0F;
+
+    glColor4f(0.06F, 0.07F, 0.09F, 0.95F);
+    draw_screen_quad(base_x + 34.0F, base_y + 52.0F, 142.0F, 28.0F);  // receiver
+
+    glColor4f(0.10F, 0.11F, 0.13F, 0.98F);
+    draw_screen_quad(base_x + 132.0F, base_y + 38.0F, 74.0F, 12.0F);   // barrel
+    draw_screen_quad(base_x + 18.0F, base_y + 66.0F, 30.0F, 58.0F);    // grip
+    draw_screen_quad(base_x + 92.0F, base_y + 34.0F, 20.0F, 18.0F);    // trigger block
+
+    glColor4f(0.92F, 0.55F, 0.12F, 0.92F);
+    draw_screen_quad(base_x + 118.0F, base_y + 50.0F, 20.0F, 6.0F);    // accent strip
+    draw_screen_quad(base_x + 58.0F, base_y + 42.0F, 20.0F, 6.0F);     // accent strip
+
+    if (flash > 0.0F) {
+        const float pulse = std::min(1.0F, flash * 18.0F);
+        glColor4f(1.0F, 0.82F, 0.20F, 0.15F + 0.40F * pulse);
+        draw_screen_quad(base_x + 180.0F, base_y + 34.0F, 22.0F + 14.0F * pulse, 10.0F + 6.0F * pulse);
     }
 
     glDisable(GL_BLEND);

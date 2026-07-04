@@ -13,6 +13,8 @@
 
 namespace fs = std::filesystem;
 
+#define AE_LOG_CATEGORY "Audio"
+
 namespace ahamkara::client {
 namespace {
 

@@ -64,6 +64,21 @@ Revisit when a trigger fires:
 - bloom / SSAO / TAA is wanted (each needs an offscreen HDR target), OR
 - many dynamic lights or strong emissive surfaces are added.
 
+## 2026-06-28 - Keep HDR Out Of The Active Queue
+
+Decision: Keep HDR / render-target foundation in the roadmap and decision log,
+but remove `TASK-20260620-1345-render-target-hdr-foundation` from the active
+task queue.
+
+Rationale: The roadmap already tracks HDR as the last fidelity slice. Leaving
+it in the queue causes repeated churn with no near-term execution path, so it
+should only come back when one of the HDR triggers in the prior decision log
+entry fires.
+
+Implication: HDR stays discoverable in the roadmap and memory notes, but
+agents should not claim it from `docs/vault/queue-tasks/open/` or treat it as a
+live work item until explicitly re-queued.
+
 ## 2026-06-20 - Function Before Fidelity (Engine Prioritization)
 
 Decision: Prioritize getting the engine working over visual fidelity. Near-term

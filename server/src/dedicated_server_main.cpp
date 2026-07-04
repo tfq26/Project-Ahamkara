@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
         .category = wish::core::ActivityCategory::PvP,
         .max_players = static_cast<ae::u32>(server_config.max_players),
         .tick_rate = server_config.tick_rate,
-        .map_path = "default",
+        .map_path = server_config.map_path,
         .allow_spectators = false,
     });
 

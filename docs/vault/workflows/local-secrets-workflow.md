@@ -55,7 +55,7 @@ project-specific inside each project's own config.
 
 Recommended pattern:
 
-- secrets live in `/Users/taufeeqali/Projects/.workbench-secrets.env`
+- secrets live in each project's root, e.g. `/Users/taufeeqali/projects/workbench-vault/.workbench-secrets.env`
 - project config decides which roles and models are allowed in that project
 
 See:

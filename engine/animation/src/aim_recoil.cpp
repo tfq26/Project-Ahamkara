@@ -1,8 +1,12 @@
+#include "ae/core/log.h"
 #include "ae/animation/aim_recoil.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+
+
+#define AE_LOG_CATEGORY "Animation"
 
 namespace ae::animation {
 

@@ -7,9 +7,17 @@
 
 model models/test_box.gltf compiled/models/test_box.aemesh
 model models/textured_cube.gltf compiled/models/textured_cube.aemesh
+model models/viewmodel_rifle.gltf compiled/models/viewmodel_rifle.aemesh
+model models/viewmodel_ar15.gltf compiled/models/viewmodel_ar15.aemesh
+model models/viewmodel_shotgun.gltf compiled/models/viewmodel_shotgun.aemesh
+model models/viewmodel_pistol.gltf compiled/models/viewmodel_pistol.aemesh
+model models/viewmodel_rocket_launcher.gltf compiled/models/viewmodel_rocket_launcher.aemesh
 texture textures/cube_albedo.tga compiled/textures/cube_albedo.aetex
 material materials/cube.mat compiled/materials/cube.aemat
 level levels/javelin4.lvl compiled/levels/javelin4.aelevel
 level levels/prototype_arena.lvl compiled/levels/prototype_arena.aelevel
 level levels/prototype_box.lvl compiled/levels/prototype_box.aelevel
 level levels/textured_showcase.lvl compiled/levels/textured_showcase.aelevel
+level levels/blood_gulch.lvl compiled/levels/blood_gulch.aelevel
+model models/blood_gulch.gltf compiled/models/blood_gulch.aemesh
+model models/viewmodel_arms.gltf compiled/models/viewmodel_arms.aemesh

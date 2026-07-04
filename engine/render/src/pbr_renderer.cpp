@@ -1,4 +1,5 @@
 #include "ae/render/pbr_renderer.h"
+#include "ae/core/log.h"
 
 #if defined(__APPLE__)
 #include <OpenGL/gl3.h>
@@ -7,6 +8,9 @@
 #endif
 
 #include <cmath>
+
+
+#define AE_LOG_CATEGORY "Render"
 
 namespace ae::render {
 

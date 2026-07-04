@@ -1,9 +1,12 @@
 #include "ae/runtime/performance_logger.h"
+#include "ae/core/log.h"
 
 #include <chrono>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+
+#define AE_LOG_CATEGORY "Runtime"
 
 namespace ae {
 
@@ -20,8 +23,12 @@ bool PerformanceLogger::open(const std::string& prefix) {
              << ".csv";
 
     file_ = std::fopen(filename.str().c_str(), "w");
-    if (file_ == nullptr) return false;
+    if (file_ == nullptr) {
+        log_warning_cat(AE_LOG_CATEGORY, "PerformanceLogger: failed to open " + filename.str());
+        return false;
+    }
 
+    log_info_cat(AE_LOG_CATEGORY, "PerformanceLogger opened: " + filename.str());
     // Write CSV header
     std::fprintf(file_,
         "frame,fps,frame_ms,p1_low_fps,p1_high_fps,"
@@ -36,12 +43,16 @@ void PerformanceLogger::close() {
     if (file_ != nullptr) {
         std::fclose(file_);
         file_ = nullptr;
+        log_info_cat(AE_LOG_CATEGORY, "PerformanceLogger closed");
     }
 }
 
 void PerformanceLogger::log(uint64_t frame_number,
                             const RuntimeMetricsSnapshot& metrics) {
-    if (file_ == nullptr) return;
+    if (file_ == nullptr) {
+        log_trace_cat(AE_LOG_CATEGORY, "PerformanceLogger::log called but file is not open");
+        return;
+    }
 
     std::fprintf(file_,
         "%llu,%.1f,%.2f,%.1f,%.1f,"

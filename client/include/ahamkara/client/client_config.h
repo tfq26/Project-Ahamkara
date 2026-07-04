@@ -43,6 +43,7 @@ struct ClientConfig {
     /// Unknown keys are ignored. Invalid values fall back to defaults.
     /// Returns false when the file cannot be opened (treated as "use defaults").
     [[nodiscard]] bool load_from_file(const std::string& path);
+    [[nodiscard]] bool save_to_file(const std::string& path) const;
 };
 
 }  // namespace ahamkara::client

@@ -32,3 +32,12 @@ No task should appear in multiple state folders at once.
 - Update task frontmatter `status` whenever the folder state changes.
 - Keep one current `report:` link and one current `review:` link.
 - Do not leave stale copies behind in previous folders.
+
+## Watcher Rules
+
+- Use the task folder transition, not build output, as the completion signal.
+- Treat `review-needed/` as the prompt-to-review state.
+- Treat `blocked/` as the prompt-for-user-or-supervisor-input state.
+- Treat `completed/` as the terminal accepted state.
+- If a report exists but the task is still in `claimed/`, the worker has not
+  finished the queue handshake yet.

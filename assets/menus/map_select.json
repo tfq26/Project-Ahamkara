@@ -1,0 +1,87 @@
+{
+    "name": "Map Select",
+    "background": [0.04, 0.06, 0.10, 1.0],
+    "elements": [
+        {
+            "type": "panel",
+            "x": 0.5, "y": 0.50,
+            "anchor": "center",
+            "width": 640, "height": 480,
+            "rounding": 8,
+            "color": "panel",
+            "elements": [
+                {
+                    "type": "text",
+                    "content": "SELECT MAP",
+                    "font": "header",
+                    "color": "text_primary",
+                    "x": 0.5, "y": 20,
+                    "anchor": "top_center"
+                },
+                { "type": "separator" },
+                { "type": "spacer", "height": 10 },
+                {
+                    "type": "map_card",
+                    "map_id": "javelin4.aelevel",
+                    "label": "Javelin-4",
+                    "description": "Symmetrical arena. Close quarters.",
+                    "players": "2-8",
+                    "x": 20, "y": 65,
+                    "width": 290, "height": 100,
+                    "action": "start_game:assets/compiled/levels/javelin4.aelevel"
+                },
+                {
+                    "type": "map_card",
+                    "map_id": "blood_gulch.aelevel",
+                    "label": "Blood Gulch",
+                    "description": "Two bases across a canyon. Mid-range combat.",
+                    "players": "2-8",
+                    "x": 330, "y": 65,
+                    "width": 290, "height": 100,
+                    "action": "start_game:assets/compiled/levels/blood_gulch.aelevel"
+                },
+                {
+                    "type": "map_card",
+                    "map_id": "prototype_arena.aelevel",
+                    "label": "Prototype Arena",
+                    "description": "Open test arena for movement and combat.",
+                    "players": "1-4",
+                    "x": 20, "y": 180,
+                    "width": 290, "height": 100,
+                    "action": "start_game:assets/compiled/levels/prototype_arena.aelevel"
+                },
+                {
+                    "type": "map_card",
+                    "map_id": "prototype_box.aelevel",
+                    "label": "Box Arena",
+                    "description": "Minimal box map for collision testing.",
+                    "players": "1-2",
+                    "x": 330, "y": 180,
+                    "width": 290, "height": 100,
+                    "action": "start_game:assets/compiled/levels/prototype_box.aelevel"
+                },
+                {
+                    "type": "map_card",
+                    "map_id": "textured_showcase.aelevel",
+                    "label": "Textured Showcase",
+                    "description": "PBR material and texture reference map.",
+                    "players": "1-2",
+                    "x": 20, "y": 295,
+                    "width": 290, "height": 100,
+                    "action": "start_game:assets/compiled/levels/textured_showcase.aelevel"
+                },
+                { "type": "spacer", "height": 10 },
+                { "type": "separator" },
+                {
+                    "type": "button",
+                    "label": "BACK",
+                    "style": "secondary",
+                    "action": "pop_screen",
+                    "x": 0.5, "y": 430,
+                    "anchor": "top_center",
+                    "width": 200
+                }
+            ]
+        }
+    ]
+}

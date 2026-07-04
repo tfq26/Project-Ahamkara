@@ -46,6 +46,10 @@ void sync_input_to_imgu(GLFWwindow* window);
 bool wants_capture_mouse();
 bool wants_capture_keyboard();
 
+// Draw a gameplay crosshair in ImGui's foreground layer so it stays above the
+// scene and any active menu windows.
+void draw_crosshair_overlay();
+
 // Menu rendering — returns true if game simulation should be paused
 bool render_main_menu(MenuState& state, bool* quit_requested);
 bool render_settings(MenuState& state);

@@ -1,7 +1,10 @@
+#include "ae/core/log.h"
 #include "ahamkara/client/local_play.h"
 #include "ae/core/math.h"
 #include "ae/render/compiled_level.h"
 #include <cstring>
+
+#define AE_LOG_CATEGORY "Client"
 
 namespace ahamkara::client {
 

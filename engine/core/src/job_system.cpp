@@ -1,7 +1,10 @@
 #include "ae/core/job_system.h"
+#include "ae/core/log.h"
 
 #include <algorithm>
 #include <mutex>
+
+#define AE_LOG_CATEGORY "Core"
 
 namespace ae {
 
@@ -10,13 +13,18 @@ JobSystem::~JobSystem() {
 }
 
 void JobSystem::init(int thread_count) {
-    if (running_) return;
+    if (running_) {
+        log_debug_cat(AE_LOG_CATEGORY, "JobSystem::init called but already running");
+        return;
+    }
 
     if (thread_count <= 0) {
         int hw = static_cast<int>(std::thread::hardware_concurrency());
         thread_count = std::max(1, hw - 1);  // leave one core for main thread
         if (thread_count < 1) thread_count = 1;
     }
+
+    log_info_cat(AE_LOG_CATEGORY, "JobSystem initializing with " + std::to_string(thread_count) + " worker thread(s)");
 
     running_ = true;
     workers_.reserve(static_cast<std::size_t>(thread_count));
@@ -26,7 +34,12 @@ void JobSystem::init(int thread_count) {
 }
 
 void JobSystem::shutdown() {
-    if (!running_) return;
+    if (!running_) {
+        log_debug_cat(AE_LOG_CATEGORY, "JobSystem::shutdown called but not running");
+        return;
+    }
+
+    log_info_cat(AE_LOG_CATEGORY, "JobSystem shutting down (" + std::to_string(workers_.size()) + " worker thread(s))");
     running_ = false;
 
     for (auto& w : workers_) {
@@ -37,6 +50,8 @@ void JobSystem::shutdown() {
     std::lock_guard<std::mutex> lock(jobs_mutex_);
     jobs_.clear();
     ready_jobs_.clear();
+
+    log_info_cat(AE_LOG_CATEGORY, "JobSystem shutdown complete");
 }
 
 JobSystem::JobHandle JobSystem::submit(JobFunction fn) {

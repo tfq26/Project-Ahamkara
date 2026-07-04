@@ -1,3 +1,4 @@
+#include "ae/core/log.h"
 #include "ahamkara/client/window_input_provider.h"
 
 #include <algorithm>
@@ -6,6 +7,8 @@
 #include "ae/platform/gamepad.h"
 #include "ae/platform/mouse.h"
 #include "ae/platform/window.h"
+
+#define AE_LOG_CATEGORY "Client"
 
 namespace ahamkara::client {
 namespace {

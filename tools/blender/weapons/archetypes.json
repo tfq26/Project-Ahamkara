@@ -1,0 +1,108 @@
+{
+    "_description": "Weapon archetypes — one entry per visual+base-stat frame. At runtime, a weapon instance is an archetype + a list of perk IDs applied on top.",
+    "archetypes": [
+        {
+            "id": "ar15",
+            "name": "AR-15",
+            "slot": "primary",
+            "mesh": "viewmodel_ar15",
+            "base_stats": {
+                "damage": 20.0,
+                "headshot_multiplier": 2.0,
+                "rpm": 400,
+                "magazine_size": 50,
+                "reload_time_s": 2.2,
+                "aim_down_sight_time_s": 0.25,
+                "range": 100.0,
+                "stability": 50.0,
+                "handling": 50.0,
+                "aim_assist": 60.0
+            },
+            "fire_mode": "automatic",
+            "recoil_pattern": [
+                [0.25, 0.08],
+                [0.30, -0.12],
+                [0.28, 0.05],
+                [0.35, -0.15],
+                [0.32, 0.10]
+            ],
+            "perk_slots": ["barrel", "magazine", "trait1", "trait2"],
+            "projectile_type": "hitscan"
+        },
+        {
+            "id": "shotgun",
+            "name": "Shotgun",
+            "slot": "secondary",
+            "mesh": "viewmodel_shotgun",
+            "base_stats": {
+                "damage": 10.0,
+                "headshot_multiplier": 1.5,
+                "pellets": 8,
+                "rpm": 100,
+                "magazine_size": 8,
+                "reload_time_s": 3.0,
+                "aim_down_sight_time_s": 0.30,
+                "range": 20.0,
+                "stability": 40.0,
+                "handling": 30.0,
+                "aim_assist": 50.0
+            },
+            "fire_mode": "hitscan",
+            "recoil_pattern": [[3.0, 0.0]],
+            "perk_slots": ["barrel", "magazine", "trait1"],
+            "projectile_type": "hitscan"
+        },
+        {
+            "id": "rocket_launcher",
+            "name": "Rocket Launcher",
+            "slot": "heavy",
+            "mesh": "viewmodel_rocket_launcher",
+            "base_stats": {
+                "damage": 100.0,
+                "headshot_multiplier": 1.0,
+                "pellets": 1,
+                "rpm": 30,
+                "magazine_size": 1,
+                "reload_time_s": 3.5,
+                "aim_down_sight_time_s": 0.40,
+                "range": 200.0,
+                "stability": 20.0,
+                "handling": 10.0,
+                "aim_assist": 30.0
+            },
+            "fire_mode": "projectile",
+            "recoil_pattern": [],
+            "perk_slots": ["magazine", "trait1"],
+            "projectile_type": "projectile",
+            "projectile_speed": 120.0,
+            "projectile_damage_radius": 3.0
+        },
+        {
+            "id": "pistol",
+            "name": "Pistol",
+            "slot": "secondary",
+            "mesh": "viewmodel_pistol",
+            "base_stats": {
+                "damage": 35.0,
+                "headshot_multiplier": 2.5,
+                "pellets": 1,
+                "rpm": 200,
+                "magazine_size": 12,
+                "reload_time_s": 1.5,
+                "aim_down_sight_time_s": 0.18,
+                "range": 50.0,
+                "stability": 70.0,
+                "handling": 85.0,
+                "aim_assist": 80.0
+            },
+            "fire_mode": "semi_automatic",
+            "recoil_pattern": [
+                [0.40, 0.05],
+                [0.45, -0.08],
+                [0.50, 0.03]
+            ],
+            "perk_slots": ["barrel", "magazine", "trait1"],
+            "projectile_type": "hitscan"
+        }
+    ]
+}

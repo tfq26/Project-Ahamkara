@@ -1,7 +1,7 @@
 ---
 type: subagent-report
 category: investigation
-status: validated_with_known_gaps
+status: validated
 created: 2026-06-25
 agent: codex
 subsystems:
@@ -22,7 +22,7 @@ Investigate the local debug client's frozen on-screen view and finish the gamepl
 
 ## Status
 
-validated_with_known_gaps - the input/menu separation and renderer matrix-stack cleanup are in place, the client and targeted tests build cleanly, and the remaining gap is runtime display confirmation of the visual behavior.
+validated - the input/menu separation and renderer matrix-stack cleanup are in place, the client and targeted tests build cleanly, and runtime display confirmation was provided by the user.
 
 ## What Was Implemented
 
@@ -63,7 +63,6 @@ ctest --test-dir build/debug -R "ahamkara_level_render_tests|ahamkara_window_inp
 
 ## Known Gaps
 
-- I could not complete on-display confirmation in this environment.
 - HDR remains intentionally backburnered per user direction.
 
 ## Recommended Next Step

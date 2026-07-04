@@ -6,6 +6,9 @@ add_library(ae_ui STATIC
     imgui_impl_glfw.cpp
     imgui_impl_opengl3.cpp
     src/ahamkara_ui.cpp
+    src/menu_system.cpp
+    src/hud_element.cpp
+    src/hud_system.cpp
 )
 
 target_compile_features(ae_ui PUBLIC cxx_std_20)

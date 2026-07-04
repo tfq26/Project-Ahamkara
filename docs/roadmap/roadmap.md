@@ -19,7 +19,8 @@ How the parts relate:
 Where parts overlap (e.g., the renderer, animation, ECS, and audio appear in
 several), treat **Part I** as the strategic sequencing and the others as more
 detailed, file-level plans. Status of fidelity work (HDR/post) is **deferred**
-per `../vault/memory/decision-log.md`.
+per `../vault/memory/decision-log.md` and is intentionally kept out of the
+active queue until a concrete trigger fires.
 
 ## Contents
 
@@ -154,6 +155,24 @@ on a display.
 **Exit criteria:** smooth, responsive, tunable, deterministic first-person
 traversal with a viewmodel.
 
+**Recommended Execution Order**
+
+1. `TASK-20260622-1020-deterministic-character-controller` - completed
+   movement core; treat this as the fixed-step foundation, not a Phase 2
+   destination.
+2. `TASK-20260628-0106-player-movement-camera-controller` - extract the
+   remaining locomotion/camera logic out of `World`.
+3. `TASK-20260628-0108-world-orchestration-boundary` - keep `World` thin after
+   the movement split lands.
+4. `TASK-20260628-0107-weapon-presentation-separation` - keep weapon runtime
+   lean before wiring richer first-person presentation.
+5. `TASK-20260628-0109-first-person-camera-viewmodel-rig` - connect the active
+   camera to a proper first-person weapon/viewmodel rig.
+6. `TASK-20260628-0110-collision-response-polish` - finish step/slope/ledge
+   response after the movement controller is factored out.
+7. Input/binding cleanup is already covered by earlier runtime tasks; only queue
+   a follow-up if a real gap remains after the controller refactor.
+
 #### Phase 3 — Sandbox & Combat Core · `planned`
 
 **Goal:** You can shoot, and it feels like a shooter.
@@ -165,6 +184,17 @@ traversal with a viewmodel.
 - **Abilities** (grenade/melee/class ability) with cooldowns and energy.
 - Damage feedback (hitmarkers, numbers, damage events on the event bus).
 - Deterministic spread/recoil via the deterministic RNG (prediction-safe).
+
+**Recommended Execution Order**
+
+1. `TASK-20260704-1000-weapon-runtime-foundation` - establish the base runtime
+   seam and cache-friendly ownership before adding more combat rules.
+2. `TASK-20260704-1010-weapon-fire-control` - normalize fire modes, ammo,
+   reload, reserves, and deterministic recoil/spread.
+3. `TASK-20260704-1020-combat-hit-resolution` - split hitscan/projectile
+   damage resolution from feedback and lock down the actual combat results.
+4. `TASK-20260704-1030-combat-abilities-core` - add melee/grenade/class
+   ability cooldown and energy plumbing after the combat base exists.
 
 **Exit criteria:** a data-authored loadout of weapons + abilities with damage,
 reload, and feedback, usable against targets.
@@ -207,13 +237,14 @@ prediction and server-authoritative hits → with HUD feedback and audio. That i
 
 **Exit criteria:** combat reads with weight; safe for headless/server builds.
 
-#### Phase 6 — Rendering Fidelity · `planned` (HDR `deferred`)
+#### Phase 6 — Rendering Fidelity · `planned` (HDR `deferred`, not queued)
 
 **Goal:** Make spaces look good; enable a modern lighting/post pipeline.
 
 **Workstreams**
-- **HDR + offscreen render targets** + tonemap/gamma (`deferred` until a trigger;
-  see decision log) → unblocks post.
+- **HDR + offscreen render targets** + tonemap/gamma (`deferred` until a
+  trigger; see decision log). Keep this in the roadmap only, not the active
+  queue, until a concrete fidelity trigger lands → unblocks post.
 - Cascaded shadow maps; mesh shadow casters.
 - Multiple light types + clustered/tiled culling.
 - IBL / reflection probes; ambient via irradiance; emissive + bloom.
@@ -311,7 +342,17 @@ hardware, with content tooling and CI sufficient for sustained production.
 4. `textured-material-showcase` → make textures visibly work.
 5. `level-driven-sky-and-fog` → cheap legibility.
 6. Begin Phase 2 (player/movement feel).
-7. HDR/render-target foundation stays **deferred** until a trigger fires.
+7. Define ownership boundaries for the gameplay runtime:
+   - `World` remains the orchestrator for match state, simulation stepping,
+     dummies/projectiles/collision, respawn, and replay/history snapshots.
+   - `Player` owns player-specific runtime data such as loadout, armor, active
+     weapon runtime, and player-local damage handling.
+   - A movement/camera controller should own locomotion, stance, mantle, and
+     first-person camera math instead of keeping that logic in `World`.
+   - Weapon presentation should be separated from weapon runtime so
+     attachments, viewmodels, and animation live in a presentation layer.
+8. HDR/render-target foundation stays **deferred** until a trigger fires and
+   remains out of the active queue until then.
 
 These map to the queued tasks in `../vault/queue-tasks/`.
 

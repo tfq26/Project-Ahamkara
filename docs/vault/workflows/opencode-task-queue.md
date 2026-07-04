@@ -57,6 +57,9 @@ asked to "check the OpenCode queue."
 Automatic wakeups require an external watcher or automation. The repo queue is
 the durable handoff layer.
 
+For a concrete file-trigger contract and minimal daemon command surface, see
+[Queue Daemon Contract](queue-daemon-contract.md).
+
 ## Related
 
 - [OpenCode task queue skill](../skills/opencode-task-queue/SKILL.md)

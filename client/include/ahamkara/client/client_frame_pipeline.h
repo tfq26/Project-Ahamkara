@@ -6,7 +6,9 @@
 #include "ahamkara/client/debug_frontend_runtime.h"
 #include "ahamkara/client/debug_render_runtime.h"
 #include "ahamkara/client/debug_ui_controller.h"
+#include "ahamkara/client/weapon_presentation.h"
 #include "ahamkara/client/threaded_local_runtime.h"
+#include "ahamkara/client/weapon_animation_controller.h"
 #include "ahamkara/client/window_input_provider.h"
 #include "ahamkara/client/audio_player.h"
 #include "ahamkara/game/net_types.h"
@@ -17,6 +19,8 @@
 #include "ae/render/pbr_renderer.h"
 #include "ae/render/shadow_pass.h"
 #include "ae/runtime/application.h"
+#include "ae/ui/menu_system.h"
+#include "ae/ui/hud_system.h"
 
 namespace ae {
 class PlatformWindow;
@@ -101,8 +105,15 @@ private:
     float alpha_ {0.0F};
     ae::render::DebugScene scene_ {};
     DebugRenderSubmission render_submission_ {};
+    WeaponAnimationController weapon_animation_ {};
+    WeaponViewmodelPresentation weapon_presentation_ {};
     std::string window_title_ {};
     DebugUiActions ui_actions_ {};
+    ae::ui::MenuSystem menu_system_;
+    ae::ui::HudSystem hud_system_;
+    bool gameplay_active_{false};
+    bool menu_initialized_{false};
+    bool hud_loaded_{false};
 };
 
 }  // namespace ahamkara::client

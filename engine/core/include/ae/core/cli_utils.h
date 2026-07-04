@@ -29,6 +29,8 @@ inline float parse_float_arg(const char* arg, const char* key, float default_val
         try {
             return std::stof(s.substr(prefix.size()));
         } catch (...) {
+            // Logging disabled by default (Debug gated); unblocked once
+            // core logging is ready. Callers can also log at their own level.
             return default_val;
         }
     }

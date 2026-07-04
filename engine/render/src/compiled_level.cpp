@@ -1,8 +1,11 @@
 #include "ae/render/compiled_level.h"
 #include "ae/render/binary_io.h"
+#include "ae/core/log.h"
 
 #include <filesystem>
 #include <fstream>
+
+#define AE_LOG_CATEGORY "Render"
 
 namespace ae::render {
 namespace {

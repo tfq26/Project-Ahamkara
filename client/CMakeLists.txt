@@ -13,9 +13,11 @@ add_library(ahamkara_client_lib STATIC
     src/debug_ui_controller.cpp
     src/headless_clients.cpp
     src/local_play.cpp
+    src/weapon_animation_controller.cpp
     src/threaded_local_runtime.cpp
     src/window_input_provider.cpp
     src/audio_player.cpp
+    src/weapon_presentation.cpp
 )
 
 target_compile_features(ahamkara_client_lib PUBLIC cxx_std_20)
@@ -33,6 +35,7 @@ target_link_libraries(ahamkara_client_lib
         ae_ui
         ae_audio
         ae_input
+        ae_animation
         ahamkara_game
         miniaudio_lib
 )

@@ -1,5 +1,6 @@
 #include "ae/collision/trace.h"
 #include "jolt_backend.h"  // Internal: gives us CollisionWorld::Impl, helpers, and filters
+#include "ae/core/log.h"
 
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/Collision/RayCast.h>
@@ -14,6 +15,8 @@
 #include <Jolt/Physics/Collision/CollideShape.h>
 
 #include <cmath>
+
+#define AE_LOG_CATEGORY "Collision"
 
 namespace ae::collision {
 
@@ -78,7 +81,10 @@ TraceResult ray_trace(
     TraceResult result {};
 
     const auto* impl = world.impl();
-    if (!impl) return result;
+    if (!impl) {
+        log_warning_cat(AE_LOG_CATEGORY, "ray_trace: world impl is null");
+        return result;
+    }
 
     JPH::RRayCast jolt_ray {
         to_jolt_rvec3(ray.origin),
@@ -116,6 +122,10 @@ TraceResult ray_trace(
         }
 
         result.body_index = hit.mBodyID.GetIndexAndSequenceNumber();
+        log_trace_cat(AE_LOG_CATEGORY, "ray_trace: hit dist=" + std::to_string(result.distance) +
+                      " body=" + std::to_string(result.body_index));
+    } else {
+        log_trace_cat(AE_LOG_CATEGORY, "ray_trace: miss");
     }
 
     return result;
@@ -135,7 +145,10 @@ TraceResult sphere_trace(
     TraceResult result {};
 
     const auto* impl = world.impl();
-    if (!impl) return result;
+    if (!impl) {
+        log_warning_cat(AE_LOG_CATEGORY, "sphere_trace: world impl is null");
+        return result;
+    }
 
     JPH::SphereShape sphere_shape(radius);
 
@@ -178,6 +191,10 @@ TraceResult sphere_trace(
         // Normal pointing out of hit body is -axis.
         result.normal = from_jolt_vec3(-hit.mPenetrationAxis.Normalized());
         result.body_index = hit.mBodyID2.GetIndexAndSequenceNumber();
+        log_trace_cat(AE_LOG_CATEGORY, "sphere_trace: hit dist=" + std::to_string(result.distance) +
+                      " body=" + std::to_string(result.body_index));
+    } else {
+        log_trace_cat(AE_LOG_CATEGORY, "sphere_trace: miss");
     }
 
     return result;
@@ -198,7 +215,10 @@ TraceResult capsule_trace(
     TraceResult result {};
 
     const auto* impl = world.impl();
-    if (!impl) return result;
+    if (!impl) {
+        log_warning_cat(AE_LOG_CATEGORY, "capsule_trace: world impl is null");
+        return result;
+    }
 
     JPH::CapsuleShape capsule_shape(half_height, radius);
 
@@ -238,6 +258,10 @@ TraceResult capsule_trace(
         result.position = from_jolt_rvec3(hit_point);
         result.normal = from_jolt_vec3(-hit.mPenetrationAxis.Normalized());
         result.body_index = hit.mBodyID2.GetIndexAndSequenceNumber();
+        log_trace_cat(AE_LOG_CATEGORY, "capsule_trace: hit dist=" + std::to_string(result.distance) +
+                      " body=" + std::to_string(result.body_index));
+    } else {
+        log_trace_cat(AE_LOG_CATEGORY, "capsule_trace: miss");
     }
 
     return result;
@@ -253,7 +277,10 @@ bool sphere_overlap(
     const TraceParams& params)
 {
     const auto* impl = world.impl();
-    if (!impl) return false;
+    if (!impl) {
+        log_warning_cat(AE_LOG_CATEGORY, "sphere_overlap: world impl is null");
+        return false;
+    }
 
     JPH::SphereShape sphere_shape(radius);
 
@@ -274,7 +301,9 @@ bool sphere_overlap(
         body_filter
     );
 
-    return collector.HadHit();
+    bool had_hit = collector.HadHit();
+    log_trace_cat(AE_LOG_CATEGORY, "sphere_overlap: " + std::string(had_hit ? "hit" : "miss"));
+    return had_hit;
 }
 
 // ============================================================
@@ -287,6 +316,7 @@ bool aabb_overlap(
 {
     BodyHandle handles[64];
     int count = world.query_aabb(box, params.layer_mask, handles, 64);
+    log_trace_cat(AE_LOG_CATEGORY, "aabb_overlap: " + std::to_string(count) + " bodies in region");
     return count > 0;
 }
 
@@ -344,6 +374,8 @@ TraceResult cone_trace_closest(
         }
     }
 
+    log_trace_cat(AE_LOG_CATEGORY, "cone_trace_closest: " + std::to_string(num_traces) + " traces, " +
+                  (closest.hit ? "hit dist=" + std::to_string(closest.distance) : "miss"));
     return closest;
 }
 
@@ -377,6 +409,8 @@ int resolve_hitbox_hurtbox_overlaps(
         }
     }
 
+    log_trace_cat(AE_LOG_CATEGORY, "resolve_hitbox_hurtbox: " + std::to_string(hitbox_count) + " hitboxes, " +
+                  std::to_string(hurtbox_count) + " hurtboxes -> " + std::to_string(count) + " overlaps");
     return count;
 }
 

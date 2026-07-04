@@ -10,6 +10,8 @@ Canonical subsystem and architecture docs for Ahamkara.
 - [Audio architecture](audio_architecture.md)
 - [Client config](client_config.md)
 - [Renderer backend](renderer_backend.md)
+- [Logging conventions](logging.md)
+- [Weapon authoring](weapon_authoring.md)
 
 ## Agent Maps
 

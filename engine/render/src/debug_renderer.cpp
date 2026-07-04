@@ -86,6 +86,38 @@ struct WorldResources {
     GLint u_mvp_loc {-1};
 };
 
+// --- Viewmodel orientation contract ---
+//
+// Canonical weapon assets are authored in Blender with the barrel running along
+// +X, with Y-up world coordinates and glTF export_yup enabled.  The renderer
+// converts the authored +X barrel direction into view space by applying a -90°
+// Y rotation so the barrel points into the screen (view-forward / -Z).  This
+// keeps the conversion in one place so all weapon meshes share the same
+// authored orientation regardless of how the view frame is constructed.
+//
+// Per-weapon adjustments (pitch/yaw/roll offsets in degrees) are stored here;
+// the canonical copy lives in client/include/ahamkara/client/weapon_viewmodel_data.h.
+// The renderer keeps a local mirror so ae_render stays independent of the game
+// and client layers.
+//
+    // The rotation order is: barrel (-90° Y + weapon yaw) -> weapon pitch -> weapon roll.
+    // All matrices are column-major (ae::gl_compat::Mat4) and post-multiplied.
+
+    struct WeaponViewmodelTransform {
+        float pitch_deg {0.0F};
+        float yaw_deg {0.0F};
+        float roll_deg {0.0F};
+    };
+
+[[nodiscard]] WeaponViewmodelTransform weapon_viewmodel_transform(int weapon_index) {
+    switch (weapon_index) {
+        case 0: return {};
+        case 1: return {};
+        case 2: return {};
+        default: return {};
+    }
+}
+
 GLuint compile_overlay_shader(GLenum type, const char* src) {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &src, nullptr);
@@ -1803,6 +1835,105 @@ void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
         draw_decals(*backend, decal_vbo, decal_color_vbo, render_stats, scene, frustum);
         render_stats.total_decal_count = scene.decal_count;
     }
+
+    if (scene.show_crosshair && !scene.menu_visible) {
+        const auto normalize_or = [](Vec3 value, Vec3 fallback) {
+            if (dot(value, value) <= 0.00001F) {
+                return fallback;
+            }
+            return normalize(value);
+        };
+
+        const Vec3 camera_pos = scene.viewmodel_position;
+        const Vec3 forward = normalize_or(scene.viewmodel_forward, {0.0F, 0.0F, 1.0F});
+        const Vec3 right = normalize_or(scene.viewmodel_right, {1.0F, 0.0F, 0.0F});
+        const Vec3 up = normalize_or(scene.viewmodel_up, {0.0F, 1.0F, 0.0F});
+
+        const float t = static_cast<float>(glfwGetTime());
+        const float idle_bob_x = scene.weapon_animation_override
+                                      ? 0.0F
+                                      : std::sin(t * 2.4F) * 0.015F;
+        const float idle_bob_y = scene.weapon_animation_override
+                                      ? 0.0F
+                                      : std::cos(t * 3.1F) * 0.012F;
+        const float recoil_kick = scene.weapon_animation_override
+                                      ? 0.0F
+                                      : (scene.muzzle_flash_time > 0.0F
+                                             ? std::min(1.0F, scene.muzzle_flash_time * 18.0F)
+                                             : 0.0F);
+
+        const Vec3 weapon_pos {
+            camera_pos.x + forward.x * (0.47F - recoil_kick * 0.04F)
+                - right.x * (0.30F + idle_bob_x)
+                - up.x * (0.24F + idle_bob_y + recoil_kick * 0.03F),
+            camera_pos.y + forward.y * (0.47F - recoil_kick * 0.04F)
+                - right.y * (0.30F + idle_bob_x)
+                - up.y * (0.24F + idle_bob_y + recoil_kick * 0.03F),
+            camera_pos.z + forward.z * (0.47F - recoil_kick * 0.04F)
+                - right.z * (0.30F + idle_bob_x)
+                - up.z * (0.24F + idle_bob_y + recoil_kick * 0.03F),
+        };
+
+        auto make_basis = [](Vec3 basis_right, Vec3 basis_up, Vec3 basis_forward, Vec3 translation) {
+            ae::gl_compat::Mat4 mat;
+            mat.m[0] = basis_right.x;   mat.m[1] = basis_right.y;   mat.m[2] = basis_right.z;   mat.m[3] = 0.0F;
+            mat.m[4] = basis_up.x;      mat.m[5] = basis_up.y;      mat.m[6] = basis_up.z;      mat.m[7] = 0.0F;
+            mat.m[8] = basis_forward.x; mat.m[9] = basis_forward.y; mat.m[10] = basis_forward.z; mat.m[11] = 0.0F;
+            mat.m[12] = translation.x;  mat.m[13] = translation.y;  mat.m[14] = translation.z;  mat.m[15] = 1.0F;
+            return mat;
+        };
+
+        ae::gl_compat::Mat4 viewmodel = make_basis(right, up, forward, weapon_pos);
+        if (!scene.weapon_animation_override) {
+            viewmodel = viewmodel * ae::gl_compat::mat4_rotate(-12.0F - recoil_kick * 4.0F, 1.0F, 0.0F, 0.0F);
+            viewmodel = viewmodel * ae::gl_compat::mat4_rotate(-10.0F - idle_bob_x * 65.0F, 0.0F, 1.0F, 0.0F);
+            viewmodel = viewmodel * ae::gl_compat::mat4_rotate(2.5F + idle_bob_y * 40.0F, 0.0F, 0.0F, 1.0F);
+        }
+        viewmodel = viewmodel * ae::gl_compat::mat4_scale(0.62F, 0.62F, 0.62F);
+
+        // Apply authored-to-view-space barrel correction (-90° Y) plus
+        // per-weapon pitch/yaw/roll adjustments.  See the orientation
+        // contract comment near WeaponViewmodelTransform above for the full
+        // axis convention.
+        const auto weapon_pose = weapon_viewmodel_transform(scene.weapon_index);
+        viewmodel = viewmodel * ae::gl_compat::mat4_rotate(-90.0F + weapon_pose.yaw_deg,
+                                                           0.0F, 1.0F, 0.0F);
+        viewmodel = viewmodel * ae::gl_compat::mat4_rotate(weapon_pose.pitch_deg, 1.0F, 0.0F, 0.0F);
+        viewmodel = viewmodel * ae::gl_compat::mat4_rotate(weapon_pose.roll_deg, 0.0F, 0.0F, 1.0F);
+
+        if (scene.weapon_animation_override) {
+            ae::gl_compat::Mat4 weapon_anim = ae::gl_compat::Mat4::identity();
+            std::memcpy(weapon_anim.m, scene.weapon_animation_transform, sizeof(scene.weapon_animation_transform));
+            viewmodel = viewmodel * weapon_anim;
+        }
+
+        const MatrixSnapshot weapon_snapshot = begin_world_transform(viewmodel);
+        backend->set_depth_test(false);
+        backend->set_depth_write(false);
+
+        if (scene.weapon_model != nullptr) {
+            const ae::render::Mat4* joints = nullptr;
+            int joint_count = 0;
+            if (scene.weapon_joint_count > 0) {
+                joints = reinterpret_cast<const ae::render::Mat4*>(scene.weapon_joint_matrices);
+                joint_count = scene.weapon_joint_count;
+            }
+            draw_gpu_model(*backend, *scene.weapon_model, shader_program,
+                          u_color_loc, u_use_skinning_loc, u_joint_matrices_loc,
+                          0.95F, 0.95F, 0.98F, 1.0F, true, joints, joint_count);
+        } else {
+            // Fallback silhouette if the compiled mesh is unavailable.
+            const WorldVertex fallback[] = {
+                {weapon_pos.x - 0.12F, weapon_pos.y - 0.05F, weapon_pos.z, 0.08F, 0.08F, 0.10F, 1.0F},
+                {weapon_pos.x + 0.22F, weapon_pos.y - 0.05F, weapon_pos.z, 0.08F, 0.08F, 0.10F, 1.0F},
+                {weapon_pos.x + 0.10F, weapon_pos.y + 0.03F, weapon_pos.z, 0.08F, 0.08F, 0.10F, 1.0F},
+            };
+            draw_world_vertices(fallback, 3, GL_TRIANGLES);
+        }
+        backend->set_depth_write(true);
+        backend->set_depth_test(true);
+        end_matrix_snapshot(weapon_snapshot);
+    }
 }
 // ============================================================================
 // Main render entry point — orchestrates all render passes
@@ -2010,9 +2141,6 @@ void DebugRenderer::render(DebugScene& scene, const std::function<void()>& draw_
     // ============================================================
     // UI / OVERLAY PASS (screen-space, no depth test)
     // ============================================================
-    if (scene.show_crosshair) {
-        draw_crosshair_overlay(scene, width, height);
-    }
     if (scene.metrics_visible) {
         draw_metrics_overlay(scene, width, height, impl_->frame_time_history, impl_->sparkline_count);
     }
@@ -2090,7 +2218,6 @@ void DebugRenderer::render(DebugScene& scene, const std::function<void()>& draw_
         draw_menu_overlay(scene, width, height);
     }
     draw_scene_overlay(scene, width, height);
-
     // End UI pass timer
     if (impl_->gpu_timers_supported) {
         impl_->backend->end_query(impl_->gpu_timer_queries[3]);

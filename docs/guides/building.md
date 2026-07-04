@@ -106,6 +106,30 @@ You can also skip configure/build when iterating:
 ./scripts/start.sh local --skip-configure --skip-build
 ```
 
+### Queue Workflow
+
+To start the local OpenCode review loop in one command, use:
+
+```sh
+./scripts/start-agents.sh
+```
+
+That starts the background watcher, syncs the queue views, and prints the next
+open task. Use `--no-watch` if you only want to regenerate the board and status
+without leaving the watcher running.
+
+To start the queue workflow alongside the game launcher, use:
+
+```sh
+./scripts/start-everything.sh --run-game
+```
+
+Pass a mode such as `flashback` or `network` if you want a different launcher:
+
+```sh
+./scripts/start-everything.sh --run-game --mode flashback
+```
+
 ### Debug Render View
 
 Launch the client-only debug renderer:

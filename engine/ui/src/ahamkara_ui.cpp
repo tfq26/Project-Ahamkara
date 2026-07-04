@@ -1,3 +1,4 @@
+#include "ae/core/log.h"
 #include "ae/ui/ahamkara_ui.h"
 
 #include "imgui.h"
@@ -8,6 +9,9 @@
 #include <cstdio>
 #include <cmath>
 #include <algorithm>
+
+
+#define AE_LOG_CATEGORY "UI"
 
 namespace ae::ui {
 namespace {
@@ -213,6 +217,47 @@ bool wants_capture_mouse() {
 bool wants_capture_keyboard() {
     if (!g_initialized) return false;
     return ImGui::GetIO().WantCaptureKeyboard;
+}
+
+void draw_crosshair_overlay() {
+    if (!g_initialized) return;
+
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    const ImVec2 size = viewport != nullptr ? viewport->Size : ImGui::GetIO().DisplaySize;
+    const float center_x = size.x * 0.5F;
+    const float center_y = size.y * 0.5F;
+
+    ImDrawList* draw_list = ImGui::GetForegroundDrawList();
+    if (draw_list == nullptr) return;
+
+    constexpr float arm_length = 11.0F;
+    constexpr float gap = 4.0F;
+    constexpr float outline = 2.0F;
+    constexpr float thickness = 2.0F;
+    const ImU32 outline_col = IM_COL32(0, 0, 0, 255);
+    const ImU32 cross_col = IM_COL32(255, 88, 72, 255);
+    const ImU32 dot_col = IM_COL32(255, 255, 255, 255);
+
+    auto line = [&](float x1, float y1, float x2, float y2, ImU32 col, float t) {
+        draw_list->AddLine(ImVec2(x1, y1), ImVec2(x2, y2), col, t);
+    };
+
+    line(center_x - arm_length - outline, center_y, center_x - gap + outline, center_y, outline_col, thickness + 2.0F);
+    line(center_x + gap - outline, center_y, center_x + arm_length + outline, center_y, outline_col, thickness + 2.0F);
+    line(center_x, center_y - arm_length - outline, center_x, center_y - gap + outline, outline_col, thickness + 2.0F);
+    line(center_x, center_y + gap - outline, center_x, center_y + arm_length + outline, outline_col, thickness + 2.0F);
+
+    line(center_x - arm_length, center_y, center_x - gap, center_y, cross_col, thickness);
+    line(center_x + gap, center_y, center_x + arm_length, center_y, cross_col, thickness);
+    line(center_x, center_y - arm_length, center_x, center_y - gap, cross_col, thickness);
+    line(center_x, center_y + gap, center_x, center_y + arm_length, cross_col, thickness);
+
+    draw_list->AddRectFilled(ImVec2(center_x - 2.5F, center_y - 2.5F),
+                             ImVec2(center_x + 2.5F, center_y + 2.5F),
+                             dot_col);
+    draw_list->AddRectFilled(ImVec2(center_x - 1.5F, center_y - 1.5F),
+                             ImVec2(center_x + 1.5F, center_y + 1.5F),
+                             outline_col);
 }
 
 // =============================================================================

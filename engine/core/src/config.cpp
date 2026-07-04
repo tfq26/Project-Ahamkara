@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <fstream>
 
+#define AE_LOG_CATEGORY "Config"
+
 namespace ae {
 
 // ============================================================
@@ -22,16 +24,19 @@ void ConfigRegistry::register_var(std::string_view key,
                                    std::function<void(std::string_view)> reload_fn,
                                    std::function<std::string()> serialize_fn) {
     vars_[std::string(key)] = {std::move(reload_fn), std::move(serialize_fn)};
+    log_debug_cat(AE_LOG_CATEGORY, "Registered config var: " + std::string(key));
 }
 
 int ConfigRegistry::reload_from_file(const std::string& path) {
+    log_info_cat(AE_LOG_CATEGORY, "Reloading config from " + path);
     std::ifstream file(path);
     if (!file.is_open()) {
-        log_warning_cat("Config", "Could not open config file: " + path);
+        log_warning_cat(AE_LOG_CATEGORY, "Could not open config file: " + path);
         return 0;
     }
 
     int updated = 0;
+    int unknown = 0;
     std::string line;
     while (std::getline(file, line)) {
         const std::string_view trimmed = ae::trim(line);
@@ -48,20 +53,28 @@ int ConfigRegistry::reload_from_file(const std::string& path) {
         if (it != vars_.end() && it->second.reload) {
             it->second.reload(value);
             ++updated;
+            log_debug_cat(AE_LOG_CATEGORY, "Config var " + std::string(key) + " = " + std::string(value));
+        } else {
+            ++unknown;
         }
     }
 
     if (updated > 0) {
-        log_info_cat("Config", std::to_string(updated) + " config variable(s) reloaded from " + path);
+        log_info_cat(AE_LOG_CATEGORY, std::to_string(updated) + " config variable(s) reloaded from " + path);
+    } else if (unknown > 0) {
+        log_debug_cat(AE_LOG_CATEGORY, std::to_string(unknown) + " unknown key(s) in " + path + " (no registered var)");
+    } else {
+        log_debug_cat(AE_LOG_CATEGORY, "No config variables updated from " + path);
     }
 
     return updated;
 }
 
 bool ConfigRegistry::save_to_file(const std::string& path) const {
+    log_info_cat(AE_LOG_CATEGORY, "Saving config to " + path);
     std::ofstream file(path);
     if (!file.is_open()) {
-        log_warning_cat("Config", "Could not write config file: " + path);
+        log_warning_cat(AE_LOG_CATEGORY, "Could not write config file: " + path);
         return false;
     }
 
@@ -80,6 +93,7 @@ bool ConfigRegistry::save_to_file(const std::string& path) const {
         }
     }
 
+    log_info_cat(AE_LOG_CATEGORY, "Saved " + std::to_string(keys.size()) + " config variable(s) to " + path);
     return true;
 }
 
@@ -94,6 +108,7 @@ int ConfigRegistry::poll_reload(const std::string& path) {
         return 0;
     }
 
+    log_info_cat(AE_LOG_CATEGORY, "Config file change detected: " + path);
     last_write_time_ = write_time;
     has_last_write_time_ = true;
     return reload_from_file(path);

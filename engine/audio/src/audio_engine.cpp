@@ -1,4 +1,5 @@
 #include "ae/audio/audio_engine.h"
+#include "ae/core/log.h"
 #include <miniaudio.h>
 
 #include <unordered_map>
@@ -6,6 +7,8 @@
 #include <memory>
 #include <vector>
 #include <cmath>
+
+#define AE_LOG_CATEGORY "Audio"
 
 namespace ae::audio {
 
@@ -18,8 +21,12 @@ struct AudioEngine::Impl {
     float master_vol = 1.0F;
 
     bool init() {
-        if (ma_engine_init(nullptr, &engine) != MA_SUCCESS) return false;
+        if (ma_engine_init(nullptr, &engine) != MA_SUCCESS) {
+            log_error_cat(AE_LOG_CATEGORY, "Failed to initialize miniaudio engine");
+            return false;
+        }
         initialized = true;
+        log_info_cat(AE_LOG_CATEGORY, "Audio engine initialized");
         return true;
     }
 
@@ -27,21 +34,27 @@ struct AudioEngine::Impl {
         for (auto& [h, s] : active_sounds) { ma_sound_uninit(s); delete s; }
         active_sounds.clear();
         if (initialized) { ma_engine_uninit(&engine); initialized = false; }
+        log_info_cat(AE_LOG_CATEGORY, "Audio engine shut down");
     }
 
     int load(const std::string& path) {
         for (auto& [id, p] : loaded_sounds) if (p == path) return id;
         int id = next_handle++;
         loaded_sounds[id] = path;
+        log_debug_cat(AE_LOG_CATEGORY, "Loaded sound: " + path);
         return id;
     }
 
     int play(int id, const AudioDesc& desc) {
         auto it = loaded_sounds.find(id);
-        if (it == loaded_sounds.end()) return -1;
+        if (it == loaded_sounds.end()) {
+            log_warning_cat(AE_LOG_CATEGORY, "play: unknown sound id " + std::to_string(id));
+            return -1;
+        }
 
         auto* sound = new ma_sound();
         if (ma_sound_init_from_file(&engine, it->second.c_str(), 0, nullptr, nullptr, sound) != MA_SUCCESS) {
+            log_warning_cat(AE_LOG_CATEGORY, "play: failed to load sound from file: " + it->second);
             delete sound;
             return -1;
         }

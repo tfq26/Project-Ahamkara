@@ -2,6 +2,8 @@
 
 #include "ae/core/log.h"
 
+#define AE_LOG_CATEGORY "Network"
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -96,7 +98,8 @@ bool NetworkSimulator::send_to(const NetAddress& address, const void* data, usiz
 
     if (should_drop()) {
         ++stats_.packets_dropped;
-        return true;  // The caller sees "success" to avoid changing application flow.
+        log_trace_cat(AE_LOG_CATEGORY, "Packet dropped (outgoing)");
+        return true;
     }
 
     // Queue the packet for delayed delivery.
@@ -107,6 +110,8 @@ bool NetworkSimulator::send_to(const NetAddress& address, const void* data, usiz
     pkt.remaining_seconds = compute_delay_seconds();
 
     ++stats_.packets_delayed;
+    log_trace_cat(AE_LOG_CATEGORY, "Packet queued for delayed send (" +
+                  std::to_string(pkt.remaining_seconds) + "s)");
     delay_queue_.push_back(std::move(pkt));
     return true;
 }
@@ -134,7 +139,7 @@ i32 NetworkSimulator::receive_from(NetAddress& from, void* buffer, usize max_siz
     // Apply loss on incoming side too (simulates asymmetric loss).
     if (should_drop()) {
         ++stats_.packets_dropped;
-        // Signal "no data available" to caller.
+        log_trace_cat(AE_LOG_CATEGORY, "Packet dropped (incoming)");
         return 0;
     }
 
@@ -170,6 +175,7 @@ void NetworkSimulator::update(float delta_seconds) {
         while (it != delay_queue_.end()) {
             if (it->remaining_seconds < -5.0F) {
                 ++stats_.packets_expired;
+                log_warning_cat(AE_LOG_CATEGORY, "Packet expired after 5s TTL");
                 it = delay_queue_.erase(it);
             } else {
                 ++it;

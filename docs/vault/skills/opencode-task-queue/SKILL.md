@@ -54,6 +54,43 @@ OpenCode should:
 If blocked, put the task in `docs/vault/queue-tasks/blocked/` and write a
 report with status `blocked`.
 
+## Phase Dispatch
+
+When the user asks to work a roadmap phase instead of a single task, treat the
+phase as the dispatcher boundary:
+
+1. Read the roadmap phase block first.
+2. Group the phase tasks by slice.
+3. Launch one worker per slice.
+4. If the worker model can spawn subagents, let each slice worker fan out again
+   for isolated subtasks inside that slice.
+5. Keep the parent agent in the supervisor role for integration and queue
+   movement.
+
+## Multi-Agent Execution
+
+If the active model can spawn subagents, it should use that capability for
+larger roadmap batches:
+
+1. Read the roadmap and break it into narrow, dependency-aware task slices.
+2. Create or claim one task slice per subagent.
+3. Give each subagent its own git worktree when parallel writes are needed.
+4. Require each subagent to write a full report in `docs/reports/subagents/`
+   and append the master log.
+5. Keep the parent agent in the supervisor/reviewer role for integration and
+   queue movement.
+6. Do not let subagents edit the same shared file concurrently unless the slice
+   ownership is explicit.
+
+This is a coordination optimization, not a license to skip review. Every slice
+still needs evidence before it can move to `completed/`.
+
+## Deferred Work
+
+Some tasks are intentionally deferred instead of being active queue work. Do
+not revive deferred tasks until the user explicitly says the project is back
+in a working state and the deferred slice should be resumed.
+
 ## Codex Review Workflow
 
 When Codex checks OpenCode work:

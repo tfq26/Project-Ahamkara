@@ -1,4 +1,5 @@
 #include "ae/physics/physics_world.h"
+#include "ae/core/log.h"
 
 #include <Jolt/Jolt.h>
 #include <Jolt/RegisterTypes.h>
@@ -107,6 +108,8 @@ public:
 
 }  // namespace
 
+#define AE_LOG_CATEGORY "Physics"
+
 struct PhysicsWorld::Impl {
     JPH::TempAllocatorImpl temp_allocator {10 * 1024 * 1024};
     JPH::JobSystemThreadPool job_system {JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, 1};
@@ -126,22 +129,29 @@ struct PhysicsWorld::Impl {
             ob_ob_filter
         );
         contact_listener.bodies = &bodies;
+        log_info_cat(AE_LOG_CATEGORY, "PhysicsSystem initialized (max bodies=1024, caches=1024, temp=10MB, worker_threads=1)");
     }
 
     ~Impl() {
+        std::size_t char_count = 0;
         for (auto& ch : characters) {
             delete ch.character;
+            ++char_count;
         }
         characters.clear();
 
+        std::size_t body_count = 0;
         auto& bi = physics_system.GetBodyInterface();
         for (auto& body : bodies) {
             if (!body.jolt_id.IsInvalid()) {
                 bi.RemoveBody(body.jolt_id);
                 bi.DestroyBody(body.jolt_id);
+                ++body_count;
             }
         }
         bodies.clear();
+        log_info_cat(AE_LOG_CATEGORY, "PhysicsSystem shutdown: removed " + std::to_string(body_count) +
+                      " bodies, deleted " + std::to_string(char_count) + " characters");
     }
 };
 
@@ -154,6 +164,7 @@ namespace {
             JPH::Factory::sInstance = new JPH::Factory();
             JPH::RegisterTypes();
             s_jolt_registered = true;
+            log_info_cat(AE_LOG_CATEGORY, "Jolt Physics: registered default allocator, factory, types");
         }
     }
 }
@@ -162,15 +173,24 @@ namespace {
 
 PhysicsWorld::PhysicsWorld() : impl_(std::make_unique<Impl>()) {
     ensure_jolt();
+    log_info_cat(AE_LOG_CATEGORY, "PhysicsWorld created");
 }
 
-PhysicsWorld::~PhysicsWorld() = default;
+PhysicsWorld::~PhysicsWorld() {
+    log_debug_cat(AE_LOG_CATEGORY, "PhysicsWorld destroyed");
+}
 
 BodyHandle PhysicsWorld::create_box_body(const BodyDesc& desc) {
     JPH::BoxShapeSettings shape_settings(JPH::Vec3(desc.half_extents.x, desc.half_extents.y, desc.half_extents.z));
     shape_settings.SetEmbedded();
     auto shape_result = shape_settings.Create();
-    if (!shape_result.IsValid()) return kInvalidBody;
+    if (!shape_result.IsValid()) {
+        log_error_cat(AE_LOG_CATEGORY, "create_box_body: invalid shape (half_extents=" +
+                      std::to_string(desc.half_extents.x) + "," +
+                      std::to_string(desc.half_extents.y) + "," +
+                      std::to_string(desc.half_extents.z) + ")");
+        return kInvalidBody;
+    }
 
     JPH::EMotionType motion = desc.is_sensor ? JPH::EMotionType::Static :
         (desc.type == BodyType::Dynamic ? JPH::EMotionType::Dynamic :
@@ -197,18 +217,31 @@ BodyHandle PhysicsWorld::create_box_body(const BodyDesc& desc) {
     jb.jolt_body = nullptr;
     jb.jump_through = false;
     impl_->bodies.push_back(jb);
+    log_info_cat(AE_LOG_CATEGORY, "Created box body handle=" + std::to_string(handle) +
+                  " type=" + std::to_string(static_cast<int>(desc.type)) +
+                  " pos=(" + std::to_string(desc.position.x) + "," +
+                  std::to_string(desc.position.y) + "," +
+                  std::to_string(desc.position.z) + ")");
     return handle;
 }
 
 BodyHandle PhysicsWorld::create_capsule_body(const CapsuleDesc& desc, BodyType type) {
     float half_height = desc.half_height;
     float radius = desc.radius;
-    if (half_height < 0.0F) half_height = 0.0F;
+    if (half_height < 0.0F) {
+        log_warning_cat(AE_LOG_CATEGORY, "create_capsule_body: negative half_height " +
+                        std::to_string(half_height) + " clamped to 0");
+        half_height = 0.0F;
+    }
 
     JPH::CapsuleShapeSettings shape_settings(half_height, radius);
     shape_settings.SetEmbedded();
     auto shape_result = shape_settings.Create();
-    if (!shape_result.IsValid()) return kInvalidBody;
+    if (!shape_result.IsValid()) {
+        log_error_cat(AE_LOG_CATEGORY, "create_capsule_body: invalid shape (half_height=" +
+                      std::to_string(half_height) + ", radius=" + std::to_string(radius) + ")");
+        return kInvalidBody;
+    }
 
     JPH::EMotionType motion = (type == BodyType::Dynamic) ? JPH::EMotionType::Dynamic :
                               (type == BodyType::Kinematic) ? JPH::EMotionType::Kinematic :
@@ -234,18 +267,29 @@ BodyHandle PhysicsWorld::create_capsule_body(const CapsuleDesc& desc, BodyType t
     jb.jolt_body = nullptr;
     jb.jump_through = false;
     impl_->bodies.push_back(jb);
+    log_info_cat(AE_LOG_CATEGORY, "Created capsule body handle=" + std::to_string(handle) +
+                  " half_height=" + std::to_string(half_height) + " radius=" + std::to_string(radius) +
+                  " pos=(" + std::to_string(desc.position.x) + "," +
+                  std::to_string(desc.position.y) + "," +
+                  std::to_string(desc.position.z) + ")");
     return handle;
 }
 
 void PhysicsWorld::destroy_body(BodyHandle handle) {
-    if (handle >= impl_->bodies.size()) return;
-    auto& body = impl_->bodies[handle];
-    if (!body.jolt_id.IsInvalid()) {
-        auto& bi = impl_->physics_system.GetBodyInterface();
-        bi.RemoveBody(body.jolt_id);
-        bi.DestroyBody(body.jolt_id);
+    if (handle >= impl_->bodies.size()) {
+        log_warning_cat(AE_LOG_CATEGORY, "destroy_body: invalid handle " + std::to_string(handle));
+        return;
     }
+    auto& body = impl_->bodies[handle];
+    if (body.jolt_id.IsInvalid()) {
+        log_debug_cat(AE_LOG_CATEGORY, "destroy_body: body " + std::to_string(handle) + " already destroyed");
+        return;
+    }
+    auto& bi = impl_->physics_system.GetBodyInterface();
+    bi.RemoveBody(body.jolt_id);
+    bi.DestroyBody(body.jolt_id);
     body.jolt_id = JPH::BodyID();
+    log_info_cat(AE_LOG_CATEGORY, "Destroyed body handle=" + std::to_string(handle));
 }
 
 void PhysicsWorld::set_body_position(BodyHandle handle, const Vec3& position) {
@@ -306,13 +350,22 @@ CharacterHandle PhysicsWorld::create_character(const CharacterDesc& desc) {
     jc.current_radius = radius;
     jc.current_height = desc.height;
     impl_->characters.push_back(jc);
+    log_info_cat(AE_LOG_CATEGORY, "Created character handle=" + std::to_string(handle) +
+                  " radius=" + std::to_string(radius) + " height=" + std::to_string(desc.height) +
+                  " pos=(" + std::to_string(desc.position.x) + "," +
+                  std::to_string(desc.position.y) + "," +
+                  std::to_string(desc.position.z) + ")");
     return handle;
 }
 
 void PhysicsWorld::destroy_character(CharacterHandle handle) {
-    if (handle >= impl_->characters.size()) return;
+    if (handle >= impl_->characters.size()) {
+        log_warning_cat(AE_LOG_CATEGORY, "destroy_character: invalid handle " + std::to_string(handle));
+        return;
+    }
     delete impl_->characters[handle].character;
     impl_->characters[handle].character = nullptr;
+    log_info_cat(AE_LOG_CATEGORY, "Destroyed character handle=" + std::to_string(handle));
 }
 
 void PhysicsWorld::set_character_velocity(CharacterHandle handle, const Vec3& velocity) {
@@ -375,6 +428,8 @@ void PhysicsWorld::set_character_shape(CharacterHandle handle, float radius, flo
     );
     jc.current_radius = radius;
     jc.current_height = height;
+    log_info_cat(AE_LOG_CATEGORY, "Character " + std::to_string(handle) + " shape changed: radius=" +
+                  std::to_string(radius) + " height=" + std::to_string(height));
 }
 
 RayResult PhysicsWorld::raycast(const Vec3& origin, const Vec3& direction, float max_distance) const {
@@ -382,7 +437,10 @@ RayResult PhysicsWorld::raycast(const Vec3& origin, const Vec3& direction, float
     JPH::Vec3 jorigin(origin.x, origin.y, origin.z);
     JPH::Vec3 jdir(direction.x, direction.y, direction.z);
     float len = std::sqrt(jdir.LengthSq());
-    if (len < 0.0001F) return result;
+    if (len < 0.0001F) {
+        log_debug_cat(AE_LOG_CATEGORY, "raycast: direction vector too short (len=" + std::to_string(len) + ")");
+        return result;
+    }
     jdir = jdir / len;
 
     JPH::RRayCast ray {jorigin, jdir * max_distance};
@@ -406,13 +464,17 @@ RayResult PhysicsWorld::raycast(const Vec3& origin, const Vec3& direction, float
 }
 
 void PhysicsWorld::set_body_jump_through(BodyHandle handle, bool enabled) {
-    if (handle >= impl_->bodies.size()) return;
+    if (handle >= impl_->bodies.size()) {
+        log_warning_cat(AE_LOG_CATEGORY, "set_body_jump_through: invalid handle " + std::to_string(handle));
+        return;
+    }
     impl_->bodies[handle].jump_through = enabled;
+    log_debug_cat(AE_LOG_CATEGORY, "Body " + std::to_string(handle) + " jump_through = " + (enabled ? "true" : "false"));
 }
 
 void PhysicsWorld::tick(float delta_seconds) {
-    // Update characters (CharacterVirtual handles its own collision detection)
-    // Static/kinematic bodies don't need PhysicsSystem::Update
+    log_trace_cat(AE_LOG_CATEGORY, "tick: dt=" + std::to_string(delta_seconds) +
+                  " characters=" + std::to_string(impl_->characters.size()));
     for (auto& jc : impl_->characters) {
         if (!jc.character) continue;
         JPH::CharacterVirtual::ExtendedUpdateSettings update_settings;

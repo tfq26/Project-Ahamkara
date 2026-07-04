@@ -168,4 +168,27 @@ bool ClientConfig::load_from_file(const std::string& path) {
     return true;
 }
 
+bool ClientConfig::save_to_file(const std::string& path) const {
+    std::ofstream file(path);
+    if (!file.is_open()) {
+        ae::log_warning("Cannot write client config to " + path);
+        return false;
+    }
+    file << "# Ahamkara client config — auto-generated\n";
+    file << "window_width=" << window_width << "\n";
+    file << "window_height=" << window_height << "\n";
+    file << "fullscreen=" << (fullscreen ? "true" : "false") << "\n";
+    file << "gamma=" << gamma << "\n";
+    file << "mouse_sensitivity=" << mouse_sensitivity << "\n";
+    file << "server_ip=" << server_ip << "\n";
+    file << "audio_enabled=" << (audio.enabled ? "true" : "false") << "\n";
+    file << "audio_master_volume=" << audio.master_volume << "\n";
+    file << "audio_sfx_volume=" << audio.sfx_volume << "\n";
+    file << "audio_weapon_volume=" << audio.weapon_volume << "\n";
+    file << "audio_ui_volume=" << audio.ui_volume << "\n";
+    file << "audio_music_volume=" << audio.music_volume << "\n";
+    file << "audio_ambient_volume=" << audio.ambient_volume << "\n";
+    return true;
+}
+
 }  // namespace ahamkara::client

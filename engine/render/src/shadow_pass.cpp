@@ -1,4 +1,5 @@
 #include "ae/render/shadow_pass.h"
+#include "ae/core/log.h"
 #include "ae/render/render_backend.h"
 
 #if defined(__APPLE__)
@@ -6,6 +7,9 @@
 #else
 #include <GL/gl.h>
 #endif
+
+
+#define AE_LOG_CATEGORY "Render"
 
 namespace ae::render {
 

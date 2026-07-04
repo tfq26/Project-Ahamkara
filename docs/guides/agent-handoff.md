@@ -85,6 +85,7 @@ Start by reading:
 - [docs/README.md](../README.md)
 - [docs/guides/building.md](building.md)
 - [docs/guides/remote-agent-workflow.md](remote-agent-workflow.md)
+- [docs/vault/workflows/phase-slice-map.md](../vault/workflows/phase-slice-map.md)
 - [CMakePresets.json](../../CMakePresets.json)
 - [CMakeLists.txt](../../CMakeLists.txt)
 
@@ -153,6 +154,14 @@ For large features:
 2. Subagents work on narrow scoped tasks.
 3. Writing subagents should use separate branches or git worktrees.
 4. The parent agent reviews, integrates, and reruns tests.
+
+When a worker is launched from Warp through `tools/agent-runner/warp-worker.sh`,
+the handoff prompt should explicitly tell it to use subagents for broad slice
+work when the model can spawn them. If the worker is launched as a phase batch,
+it should first read the roadmap phase list, then fan out one subagent per
+slice, and allow nested subagents only for isolated subtasks inside that slice.
+Each subagent still needs its own worktree and report, and the parent remains
+responsible for integration.
 
 Suggested subagent output:
 

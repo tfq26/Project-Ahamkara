@@ -197,6 +197,44 @@ unit-testable without Blender:
 python3 tools/blender/test_build_level.py
 ```
 
+## Viewmodel Generator
+
+`tools/blender/build_viewmodel.py` is a Blender entrypoint for the first-person
+rifle viewmodel. It builds the rifle from primitives, saves the `.blend`, and
+exports glTF so the asset importer can compile the runtime `.aemesh`.
+
+```sh
+blender -P tools/blender/build_viewmodel.py -- --out_dir assets/models --open
+```
+
+`--out_dir` defaults to `assets/models`. Passing `--open` reloads the saved
+`.blend` in the active Blender session after export.
+
+### Viewmodel Orientation Contract
+
+Weapon viewmodels follow a stable axis convention shared by the asset tool, the
+importer, and the runtime renderer:
+
+- **Authored axis**: Barrel runs along **+X** in Blender (Y-up world, glTF
+  `export_yup = True`).
+- **Renderer conversion**: The renderer applies a single **-90° Y rotation** to
+  map +X barrel direction into view-forward / -Z. This conversion is in
+  `engine/render/src/debug_renderer.cpp` and is shared by all weapons.
+- **Per-weapon adjustments**: Pitch/yaw/roll offsets (degrees) are defined in
+  `game/include/ahamkara/game/weapon_registry.h` (canonical) and mirrored in
+  the renderer. Rotation order: barrel correction → yaw → pitch → roll.
+- **Matrix convention**: Column-major 4x4 matrices (`ae::gl_compat::Mat4`),
+  post-multiplied (`viewmodel = viewmodel * rotation`).
+
+New weapons authored with the same +X barrel convention will render correctly
+without per-weapon renderer hacks.
+
+For the AR-specific modeling and animation contract, see
+[Weapon authoring](weapon_authoring.md) and
+[`tools/blender/weapons/README.md`](../../tools/blender/weapons/README.md).
+The concrete starter AR socket map is in
+[`tools/blender/weapons/meshes/ar15_modular_template.json`](../../tools/blender/weapons/meshes/ar15_modular_template.json).
+
 ## Runtime Boundary
 
 The runtime should load engine-owned runtime formats, not editor-native project

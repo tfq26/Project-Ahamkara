@@ -23,6 +23,10 @@ Drive sky color, ambient, and distance fog from the loaded `LevelAsset` instead
 of hardcoded renderer values, and ensure fog reads as real depth in a space. A
 cheap, high-payoff legibility win for maps (no HDR required).
 
+Implementation has been split: the wiring work now lives in
+`TASK-20260628-0105-level-sky-fog-wiring-slice`, while this blocked task
+remains the display-confirmation slice.
+
 ## Background
 
 `DebugRenderer` already has a screen-space sky pass and fog uniforms

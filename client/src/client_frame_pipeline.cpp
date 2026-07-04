@@ -1,3 +1,4 @@
+#include "ae/core/log.h"
 #include "ahamkara/client/client_frame_pipeline.h"
 
 #include "ae/core/math.h"
@@ -10,7 +11,11 @@
 #include "ahamkara/game/net_types.h"
 
 #include <GLFW/glfw3.h>
+#include <algorithm>
+#include <cstring>
 #include <string>
+
+#define AE_LOG_CATEGORY "Client"
 
 namespace ahamkara::client {
 
@@ -44,7 +49,79 @@ ClientFramePipeline::ClientFramePipeline(
     , shadow_pass_(shadow_pass)
     , pbr_renderer_(pbr_renderer)
     , level_scene_(level_scene)
-    , level_asset_(level_asset) {}
+    , level_asset_(level_asset) {
+    if (menu_system_.load_from_directory("assets/menus")) {
+        // Seed settings from current config
+        menu_system_.set_variable("gamma", client_config_.gamma);
+        menu_system_.set_variable("fullscreen", client_config_.fullscreen ? 1.0f : 0.0f);
+        menu_system_.set_variable("master_volume", client_config_.audio.master_volume);
+        menu_system_.set_variable("sfx_volume", client_config_.audio.sfx_volume);
+        menu_system_.set_variable("audio_enabled", client_config_.audio.enabled ? 1.0f : 0.0f);
+        menu_system_.set_variable("mouse_sensitivity", client_config_.mouse_sensitivity);
+
+        // ── Gameplay actions ──────────────────────────────────────────
+        menu_system_.register_action("start_game", [this](std::string_view param) {
+            gameplay_active_ = true;
+            std::string path(param.empty() ? "assets/compiled/levels/javelin4.aelevel" : std::string(param));
+            // Show loading screen while loading
+            menu_system_.show_screen("loading_screen");
+            menu_system_.set_variable("loading_map_name", path);
+
+            // Use a simple staged simulation: load level in background, then unpause
+            simulation_.set_paused(true);
+            bool loaded = simulation_.load_level(path);
+            simulation_.set_paused(!loaded);
+            menu_system_.set_variable("loading_progress", loaded ? "1.0" : "0.5");
+            menu_system_.set_variable("loading_status", loaded ? "Ready." : "Failed to load map.");
+
+            // Small delay so loading screen is visible, then pop to gameplay
+            // In production this would be async with progress callbacks
+            menu_system_.pop_to_root();
+            simulation_.set_paused(false);
+        });
+        menu_system_.register_action("start_sandbox", [this](std::string_view) {
+            gameplay_active_ = true;
+            menu_system_.pop_to_root();
+            simulation_.set_paused(false);
+        });
+        menu_system_.register_action("resume_game", [this](std::string_view) {
+            menu_system_.pop_screen();
+            simulation_.set_paused(false);
+        });
+        menu_system_.register_action("quit_application", [this](std::string_view) {
+            application_.shutdown();
+        });
+
+        // ── Settings: apply immediately ───────────────────────────────
+        auto apply_settings = [this]() {
+            const auto& fv = menu_system_.float_vars();
+            auto get = [&fv](const std::string& k, float def) { auto it = fv.find(k); return it != fv.end() ? it->second : def; };
+            client_config_.gamma = get("gamma", 1.0f);
+            float master = get("master_volume", 1.0f);
+            float sfx = get("sfx_volume", 1.0f);
+            bool audio_on = get("audio_enabled", 1.0f) > 0.5f;
+            float sens = get("mouse_sensitivity", 1.0f);
+
+            audio_engine_.set_master_volume(audio_on ? master : 0.0f);
+            client_config_.audio.master_volume = master;
+            client_config_.audio.sfx_volume = sfx;
+            client_config_.audio.enabled = audio_on;
+            client_config_.mouse_sensitivity = sens;
+            window_input_.set_mouse_sensitivity(sens);
+
+            // Save to config file
+            client_config_.save_to_file("client/config/ahamkara.cfg");
+        };
+        menu_system_.register_action("apply_settings", [apply_settings](std::string_view) { apply_settings(); });
+        menu_system_.register_action("setting_changed", [apply_settings](std::string_view) { apply_settings(); });
+
+        menu_initialized_ = true;
+        menu_system_.show_screen("main_menu");
+    }
+
+    // Load HUD layout
+    hud_loaded_ = hud_system_.load("assets/menus/hud.json");
+}
 
 bool ClientFramePipeline::run_one_frame() {
     // =====================================================================
@@ -111,37 +188,29 @@ void ClientFramePipeline::stage_poll_input() {
 }
 
 void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
-    const auto& gamepad = window_.gamepad_state();
     const auto& debug_state = window_.gamepad_debug_state();
-
-    // ESC / controller start → menu toggle.
-    // ESC edge detection is owned by the platform window: is_key_pressed() is
-    // edge-triggered (window_glfw.cpp resets per-frame edge state in
-    // poll_events()). This previously also kept a raw glfwGetKey + process-static
-    // edge-detect that duplicated the same press and bypassed the platform
-    // abstraction; removed in favor of the single is_key_pressed path.
     GLFWwindow* glfw_win = static_cast<GLFWwindow*>(window_.native_handle());
 
     const bool menu_toggle =
         window_.is_key_pressed(ae::KeyCode::Escape)
         || debug_state.is_code_pressed(controller_bindings_.menu);
 
-    const auto toggle_actions = ui_controller_.handle_menu_toggle(menu_toggle, client_config_);
-    if (toggle_actions.config_applied) {
-        window_input_.set_mouse_sensitivity(client_config_.mouse_sensitivity);
-        audio_engine_.set_master_volume(client_config_.audio.master_volume);
-    }
-    if (toggle_actions.quit_application) {
-        application_.shutdown();
+    if (menu_toggle && menu_initialized_) {
+        if (gameplay_active_ && !menu_state_.visible()) {
+            menu_system_.set_active_screen("pause_menu", true);
+            simulation_.set_paused(true);
+        } else if (menu_state_.visible()) {
+            menu_system_.pop_screen();
+            simulation_.set_paused(false);
+        }
+        menu_state_.toggle_menu();
     }
 
-    // Cursor mode
     if (glfw_win) {
         glfwSetInputMode(glfw_win, GLFW_CURSOR,
             menu_state_.cursor_should_capture() ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
     }
 
-    // Hotkeys + metrics
     const std::string base_title = "Flashback";
     if (window_title_.empty()) {
         window_title_ = build_debug_window_title(base_title, frontend_state_.camera_mode,
@@ -186,6 +255,34 @@ void ClientFramePipeline::stage_build_scene() {
             .level_asset         = level_asset_,
         });
 
+    weapon_animation_.tick(
+        smoothed_delta_,
+        curr_snap_,
+        raw_input_);
+
+    weapon_presentation_.set_backend(renderer_.backend());
+    weapon_presentation_.tick(smoothed_delta_);
+    scene_.weapon_model = weapon_presentation_.resolve_viewmodel(curr_snap_.weapon_index);
+
+    const auto* joints = weapon_presentation_.joint_matrices(curr_snap_.weapon_index);
+    int jc = weapon_presentation_.joint_count(curr_snap_.weapon_index);
+    if (joints && jc > 0) {
+        constexpr int kMaxWeaponJoints = static_cast<int>(sizeof(scene_.weapon_joint_matrices) / sizeof(scene_.weapon_joint_matrices[0]) / 16);
+        const int copy_count = std::min(jc, kMaxWeaponJoints);
+        scene_.weapon_joint_count = copy_count;
+        std::memcpy(scene_.weapon_joint_matrices, joints, static_cast<std::size_t>(copy_count) * sizeof(ae::render::Mat4));
+    } else {
+        scene_.weapon_joint_count = 0;
+    }
+
+    scene_.weapon_animation_override = weapon_animation_.has_transform();
+    if (scene_.weapon_animation_override) {
+        const auto& transform = weapon_animation_.transform();
+        for (int i = 0; i < 16; ++i) {
+            scene_.weapon_animation_transform[i] = transform[static_cast<std::size_t>(i)];
+        }
+    }
+
     render_submission_ = build_debug_render_submission(
         curr_snap_, window_.gamepad_state(), scene_);
 }
@@ -217,9 +314,37 @@ void ClientFramePipeline::stage_render_ui() {
     ae::ui::sync_input_to_imgu(glfw_win);
     ae::ui::begin_ui_frame();
 
-    ui_actions_ = ui_controller_.render(
-        input_map_, window_, window_.gamepad_state(),
-        curr_snap_, render_submission_.scene, client_config_);
+    // Poll for hot-reloads
+    if (menu_initialized_) menu_system_.poll_hot_reload();
+    if (hud_loaded_)      hud_system_.poll_hot_reload();
+
+    // Update dynamic menu variables
+    if (menu_initialized_) {
+        menu_system_.set_variable("build_date", __DATE__ " " __TIME__);
+        menu_system_.set_variable("fps", static_cast<int>(frontend_state_.displayed_metrics.fps));
+    }
+
+    // Render menus (main, pause, settings, map select, loading)
+    if (menu_initialized_ && menu_system_.is_visible()) {
+        menu_system_.render();
+    }
+
+    // Render gameplay HUD (new JSON-driven system + legacy crosshair fallback)
+    if (hud_loaded_ && gameplay_active_ && !menu_system_.is_visible()) {
+        ae::ui::HudState hud_state;
+        hud_state.health = curr_snap_.player_state.health;
+        hud_state.max_health = 100.0f;
+        hud_state.ammo_current = static_cast<int>(curr_snap_.ammo_current);
+        hud_state.ammo_max = static_cast<int>(curr_snap_.ammo_max);
+        hud_state.reserve_ammo = static_cast<int>(curr_snap_.reserve_ammo);
+        hud_state.weapon_index = curr_snap_.weapon_index;
+        hud_state.weapon_name = ahamkara::game::weapon_name(curr_snap_.weapon_index);
+        hud_state.crosshair_visible = render_submission_.scene.show_crosshair && !render_submission_.scene.menu_visible;
+        hud_state.crosshair_spread = raw_input_.move_axis.x * raw_input_.move_axis.x + raw_input_.move_axis.y * raw_input_.move_axis.y;
+
+        auto& io = ImGui::GetIO();
+        hud_system_.render(io.DisplaySize.x, io.DisplaySize.y, hud_state);
+    }
 
     ae::ui::end_ui_frame();
 }

@@ -1,4 +1,5 @@
 #include "ae/runtime/metrics.h"
+#include "ae/core/log.h"
 
 #include <algorithm>
 #include <chrono>
@@ -9,6 +10,8 @@
 #include <sstream>
 #include <string>
 #include <thread>
+
+#define AE_LOG_CATEGORY "Runtime"
 
 #include <sys/resource.h>
 
@@ -35,6 +38,7 @@ double current_wall_seconds() {
 double process_cpu_seconds() {
     rusage usage {};
     if (getrusage(RUSAGE_SELF, &usage) != 0) {
+        log_warning_cat(AE_LOG_CATEGORY, "getrusage failed for process CPU metric");
         return 0.0;
     }
 
@@ -51,6 +55,7 @@ bool read_macos_system_cpu_ticks(double& total_ticks, double& active_ticks) {
     mach_msg_type_number_t count = HOST_CPU_LOAD_INFO_COUNT;
     if (host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, reinterpret_cast<host_info_t>(&cpu_info), &count)
         != KERN_SUCCESS) {
+        log_warning_cat(AE_LOG_CATEGORY, "host_statistics failed for system CPU metric");
         return false;
     }
 
@@ -76,6 +81,8 @@ RuntimeMetricsSnapshot read_macos_memory_metrics() {
         == KERN_SUCCESS) {
         snapshot.process_rss_mb = static_cast<double>(task_basic_info.resident_size) / kBytesPerMegabyte;
         snapshot.process_virtual_mb = static_cast<double>(task_basic_info.virtual_size) / kBytesPerMegabyte;
+    } else {
+        log_warning_cat(AE_LOG_CATEGORY, "task_info failed for process memory metric");
     }
 
     vm_size_t page_size = 0;
@@ -88,6 +95,8 @@ RuntimeMetricsSnapshot read_macos_memory_metrics() {
         const double used_pages = static_cast<double>(
             vm_stats.active_count + vm_stats.inactive_count + vm_stats.wire_count + vm_stats.compressor_page_count);
         snapshot.system_used_memory_mb = used_pages * static_cast<double>(page_size) / kBytesPerMegabyte;
+    } else {
+        log_warning_cat(AE_LOG_CATEGORY, "host_statistics64 failed for system memory metric");
     }
 
     std::uint64_t total_memory_bytes = 0;
@@ -102,6 +111,7 @@ RuntimeMetricsSnapshot read_macos_memory_metrics() {
 bool read_linux_system_cpu_ticks(double& total_ticks, double& active_ticks) {
     std::ifstream stat_file("/proc/stat");
     if (!stat_file.is_open()) {
+        log_warning_cat(AE_LOG_CATEGORY, "Cannot open /proc/stat for system CPU metric");
         return false;
     }
 
@@ -166,6 +176,7 @@ RuntimeMetricsSnapshot read_linux_memory_metrics() {
 RuntimeMetricsCollector::RuntimeMetricsCollector() {
     const unsigned int hardware_threads = std::thread::hardware_concurrency();
     logical_core_count_ = hardware_threads > 0 ? static_cast<double>(hardware_threads) : 1.0;
+    log_debug_cat(AE_LOG_CATEGORY, "RuntimeMetricsCollector initialized: logical_cores=" + std::to_string(logical_core_count_));
 }
 
 RuntimeMetricsCollector::CpuTimes RuntimeMetricsCollector::read_cpu_times() const {

@@ -51,6 +51,8 @@ treat task notes as the source of truth. The bundled
 
 Use `$subagent-collaboration-protocol` when multiple agents or threads touch the same codebase.
 Use `$subagent-reporting` when the worker needs to produce a structured handoff report.
+Use `$agent-worktrees` when a worker or subagent can isolate a slice in its own
+checkout and parallel edits would otherwise fight over the same tree.
 
 ## Organization Model
 
@@ -119,6 +121,13 @@ Run the loop as a sequence of review turns:
 9. Report to the user only after the terminal state, unless the user asks for an interim status.
 
 Never treat "worker says done" as sufficient. Completion requires evidence.
+
+If the supervising model can spawn subagents, prefer a fan-out/fan-in pattern:
+
+- break the roadmap into small slices first
+- assign each slice to a subagent with a clear worktree or checkout
+- require a report and validation evidence from each subagent
+- review and integrate from the supervisor side only after evidence is in
 
 ## Supervisor Decisions
 

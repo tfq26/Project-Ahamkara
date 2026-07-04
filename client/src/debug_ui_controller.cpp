@@ -12,6 +12,8 @@
 #include <cmath>
 #include <algorithm>
 
+#define AE_LOG_CATEGORY "Client"
+
 namespace ahamkara::client {
 
 static constexpr ImVec4 kAccent      {0.20F, 0.55F, 0.90F, 1.00F};

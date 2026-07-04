@@ -25,6 +25,10 @@ material, reference it from a level, and confirm an albedo texture actually
 samples on a level mesh in the engine. This closes the loop opened by the UV
 plumbing (TASK-20260620-1330) and level-mesh (TASK-20260620-1200) work.
 
+Implementation has been split: the authoring/import work now lives in
+`TASK-20260628-0104-textured-material-authoring-slice`, while this blocked task
+remains the display-confirmation slice.
+
 ## Background
 
 UVs now flow glTF `TEXCOORD_0` -> `.aemesh` -> `GpuMesh` -> PBR (`vUV`), and

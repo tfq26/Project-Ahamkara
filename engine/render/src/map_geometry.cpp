@@ -1,4 +1,5 @@
 #include "ae/render/map_geometry.h"
+#include "ae/core/log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -10,6 +11,9 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 #endif
+
+
+#define AE_LOG_CATEGORY "Render"
 
 namespace ae::render {
 namespace {

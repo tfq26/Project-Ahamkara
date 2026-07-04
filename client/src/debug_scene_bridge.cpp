@@ -105,6 +105,11 @@ ae::render::DebugScene build_debug_scene(
     const ae::Vec3 anchor_position {anchor.position.x, anchor.position.y, anchor.position.z};
     const ae::Vec3 world_up {0.0F, 1.0F, 0.0F};
     const ae::Vec3 forward = camera_forward_from_anchor(anchor).normalized();
+    const auto normalize_or = [](const ae::Vec3& value, const ae::Vec3& fallback) {
+        return value.length_squared() <= ae::epsilon ? fallback : value.normalized();
+    };
+    const ae::Vec3 view_right = normalize_or(ae::cross(world_up, forward), {1.0F, 0.0F, 0.0F});
+    const ae::Vec3 view_up = normalize_or(ae::cross(forward, view_right), world_up);
 
     ae::render::DebugScene scene {};
     scene.player_position = to_render_vec3(player_position);
@@ -114,10 +119,11 @@ ae::render::DebugScene build_debug_scene(
     scene.player_max_health = 100.0F;
     scene.ammo_current = current_snapshot.ammo_current;
     scene.ammo_max = current_snapshot.ammo_max;
+    scene.weapon_index = current_snapshot.weapon_index;
     scene.reserve_ammo = current_snapshot.reserve_ammo;
     scene.weapon_name = ahamkara::game::weapon_name(current_snapshot.weapon_index);
     scene.always_day = inputs.always_day;
-    scene.menu_visible = false;  // ImGui handles menus now
+    scene.menu_visible = inputs.menu_visible;
     scene.menu_tab = inputs.menu_tab;
     scene.gamma = inputs.gamma;
     scene.match_time = current_snapshot.match_time;
@@ -225,6 +231,10 @@ ae::render::DebugScene build_debug_scene(
     if (inputs.camera_mode == CameraMode::FirstPerson) {
         scene.camera_position = to_render_vec3(anchor_position);
         scene.camera_target = to_render_vec3(anchor_position + forward * kFirstPersonTargetDistance);
+        scene.viewmodel_position = to_render_vec3(anchor_position);
+        scene.viewmodel_forward = to_render_vec3(forward);
+        scene.viewmodel_right = to_render_vec3(view_right);
+        scene.viewmodel_up = to_render_vec3(view_up);
         scene.show_player_marker = false;
         scene.show_crosshair = true;
         return scene;
@@ -254,6 +264,10 @@ ae::render::DebugScene build_debug_scene(
 
     scene.camera_position = to_render_vec3(smooth_eye_pos);
     scene.camera_target = to_render_vec3(smooth_target_pos);
+    scene.viewmodel_position = to_render_vec3(anchor_position);
+    scene.viewmodel_forward = to_render_vec3(forward);
+    scene.viewmodel_right = to_render_vec3(view_right);
+    scene.viewmodel_up = to_render_vec3(view_up);
     scene.show_player_marker = true;
     scene.show_crosshair = false;
     return scene;

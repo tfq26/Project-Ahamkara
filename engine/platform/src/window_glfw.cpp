@@ -2,6 +2,8 @@
 
 #include "ae/core/log.h"
 
+#define AE_LOG_CATEGORY "Platform"
+
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
@@ -135,7 +137,9 @@ KeyCode glfw_to_ae_key(int glfw_key) {
         case GLFW_KEY_RIGHT_ALT:      return KeyCode::RightAlt;
         case GLFW_KEY_RIGHT_SUPER:    return KeyCode::RightSuper;
         case GLFW_KEY_MENU:           return KeyCode::Menu;
-        default:                      return KeyCode::Unknown;
+        default:
+            log_warning_cat(AE_LOG_CATEGORY, "Unrecognized GLFW keycode: " + std::to_string(glfw_key));
+            return KeyCode::Unknown;
     }
 }
 
@@ -156,7 +160,9 @@ GamepadButton glfw_button_to_ae_button(int glfw_button) {
         case GLFW_GAMEPAD_BUTTON_DPAD_RIGHT: return GamepadButton::DPadRight;
         case GLFW_GAMEPAD_BUTTON_DPAD_DOWN: return GamepadButton::DPadDown;
         case GLFW_GAMEPAD_BUTTON_DPAD_LEFT: return GamepadButton::DPadLeft;
-        default: return GamepadButton::Count;
+        default:
+            log_debug_cat(AE_LOG_CATEGORY, "Unrecognized GLFW gamepad button: " + std::to_string(glfw_button));
+            return GamepadButton::Count;
     }
 }
 
@@ -168,7 +174,9 @@ GamepadAxis glfw_axis_to_ae_axis(int glfw_axis) {
         case GLFW_GAMEPAD_AXIS_RIGHT_Y: return GamepadAxis::RightY;
         case GLFW_GAMEPAD_AXIS_LEFT_TRIGGER: return GamepadAxis::LeftTrigger;
         case GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER: return GamepadAxis::RightTrigger;
-        default: return GamepadAxis::Count;
+        default:
+            log_debug_cat(AE_LOG_CATEGORY, "Unrecognized GLFW gamepad axis: " + std::to_string(glfw_axis));
+            return GamepadAxis::Count;
     }
 }
 
@@ -229,6 +237,7 @@ class GlfwWindow final : public PlatformWindow {
 public:
     explicit GlfwWindow(const WindowConfig& config) {
         if (!glfwInit()) {
+            log_error_cat(AE_LOG_CATEGORY, "glfwInit() failed");
             throw std::runtime_error("Failed to initialise GLFW.");
         }
 
@@ -314,6 +323,7 @@ public:
             glfwDestroyWindow(window_);
             window_ = nullptr;
         }
+        log_info_cat(AE_LOG_CATEGORY, "Platform window destroyed");
         glfwTerminate();
     }
 
@@ -392,6 +402,7 @@ private:
         if (mapped_gamepad_index >= 0) {
             GLFWgamepadstate glfw_state {};
             if (!glfwGetGamepadState(mapped_gamepad_index, &glfw_state)) {
+                log_warning_cat(AE_LOG_CATEGORY, "glfwGetGamepadState failed for index " + std::to_string(mapped_gamepad_index));
                 gamepad_state_ = {};
                 return;
             }

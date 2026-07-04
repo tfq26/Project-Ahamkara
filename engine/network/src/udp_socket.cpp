@@ -2,6 +2,8 @@
 
 #include "ae/core/log.h"
 
+#define AE_LOG_CATEGORY "Network"
+
 #include <arpa/inet.h>
 #include <cerrno>
 #include <cstring>
@@ -66,11 +68,13 @@ bool UdpSocket::open(u16 port) {
         return false;
     }
 
+    log_info_cat(AE_LOG_CATEGORY, "UDP socket opened on port " + std::to_string(port));
     return true;
 }
 
 void UdpSocket::close() {
     if (socket_fd_ >= 0) {
+        log_info_cat(AE_LOG_CATEGORY, "UDP socket closed");
         ::close(socket_fd_);
         socket_fd_ = -1;
     }
@@ -106,7 +110,12 @@ bool UdpSocket::send_to(const NetAddress& address, const void* data, usize size)
         return false;
     }
 
-    return static_cast<usize>(sent) == size;
+    if (static_cast<usize>(sent) != size) {
+        log_warning_cat(AE_LOG_CATEGORY, "Partial send: " + std::to_string(sent) + "/" + std::to_string(static_cast<int>(size)) + " bytes");
+        return false;
+    }
+
+    return true;
 }
 
 i32 UdpSocket::receive_from(NetAddress& from, void* buffer, usize max_size) const {

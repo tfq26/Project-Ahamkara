@@ -1,6 +1,9 @@
+#include "ae/core/log.h"
 #include "ahamkara/client/debug_render_runtime.h"
 
 #include "ae/core/math.h"
+
+#define AE_LOG_CATEGORY "Client"
 
 namespace ahamkara::client {
 

@@ -18,6 +18,8 @@ on Ahamkara, not as globally installed Codex skills.
   work for OpenCode in `queue-tasks/` and review completion reports.
 - [[skills/lean-implementation/SKILL]] - YAGNI-first implementation and review
   discipline to keep workers and reviewers from overbuilding.
+- [[skills/agent-worktrees/SKILL]] - Isolated git worktrees for parallel agent
+  work and cleaner handoffs.
 
 ## Ahamkara Paths
 

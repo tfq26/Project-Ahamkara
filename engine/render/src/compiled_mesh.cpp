@@ -1,9 +1,12 @@
 #include "ae/render/compiled_mesh.h"
 #include "ae/render/binary_io.h"
+#include "ae/core/log.h"
 
 #include <filesystem>
 #include <fstream>
 #include <string_view>
+
+#define AE_LOG_CATEGORY "Render"
 
 namespace ae::render {
 namespace {
@@ -319,6 +322,7 @@ bool CompiledMeshLoader::load(const std::string& path, GltfModel& model) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
         error_ = "Failed to open: " + path;
+        log_error_cat(AE_LOG_CATEGORY, "CompiledMeshLoader: " + error_);
         return false;
     }
 
@@ -326,25 +330,30 @@ bool CompiledMeshLoader::load(const std::string& path, GltfModel& model) {
     std::uint32_t version = 0;
     if (!read_value(file, magic) || !read_value(file, version)) {
         error_ = "Failed to read compiled mesh header";
+        log_error_cat(AE_LOG_CATEGORY, "CompiledMeshLoader: " + error_);
         return false;
     }
 
     if (magic != CompiledMeshFormat::magic) {
         error_ = "Invalid compiled mesh magic";
+        log_error_cat(AE_LOG_CATEGORY, "CompiledMeshLoader: " + error_);
         return false;
     }
 
     if (version == 0 || version > CompiledMeshFormat::version) {
         error_ = "Unsupported compiled mesh version";
+        log_error_cat(AE_LOG_CATEGORY, "CompiledMeshLoader: " + error_);
         return false;
     }
 
     if (!read_meshes(file, model, version, error_) ||
         !read_skins(file, model, error_) ||
         !read_animations(file, model, error_)) {
+        log_error_cat(AE_LOG_CATEGORY, "CompiledMeshLoader: " + error_);
         return false;
     }
 
+    log_debug_cat(AE_LOG_CATEGORY, "Compiled mesh loaded: " + path);
     return true;
 }
 

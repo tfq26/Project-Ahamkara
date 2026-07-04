@@ -13,6 +13,21 @@ appears focused on engine/runtime foundations, networked gameplay, asset
 pipeline growth, rendering, collision/physics, animation, and remote-agent
 workflows.
 
+Current cleanup focus is to collapse debug-era seams into a cleaner gameplay
+path while still following the roadmap: gameplay/UI separation, reusable
+viewmodel orientation contracts, and continued OpenGL compatibility reduction.
+The roadmap priorities still stand: stabilize the playable loop first, then
+push deeper rendering fidelity and world-scale features.
+HDR/offscreen render targets remain explicitly deferred to the very last slice
+so earlier work can preserve a path toward future post-processing without
+locking the engine into backbuffer-only assumptions. HDR is tracked in the
+roadmap and memory notes, but it is intentionally not kept in the active queue
+until a concrete trigger re-queues it.
+
+The deep-logging epic is also deferred for now. Keep the remaining deep-logging
+children out of active work until the user says the project is back in a
+working state and the deferred slice should be resumed.
+
 ## Agent Workflow
 
 The repo already has an agent handoff document and remote workflow docs. The

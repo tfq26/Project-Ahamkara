@@ -1,11 +1,17 @@
 #include "ae/render/level_render.h"
+#include "ae/core/log.h"
 
 #include "ae/render/compiled_mesh.h"
 #include "ae/render/compiled_texture.h"
+#include "ae/core/log.h"
 #include "ae/render/pbr_renderer.h"
+#include "ae/core/log.h"
 
 #include <cmath>
 #include <filesystem>
+
+
+#define AE_LOG_CATEGORY "Render"
 
 namespace ae::render {
 

@@ -106,8 +106,9 @@ int main(int argc, char** argv) {
         ae::log_info("No controller bindings file found, using defaults.");
     }
 
-    // Parse --level <path> early
-    const char* level_path = nullptr;
+    // Parse --level <path> early (defaults to javelin4 if no --level provided)
+    const char* default_level = "assets/compiled/levels/javelin4.aelevel";
+    const char* level_path = default_level;
     for (int i = 1; i < argc; ++i) {
         if ((std::string(argv[i]) == "--level" || std::string(argv[i]) == "-l") && i + 1 < argc) {
             level_path = argv[i + 1];

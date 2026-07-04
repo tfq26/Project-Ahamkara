@@ -1,0 +1,143 @@
+{
+    "name": "AR-15 Modular Template",
+    "output_name": "viewmodel_ar15_modular",
+    "scale": 1.0,
+    "authoring_mode": "modular",
+    "attachment_sockets": [
+        {
+            "name": "socket_root",
+            "parent": "armature_root",
+            "pos": [0.00, 0.00, 0.00],
+            "rot": [0.0, 0.0, 0.0],
+            "purpose": "Root transform for the whole weapon."
+        },
+        {
+            "name": "socket_barrel",
+            "parent": "body",
+            "pos": [0.28, 0.03, 0.00],
+            "rot": [0.0, 0.0, 0.0],
+            "purpose": "Barrel assembly attachment point."
+        },
+        {
+            "name": "socket_muzzle",
+            "parent": "barrel",
+            "pos": [0.93, 0.03, 0.00],
+            "rot": [0.0, 0.0, 0.0],
+            "purpose": "Muzzle device / suppressor attachment point."
+        },
+        {
+            "name": "socket_optic_mount",
+            "parent": "body",
+            "pos": [0.32, 0.095, 0.00],
+            "rot": [0.0, 0.0, 0.0],
+            "purpose": "Top rail / optic mount base."
+        },
+        {
+            "name": "socket_optic",
+            "parent": "optic_mount",
+            "pos": [0.34, 0.105, 0.00],
+            "rot": [0.0, 0.0, 0.0],
+            "purpose": "Scope or sight attachment point."
+        },
+        {
+            "name": "socket_magazine",
+            "parent": "body",
+            "pos": [0.05, -0.16, 0.00],
+            "rot": [0.0, 0.0, 0.05],
+            "purpose": "Detachable magazine / clip slot."
+        },
+        {
+            "name": "socket_bolt_group",
+            "parent": "body",
+            "pos": [-0.04, 0.085, 0.00],
+            "rot": [0.0, 0.0, 0.0],
+            "purpose": "Charging handle / bolt carrier motion."
+        },
+        {
+            "name": "socket_hammer",
+            "parent": "body",
+            "pos": [-0.03, -0.03, 0.00],
+            "rot": [0.0, 0.0, 0.0],
+            "purpose": "Optional internal hammer motion point for exposed or cutaway variants."
+        },
+        {
+            "name": "socket_smoke",
+            "parent": "muzzle",
+            "pos": [0.90, 0.03, 0.00],
+            "rot": [0.0, 0.0, 0.0],
+            "purpose": "Muzzle smoke and future heat-vent emitter."
+        }
+    ],
+    "materials": [
+        {"name": "Body",   "rgba": [0.10, 0.11, 0.12, 1.0], "metallic": 0.88, "roughness": 0.48},
+        {"name": "Polymer","rgba": [0.06, 0.06, 0.07, 1.0], "metallic": 0.04, "roughness": 0.82},
+        {"name": "Accent", "rgba": [0.78, 0.52, 0.15, 1.0], "metallic": 0.95, "roughness": 0.28}
+    ],
+    "components": [
+        {"_comment": "=== BODY / RECEIVER ==="},
+        {"type": "box", "pos": [0.05, 0.030, 0.0], "scale": [0.24, 0.10, 0.07], "material": 0, "_comment": "upper receiver body"},
+        {"type": "box", "pos": [0.05, -0.055, 0.0], "scale": [0.18, 0.09, 0.065], "material": 0, "_comment": "lower receiver body"},
+        {"type": "box", "pos": [0.04, 0.095, 0.0], "scale": [0.22, 0.02, 0.028], "material": 0, "_comment": "top rail"},
+        {"type": "box", "pos": [-0.06, -0.085, 0.025], "scale": [0.035, 0.028, 0.016], "rot": [0, 0, 0.18], "material": 0, "_comment": "trigger guard front"},
+        {"type": "box", "pos": [-0.04, -0.095, 0.025], "scale": [0.04, 0.02, 0.014], "rot": [0, 0, 0], "material": 0, "_comment": "trigger guard bottom"},
+        {"type": "box", "pos": [-0.09, -0.085, 0.025], "scale": [0.03, 0.028, 0.016], "rot": [0, 0, -0.18], "material": 0, "_comment": "trigger guard rear"},
+
+        {"_comment": "=== BARREL / HANDGUARD ==="},
+        {"type": "cylinder", "pos": [0.55, 0.03, 0.0], "radius": 0.018, "depth": 0.72, "verts": 20, "rot": [0, 0, 0], "material": 0, "_comment": "barrel"},
+        {"type": "cylinder", "pos": [0.28, 0.03, 0.0], "radius": 0.022, "depth": 0.20, "verts": 16, "rot": [0, 0, 0], "material": 0, "_comment": "barrel extension / chamber"},
+        {"type": "box", "pos": [0.28, 0.02, 0.0], "scale": [0.18, 0.034, 0.04], "material": 0, "_comment": "handguard body"},
+        {"type": "box", "pos": [0.32, 0.065, 0.0], "scale": [0.16, 0.008, 0.018], "material": 2, "_comment": "handguard accent strip"},
+        {"type": "box", "pos": [0.32, -0.025, 0.0], "scale": [0.16, 0.008, 0.018], "material": 2, "_comment": "handguard bottom accent"},
+        {"type": "cylinder", "pos": [0.42, 0.035, 0.0], "radius": 0.014, "depth": 0.016, "verts": 12, "rot": [0, 0, 0], "material": 2, "_comment": "gas block"},
+        {"type": "cylinder", "pos": [0.42, 0.03, 0.0], "radius": 0.010, "depth": 0.06, "verts": 12, "rot": [0, 0, 0], "material": 0, "_comment": "gas tube"},
+
+        {"_comment": "=== MUZZLE DEVICE ==="},
+        {"type": "cylinder", "pos": [0.93, 0.03, 0.0], "radius": 0.022, "depth": 0.08, "verts": 16, "rot": [0, 0, 0], "material": 0, "_comment": "muzzle brake body"},
+        {"type": "cylinder", "pos": [0.85, 0.03, 0.0], "radius": 0.012, "depth": 0.06, "verts": 12, "rot": [0, 0, 0], "material": 0, "_comment": "muzzle tube"},
+        {"type": "box", "pos": [0.90, 0.045, 0.0], "scale": [0.04, 0.01, 0.03], "material": 2, "_comment": "muzzle top port"},
+        {"type": "box", "pos": [0.92, 0.015, 0.0], "scale": [0.04, 0.01, 0.03], "material": 2, "_comment": "muzzle bottom port"},
+
+        {"_comment": "=== OPTIC / SIGHTS ==="},
+        {"type": "box", "pos": [0.30, 0.105, 0.0], "scale": [0.015, 0.03, 0.02], "material": 2, "_comment": "front sight post"},
+        {"type": "box", "pos": [-0.10, 0.095, 0.0], "scale": [0.015, 0.035, 0.025], "material": 2, "_comment": "rear sight aperture"},
+        {"type": "box", "pos": [-0.11, 0.085, 0.0], "scale": [0.03, 0.01, 0.015], "material": 0, "_comment": "rear sight base"},
+        {"type": "box", "pos": [0.34, 0.135, 0.0], "scale": [0.11, 0.05, 0.035], "material": 1, "_comment": "optic placeholder"},
+
+        {"_comment": "=== GRIP / MAGAZINE / BOLT GROUP ==="},
+        {"type": "box", "pos": [-0.06, -0.14, 0.0], "scale": [0.045, 0.08, 0.03], "rot": [0, 0, 0.3], "material": 1, "_comment": "pistol grip"},
+        {"type": "box", "pos": [-0.07, -0.13, -0.015], "scale": [0.035, 0.02, 0.006], "rot": [0, 0, 0.3], "material": 2, "_comment": "grip accent"},
+        {"type": "box", "pos": [0.05, -0.16, 0.0], "scale": [0.04, 0.14, 0.035], "rot": [0, 0, 0.05], "material": 0, "_comment": "magazine body"},
+        {"type": "box", "pos": [0.03, -0.24, 0.0], "scale": [0.03, 0.02, 0.03], "material": 2, "_comment": "magazine base plate"},
+        {"type": "box", "pos": [-0.04, 0.085, 0.0], "scale": [0.03, 0.012, 0.025], "material": 2, "_comment": "charging handle"},
+        {"type": "box", "pos": [-0.05, 0.08, 0.018], "scale": [0.012, 0.02, 0.008], "material": 2, "_comment": "charging handle latch"},
+        {"type": "box", "pos": [-0.02, -0.015, 0.0], "scale": [0.018, 0.02, 0.01], "material": 2, "_comment": "hammer placeholder / cutaway motion point"},
+
+        {"_comment": "=== STOCK ==="},
+        {"type": "cylinder", "pos": [-0.30, 0.035, 0.0], "radius": 0.016, "depth": 0.30, "verts": 10, "rot": [0, 0, 0], "material": 0, "_comment": "buffer tube"},
+        {"type": "box", "pos": [-0.38, 0.025, 0.0], "scale": [0.06, 0.06, 0.04], "material": 1, "_comment": "stock rear block"},
+        {"type": "box", "pos": [-0.48, 0.015, 0.0], "scale": [0.14, 0.055, 0.04], "material": 1, "_comment": "stock main body"},
+        {"type": "box", "pos": [-0.55, 0.00, 0.0], "scale": [0.02, 0.07, 0.05], "material": 1, "_comment": "buttpad"}
+    ],
+    "animation_channels": [
+        {
+            "name": "reload",
+            "drives": ["socket_magazine", "socket_bolt_group"],
+            "notes": "Magazine out/in, bolt settle, and optional charging-handle pull."
+        },
+        {
+            "name": "fire",
+            "drives": ["socket_bolt_group", "socket_muzzle"],
+            "notes": "Bolt kick, recoil, muzzle flash, smoke and heat."
+        },
+        {
+            "name": "aim",
+            "drives": ["socket_optic"],
+            "notes": "ADS alignment for sights and scopes."
+        },
+        {
+            "name": "melee",
+            "drives": ["socket_root", "socket_bolt_group"],
+            "notes": "Weapon bash or buttstock hit, if supported."
+        }
+    ]
+}
