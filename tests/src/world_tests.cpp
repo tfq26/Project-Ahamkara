@@ -407,8 +407,8 @@ void test_first_snapshot_reconciliation() {
     // Two unacknowledged forward inputs (server has processed nothing yet).
     PlayerInputCommand in1{}; in1.sequence = 1; in1.move_axis.y = 1.0F;
     PlayerInputCommand in2{}; in2.sequence = 2; in2.move_axis.y = 1.0F;
-    cpm.apply_input(in1, kStep);
-    cpm.apply_input(in2, kStep);
+    cpm.apply_input(in1);
+    cpm.apply_input(in2);
 
     // First snapshot: last_processed_input == 0, authoritative far from predicted
     // so reconciliation triggers a reset.
@@ -419,8 +419,9 @@ void test_first_snapshot_reconciliation() {
     cpm.reconcile(snap);
 
     // Independently: authoritative reset + replay of the SAME inputs.
+    // Match the prediction world's mode (server-mode simulation).
     World expected;
-    expected.set_is_client(true);
+    expected.set_is_client(false);
     expected.set_player_state(snap.local_player);
     expected.tick(kStep, in1);
     expected.tick(kStep, in2);

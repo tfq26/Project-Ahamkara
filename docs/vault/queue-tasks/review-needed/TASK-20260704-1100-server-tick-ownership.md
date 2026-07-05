@@ -1,9 +1,9 @@
 ---
 type: opencode-task
-status: open
+status: review-needed
 created: 2026-07-04
 queued_by: codex
-assigned_to: opencode
+assigned_to: phase4-netc
 priority: normal
 escalation_tier: low
 primary_reviewer: codex
@@ -11,17 +11,15 @@ secondary_reviewer:
 subsystems:
   - game
   - server
-  - client
-  - engine/network
 related_feature:
-report:
+report: docs/reports/subagents/TASK-20260704-1100-server-tick-ownership-report.md
 ---
 
-# TASK-20260704-1110-prediction-reconciliation
+# TASK-20260704-1100-server-tick-ownership
 
 ## Goal
 
-Make client-side prediction and reconciliation explicit and replayable so buffered input handling stays deterministic under latency.
+Move authoritative tick ownership onto the server path so sim progression, replicated state, and input consumption have one explicit source of truth.
 
 ## Background
 
@@ -44,26 +42,26 @@ In bounds:
 - Keep the server as the authority for sim progression and replicated state.
 - Keep client code as an input/presentation consumer, not the source of truth.
 - Keep the slice deterministic and replay-friendly.
-- prediction state capture
-- reconciliation and replay path
-- buffered input handling under latency
+- server-owned tick progression
+- input consumption on the authoritative path
+- clear sim/input clock alignment
 
 Out of bounds:
 
 - No matchmaking or service orchestration work.
 - No weapon balance or combat tuning pass.
 - No HUD redesign beyond thin adapters needed for validation.
-- service/matchmaking changes
-- weapon balance changes
-- renderer or HUD redesign
+- prediction/reconciliation redesign
+- matchmaking or activity orchestration
+- HUD or menu ownership refactors
 
 ## Likely Files
 
-  - `game/include/ahamkara/game/client_prediction.h`
-  - `game/src/client_prediction.cpp`
-  - `client/src/headless_clients.cpp`
-  - `client/src/local_play.cpp`
+  - `server/src/dedicated_server_main.cpp`
   - `game/src/world.cpp`
+  - `game/include/ahamkara/game/world.h`
+  - `game/include/ahamkara/game/net_types.h`
+  - `game/include/ahamkara/game/client_prediction.h`
 
 ## Implementation Plan
 
@@ -73,8 +71,8 @@ Out of bounds:
 
 ## Acceptance Bar
 
-- Prediction and reconciliation are explicit in the runtime path.
-- Buffered input replay is deterministic.
+- The server is the explicit authority for the sim step.
+- Client code no longer owns the tick timing contract.
 - Build and tests remain green.
 
 ## Review Tier

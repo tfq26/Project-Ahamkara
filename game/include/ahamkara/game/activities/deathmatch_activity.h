@@ -84,6 +84,12 @@ struct PlayerSlot {
     bool connected {false};
     std::chrono::steady_clock::time_point last_seen {};
     ae::u32 client_tick {0};
+
+    // Input buffering: the server tick() applies the most recent
+    // buffered input per slot, not per-packet.  simulate_input()
+    // stores input here, tick() drains it.
+    PlayerInputCommand pending_input {};
+    bool has_pending_input {false};
 };
 
 /// Full deathmatch PvP activity.

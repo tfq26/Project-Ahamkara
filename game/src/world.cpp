@@ -133,12 +133,13 @@ void World::tick(float delta_seconds, const PlayerInputCommand& input) {
     float time_remaining = delta_seconds;
     while (time_remaining > 0.0001F) {
         float step_dt = std::min(time_remaining, kFixedStep);
-        tick_internal(step_dt, input);
+        advance_sim(step_dt);
+        apply_input(step_dt, input);
         time_remaining -= step_dt;
     }
 }
 
-void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) {
+void World::advance_sim(float delta_seconds) {
     current_tick_++;
 
     match_time_ += delta_seconds;
@@ -191,6 +192,31 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
     }
     damage_number_count_ = active_numbers;
 
+    update_projectiles(delta_seconds);
+    update_particles(delta_seconds);
+    update_decals(delta_seconds);
+
+    HistoricalState hist {};
+    hist.tick = current_tick_;
+    hist.player_position = player_.state().position;
+    for (int idx = 0; idx < dummy_count_ && idx < HistoricalState::kMaxDummies; ++idx) {
+        hist.dummy_positions[idx] = dummies_[idx].position;
+        hist.dummy_alive[idx] = dummies_[idx].alive;
+    }
+    history_buffer_.push_back(hist);
+    if (history_buffer_.size() > 120) {
+        history_buffer_.pop_front();
+    }
+
+    flush_audio_events();
+    sync_dummies_to_array();
+    sync_projectiles_to_array();
+}
+
+void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
+    // If the player is dead, skip input processing (respawn is handled in advance_sim).
+    if (!is_player_alive()) return;
+
     const bool on_ground = is_on_ground();
     const JPH::Vec3 current_vel = jolt_->character->GetLinearVelocity();
 
@@ -237,7 +263,7 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
     jolt_->character->SetLinearVelocity(JPH::Vec3(desired_velocity.x, desired_velocity.y, desired_velocity.z));
 
     JPH::CharacterVirtual::ExtendedUpdateSettings update_settings;
-    update_settings.mStickToFloorStepDown = JPH::Vec3(0.0f, -0.35f, 0.0f);  // gentler step-down
+    update_settings.mStickToFloorStepDown = JPH::Vec3(0.0f, -0.35f, 0.0f);
     update_settings.mWalkStairsStepUp = JPH::Vec3(0.0f, 0.4f, 0.0f);
 
     jolt_->character->ExtendedUpdate(
@@ -261,7 +287,7 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
     player_.state().velocity.y = static_cast<float>(vel.GetY());
     player_.state().velocity.z = static_cast<float>(vel.GetZ());
 
-    // --- Slope slide: slide down steep slopes beyond max_walkable ---
+    // --- Slope slide ---
     bool on_ground_after = is_on_ground();
     if (on_ground_after && jolt_->character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround) {
         JPH::Vec3 jolt_gn = jolt_->character->GetGroundNormal();
@@ -280,7 +306,7 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
         }
     }
 
-    // Ground floor clamp — fallthrough safety net for the implicit floor
+    // Ground floor clamp
     if (player_.state().position.y <= 0.0001F) {
         player_.state().position.y = 0.0F;
         if (player_.state().velocity.y < 0.0F) {
@@ -332,27 +358,8 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
             spawn_projectile(input);
         }
     }
-
-    update_projectiles(delta_seconds);
-    update_particles(delta_seconds);
-    update_decals(delta_seconds);
-
-    HistoricalState hist {};
-    hist.tick = current_tick_;
-    hist.player_position = player_.state().position;
-    for (int idx = 0; idx < dummy_count_ && idx < HistoricalState::kMaxDummies; ++idx) {
-        hist.dummy_positions[idx] = dummies_[idx].position;
-        hist.dummy_alive[idx] = dummies_[idx].alive;
-    }
-    history_buffer_.push_back(hist);
-    if (history_buffer_.size() > 120) {
-        history_buffer_.pop_front();
-    }
-
-    flush_audio_events();
-    sync_dummies_to_array();
-    sync_projectiles_to_array();
 }
+
 
 void World::set_player_state(const ReplicatedPlayerState& state) {
     player_.set_state(state);

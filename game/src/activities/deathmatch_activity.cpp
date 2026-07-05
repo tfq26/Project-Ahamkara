@@ -80,6 +80,19 @@ ae::u32 DeathmatchActivity::player_count() const {
 void DeathmatchActivity::tick(float dt) {
     server_tick_++;
     dm_state_.tick(dt, game_rules_);
+
+    // Server-authoritative sim step: advances physics, projectiles,
+    // dummies, match time, particles/decals, history, syncs.
+    world_.advance_sim(dt);
+
+    // Apply each connected slot's most recent buffered input.
+    for (auto& slot : slots_) {
+        if (!slot.connected) continue;
+        if (!slot.has_pending_input) continue;
+        world_.apply_input(dt, slot.pending_input);
+        slot.last_processed_input_sequence = slot.pending_input.sequence;
+        slot.has_pending_input = false;
+    }
 }
 
 void DeathmatchActivity::process_input(wish::session::SessionId sid,
@@ -94,13 +107,17 @@ void DeathmatchActivity::process_input(wish::session::SessionId sid,
 }
 
 void DeathmatchActivity::simulate_input(wish::session::SessionId sid,
-                                         float delta_seconds,
+                                         float /*delta_seconds*/,
                                          const PlayerInputCommand& cmd) {
     PlayerSlot* slot = find_slot(sid);
     if (!slot) return;
 
-    world_.tick(delta_seconds, cmd);
-    slot->last_processed_input_sequence = cmd.sequence;
+    // Buffer the input for the next server tick. The world is NOT
+    // advanced here — tick() owns the authoritative sim step.
+    slot->pending_input = cmd;
+    slot->has_pending_input = true;
+
+    // Also apply anti-cheat checks immediately (they're stateless).
     apply_anti_cheat(cmd);
 }
 

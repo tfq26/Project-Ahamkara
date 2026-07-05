@@ -54,6 +54,18 @@ public:
     explicit World(const WorldDefinition& definition);
     ~World();
 
+    /// Advance the simulation by one fixed step.  This is the
+    /// server-authoritative sim progression: physics, projectiles,
+    /// dummies, match time, particles, decals, history, syncs.
+    /// Does NOT consume player input — call apply_input() for that.
+    void advance_sim(float delta_seconds);
+
+    /// Apply a player's input to the world for the current tick.
+    /// Handles movement controller, weapon state, and firing.
+    void apply_input(float delta_seconds, const PlayerInputCommand& input);
+
+    /// Combined convenience: advance_sim + apply_input.
+    /// Used by client-local paths (local_play, client_prediction).
     void tick(float delta_seconds, const PlayerInputCommand& input);
 
     [[nodiscard]] const ReplicatedPlayerState& get_player_state() const { return player_.state(); }
@@ -171,7 +183,6 @@ public:
 private:
     void apply_world_definition(const WorldDefinition& definition);
     void reset_player_to_spawn();
-    void tick_internal(float delta_seconds, const PlayerInputCommand& input);
     void spawn_projectile(const PlayerInputCommand& input);
     void update_projectiles(float delta_seconds);
     void update_particles(float delta_seconds);
