@@ -118,6 +118,11 @@ public:
     void set_hitmarker(float time, bool is_critical) { hitmarker_timer_ = time; hitmarker_is_critical_ = is_critical; }
     void set_muzzle_flash(float time) { muzzle_flash_timer_ = time; }
 
+    /// Recoil pattern index — advanced each shot for deterministic recoil.
+    [[nodiscard]] int recoil_index() const { return fire_recoil_index_; }
+    void advance_recoil() { ++fire_recoil_index_; }
+    void reset_recoil() { fire_recoil_index_ = 0; }
+
     static constexpr int kMaxParticles = 256;
     [[nodiscard]] const ParticleState* get_particles() const { return particles_; }
     [[nodiscard]] int get_particle_count() const { return particle_count_; }

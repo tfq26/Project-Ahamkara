@@ -28,24 +28,33 @@ inline const std::array<WeaponDefinition, kWeaponRegistrySize> kWeaponRegistry =
         .headshot_multiplier = 2.0F,
         .fire_mode = FireMode::Automatic,
         .slot = WeaponSlot::Primary,
+        .rpm = 400.0F,
+        .reload_time_s = 2.0F,
+        .reserve_ammo_max = 150,
         .recoil_pattern = {{0.25F, 0.08F}, {0.30F, -0.12F}, {0.28F, 0.05F}, {0.35F, -0.15F}, {0.32F, 0.10F}},
     },
-    // 1: Shotgun (secondary) — 100 RPM, 8 pellets, 10 dmg each
+    // 1: Shotgun (secondary) — 100 RPM
     {
         .magazine_size = 8,
         .base_damage = 10.0F,
         .headshot_multiplier = 1.5F,
         .fire_mode = FireMode::Hitscan,
         .slot = WeaponSlot::Secondary,
+        .rpm = 100.0F,
+        .reload_time_s = 2.5F,
+        .reserve_ammo_max = 32,
         .recoil_pattern = {{3.0F, 0.0F}},
     },
-    // 2: Rocket Launcher (melee slot repurposed) — projectile, 100 dmg
+    // 2: Rocket Launcher (melee slot repurposed) — projectile
     {
         .magazine_size = 1,
         .base_damage = 100.0F,
         .headshot_multiplier = 1.0F,
         .fire_mode = FireMode::Projectile,
         .slot = WeaponSlot::Melee,
+        .rpm = 30.0F,
+        .reload_time_s = 3.0F,
+        .reserve_ammo_max = 6,
         .recoil_pattern = {},
     },
 }};

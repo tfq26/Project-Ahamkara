@@ -47,7 +47,7 @@ void WeaponRuntime::tick(float delta_seconds) {
 void WeaponRuntime::start_reload() {
     if (can_reload()) {
         state_.is_reloading = true;
-        reload_timer_ = 2.0F;
+        reload_timer_ = active_weapon_def().reload_time_s;
     }
 }
 
@@ -84,7 +84,8 @@ void WeaponRuntime::apply_definition(int definition_index) {
     const auto& def = kWeaponRegistry[static_cast<std::size_t>(definition_index)];
     state_.magazine_capacity = def.magazine_size;
     state_.ammo_in_magazine = def.magazine_size;
-    state_.reserve_ammo = def.magazine_size * 3;
+    const int reserve = (def.reserve_ammo_max > 0) ? def.reserve_ammo_max : (def.magazine_size * 3);
+    state_.reserve_ammo = reserve;
     state_.fire_cooldown = 0.0F;
     state_.is_reloading = false;
     state_.is_equipping = false;

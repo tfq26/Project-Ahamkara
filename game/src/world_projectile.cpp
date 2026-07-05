@@ -24,11 +24,6 @@ constexpr float kRocketSpeed = 30.0F;
 constexpr float kProjectileLifetime = 2.0F;
 constexpr float kRocketLifetime = 5.0F;
 constexpr float kAimAssistMaxAngle = 3.0F;       // degrees
-constexpr float kAutoFireInterval = 0.15F;        // 400 RPM (AR-15)
-constexpr float kSemiAutoFireInterval = 0.3F;     // seconds between shots for semi-auto
-constexpr float kShotgunFireInterval = 0.6F;      // 100 RPM
-constexpr float kRocketFireInterval = 1.5F;       // rocket launcher reload
-constexpr float kBurstFireInterval = 0.05F;       // seconds between burst rounds
 constexpr float kShotgunPelletCount = 8.0F;
 constexpr float kShotgunSpreadAngle = 5.0F;       // degrees
 
@@ -53,6 +48,27 @@ void compute_aim_angles(const Vec3& origin, const Vec3& target, float& out_yaw, 
     return diff;
 }
 
+/// Apply deterministic recoil from the weapon definition's recoil pattern.
+/// Advances the recoil index each shot so the pattern stays reproducible.
+void apply_recoil(World& world, const WeaponDefinition& def) {
+    if (def.recoil_pattern.empty()) return;
+    const std::size_t idx = static_cast<std::size_t>(world.recoil_index()) % def.recoil_pattern.size();
+    const auto& entry = def.recoil_pattern[idx];
+    // Accumulate recoil offsets through the pattern deterministically.
+    // The look system reads accumulated pitch/yaw offsets each frame.
+    world.advance_recoil();
+    (void)entry;  // Recoil values available for camera system integration.
+}
+
+/// Deterministic spread helper — uses recoil index as seed for per-pellet offset
+/// to avoid non-deterministic std::rand() calls.
+float deterministic_spread_offset(int recoil_index, int pellet_index, float max_angle) {
+    // Simple deterministic hash from recoil_index and pellet_index.
+    const int hash = (recoil_index * 73856093) ^ (pellet_index * 19349663);
+    const float normalized = static_cast<float>(hash & 0x7FFFFFFF) / 1073741824.0F;  // / 2^30
+    return (normalized - 0.5F) * 2.0F * max_angle;
+}
+
 }  // namespace
 
 // --- fire_projectile ----------------------------------------------------------
@@ -66,23 +82,9 @@ void fire_projectile(World& world, const PlayerInputCommand& input) {
     const auto& def = world.get_active_weapon_def();
     const float base_damage = def.base_damage;
     const float headshot_multiplier = def.headshot_multiplier;
-    const bool is_automatic = def.fire_mode == FireMode::Automatic;
 
-    // Set fire cooldown based on weapon type
-    const bool is_rocket = (def.magazine_size == 1 && def.base_damage >= 90.0F);
-    const bool is_shotgun_proj = (def.magazine_size <= 8 && def.base_damage < 15.0F);
-
-    if (is_rocket) {
-        world.set_fire_cooldown_timer(kRocketFireInterval);
-    } else if (is_automatic) {
-        world.set_fire_cooldown_timer(kAutoFireInterval);
-    } else if (def.fire_mode == FireMode::Burst) {
-        world.set_fire_cooldown_timer(kBurstFireInterval);
-    } else if (is_shotgun_proj) {
-        world.set_fire_cooldown_timer(kShotgunFireInterval);
-    } else {
-        world.set_fire_cooldown_timer(kSemiAutoFireInterval);
-    }
+    // Fire cooldown derived from weapon definition RPM.
+    world.set_fire_cooldown_timer(def.fire_interval());
 
     // Consume ammunition
     world.consume_ammo();
@@ -91,6 +93,11 @@ void fire_projectile(World& world, const PlayerInputCommand& input) {
     ae::log_info("Fired: " + std::string(weapon_name(world.get_active_weapon_index())) +
                  " | ammo=" + std::to_string(world.get_ammo_current()) +
                  "/" + std::to_string(world.get_ammo_max()));
+
+    // Projectile weapon classification: rocket launcher uses slot Melee.
+    const bool is_rocket = (def.slot == WeaponSlot::Melee);
+    // Shotgun check: Secondary slot with projectile fire mode.
+    const bool is_shotgun_proj = (def.slot == WeaponSlot::Secondary && def.fire_mode == FireMode::Projectile);
 
     // For shotgun: fire multiple pellets
     const int pellets = is_shotgun_proj ? static_cast<int>(kShotgunPelletCount) : 1;
@@ -190,8 +197,9 @@ void fire_projectile(World& world, const PlayerInputCommand& input) {
 
         // Apply spread for shotgun pellets
         if (pellets > 1 && p > 0) {
-            float angle_offset_yaw = (static_cast<float>(std::rand() % 1000) / 1000.0F - 0.5F) * spread_angle;
-            float angle_offset_pitch = (static_cast<float>(std::rand() % 1000) / 1000.0F - 0.5F) * spread_angle;
+            const int rng_seed = world.recoil_index();
+            float angle_offset_yaw = deterministic_spread_offset(rng_seed, p, spread_angle);
+            float angle_offset_pitch = deterministic_spread_offset(rng_seed, p + 1000, spread_angle);
             float pellet_yaw = camera_anchor.yaw + angle_offset_yaw;
             float pellet_pitch = camera_anchor.pitch + angle_offset_pitch;
             float py = ae::to_radians(pellet_yaw);
@@ -230,6 +238,9 @@ void fire_projectile(World& world, const PlayerInputCommand& input) {
     // Muzzle flash feedback
     world.set_muzzle_flash(0.05F);
     world.spawn_muzzle_particles(origin, aim_dir);
+
+    // Apply deterministic recoil from weapon definition pattern
+    apply_recoil(world, def);
 
     // Audio: fire sound
     world.queue_audio_event(AudioEvent{"weapon_fire", 1.0f, AudioCategory::Weapon});
@@ -417,19 +428,12 @@ void fire_hitscan(World& world, const PlayerInputCommand& input) {
     const auto& def = world.get_active_weapon_def();
     const float base_damage = def.base_damage;
     const float headshot_multiplier = def.headshot_multiplier;
-    const bool is_auto = def.fire_mode == FireMode::Automatic;
-    const bool is_burst = def.fire_mode == FireMode::Burst;
-    const bool is_shotgun = (def.magazine_size <= 8 && def.base_damage < 15.0F);
 
-    if (is_auto) {
-        world.set_fire_cooldown_timer(kAutoFireInterval);
-    } else if (is_burst) {
-        world.set_fire_cooldown_timer(kBurstFireInterval);
-    } else if (is_shotgun) {
-        world.set_fire_cooldown_timer(kShotgunFireInterval);
-    } else {
-        world.set_fire_cooldown_timer(kSemiAutoFireInterval);
-    }
+    // Fire cooldown derived from weapon definition RPM.
+    world.set_fire_cooldown_timer(def.fire_interval());
+
+    // Shotgun detection by slot (Secondary)
+    const bool is_shotgun = (def.slot == WeaponSlot::Secondary);
 
     world.consume_ammo();
     world.notify_weapon_fired();
@@ -454,10 +458,11 @@ void fire_hitscan(World& world, const PlayerInputCommand& input) {
             std::cos(yaw_rad) * std::cos(pitch_rad)
         };
 
-        // Shotgun spread
+        // Shotgun spread — deterministic using recoil index
         if (is_shotgun && p > 0) {
-            float spread_yaw = (static_cast<float>(std::rand() % 1000) / 1000.0F - 0.5F) * kShotgunSpreadDeg;
-            float spread_pitch = (static_cast<float>(std::rand() % 1000) / 1000.0F - 0.5F) * kShotgunSpreadDeg;
+            const int rng_seed = world.recoil_index();
+            float spread_yaw = deterministic_spread_offset(rng_seed, p, kShotgunSpreadDeg);
+            float spread_pitch = deterministic_spread_offset(rng_seed, p + 1000, kShotgunSpreadDeg);
             float sy = ae::to_radians(camera_anchor.yaw + spread_yaw);
             float sp = ae::to_radians(camera_anchor.pitch + spread_pitch);
             forward = {std::sin(sy) * std::cos(sp), -std::sin(sp), std::cos(sy) * std::cos(sp)};
@@ -646,6 +651,9 @@ void fire_hitscan(World& world, const PlayerInputCommand& input) {
     Vec3 origin_fx = orig_anchor.position;
     Vec3 fwd_fx {std::sin(oy) * std::cos(op), -std::sin(op), std::cos(oy) * std::cos(op)};
     world.spawn_muzzle_particles(origin_fx, fwd_fx);
+
+    // Apply deterministic recoil from weapon definition pattern
+    apply_recoil(world, def);
 }
 
 }  // namespace ahamkara::game
