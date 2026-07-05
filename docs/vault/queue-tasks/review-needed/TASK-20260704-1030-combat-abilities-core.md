@@ -1,9 +1,9 @@
 ---
 type: opencode-task
-status: open
+status: review-needed
 created: 2026-07-04
 queued_by: codex
-assigned_to: opencode
+assigned_to: oz
 priority: normal
 escalation_tier: low
 primary_reviewer: codex
@@ -13,7 +13,7 @@ subsystems:
   - client
   - engine/ui
 related_feature: features/2026-06-28-engine-assessment.md
-report:
+report: reports/subagents/TASK-20260704-1010-1020-1030-combat-core-report.md
 ---
 
 # TASK-20260704-1030-combat-abilities-core

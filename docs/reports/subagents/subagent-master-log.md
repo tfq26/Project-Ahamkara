@@ -115,3 +115,13 @@ Matrix-stack compatibility is fully removed, the gameplay/menu boundary now read
 
 ## TASK-20260704-1000-weapon-runtime-foundation — Review needed 2026-07-04
 Hardened WeaponRuntime seam with explicit subclass contract, on_fire() hook, and reload_timer() accessor; wired on_fire() through Player/World into firing paths; confirmed WeaponModelCache is read-only from gameplay; clarified Player weapon-ownership docs. Build + 17/17 tests pass. Report: reports/subagents/TASK-20260704-1000-weapon-runtime-foundation-report.md
+
+## 2026-07-05 — agent/phase3/combat-core
+
+Three combat core tasks completed:
+1. **TASK-20260704-1010-weapon-fire-control** — Data-driven RPM/reload/reserve from WeaponDefinition; deterministic recoil/spread; removed ad-hoc fire intervals
+2. **TASK-20260704-1020-combat-hit-resolution** — Centralized damage resolution and feedback helpers; removed duplicated armor absorption logic
+3. **TASK-20260704-1030-combat-abilities-core** — Player-owned AbilityState with cooldowns, energy, ultimate; HUD pipeline wired through snapshot
+
+Report: docs/reports/subagents/TASK-20260704-1010-1020-1030-combat-core-report.md
+Build: success | Tests: 17/17 passed
