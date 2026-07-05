@@ -13,7 +13,7 @@
 
 #define GL_GLEXT_PROTOTYPES
 #if defined(__APPLE__)
-#include <OpenGL/gl.h>
+#include <OpenGL/gl3.h>
 #include <OpenGL/glext.h>
 // GL_TIME_ELAPSED is from GL_EXT_timer_query / GL_ARB_timer_query
 #ifndef GL_TIME_ELAPSED
