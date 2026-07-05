@@ -69,6 +69,47 @@ float deterministic_spread_offset(int recoil_index, int pellet_index, float max_
     return (normalized - 0.5F) * 2.0F * max_angle;
 }
 
+/// Resolve damage against a TargetDummyState.
+/// Returns the actual damage dealt after armor absorption.
+/// Handles health update, lethality, and dummy state tracking.
+float resolve_damage_to_dummy(TargetDummyState& dummy, float raw_damage, bool is_headshot) {
+    float damage_dealt = raw_damage;
+    if (dummy.armor > 0.0F) {
+        constexpr float kArmorAbsorption = 0.66F;
+        float armor_dmg = raw_damage * kArmorAbsorption;
+        if (armor_dmg > dummy.armor) armor_dmg = dummy.armor;
+        dummy.armor -= armor_dmg;
+        damage_dealt = raw_damage - armor_dmg;
+    }
+    dummy.health -= damage_dealt;
+    dummy.last_hit_timer = 0.3F;
+    dummy.was_hit_precision = is_headshot;
+    dummy.last_damage_dealt = damage_dealt;
+
+    if (dummy.health <= 0.0F) {
+        dummy.health = 0.0F;
+        dummy.alive = false;
+        dummy.respawn_timer = 3.0F;
+    }
+    return damage_dealt;
+}
+
+/// Emit combat feedback events for a resolved hit.
+/// Drives hitmarkers, damage numbers, impact VFX, and audio from real
+/// combat outcomes — not presentation guesses.
+void emit_hit_feedback(World& world, const Vec3& hit_point, float damage_dealt, bool is_headshot) {
+    // Damage number at hit location
+    Vec3 num_pos = hit_point;
+    num_pos.y += 0.3F;
+    world.spawn_damage_number(num_pos, damage_dealt, is_headshot);
+
+    // Hitmarker
+    world.set_hitmarker(0.15F, is_headshot);
+
+    // Hit sound
+    world.queue_audio_event(AudioEvent{"dummy_hit", 1.0f, AudioCategory::SFX});
+}
+
 }  // namespace
 
 // --- fire_projectile ----------------------------------------------------------
@@ -376,42 +417,19 @@ void step_projectiles(World& world, float delta_seconds) {
             auto& dummy_comp = dummy_view.get<TargetDummyComponent>(hit_dummy_entity);
             auto& dummy = dummy_comp.state;
 
+            // Resolve damage through centralized helper
             const float dmg = comp.base_damage;
             const float hs_mult = comp.headshot_multiplier;
             const float raw_damage = is_headshot ? dmg * hs_mult : dmg;
-
-            // Apply damage with armor absorption
-            float damage_dealt = raw_damage;
-            if (dummy.armor > 0.0F) {
-                constexpr float kArmorAbsorption = 0.66F;
-                float armor_dmg = raw_damage * kArmorAbsorption;
-                if (armor_dmg > dummy.armor) armor_dmg = dummy.armor;
-                dummy.armor -= armor_dmg;
-                damage_dealt = raw_damage - armor_dmg;
-            }
-            dummy.health -= damage_dealt;
-            dummy.last_hit_timer = 0.3F;
-            dummy.was_hit_precision = is_headshot;
-            dummy.last_damage_dealt = damage_dealt;
+            const float damage_dealt = resolve_damage_to_dummy(dummy, raw_damage, is_headshot);
             dummy.last_hit_position = hit_point;
 
-            if (dummy.health <= 0.0F) {
-                dummy.health = 0.0F;
-                dummy.alive = false;
-                dummy.respawn_timer = 3.0F;
+            if (!dummy.alive) {
                 world.on_dummy_killed(dummy.dummy_id, dummy.position);
             }
 
-            // Spawn damage number
-            Vec3 num_pos = hit_point;
-            num_pos.y += 0.3F;
-            world.spawn_damage_number(num_pos, damage_dealt, is_headshot);
-
-            // Hitmarker
-            world.set_hitmarker(0.15F, is_headshot);
-
-            // Hit sound
-            world.queue_audio_event(AudioEvent{"dummy_hit", 1.0f, AudioCategory::SFX});
+            // Emit feedback from real combat outcome
+            emit_hit_feedback(world, hit_point, damage_dealt, is_headshot);
         }
     }
 
@@ -605,34 +623,19 @@ void fire_hitscan(World& world, const PlayerInputCommand& input) {
                 auto& dummy_comp = dummy_view.get<TargetDummyComponent>(dummy_entity);
                 auto& dummy = dummy_comp.state;
 
+                // Resolve damage through centralized helper
                 float raw_damage = is_headshot ? base_damage * headshot_multiplier : base_damage;
-                float damage_dealt = raw_damage;
-                if (dummy.armor > 0.0F) {
-                    constexpr float kArmorAbsorption = 0.66F;
-                    float armor_dmg = raw_damage * kArmorAbsorption;
-                    if (armor_dmg > dummy.armor) armor_dmg = dummy.armor;
-                    dummy.armor -= armor_dmg;
-                    damage_dealt = raw_damage - armor_dmg;
-                }
-                dummy.health -= damage_dealt;
-                dummy.last_hit_timer = 0.3F;
-                dummy.was_hit_precision = is_headshot;
-                dummy.last_damage_dealt = damage_dealt;
+                float damage_dealt = resolve_damage_to_dummy(dummy, raw_damage, is_headshot);
                 dummy.last_hit_position = hit_position;
 
-                if (dummy.health <= 0.0F) {
-                    dummy.health = 0.0F;
-                    dummy.alive = false;
-                    dummy.respawn_timer = 3.0F;
+                if (!dummy.alive) {
                     world.on_dummy_killed(dummy.dummy_id, dummy.position);
                 }
 
-                Vec3 num_pos = hit_position;
-                num_pos.y += 0.3F;
-                world.spawn_damage_number(num_pos, damage_dealt, is_headshot);
-                world.set_hitmarker(0.15F, is_headshot);
-                world.queue_audio_event(AudioEvent{"dummy_hit", 1.0f, AudioCategory::SFX});
+                // Emit feedback from real combat outcome
+                emit_hit_feedback(world, hit_position, damage_dealt, is_headshot);
 
+                // Impact VFX (still tied to hit detection, not damage resolution)
                 Vec3 normal = {-forward.x, -forward.y, -forward.z};
                 world.spawn_impact_particles(hit_position, normal);
                 world.spawn_bullet_hole_decal(hit_position, normal);
