@@ -19,6 +19,8 @@ add_library(ahamkara_game STATIC
     src/activities/deathmatch_activity.cpp
     src/activities/horde_activity.cpp
     src/activities/social_hub_activity.cpp
+    src/ai_combatant.cpp
+    src/encounter_scripting.cpp
     ../engine/render/src/compiled_level.cpp
     src/animation_adapter.cpp
 )

@@ -131,3 +131,10 @@ TASK-1210: Weapon animation layers with per-weapon profiles (AR-15, Shotgun, RL)
 TASK-1220: Audio subsystem upgrade with 3D spatialization, weapon/foley/ambience buses, occlusion support.
 TASK-1230: VFX feedback system with screen shake, damage flash, hit-reaction triggers, melee UI state.
 Build (debug) clean; 14/14 test suites pass. Branch: agent/phase5/sensory-polish. Report: reports/subagents/phase5-sensory-polish.md
+|Hardened WeaponRuntime seam with explicit subclass contract, on_fire() hook, and reload_timer() accessor; wired on_fire() through Player/World into firing paths; confirmed WeaponModelCache is read-only from gameplay; clarified Player weapon-ownership docs. Build + 17/17 tests pass. Report: reports/subagents/TASK-20260704-1000-weapon-runtime-foundation-report.md
+## TASK-20260704-1400-spatial-partitioning — Self-validated 2026-07-05
+|World-scale spatial partitioning: SpatialGrid (uniform 2D grid, AABB/frustum query), OcclusionPortal/PVSRegion data shapes, 6 tests. Build + 19/19 tests pass. Report: reports/subagents/TASK-20260704-1400-spatial-partitioning-report.md
+## TASK-20260704-1510-ai-combatants — Self-validated 2026-07-05
+|AI combatants: 6 archetypes (Grunt/Sniper/Rusher/Support/Scout/Brute), perception (LOS/FOV/alertness), 7-state behavior FSM, ECS system entry point. 11 tests. Build + 19/19 tests pass. Report: reports/subagents/TASK-20260704-1510-ai-combatants-report.md
+## TASK-20260704-1520-encounter-scripting — Self-validated 2026-07-05
+|Encounter scripting: EncounterDef/TriggerDef/SpawnWaveDef/ObjectiveDef, EncounterManager with full lifecycle (wave spawn, trigger eval, objective tracking), 9 tests. Build + 19/19 tests pass. Report: reports/subagents/TASK-20260704-1520-encounter-scripting-report.md
