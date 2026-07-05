@@ -12,6 +12,7 @@
 
 #include <GLFW/glfw3.h>
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <string>
 
@@ -241,6 +242,11 @@ void ClientFramePipeline::stage_pull_snapshots() {
 }
 
 void ClientFramePipeline::stage_build_scene() {
+    // Track damage feedback for VFX
+    static float damage_feedback_timer = 0.0F;
+    static float damage_flash_timer = 0.0F;
+    static float prev_health = 100.0F;
+
     scene_ = build_debug_scene(prev_snap_, curr_snap_,
         DebugSceneBuildInputs {
             .camera_mode         = frontend_state_.camera_mode,
@@ -282,6 +288,76 @@ void ClientFramePipeline::stage_build_scene() {
             scene_.weapon_animation_transform[i] = transform[static_cast<std::size_t>(i)];
         }
     }
+
+    // --- AnimationAdapter: drive character animation from gameplay state ---
+    const float hspeed = std::sqrt(
+        curr_snap_.player_state.velocity.x * curr_snap_.player_state.velocity.x +
+        curr_snap_.player_state.velocity.z * curr_snap_.player_state.velocity.z);
+    const bool is_moving = hspeed > 0.1F;
+    const bool is_sprinting = curr_snap_.player_state.movement_state == ahamkara::game::MovementState::Sprinting;
+
+    anim_adapter_.set_movement(hspeed, is_moving, is_sprinting);
+    constexpr float kNoPitch = 0.0F;  // pitch not replicated in ReplicatedPlayerState
+    anim_adapter_.set_aim(curr_snap_.player_state.yaw, kNoPitch);
+    const bool is_firing = raw_input_.fire_held || curr_snap_.player_state.health < prev_health - 1.0F;
+    const bool is_reloading = raw_input_.reload_pressed && curr_snap_.ammo_current < curr_snap_.ammo_max;
+    anim_adapter_.set_weapon(curr_snap_.weapon_index,
+                              is_firing,
+                              is_reloading);
+    anim_adapter_.set_health(curr_snap_.player_state.health, 100.0F);
+
+    // Detect health drop → trigger hit reaction
+    const float snap_health = curr_snap_.player_state.health;
+    if (snap_health < prev_health && snap_health > 0.0F) {
+        anim_adapter_.trigger_hit_reaction();
+        damage_feedback_timer = 1.0F;
+        damage_flash_timer = 0.4F;
+    }
+    prev_health = snap_health;
+
+    // Also check snapshot damage_feedback_timer for hit reaction
+    if (curr_snap_.damage_feedback_timer > 0.0F && damage_feedback_timer <= 0.0F) {
+        anim_adapter_.trigger_hit_reaction();
+        damage_feedback_timer = 1.0F;
+        damage_flash_timer = 0.4F;
+    }
+
+    anim_adapter_.tick(smoothed_delta_);
+
+    // Copy character joint matrices into debug scene
+    const auto& pose = anim_adapter_.joint_pose();
+    const int char_jc = anim_adapter_.joint_count();
+    constexpr int kMaxCharJoints = static_cast<int>(sizeof(scene_.character_joint_matrices) / sizeof(scene_.character_joint_matrices[0]) / 16);
+    scene_.character_joint_count = std::min(char_jc, kMaxCharJoints);
+    for (int i = 0; i < scene_.character_joint_count; ++i) {
+        std::memcpy(&scene_.character_joint_matrices[i * 16], &pose[static_cast<std::size_t>(i)], 16 * sizeof(float));
+    }
+
+    // --- Screen shake ---
+    // Decay
+    scene_.screen_shake_intensity = std::max(0.0F, scene_.screen_shake_intensity - smoothed_delta_ * 3.0F);
+    // Muzzle flash triggers small shake when firing
+    if (raw_input_.fire_held) {
+        scene_.screen_shake_intensity = std::min(1.0F, scene_.screen_shake_intensity + 0.005F);
+    }
+    // Damage triggers larger shake
+    if (damage_feedback_timer > 0.0F) {
+        damage_feedback_timer = std::max(0.0F, damage_feedback_timer - smoothed_delta_);
+        scene_.screen_shake_intensity = std::min(1.0F, scene_.screen_shake_intensity + 0.015F);
+    }
+    scene_.screen_shake_angle = scene_.screen_shake_intensity * 3.0F;
+    scene_.screen_shake_frequency = 15.0F;
+
+    // --- Damage flash ---
+    if (damage_flash_timer > 0.0F) {
+        damage_flash_timer = std::max(0.0F, damage_flash_timer - smoothed_delta_);
+        scene_.damage_flash_intensity = std::min(damage_flash_timer * 3.0F, 0.4F);
+    } else {
+        scene_.damage_flash_intensity = 0.0F;
+    }
+
+    // --- Melee active ---
+    scene_.melee_active = anim_adapter_.is_melee_active();
 
     render_submission_ = build_debug_render_submission(
         curr_snap_, window_.gamepad_state(), scene_);
