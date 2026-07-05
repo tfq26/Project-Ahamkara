@@ -141,6 +141,11 @@ struct DebugScene {
 
     // GPU profiler overlay (separate from main metrics)
     bool gpu_profiler_visible {false};
+
+    // Character animation joint matrices for third-person character rendering.
+    // Flat array of 256 * 16 = 4096 floats (column-major 4x4 each).
+    float character_joint_matrices[4096] {};
+    int character_joint_count {0};
 };
 
 class DebugRenderer {
