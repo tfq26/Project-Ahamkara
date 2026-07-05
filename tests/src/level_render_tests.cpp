@@ -1,4 +1,5 @@
 #include "ae/render/level_render.h"
+#include "ae/render/spatial_partition.h"
 
 #include <cmath>
 #include <iostream>
@@ -141,6 +142,69 @@ int test_draw_call_assembly() {
     return 0;
 }
 
+// --- Spatial partition tests ---
+
+int test_spatial_grid_construction() {
+    ae::render::SpatialGrid grid(10, 8, 2.0F, 0.0F, 0.0F);
+    if (grid.cols() != 10) return fail("expected 10 cols");
+    if (grid.rows() != 8) return fail("expected 8 rows");
+    if (!near_eq(grid.cell_size(), 2.0F)) return fail("cell size mismatch");
+    if (grid.empty()) return fail("10x8 grid should not be empty");
+    if (grid.cell_count() != 80) return fail("expected 80 cells");
+    return 0;
+}
+
+int test_spatial_grid_insert_query() {
+    ae::render::SpatialGrid grid(10, 10, 1.0F, 0.0F, 0.0F);
+    grid.insert(42, {2.0F, -1.0F, 2.0F, 4.0F, 1.0F, 4.0F});
+    if (grid.total_ids() != 4) return fail("2x2 box should touch 4 cells");
+    // Query the overlapping AABB
+    std::vector<std::uint64_t> results;
+    grid.query_aabb({2.5F, -1.0F, 2.5F, 3.5F, 1.0F, 3.5F}, results);
+    if (results.empty()) return fail("query should find ID 42");
+    bool found = false;
+    for (auto id : results) { if (id == 42) { found = true; break; } }
+    if (!found) return fail("query should contain ID 42");
+    return 0;
+}
+
+int test_spatial_grid_remove() {
+    ae::render::SpatialGrid grid(10, 10, 1.0F, 0.0F, 0.0F);
+    ae::render::AABB aabb = {2.0F, -1.0F, 2.0F, 4.0F, 1.0F, 4.0F};
+    grid.insert(42, aabb);
+    if (grid.total_ids() != 4) return fail("should have 4 IDs after insert");
+    grid.remove(42, aabb);
+    if (grid.total_ids() != 0) return fail("should have 0 IDs after remove");
+    return 0;
+}
+
+int test_spatial_grid_empty_query() {
+    ae::render::SpatialGrid grid(5, 5, 1.0F, 0.0F, 0.0F);
+    std::vector<std::uint64_t> results;
+    grid.query_aabb({0.0F, -1.0F, 0.0F, 5.0F, 1.0F, 5.0F}, results);
+    if (!results.empty()) return fail("empty grid should return no results");
+    if (grid.total_ids() != 0) return fail("total_ids should be 0");
+    return 0;
+}
+
+int test_spatial_grid_world_to_cell() {
+    ae::render::SpatialGrid grid(10, 10, 2.0F, -10.0F, -10.0F);
+    if (grid.world_to_cx(-9.0F) != 0) return fail("(-9,?) → cell col 0");
+    if (grid.world_to_cx(9.0F) != 9) return fail("(9,?) → cell col 9");
+    if (grid.world_to_cy(-9.0F) != 0) return fail("(?,-9) → cell row 0");
+    if (grid.world_to_cy(9.0F) != 9) return fail("(?,9) → cell row 9");
+    return 0;
+}
+
+int test_spatial_grid_default_empty() {
+    ae::render::SpatialGrid grid;
+    // Default grid has empty cells_ (0 cells).
+    if (grid.cell_count() != 0) return fail("default grid should have 0 cells");
+    if (!grid.empty()) return fail("default grid should be empty");
+    if (grid.total_ids() != 0) return fail("default grid should have 0 IDs");
+    return 0;
+}
+
 }  // namespace
 
 int main() {
@@ -154,6 +218,24 @@ int main() {
         return rc;
     }
     if (int rc = test_material_mapping(); rc != 0) {
+        return rc;
+    }
+    if (int rc = test_spatial_grid_construction(); rc != 0) {
+        return rc;
+    }
+    if (int rc = test_spatial_grid_insert_query(); rc != 0) {
+        return rc;
+    }
+    if (int rc = test_spatial_grid_remove(); rc != 0) {
+        return rc;
+    }
+    if (int rc = test_spatial_grid_empty_query(); rc != 0) {
+        return rc;
+    }
+    if (int rc = test_spatial_grid_world_to_cell(); rc != 0) {
+        return rc;
+    }
+    if (int rc = test_spatial_grid_default_empty(); rc != 0) {
         return rc;
     }
     std::cout << "level_render_tests passed\n";

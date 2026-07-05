@@ -245,3 +245,25 @@ target_compile_features(ahamkara_nav_grid_tests PRIVATE cxx_std_20)
 target_include_directories(ahamkara_nav_grid_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../game/include)
 
 add_test(NAME ahamkara_nav_grid_tests COMMAND ahamkara_nav_grid_tests)
+
+add_executable(ahamkara_ai_combatant_tests
+    src/ai_combatant_tests.cpp
+)
+
+target_compile_features(ahamkara_ai_combatant_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_ai_combatant_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../game/include)
+target_include_directories(ahamkara_ai_combatant_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include)
+target_link_libraries(ahamkara_ai_combatant_tests PRIVATE ahamkara_game)
+
+add_test(NAME ahamkara_ai_combatant_tests COMMAND ahamkara_ai_combatant_tests)
+
+add_executable(ahamkara_encounter_scripting_tests
+    src/encounter_scripting_tests.cpp
+)
+
+target_compile_features(ahamkara_encounter_scripting_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_encounter_scripting_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../game/include)
+target_include_directories(ahamkara_encounter_scripting_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include)
+target_link_libraries(ahamkara_encounter_scripting_tests PRIVATE ahamkara_game)
+
+add_test(NAME ahamkara_encounter_scripting_tests COMMAND ahamkara_encounter_scripting_tests)
