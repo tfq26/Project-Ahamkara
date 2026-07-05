@@ -468,7 +468,8 @@ int run_network_client(const std::string& server_ip, int argc, char** argv) {
         input_command.sprint_held = true;
 
         // Client-side prediction: apply input to local world immediately.
-        prediction.apply_input(input_command, kDeltaSeconds);
+        // The prediction manager uses its own fixed step internally.
+        prediction.apply_input(input_command);
 
         envelope.sequence++;
         if (!ahamkara::game::serialize_player_input_packet(envelope, input_command, input_buffer)

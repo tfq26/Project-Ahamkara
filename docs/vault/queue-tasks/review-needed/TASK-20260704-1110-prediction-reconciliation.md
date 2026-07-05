@@ -1,20 +1,18 @@
 ---
 type: opencode-task
-status: open
+status: review-needed
 created: 2026-07-04
 queued_by: codex
-assigned_to: opencode
+assigned_to: phase4-netc
 priority: normal
 escalation_tier: low
 primary_reviewer: codex
 secondary_reviewer:
 subsystems:
   - game
-  - server
   - client
-  - engine/network
 related_feature:
-report:
+report: docs/reports/subagents/TASK-20260704-1110-prediction-reconciliation-report.md
 ---
 
 # TASK-20260704-1110-prediction-reconciliation
