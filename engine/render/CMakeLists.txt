@@ -13,6 +13,7 @@ add_library(ae_render STATIC
     src/gl_compat.cpp
     src/gltf_loader.cpp
     src/humanoid_mesh.cpp
+    src/atmosphere_pass.cpp
     src/level_render.cpp
     src/map_geometry.cpp
     src/pbr_renderer.cpp

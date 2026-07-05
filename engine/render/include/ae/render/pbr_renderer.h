@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ae/render/atmosphere_pass.h"
 #include "ae/render/color_grading.h"
 #include "ae/render/render_backend.h"
 #include "ae/render/shadow_pass.h"
@@ -74,6 +75,7 @@ public:
     void set_ambient_sh(const float* sh_coefficients);  // 9 floats (3rd-order)
     void set_reflection_probes(const ReflectionProbe* probes, int count);
     void set_color_grading(const ColorGradingParams& params);
+    void set_fog(const FogParams& params);
 
     void begin_frame(const float* view_matrix, const float* projection_matrix,
                      const float* camera_position, ShadowPass* shadow);

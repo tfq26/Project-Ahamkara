@@ -1,5 +1,6 @@
-#include "ae/render/pbr_renderer.h"
+#include "ae/render/atmosphere_pass.h"
 #include "ae/render/color_grading.h"
+#include "ae/render/pbr_renderer.h"
 #include "ae/core/log.h"
 
 #if defined(__APPLE__)
@@ -50,7 +51,11 @@ struct PbrRenderer::Impl {
     // Color grading uniforms
     int u_exposure = -1, u_contrast = -1, u_saturation = -1, u_brightness = -1;
     int u_vignette_strength = -1, u_vignette_radius = -1, u_tonemap_mode = -1;
+    // Fog uniforms
+    int u_height_fog_density = -1, u_height_fog_height = -1, u_height_fog_falloff = -1;
+    int u_aerial_fog_density = -1, u_fog_color = -1;
     ColorGradingParams color_grading_;
+    FogParams fog_params_;
 
     // Ambient SH coefficients (3rd order, 9 floats)
     float sh_coeffs_[kShCoeffCount] = {};
@@ -85,6 +90,10 @@ struct PbrRenderer::Impl {
 
     void set_color_grading(const ColorGradingParams& params) {
         color_grading_ = params;
+    }
+
+    void set_fog(const FogParams& params) {
+        fog_params_ = params;
     }
 
     bool initialize(RenderBackend* be) {
@@ -163,6 +172,10 @@ struct PbrRenderer::Impl {
             uniform float uExposure, uContrast, uSaturation, uBrightness;
             uniform float uVignetteStrength, uVignetteRadius;
             uniform int uTonemapMode;
+            // Fog uniforms
+            uniform float uHeightFogDensity, uHeightFogHeight, uHeightFogFalloff;
+            uniform float uAerialFogDensity;
+            uniform vec3 uFogColor;
             out vec4 fragColor;
             const float PI = 3.14159265359;
 
@@ -319,6 +332,16 @@ struct PbrRenderer::Impl {
                 vignette = clamp(vignette, 0.0, 1.0);
                 color *= smoothstep(uVignetteRadius, 1.0, vignette);
 
+                // ── Fog (height + aerial) ──
+                float dist = length(uViewPos - vWorldPos);
+                // Height fog: thickest at uHeightFogHeight, thins with uHeightFogFalloff
+                float height_factor = exp(-abs(vWorldPos.y - uHeightFogHeight) / max(uHeightFogFalloff, 0.01));
+                float height_fog = 1.0 - exp(-dist * uHeightFogDensity * height_factor);
+                // Aerial (distance) fog
+                float aerial_fog = 1.0 - exp(-dist * uAerialFogDensity);
+                float fog_amount = clamp(max(height_fog, aerial_fog), 0.0, 1.0);
+                color = mix(color, uFogColor, fog_amount);
+
                 fragColor = vec4(color, 1.0);
             }
         )";
@@ -386,6 +409,13 @@ struct PbrRenderer::Impl {
         u_vignette_strength = backend->get_uniform_location(pbr_shader, "uVignetteStrength");
         u_vignette_radius = backend->get_uniform_location(pbr_shader, "uVignetteRadius");
         u_tonemap_mode = backend->get_uniform_location(pbr_shader, "uTonemapMode");
+
+        // Fog uniforms
+        u_height_fog_density = backend->get_uniform_location(pbr_shader, "uHeightFogDensity");
+        u_height_fog_height = backend->get_uniform_location(pbr_shader, "uHeightFogHeight");
+        u_height_fog_falloff = backend->get_uniform_location(pbr_shader, "uHeightFogFalloff");
+        u_aerial_fog_density = backend->get_uniform_location(pbr_shader, "uAerialFogDensity");
+        u_fog_color = backend->get_uniform_location(pbr_shader, "uFogColor");
 
         std::memcpy(view, identity_matrix(), 64);
         std::memcpy(proj, identity_matrix(), 64);
@@ -537,6 +567,13 @@ struct PbrRenderer::Impl {
         glUniform1f(u_vignette_radius, color_grading_.vignette_radius);
         glUniform1i(u_tonemap_mode, color_grading_.tonemap_mode);
 
+        // Fog
+        glUniform1f(u_height_fog_density, fog_params_.height_fog_density);
+        glUniform1f(u_height_fog_height, fog_params_.height_fog_height);
+        glUniform1f(u_height_fog_falloff, fog_params_.height_fog_falloff);
+        glUniform1f(u_aerial_fog_density, fog_params_.aerial_fog_density);
+        glUniform3fv(u_fog_color, 1, fog_params_.fog_color);
+
         // Reflection probes
         glUniform1i(u_probe_count, reflection_probe_count_);
         if (reflection_probe_count_ > 0) {
@@ -628,6 +665,7 @@ void PbrRenderer::set_cascade_splits(const float* splits) { impl_->set_cascade_s
 void PbrRenderer::set_ambient_sh(const float* coeffs) { impl_->set_ambient_sh(coeffs); }
 void PbrRenderer::set_reflection_probes(const ReflectionProbe* probes, int count) { impl_->set_reflection_probes(probes, count); }
 void PbrRenderer::set_color_grading(const ColorGradingParams& params) { impl_->set_color_grading(params); }
+void PbrRenderer::set_fog(const FogParams& params) { impl_->set_fog(params); }
 void PbrRenderer::begin_frame(const float* v, const float* p, const float* c, ShadowPass* s) { impl_->begin_frame(v, p, c, s); }
 void PbrRenderer::submit(const PbrDrawCall& dc) { impl_->submit(dc); }
 void PbrRenderer::end_frame() { impl_->end_frame(); }
