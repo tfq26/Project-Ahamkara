@@ -114,4 +114,10 @@ Blender now installed (5.1.2, /Applications/Blender.app). Ran the documented hea
 Matrix-stack compatibility is fully removed, the gameplay/menu boundary now reads from `ClientMenuState`, and the client/controller-mapper build cleanly with targeted tests green. Runtime display confirmation remains pending in this headless environment. Report: reports/subagents/TASK-20260623-1700-debug-client-frozen-view-investigation-report.md
 
 ## TASK-20260704-1000-weapon-runtime-foundation — Review needed 2026-07-04
-Hardened WeaponRuntime seam with explicit subclass contract, on_fire() hook, and reload_timer() accessor; wired on_fire() through Player/World into firing paths; confirmed WeaponModelCache is read-only from gameplay; clarified Player weapon-ownership docs. Build + 17/17 tests pass. Report: reports/subagents/TASK-20260704-1000-weapon-runtime-foundation-report.md
+|Hardened WeaponRuntime seam with explicit subclass contract, on_fire() hook, and reload_timer() accessor; wired on_fire() through Player/World into firing paths; confirmed WeaponModelCache is read-only from gameplay; clarified Player weapon-ownership docs. Build + 17/17 tests pass. Report: reports/subagents/TASK-20260704-1000-weapon-runtime-foundation-report.md
+## TASK-20260704-1400-spatial-partitioning — Self-validated 2026-07-05
+|World-scale spatial partitioning: SpatialGrid (uniform 2D grid, AABB/frustum query), OcclusionPortal/PVSRegion data shapes, 6 tests. Build + 19/19 tests pass. Report: reports/subagents/TASK-20260704-1400-spatial-partitioning-report.md
+## TASK-20260704-1510-ai-combatants — Self-validated 2026-07-05
+|AI combatants: 6 archetypes (Grunt/Sniper/Rusher/Support/Scout/Brute), perception (LOS/FOV/alertness), 7-state behavior FSM, ECS system entry point. 11 tests. Build + 19/19 tests pass. Report: reports/subagents/TASK-20260704-1510-ai-combatants-report.md
+## TASK-20260704-1520-encounter-scripting — Self-validated 2026-07-05
+|Encounter scripting: EncounterDef/TriggerDef/SpawnWaveDef/ObjectiveDef, EncounterManager with full lifecycle (wave spawn, trigger eval, objective tracking), 9 tests. Build + 19/19 tests pass. Report: reports/subagents/TASK-20260704-1520-encounter-scripting-report.md
