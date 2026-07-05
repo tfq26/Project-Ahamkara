@@ -1,4 +1,5 @@
 #include "ae/render/pbr_renderer.h"
+#include "ae/render/color_grading.h"
 #include "ae/core/log.h"
 
 #if defined(__APPLE__)
@@ -46,6 +47,10 @@ struct PbrRenderer::Impl {
     int u_probe_count = -1;
     int u_probe_cubemaps = -1, u_probe_positions = -1;
     int u_probe_radius = -1, u_probe_intensity = -1;
+    // Color grading uniforms
+    int u_exposure = -1, u_contrast = -1, u_saturation = -1, u_brightness = -1;
+    int u_vignette_strength = -1, u_vignette_radius = -1, u_tonemap_mode = -1;
+    ColorGradingParams color_grading_;
 
     // Ambient SH coefficients (3rd order, 9 floats)
     float sh_coeffs_[kShCoeffCount] = {};
@@ -76,6 +81,10 @@ struct PbrRenderer::Impl {
         reflection_probe_count_ = std::min(count, kMaxReflectionProbes);
         for (int i = 0; i < reflection_probe_count_; ++i)
             reflection_probes_[i] = probes[i];
+    }
+
+    void set_color_grading(const ColorGradingParams& params) {
+        color_grading_ = params;
     }
 
     bool initialize(RenderBackend* be) {
@@ -150,6 +159,10 @@ struct PbrRenderer::Impl {
             uniform vec3 uProbePositions[MAX_PROBES];
             uniform float uProbeRadius[MAX_PROBES];
             uniform float uProbeIntensity[MAX_PROBES];
+            // Color grading uniforms
+            uniform float uExposure, uContrast, uSaturation, uBrightness;
+            uniform float uVignetteStrength, uVignetteRadius;
+            uniform int uTonemapMode;
             out vec4 fragColor;
             const float PI = 3.14159265359;
 
@@ -276,7 +289,37 @@ struct PbrRenderer::Impl {
                 vec3 emissive = uEmissiveColor * uEmissiveIntensity;
                 if (uHasEmissiveMap) emissive += texture(uEmissiveMap, vUV).rgb * uEmissiveIntensity;
 
-                fragColor = vec4(diffuse_ibl + specular_ibl + total_light + emissive, 1.0);
+                vec3 color = diffuse_ibl + specular_ibl + total_light + emissive;
+
+                // ── Color grading ──
+                // Exposure
+                color *= uExposure;
+                // Contrast (mid-gray pivot)
+                color = (color - 0.5) * uContrast + 0.5;
+                // Saturation
+                float lum = dot(color, vec3(0.299, 0.587, 0.114));
+                color = mix(vec3(lum), color, uSaturation);
+                // Brightness
+                color += uBrightness;
+
+                // Tonemapping
+                if (uTonemapMode == 1) {
+                    // Reinhard
+                    color = color / (color + vec3(1.0));
+                } else if (uTonemapMode == 2) {
+                    // ACES filmic (approx)
+                    vec3 a = color * (color + 0.0245786) - 0.000090537;
+                    vec3 b = color * (0.983729 * color + 0.4329510) + 0.238081;
+                    color = a / b;
+                }
+
+                // Vignette
+                vec2 uv_center = vUV - 0.5;
+                float vignette = 1.0 - dot(uv_center, uv_center) * uVignetteStrength;
+                vignette = clamp(vignette, 0.0, 1.0);
+                color *= smoothstep(uVignetteRadius, 1.0, vignette);
+
+                fragColor = vec4(color, 1.0);
             }
         )";
 
@@ -334,6 +377,15 @@ struct PbrRenderer::Impl {
         u_probe_positions = backend->get_uniform_location(pbr_shader, "uProbePositions");
         u_probe_radius = backend->get_uniform_location(pbr_shader, "uProbeRadius");
         u_probe_intensity = backend->get_uniform_location(pbr_shader, "uProbeIntensity");
+
+        // Color grading uniforms
+        u_exposure = backend->get_uniform_location(pbr_shader, "uExposure");
+        u_contrast = backend->get_uniform_location(pbr_shader, "uContrast");
+        u_saturation = backend->get_uniform_location(pbr_shader, "uSaturation");
+        u_brightness = backend->get_uniform_location(pbr_shader, "uBrightness");
+        u_vignette_strength = backend->get_uniform_location(pbr_shader, "uVignetteStrength");
+        u_vignette_radius = backend->get_uniform_location(pbr_shader, "uVignetteRadius");
+        u_tonemap_mode = backend->get_uniform_location(pbr_shader, "uTonemapMode");
 
         std::memcpy(view, identity_matrix(), 64);
         std::memcpy(proj, identity_matrix(), 64);
@@ -476,6 +528,15 @@ struct PbrRenderer::Impl {
             glUniform1fv(u_sh_coeffs, kShCoeffCount, sh_coeffs_);
         }
 
+        // Color grading
+        glUniform1f(u_exposure, color_grading_.exposure);
+        glUniform1f(u_contrast, color_grading_.contrast);
+        glUniform1f(u_saturation, color_grading_.saturation);
+        glUniform1f(u_brightness, color_grading_.brightness);
+        glUniform1f(u_vignette_strength, color_grading_.vignette_strength);
+        glUniform1f(u_vignette_radius, color_grading_.vignette_radius);
+        glUniform1i(u_tonemap_mode, color_grading_.tonemap_mode);
+
         // Reflection probes
         glUniform1i(u_probe_count, reflection_probe_count_);
         if (reflection_probe_count_ > 0) {
@@ -566,6 +627,7 @@ void PbrRenderer::set_lights(const PbrLight* lights, int count) { impl_->set_lig
 void PbrRenderer::set_cascade_splits(const float* splits) { impl_->set_cascade_splits(splits); }
 void PbrRenderer::set_ambient_sh(const float* coeffs) { impl_->set_ambient_sh(coeffs); }
 void PbrRenderer::set_reflection_probes(const ReflectionProbe* probes, int count) { impl_->set_reflection_probes(probes, count); }
+void PbrRenderer::set_color_grading(const ColorGradingParams& params) { impl_->set_color_grading(params); }
 void PbrRenderer::begin_frame(const float* v, const float* p, const float* c, ShadowPass* s) { impl_->begin_frame(v, p, c, s); }
 void PbrRenderer::submit(const PbrDrawCall& dc) { impl_->submit(dc); }
 void PbrRenderer::end_frame() { impl_->end_frame(); }
