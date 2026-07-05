@@ -6,7 +6,7 @@
 
 namespace ae::animation {
 
-AnimationRenderOutput extract_joint_matrices_from_pose(const std::vector<ae::render::Mat4>& pose) {
+AnimationRenderOutput extract_joint_matrices(const std::vector<ae::render::Mat4>& pose) {
     AnimationRenderOutput out;
     out.joint_count = static_cast<int>(pose.size());
     if (out.joint_count == 0) return out;

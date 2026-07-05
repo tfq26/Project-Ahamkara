@@ -20,6 +20,7 @@ add_library(ahamkara_game STATIC
     src/activities/horde_activity.cpp
     src/activities/social_hub_activity.cpp
     ../engine/render/src/compiled_level.cpp
+    src/animation_adapter.cpp
 )
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/gameplay_types.cpp")
@@ -32,6 +33,7 @@ target_include_directories(ahamkara_game
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../engine/render/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/animation/include
 )
 
 target_link_libraries(ahamkara_game
@@ -49,4 +51,9 @@ target_link_libraries(ahamkara_game
 # so link the render library only when the target exists (keeps headless linking).
 if(TARGET ae_render)
     target_link_libraries(ahamkara_game PRIVATE ae_render)
+endif()
+
+# ae_animation is only built in GUI configs (depends on ae_render).
+if(TARGET ae_animation)
+    target_link_libraries(ahamkara_game PRIVATE ae_animation)
 endif()

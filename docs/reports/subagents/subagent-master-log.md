@@ -125,3 +125,9 @@ Three combat core tasks completed:
 
 Report: docs/reports/subagents/TASK-20260704-1010-1020-1030-combat-core-report.md
 Build: success | Tests: 17/17 passed
+## Phase 5: Animation & Sensory Polish (TASK-1200/1210/1220/1230) — Review needed 2026-07-05
+TASK-1200: Character animation runtime wiring via AnimationAdapter bridge, animation_render_bridge fix, joint matrices in DebugScene.
+TASK-1210: Weapon animation layers with per-weapon profiles (AR-15, Shotgun, RL) and melee three-phase swing.
+TASK-1220: Audio subsystem upgrade with 3D spatialization, weapon/foley/ambience buses, occlusion support.
+TASK-1230: VFX feedback system with screen shake, damage flash, hit-reaction triggers, melee UI state.
+Build (debug) clean; 14/14 test suites pass. Branch: agent/phase5/sensory-polish. Report: reports/subagents/phase5-sensory-polish.md

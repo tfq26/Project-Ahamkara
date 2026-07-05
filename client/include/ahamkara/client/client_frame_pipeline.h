@@ -9,6 +9,7 @@
 #include "ahamkara/client/weapon_presentation.h"
 #include "ahamkara/client/threaded_local_runtime.h"
 #include "ahamkara/client/weapon_animation_controller.h"
+#include "ahamkara/game/animation_adapter.h"
 #include "ahamkara/client/window_input_provider.h"
 #include "ahamkara/client/audio_player.h"
 #include "ahamkara/game/net_types.h"
@@ -107,6 +108,7 @@ private:
     DebugRenderSubmission render_submission_ {};
     WeaponAnimationController weapon_animation_ {};
     WeaponViewmodelPresentation weapon_presentation_ {};
+    ahamkara::game::AnimationAdapter anim_adapter_ {};
     std::string window_title_ {};
     DebugUiActions ui_actions_ {};
     ae::ui::MenuSystem menu_system_;

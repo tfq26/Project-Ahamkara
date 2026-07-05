@@ -141,6 +141,22 @@ struct DebugScene {
 
     // GPU profiler overlay (separate from main metrics)
     bool gpu_profiler_visible {false};
+
+    // Character animation joint matrices for third-person character rendering.
+    // Flat array of 256 * 16 = 4096 floats (column-major 4x4 each).
+    float character_joint_matrices[4096] {};
+    int character_joint_count {0};
+
+    // Screen shake state
+    float screen_shake_intensity {0.0F};
+    float screen_shake_angle {0.0F};
+    float screen_shake_frequency {0.0F};
+
+    // Damage flash for HUD red vignette
+    float damage_flash_intensity {0.0F};
+
+    // Melee active state for UI feedback
+    bool melee_active {false};
 };
 
 class DebugRenderer {
