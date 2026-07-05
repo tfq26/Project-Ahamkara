@@ -342,6 +342,16 @@ void ClientFramePipeline::stage_render_ui() {
         hud_state.crosshair_visible = render_submission_.scene.show_crosshair && !render_submission_.scene.menu_visible;
         hud_state.crosshair_spread = raw_input_.move_axis.x * raw_input_.move_axis.x + raw_input_.move_axis.y * raw_input_.move_axis.y;
 
+        // Ability state from combat runtime
+        hud_state.grenade_cooldown = curr_snap_.grenade_cooldown;
+        hud_state.grenade_count = curr_snap_.grenade_count;
+        hud_state.grenade_available = curr_snap_.grenade_available;
+        hud_state.special_cooldown = curr_snap_.special_cooldown;
+        hud_state.special_available = curr_snap_.special_available;
+        hud_state.artifact_cooldown = curr_snap_.artifact_cooldown;
+        hud_state.ultimate_charge = curr_snap_.ultimate_charge;
+        hud_state.ultimate_ready = curr_snap_.ultimate_ready;
+
         auto& io = ImGui::GetIO();
         hud_system_.render(io.DisplaySize.x, io.DisplaySize.y, hud_state);
     }

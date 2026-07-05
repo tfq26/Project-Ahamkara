@@ -313,6 +313,17 @@ void World::tick_internal(float delta_seconds, const PlayerInputCommand& input) 
 
     tick_weapon(delta_seconds, input.fire_held);
 
+    // Tick ability cooldowns and energy regen
+    tick_abilities(delta_seconds);
+
+    // Handle ability input (E key / gamepad)
+    if (input.ability_pressed) {
+        // Try grenade first, then special
+        if (!use_grenade()) {
+            use_special();
+        }
+    }
+
     if (input.fire_held) {
         const auto& def = get_active_weapon_def();
         if (def.fire_mode == FireMode::Hitscan || def.fire_mode == FireMode::Automatic) {

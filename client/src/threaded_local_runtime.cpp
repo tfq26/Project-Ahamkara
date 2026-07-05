@@ -170,6 +170,17 @@ ClientSimulationSnapshot ThreadedLocalRuntime::build_snapshot_locked() const {
     snapshot.team_score_red = 0;
     snapshot.team_score_blue = simulation_.get_player_kills();
 
+    // Ability state
+    const auto& ability = simulation_.get_ability_state();
+    snapshot.grenade_cooldown = ability.grenade_cooldown;
+    snapshot.grenade_count = ability.grenade_count;
+    snapshot.special_cooldown = ability.special_cooldown;
+    snapshot.artifact_cooldown = ability.artifact_cooldown;
+    snapshot.ultimate_charge = ability.ultimate_charge;
+    snapshot.grenade_available = ability.grenade_available();
+    snapshot.special_available = ability.special_available();
+    snapshot.ultimate_ready = ability.ultimate_ready();
+
     return snapshot;
 }
 

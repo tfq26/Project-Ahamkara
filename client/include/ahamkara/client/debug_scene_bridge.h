@@ -44,6 +44,16 @@ struct ClientSimulationSnapshot {
     ahamkara::game::DecalState decals[kMaxDecals] {};
     int decal_count {0};
 
+    // Ability state
+    float grenade_cooldown {0.0F};
+    int grenade_count {2};
+    float special_cooldown {0.0F};
+    float artifact_cooldown {0.0F};
+    float ultimate_charge {0.0F};
+    bool grenade_available {true};
+    bool special_available {true};
+    bool ultimate_ready {false};
+
     float match_time {0.0F};
     ae::u8 match_phase {0};
     ae::u32 team_score_red {0};

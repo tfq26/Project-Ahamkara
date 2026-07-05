@@ -257,6 +257,10 @@ float LocalPlaySimulation::get_damage_feedback_timer() const {
     return 0.0F;
 }
 
+const ahamkara::game::AbilityState& LocalPlaySimulation::get_ability_state() const {
+    return world_.ability_state();
+}
+
 void LocalPlaySimulation::restart_match() {
     world_.restart_match();
     current_tick_ = 0;

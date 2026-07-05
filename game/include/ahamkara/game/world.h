@@ -118,6 +118,13 @@ public:
     void set_hitmarker(float time, bool is_critical) { hitmarker_timer_ = time; hitmarker_is_critical_ = is_critical; }
     void set_muzzle_flash(float time) { muzzle_flash_timer_ = time; }
 
+    /// Ability state accessors (delegated to Player).
+    [[nodiscard]] const AbilityState& ability_state() const { return player_.ability_state(); }
+    [[nodiscard]] AbilityState& ability_state() { return player_.ability_state(); }
+    void tick_abilities(float dt) { player_.tick_abilities(dt); }
+    bool use_grenade() { return player_.use_grenade(); }
+    bool use_special() { return player_.use_special(); }
+
     /// Recoil pattern index — advanced each shot for deterministic recoil.
     [[nodiscard]] int recoil_index() const { return fire_recoil_index_; }
     void advance_recoil() { ++fire_recoil_index_; }

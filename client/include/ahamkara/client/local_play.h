@@ -81,6 +81,7 @@ public:
     [[nodiscard]] bool is_match_over() const;
     [[nodiscard]] bool is_player_alive() const;
     [[nodiscard]] float get_damage_feedback_timer() const;
+    [[nodiscard]] const ahamkara::game::AbilityState& get_ability_state() const;
     void restart_match();
 
 private:
