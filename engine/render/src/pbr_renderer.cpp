@@ -38,6 +38,20 @@ struct PbrRenderer::Impl {
     int u_light_type_array = -1, u_light_range_array = -1;
     int u_csm_splits = -1, u_csm_matrices = -1;
     int u_csm_cascade_count = -1;
+    // Ambient / IBL uniform locations
+    int u_emissive_color = -1, u_emissive_intensity = -1, u_has_emissive_map = -1;
+    int u_emissive_tex = -1;
+    int u_sh_coeffs = -1, u_use_sh_ambient = -1;
+    // Reflection probe
+    int u_probe_count = -1;
+    int u_probe_cubemaps = -1, u_probe_positions = -1;
+    int u_probe_radius = -1, u_probe_intensity = -1;
+
+    // Ambient SH coefficients (3rd order, 9 floats)
+    float sh_coeffs_[kShCoeffCount] = {};
+    bool use_sh_ambient_ = false;
+    ReflectionProbe reflection_probes_[kMaxReflectionProbes];
+    int reflection_probe_count_ = 0;
 
     float view[16] = {};
     float proj[16] = {};
@@ -51,6 +65,17 @@ struct PbrRenderer::Impl {
 
     void set_cascade_splits(const float* splits) {
         for (int i = 0; i < kCsmCascadeCount; ++i) cascade_splits[i] = splits[i];
+    }
+
+    void set_ambient_sh(const float* coeffs) {
+        std::memcpy(sh_coeffs_, coeffs, kShCoeffCount * sizeof(float));
+        use_sh_ambient_ = true;
+    }
+
+    void set_reflection_probes(const ReflectionProbe* probes, int count) {
+        reflection_probe_count_ = std::min(count, kMaxReflectionProbes);
+        for (int i = 0; i < reflection_probe_count_; ++i)
+            reflection_probes_[i] = probes[i];
     }
 
     bool initialize(RenderBackend* be) {
@@ -96,28 +121,35 @@ struct PbrRenderer::Impl {
             }
         )";
 
-        // ── Fragment shader: multi-light PBR + CSM ───────────────────────
+        // ── Fragment shader: multi-light PBR + CSM + IBL ──────────────────
         const char* frag_src = R"(
             #version 330 core
             #define MAX_LIGHTS 12
             #define MAX_CSM 4
+            #define MAX_PROBES 4
+            #define SH_COEFFS 9
             in vec3 vWorldPos, vNormal;
             in vec2 vUV;
             in vec4 vCsmPos[MAX_CSM];
-            uniform sampler2D uAlbedoMap, uNormalMap, uOrmMap;
+            uniform sampler2D uAlbedoMap, uNormalMap, uOrmMap, uEmissiveMap;
             uniform sampler2DArray uShadowMapArray;
-            uniform vec3 uViewPos, uAlbedo;
-            uniform float uMetallic, uRoughness, uAmbientStrength;
-            uniform bool uHasAlbedoMap, uHasNormalMap, uHasOrmMap;
-            uniform int uLightCount;
+            uniform samplerCube uProbeCubemaps[MAX_PROBES];
+            uniform vec3 uViewPos, uAlbedo, uEmissiveColor;
+            uniform float uMetallic, uRoughness, uAmbientStrength, uEmissiveIntensity;
+            uniform bool uHasAlbedoMap, uHasNormalMap, uHasOrmMap, uHasEmissiveMap;
+            uniform int uLightCount, uCsmCascadeCount, uUseShAmbient;
             uniform vec3 uLightDirs[MAX_LIGHTS];
             uniform vec3 uLightColors[MAX_LIGHTS];
             uniform vec3 uLightPositions[MAX_LIGHTS];
             uniform float uLightIntensities[MAX_LIGHTS];
             uniform int uLightTypes[MAX_LIGHTS];
             uniform float uLightRanges[MAX_LIGHTS];
-            uniform int uCsmCascadeCount;
             uniform float uCsmSplits[4];
+            uniform float uShCoeffs[SH_COEFFS];
+            uniform int uProbeCount;
+            uniform vec3 uProbePositions[MAX_PROBES];
+            uniform float uProbeRadius[MAX_PROBES];
+            uniform float uProbeIntensity[MAX_PROBES];
             out vec4 fragColor;
             const float PI = 3.14159265359;
 
@@ -131,6 +163,23 @@ struct PbrRenderer::Impl {
                        (max(dot(N,L),0.0)/(max(dot(N,L),0.0)*(1.0-k)+k));
             }
             vec3 F_Schlick(float c, vec3 F0) { return F0 + (1.0-F0)*pow(1.0-c,5.0); }
+
+            // Evaluate 3rd-order SH for a given direction
+            vec3 sh_eval(vec3 dir, float coeffs[SH_COEFFS]) {
+                // Constant (L00)
+                vec3 c = coeffs[0] * 0.282095 * vec3(1.0);
+                // Linear (L1-1, L10, L11)
+                c += coeffs[1] * 0.488603 * dir.y * vec3(1.0);
+                c += coeffs[2] * 0.488603 * dir.z * vec3(1.0);
+                c += coeffs[3] * 0.488603 * dir.x * vec3(1.0);
+                // Quad (L2-2, L2-1, L20, L21, L22)
+                c += coeffs[4] * 1.092548 * dir.x * dir.y * vec3(1.0);
+                c += coeffs[5] * 1.092548 * dir.y * dir.z * vec3(1.0);
+                c += coeffs[6] * 0.315392 * (3.0*dir.z*dir.z - 1.0) * vec3(1.0);
+                c += coeffs[7] * 1.092548 * dir.x * dir.z * vec3(1.0);
+                c += coeffs[8] * 0.546274 * (dir.x*dir.x - dir.y*dir.y) * vec3(1.0);
+                return max(c, vec3(0.0));
+            }
 
             float csm_shadow(int cascade, vec4 lsp) {
                 vec3 p = lsp.xyz/lsp.w*0.5+0.5;
@@ -158,19 +207,19 @@ struct PbrRenderer::Impl {
                 vec3 V = normalize(uViewPos - vWorldPos);
                 vec3 F0 = mix(vec3(0.04), alb, met);
 
-                // Compute view-space Z for cascade selection
+                // View-space Z for cascade selection
                 float view_z = length(uViewPos - vWorldPos);
                 float shadow_factor = compute_shadow(view_z);
 
+                // ── Direct lighting ──
                 vec3 total_light = vec3(0.0);
-
                 for (int i = 0; i < uLightCount; ++i) {
                     vec3 L, radiance;
                     float NdotL;
-                    if (uLightTypes[i] == 0) { // Directional
+                    if (uLightTypes[i] == 0) {
                         L = normalize(uLightDirs[i]);
                         radiance = uLightColors[i] * uLightIntensities[i];
-                    } else { // Point
+                    } else {
                         vec3 delta = uLightPositions[i] - vWorldPos;
                         float dist = length(delta);
                         if (dist > uLightRanges[i]) continue;
@@ -181,7 +230,6 @@ struct PbrRenderer::Impl {
                     }
                     NdotL = max(dot(N, L), 0.0);
                     if (NdotL <= 0.0) continue;
-
                     vec3 H = normalize(V + L);
                     vec3 F = F_Schlick(max(dot(H,V),0.0), F0);
                     float D = D_GGX(N, H, rou);
@@ -189,14 +237,46 @@ struct PbrRenderer::Impl {
                     vec3 spec = D*G*F / (4.0*max(dot(N,V),0.0)*NdotL+0.0001);
                     vec3 kD = (1.0-F)*(1.0-met);
                     vec3 diff = kD*alb/PI;
-
-                    // Only apply shadow to the first directional light (sun)
                     float sh = (i == 0) ? shadow_factor : 0.0;
                     total_light += (1.0-sh)*(diff+spec)*radiance*NdotL;
                 }
 
-                vec3 ambient = alb * uAmbientStrength;
-                fragColor = vec4(ambient + total_light, 1.0);
+                // ── Ambient (SH irradiance or flat) ──
+                vec3 ambient;
+                if (uUseShAmbient == 1) {
+                    float shc[SH_COEFFS];
+                    for (int i = 0; i < SH_COEFFS; ++i) shc[i] = uShCoeffs[i];
+                    ambient = alb * sh_eval(N, shc);
+                } else {
+                    ambient = alb * uAmbientStrength;
+                }
+
+                // ── IBL / reflection probes ──
+                vec3 ibl_reflection = vec3(0.0);
+                vec3 R = reflect(-V, N);
+                for (int i = 0; i < uProbeCount; ++i) {
+                    vec3 delta = uProbePositions[i] - vWorldPos;
+                    float dist = length(delta);
+                    if (dist > uProbeRadius[i]) continue;
+                    float weight = clamp(1.0 - dist / uProbeRadius[i], 0.0, 1.0);
+                    // Simple cubemap lookup (no mip-level selection without pre-filter)
+                    vec3 probe_col = texture(uProbeCubemaps[i], R).rgb;
+                    ibl_reflection += probe_col * weight * uProbeIntensity[i];
+                }
+
+                // Simple Fresnel for IBL reflection (split-sum approximation)
+                float NdotV = max(dot(N, V), 0.0);
+                vec3 F_ibl = F0 + (1.0 - F0) * pow(1.0 - NdotV, 5.0);
+                vec3 kS_ibl = F_ibl;
+                vec3 kD_ibl = (1.0 - kS_ibl) * (1.0 - met);
+                vec3 diffuse_ibl = kD_ibl * ambient;
+                vec3 specular_ibl = kS_ibl * ibl_reflection;
+
+                // ── Emissive ──
+                vec3 emissive = uEmissiveColor * uEmissiveIntensity;
+                if (uHasEmissiveMap) emissive += texture(uEmissiveMap, vUV).rgb * uEmissiveIntensity;
+
+                fragColor = vec4(diffuse_ibl + specular_ibl + total_light + emissive, 1.0);
             }
         )";
 
@@ -237,6 +317,23 @@ struct PbrRenderer::Impl {
         u_csm_splits = backend->get_uniform_location(pbr_shader, "uCsmSplits");
         u_csm_matrices = backend->get_uniform_location(pbr_shader, "uCsmMatrices");
         u_csm_cascade_count = backend->get_uniform_location(pbr_shader, "uCsmCascadeCount");
+
+        // Emissive uniforms
+        u_emissive_color = backend->get_uniform_location(pbr_shader, "uEmissiveColor");
+        u_emissive_intensity = backend->get_uniform_location(pbr_shader, "uEmissiveIntensity");
+        u_has_emissive_map = backend->get_uniform_location(pbr_shader, "uHasEmissiveMap");
+        u_emissive_tex = backend->get_uniform_location(pbr_shader, "uEmissiveMap");
+
+        // SH ambient uniforms
+        u_sh_coeffs = backend->get_uniform_location(pbr_shader, "uShCoeffs");
+        u_use_sh_ambient = backend->get_uniform_location(pbr_shader, "uUseShAmbient");
+
+        // Reflection probe uniforms
+        u_probe_count = backend->get_uniform_location(pbr_shader, "uProbeCount");
+        u_probe_cubemaps = backend->get_uniform_location(pbr_shader, "uProbeCubemaps");
+        u_probe_positions = backend->get_uniform_location(pbr_shader, "uProbePositions");
+        u_probe_radius = backend->get_uniform_location(pbr_shader, "uProbeRadius");
+        u_probe_intensity = backend->get_uniform_location(pbr_shader, "uProbeIntensity");
 
         std::memcpy(view, identity_matrix(), 64);
         std::memcpy(proj, identity_matrix(), 64);
@@ -358,13 +455,50 @@ struct PbrRenderer::Impl {
         bool has_alb = dc.albedo_map.id != 0;
         bool has_nrm = dc.normal_map.id != 0;
         bool has_orm = dc.orm_map.id != 0;
+        bool has_ems = dc.emissive_map.id != 0;
         glUniform1i(u_has_albedo, has_alb ? 1 : 0);
         glUniform1i(u_has_normal, has_nrm ? 1 : 0);
         glUniform1i(u_has_orm, has_orm ? 1 : 0);
+        glUniform1i(u_has_emissive_map, has_ems ? 1 : 0);
 
         if (has_alb) { backend->bind_texture(dc.albedo_map, 0); glUniform1i(u_albedo_tex, 0); }
         if (has_nrm) { backend->bind_texture(dc.normal_map, 1); glUniform1i(u_normal_tex, 1); }
         if (has_orm) { backend->bind_texture(dc.orm_map, 2); glUniform1i(u_orm_tex, 2); }
+        if (has_ems) { backend->bind_texture(dc.emissive_map, 5); glUniform1i(u_emissive_tex, 5); }
+
+        // Emissive
+        glUniform3fv(u_emissive_color, 1, dc.emissive_color);
+        glUniform1f(u_emissive_intensity, dc.emissive_intensity);
+
+        // SH ambient
+        glUniform1i(u_use_sh_ambient, use_sh_ambient_ ? 1 : 0);
+        if (use_sh_ambient_) {
+            glUniform1fv(u_sh_coeffs, kShCoeffCount, sh_coeffs_);
+        }
+
+        // Reflection probes
+        glUniform1i(u_probe_count, reflection_probe_count_);
+        if (reflection_probe_count_ > 0) {
+            float probe_pos_data[kMaxReflectionProbes * 3];
+            float probe_rad_data[kMaxReflectionProbes];
+            float probe_int_data[kMaxReflectionProbes];
+            for (int i = 0; i < reflection_probe_count_; ++i) {
+                probe_pos_data[i*3+0] = reflection_probes_[i].position[0];
+                probe_pos_data[i*3+1] = reflection_probes_[i].position[1];
+                probe_pos_data[i*3+2] = reflection_probes_[i].position[2];
+                probe_rad_data[i] = reflection_probes_[i].influence_radius;
+                probe_int_data[i] = reflection_probes_[i].intensity;
+                // Bind probe cubemap — slot 6+i
+                if (reflection_probes_[i].cubemap.id != 0) {
+                    glActiveTexture(GL_TEXTURE6 + i);
+                    glBindTexture(GL_TEXTURE_CUBE_MAP, reflection_probes_[i].cubemap.id);
+                    glUniform1i(u_probe_cubemaps + i, 6 + i);
+                }
+            }
+            glUniform3fv(u_probe_positions, reflection_probe_count_, probe_pos_data);
+            glUniform1fv(u_probe_radius, reflection_probe_count_, probe_rad_data);
+            glUniform1fv(u_probe_intensity, reflection_probe_count_, probe_int_data);
+        }
 
         bool skin = dc.joint_matrices != nullptr && dc.joint_count > 0;
         glUniform1i(u_has_skinning, skin ? 1 : 0);
@@ -430,6 +564,8 @@ bool PbrRenderer::initialize(RenderBackend* backend) { return impl_->initialize(
 void PbrRenderer::shutdown() { impl_->shutdown(); }
 void PbrRenderer::set_lights(const PbrLight* lights, int count) { impl_->set_lights(lights, count); }
 void PbrRenderer::set_cascade_splits(const float* splits) { impl_->set_cascade_splits(splits); }
+void PbrRenderer::set_ambient_sh(const float* coeffs) { impl_->set_ambient_sh(coeffs); }
+void PbrRenderer::set_reflection_probes(const ReflectionProbe* probes, int count) { impl_->set_reflection_probes(probes, count); }
 void PbrRenderer::begin_frame(const float* v, const float* p, const float* c, ShadowPass* s) { impl_->begin_frame(v, p, c, s); }
 void PbrRenderer::submit(const PbrDrawCall& dc) { impl_->submit(dc); }
 void PbrRenderer::end_frame() { impl_->end_frame(); }
