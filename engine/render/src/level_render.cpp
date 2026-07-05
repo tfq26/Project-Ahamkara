@@ -157,6 +157,7 @@ void LevelRenderScene::build(const LevelAsset& level, RenderBackend& backend, co
                 instance.albedo_map = load_texture(material.albedo_texture);
                 instance.normal_map = load_texture(material.normal_texture);
                 instance.orm_map = load_texture(material.orm_texture);
+                instance.emissive_map = load_texture(material.emissive_texture);
             }
         }
 
@@ -189,6 +190,11 @@ PbrDrawCall make_level_draw_call(const LevelRenderInstance& instance, GpuMesh& m
     draw_call.albedo_map = instance.albedo_map;
     draw_call.normal_map = instance.normal_map;
     draw_call.orm_map = instance.orm_map;
+    draw_call.emissive_color[0] = 0.0F;
+    draw_call.emissive_color[1] = 0.0F;
+    draw_call.emissive_color[2] = 0.0F;
+    draw_call.emissive_intensity = 0.0F;
+    draw_call.emissive_map = instance.emissive_map;
     return draw_call;
 }
 

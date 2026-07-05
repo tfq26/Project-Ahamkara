@@ -25,6 +25,7 @@ struct LevelRenderInstance {
     TextureHandle albedo_map {};
     TextureHandle normal_map {};
     TextureHandle orm_map {};
+    TextureHandle emissive_map {};
 };
 
 // Scalar PBR parameters derived from a compiled material. Pure / GL-free.

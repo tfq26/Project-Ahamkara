@@ -91,9 +91,8 @@ struct GpuModel {
 // The current OpenGL implementation lives in render_backend_opengl.cpp.
 // Future Vulkan / Metal / D3D backends implement this same interface.
 //
-// Immediate-mode debug drawing (glBegin/glEnd, fixed-function lighting,
-// matrix stack) is NOT part of this abstraction — those calls remain in
-// the debug renderer and are expected to be replaced by production rendering.
+// Immediate-mode debug drawing has been retired — the renderer now uses
+// core-profile VAO-based drawing throughout.
 
 class RenderBackend {
 public:

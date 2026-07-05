@@ -7,24 +7,6 @@
 #include "ae/render/render_backend.h"
 #include "ae/render/skeletal_animation.h"
 
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-#define GL_GLEXT_PROTOTYPES
-#if defined(__APPLE__)
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
-// GL_TIME_ELAPSED is from GL_EXT_timer_query / GL_ARB_timer_query
-#ifndef GL_TIME_ELAPSED
-#define GL_TIME_ELAPSED 0x88BF
-#endif
-#ifndef GL_SAMPLES_PASSED
-#define GL_SAMPLES_PASSED 0x8914
-#endif
-#else
-#include <GL/gl.h>
-#include <GL/glext.h>
-#endif
-
 #include "debug_renderer_internal.h"
 
 #include <algorithm>
@@ -192,11 +174,7 @@ void ensure_overlay_resources() {
     }
 
     res.u_mvp_loc = glGetUniformLocation(res.shader, "uMVP");
-#if defined(__APPLE__)
-    glGenVertexArraysAPPLE(1, &res.vao);
-#else
     glGenVertexArrays(1, &res.vao);
-#endif
     glGenBuffers(1, &res.vbo);
 }
 
@@ -216,11 +194,7 @@ void draw_overlay_vertices(const OverlayVertex* vertices, int count, GLenum mode
 
     glUseProgram(res.shader);
     glUniformMatrix4fv(res.u_mvp_loc, 1, GL_FALSE, mvp.m);
-#if defined(__APPLE__)
-    glBindVertexArrayAPPLE(res.vao);
-#else
     glBindVertexArray(res.vao);
-#endif
     glBindBuffer(GL_ARRAY_BUFFER, res.vbo);
     glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(count * static_cast<int>(sizeof(OverlayVertex))),
                  vertices, GL_STREAM_DRAW);
@@ -233,11 +207,7 @@ void draw_overlay_vertices(const OverlayVertex* vertices, int count, GLenum mode
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-#if defined(__APPLE__)
-    glBindVertexArrayAPPLE(0);
-#else
     glBindVertexArray(0);
-#endif
     glUseProgram(0);
 }
 
@@ -326,11 +296,7 @@ void ensure_world_resources() {
     }
 
     res.u_mvp_loc = glGetUniformLocation(res.shader, "uMVP");
-#if defined(__APPLE__)
-    glGenVertexArraysAPPLE(1, &res.vao);
-#else
     glGenVertexArrays(1, &res.vao);
-#endif
     glGenBuffers(1, &res.vbo);
 }
 
@@ -350,11 +316,7 @@ void draw_world_vertices(const WorldVertex* vertices, int count, GLenum mode) {
 
     glUseProgram(res.shader);
     glUniformMatrix4fv(res.u_mvp_loc, 1, GL_FALSE, mvp.m);
-#if defined(__APPLE__)
-    glBindVertexArrayAPPLE(res.vao);
-#else
     glBindVertexArray(res.vao);
-#endif
     glBindBuffer(GL_ARRAY_BUFFER, res.vbo);
     glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(count * static_cast<int>(sizeof(WorldVertex))),
                  vertices, GL_STREAM_DRAW);
@@ -367,11 +329,7 @@ void draw_world_vertices(const WorldVertex* vertices, int count, GLenum mode) {
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-#if defined(__APPLE__)
-    glBindVertexArrayAPPLE(0);
-#else
     glBindVertexArray(0);
-#endif
     glUseProgram(0);
 }
 }  // namespace
