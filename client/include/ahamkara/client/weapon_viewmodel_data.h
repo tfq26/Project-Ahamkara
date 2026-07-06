@@ -32,9 +32,9 @@ inline const std::array<WeaponViewmodelTransform, kWeaponViewmodelCount> kWeapon
 /// The path format is "assets/compiled/models/viewmodel_<name>.aemesh".
 inline const char* weapon_viewmodel_mesh_path(int index) {
     switch (index) {
-        case 0: return "assets/compiled/models/viewmodel_arms.aemesh";
-        case 1: return "assets/compiled/models/viewmodel_arms.aemesh";
-        case 2: return "assets/compiled/models/viewmodel_arms.aemesh";
+        case 0: return "assets/compiled/models/viewmodel_ar15.aemesh";
+        case 1: return "assets/compiled/models/viewmodel_shotgun.aemesh";
+        case 2: return "assets/compiled/models/viewmodel_rocket_launcher.aemesh";
         default: return "assets/compiled/models/viewmodel_arms.aemesh";
     }
 }
