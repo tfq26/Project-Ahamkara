@@ -3,6 +3,7 @@
 #include "ae/animation/character_weapon.h"
 #include "ae/render/debug_renderer.h"
 #include "ahamkara/client/debug_scene_bridge.h"
+#include "ahamkara/client/weapon_viewmodel_data.h"
 
 #include <array>
 #include <unordered_map>
@@ -16,6 +17,7 @@ struct WeaponAnimProfile {
     float melee_duration {0.6F};
     float melee_reach {1.5F};
     float melee_damage {35.0F};
+    WeaponReloadData reload_data {};
 };
 
 /// Client-side first-person weapon animation bridge.
@@ -36,10 +38,15 @@ public:
     [[nodiscard]] const std::array<float, 16>& transform() const { return transform_; }
     [[nodiscard]] float ads_blend() const { return anim_state_.ads_blend; }
 
-    /// Melee API
+    // Melee API
     bool trigger_melee();
     [[nodiscard]] bool is_melee_active() const { return melee_active_; }
     [[nodiscard]] float melee_normalized() const;
+
+    // Reload phase API
+    [[nodiscard]] ReloadPhase reload_phase() const { return reload_phase_; }
+    [[nodiscard]] const float* reload_ik_offset() const { return reload_ik_offset_; }
+    [[nodiscard]] float reload_normalized() const { return reload_normalized_; }
 
 private:
     static constexpr int kArWeaponIndex = 0;
@@ -62,6 +69,9 @@ private:
     ae::animation::WeaponAnimState anim_state_ {};
     bool reload_active_ {false};
     float reload_timer_ {0.0F};
+    ReloadPhase reload_phase_ {ReloadPhase::Idle};
+    float reload_normalized_ {0.0F};
+    float reload_ik_offset_[3] {0.0F, 0.0F, 0.0F};
     std::array<float, 16> transform_ {};
 
     // Melee state

@@ -1,9 +1,10 @@
 ---
 type: opencode-task
-status: open
+status: review-needed
 created: 2026-07-04
 queued_by: user
 assigned_to: opencode
+report: reports/subagents/TASK-20260704-1930-reload-animation-sequence-report.md
 priority: critical
 escalation_tier: medium
 primary_reviewer: codex

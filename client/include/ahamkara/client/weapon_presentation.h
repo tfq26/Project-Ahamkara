@@ -45,6 +45,7 @@ private:
 /// (idx 3) joint rotations so the hand (idx 5) reaches the grip target.
 void apply_viewmodel_arm_ik(int weapon_index,
                              float* joint_matrices,
-                             int joint_count);
+                             int joint_count,
+                             const float* ik_offset = nullptr);
 
 }  // namespace ahamkara::client

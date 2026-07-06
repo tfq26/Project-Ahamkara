@@ -331,10 +331,16 @@ void ClientFramePipeline::stage_build_scene() {
     // Apply viewmodel arm IK to position hands at weapon grip sockets.
     // This runs on the scene copy of joint matrices (not the cache originals)
     // and adjusts shoulder/elbow rotations so the hand reaches the grip target.
+    // If a reload animation is active, an IK offset moves the hand from the
+    // grip socket to the magazine position during reload phases.
     if (scene_.weapon_joint_count > 0) {
+        const float* reload_ik = weapon_animation_.reload_ik_offset();
+        const bool has_reload_offset = reload_ik != nullptr &&
+            (reload_ik[0] != 0.0F || reload_ik[1] != 0.0F || reload_ik[2] != 0.0F);
         apply_viewmodel_arm_ik(curr_snap_.weapon_index,
                                 scene_.weapon_joint_matrices,
-                                scene_.weapon_joint_count);
+                                scene_.weapon_joint_count,
+                                has_reload_offset ? reload_ik : nullptr);
     }
 
     // Populate debug IK visualization fields.

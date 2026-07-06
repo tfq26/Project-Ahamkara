@@ -96,6 +96,108 @@ inline WeaponGripSockets weapon_grip_sockets(int index) {
     return {};
 }
 
+// ============================================================
+// Reload animation phases
+// ============================================================
+
+/// Phases of a procedural reload animation sequence.
+/// Each phase drives hand IK target offset and weapon tilt.
+enum class ReloadPhase : int {
+    Idle = 0,
+    GrabMag = 1,      // hand moves from grip to magazine position
+    RemoveMag = 2,     // magazine removed, hand holds magazine
+    InsertMag = 3,     // new magazine inserted
+    ReturnToGrip = 4,  // hand returns to grip position
+};
+
+/// Per-weapon reload animation parameters.
+///
+/// Phase timing is defined as fractions of the total reload duration
+/// (from WeaponAnimProfile::reload_duration).  Each phase maps to a
+/// [start, end] range in [0, 1].
+///
+/// The magazine position (mag_pos_*) is where the hand IK target moves
+/// during the grab/remove/insert phases — the hand leaves the grip socket
+/// and goes to the magazine well to visually manipulate the magazine.
+///
+/// Weapon tilt angles define the viewmodel rotation during the magazine
+/// phases so the weapon pivots to expose the magwell.
+struct WeaponReloadData {
+    // Phase timing fractions [0, 1]
+    float grab_start   {0.00F};
+    float grab_end     {0.20F};
+    float remove_start {0.20F};
+    float remove_end   {0.50F};
+    float insert_start {0.50F};
+    float insert_end   {0.80F};
+    float return_start {0.80F};
+    float return_end   {1.00F};
+
+    // Magazine position in viewmodel-local space
+    // (relative to the weapon_attach bone / grip area)
+    float mag_pos_x {0.0F};
+    float mag_pos_y {0.0F};
+    float mag_pos_z {0.0F};
+
+    // Max weapon tilt during magazine phases (degrees)
+    float tilt_pitch_deg {0.0F};
+    float tilt_yaw_deg   {0.0F};
+    float tilt_roll_deg  {0.0F};
+
+    // Weapon position offset during magazine phases (meters)
+    float offset_right   {0.0F};
+    float offset_up      {0.0F};
+    float offset_forward {0.0F};
+};
+
+/// Per-weapon reload animation data.  Order matches weapon_index convention:
+///   0 = AR-15, 1 = Shotgun, 2 = Rocket Launcher.
+///
+/// Phase timing varies by weapon class — shotguns have a longer remove/insert
+/// sequence, rocket launchers reload a single tube.
+inline const std::array<WeaponReloadData, kWeaponViewmodelCount> kWeaponReloadData = {{
+    // AR-15 — standard box magazine, quick reload
+    {
+        0.00F, 0.18F,   // grab
+        0.18F, 0.45F,   // remove
+        0.45F, 0.75F,   // insert
+        0.75F, 1.00F,   // return
+        0.00F, 0.30F, 0.10F,   // mag position (below grip, slightly forward)
+        -18.0F, 8.0F, -5.0F,   // tilt
+        -0.02F, -0.06F, -0.08F, // position offset
+    },
+
+    // Shotgun — tube-fed, longer reload (pump action)
+    {
+        0.00F, 0.25F,   // grab
+        0.25F, 0.55F,   // remove/port open
+        0.55F, 0.82F,   // insert shell
+        0.82F, 1.00F,   // return
+        0.00F, 0.35F, 0.15F,   // mag position (further forward, lower)
+        -25.0F, 12.0F, -8.0F,  // tilt (more dramatic)
+        -0.03F, -0.08F, -0.10F,
+    },
+
+    // Rocket Launcher — single tube, hand moves to rear
+    {
+        0.00F, 0.15F,   // grab
+        0.15F, 0.45F,   // remove rear cap
+        0.45F, 0.75F,   // insert new rocket
+        0.75F, 1.00F,   // return
+        0.00F, 0.25F, 0.25F,   // mag position (rear of tube)
+        -10.0F, 5.0F, -3.0F,   // tilt (subtle — large weapon)
+        -0.01F, -0.04F, -0.06F,
+    },
+}};
+
+/// Resolve reload animation data for a weapon index.
+inline WeaponReloadData weapon_reload_data(int index) {
+    if (index >= 0 && static_cast<std::size_t>(index) < kWeaponReloadData.size()) {
+        return kWeaponReloadData[static_cast<std::size_t>(index)];
+    }
+    return {};
+}
+
 /// Resolve a weapon index to its compiled viewmodel mesh path.
 /// The path format is "assets/compiled/models/viewmodel_<name>.aemesh".
 inline const char* weapon_viewmodel_mesh_path(int index) {
