@@ -309,6 +309,29 @@ void ClientFramePipeline::stage_build_scene() {
         scene_.viewmodel_roll_deg    = vm.roll_deg;
     }
 
+    // Apply viewmodel arm IK to position hands at weapon grip sockets.
+    // This runs on the scene copy of joint matrices (not the cache originals)
+    // and adjusts shoulder/elbow rotations so the hand reaches the grip target.
+    if (scene_.weapon_joint_count > 0) {
+        apply_viewmodel_arm_ik(curr_snap_.weapon_index,
+                                scene_.weapon_joint_matrices,
+                                scene_.weapon_joint_count);
+    }
+
+    // Populate debug IK visualization fields.
+    {
+        auto grip = weapon_grip_sockets(curr_snap_.weapon_index);
+        scene_.ik_target_position = {grip.grip_right_x, grip.grip_right_y, grip.grip_right_z};
+        scene_.show_ik_target = true;
+        if (scene_.weapon_joint_count > 5) {
+            const float* jm = scene_.weapon_joint_matrices;
+            scene_.arm_shoulder_pos = {jm[2*16+12], jm[2*16+13], jm[2*16+14]};
+            scene_.arm_elbow_pos    = {jm[3*16+12], jm[3*16+13], jm[3*16+14]};
+            scene_.arm_hand_pos     = {jm[5*16+12], jm[5*16+13], jm[5*16+14]};
+            scene_.show_arm_chain = true;
+        }
+    }
+
     scene_.weapon_animation_override = weapon_animation_.has_transform();
     if (scene_.weapon_animation_override) {
         const auto& transform = weapon_animation_.transform();

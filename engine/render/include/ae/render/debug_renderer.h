@@ -167,6 +167,14 @@ struct DebugScene {
 
     // Melee active state for UI feedback
     bool melee_active {false};
+
+    // Viewmodel IK debug visualization
+    bool show_ik_target {false};
+    Vec3 ik_target_position {};  // world-space IK target (grip socket)
+    bool show_arm_chain {false}; // draw shoulder→elbow→hand lines
+    Vec3 arm_shoulder_pos {};
+    Vec3 arm_elbow_pos {};
+    Vec3 arm_hand_pos {};
 };
 
 class DebugRenderer {

@@ -137,4 +137,6 @@ Build (debug) clean; 14/14 test suites pass. Branch: agent/phase5/sensory-polish
 ## TASK-20260704-1510-ai-combatants — Self-validated 2026-07-05
 |AI combatants: 6 archetypes (Grunt/Sniper/Rusher/Support/Scout/Brute), perception (LOS/FOV/alertness), 7-state behavior FSM, ECS system entry point. 11 tests. Build + 19/19 tests pass. Report: reports/subagents/TASK-20260704-1510-ai-combatants-report.md
 ## TASK-20260704-1520-encounter-scripting — Self-validated 2026-07-05
-|Encounter scripting: EncounterDef/TriggerDef/SpawnWaveDef/ObjectiveDef, EncounterManager with full lifecycle (wave spawn, trigger eval, objective tracking), 9 tests. Build + 19/19 tests pass. Report: reports/subagents/TASK-20260704-1520-encounter-scripting-report.md
+||Encounter scripting: EncounterDef/TriggerDef/SpawnWaveDef/ObjectiveDef, EncounterManager with full lifecycle (wave spawn, trigger eval, objective tracking), 9 tests. Build + 19/19 tests pass. Report: reports/subagents/TASK-20260704-1520-encounter-scripting-report.md
+## TASK-20260704-1920-viewmodel-arm-hand-ik — Implemented (not validated) 2026-07-06
+|Viewmodel arm/hand IK: per-weapon grip socket transforms, two-bone IK solver (shoulder→elbow→hand) in presentation layer, wired into client_frame_pipeline, debug IK visualization. Build + test validation skipped (cmake not on PATH). Report: reports/subagents/TASK-20260704-1920-viewmodel-arm-hand-ik-report.md
