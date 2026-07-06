@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
+
 #include "ae/core/types.h"
 
 #include <chrono>

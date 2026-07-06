@@ -1,6 +1,5 @@
 #include "wish/integrations/nakama/nakama_bridge.h"
 
-#include <arpa/inet.h>
 #include <cassert>
 #include <chrono>
 #include <cstring>
@@ -9,17 +8,35 @@
 #include <string_view>
 #include <thread>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#endif
 
 namespace {
 
+#ifdef _WIN32
+using SocketHandle = SOCKET;
+#define SOCKET_INVALID INVALID_SOCKET
+#define CLOSE_SOCKET(s) closesocket(s)
+#define SOCKET_IS_VALID(s) ((s) != INVALID_SOCKET)
+#else
+using SocketHandle = int;
+#define SOCKET_INVALID (-1)
+#define CLOSE_SOCKET(s) ::close(s)
+#define SOCKET_IS_VALID(s) ((s) >= 0)
+#endif
+
 struct ScopedSocket {
-    int fd {-1};
+    SocketHandle fd {SOCKET_INVALID};
 
     ScopedSocket() = default;
-    explicit ScopedSocket(int value)
+    explicit ScopedSocket(SocketHandle value)
         : fd(value) {
     }
 
@@ -28,23 +45,23 @@ struct ScopedSocket {
 
     ScopedSocket(ScopedSocket&& other) noexcept
         : fd(other.fd) {
-        other.fd = -1;
+        other.fd = SOCKET_INVALID;
     }
 
     ScopedSocket& operator=(ScopedSocket&& other) noexcept {
         if (this != &other) {
-            if (fd >= 0) {
-                ::close(fd);
+            if (SOCKET_IS_VALID(fd)) {
+                CLOSE_SOCKET(fd);
             }
             fd = other.fd;
-            other.fd = -1;
+            other.fd = SOCKET_INVALID;
         }
         return *this;
     }
 
     ~ScopedSocket() {
-        if (fd >= 0) {
-            ::close(fd);
+        if (SOCKET_IS_VALID(fd)) {
+            CLOSE_SOCKET(fd);
         }
     }
 };
@@ -52,14 +69,15 @@ struct ScopedSocket {
 struct FakeHttpServerResult {
     unsigned short port {0};
     std::thread thread {};
-};
+|};
 
 FakeHttpServerResult spawn_fake_nakama_server(std::string response, std::string* captured_request) {
-    ScopedSocket listen_socket(::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
-    assert(listen_socket.fd >= 0);
+    SocketHandle raw_sock = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    ScopedSocket listen_socket(raw_sock);
+    assert(SOCKET_IS_VALID(listen_socket.fd));
 
     int reuse = 1;
-    assert(::setsockopt(listen_socket.fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == 0);
+    assert(::setsockopt(listen_socket.fd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&reuse), sizeof(reuse)) == 0);
 
     sockaddr_in address {};
     address.sin_family = AF_INET;
@@ -68,7 +86,11 @@ FakeHttpServerResult spawn_fake_nakama_server(std::string response, std::string*
     assert(::bind(listen_socket.fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0);
     assert(::listen(listen_socket.fd, 1) == 0);
 
+#ifdef _WIN32
+    int address_length = sizeof(address);
+#else
     socklen_t address_length = sizeof(address);
+#endif
     assert(::getsockname(listen_socket.fd, reinterpret_cast<sockaddr*>(&address), &address_length) == 0);
 
     FakeHttpServerResult result {};
@@ -76,15 +98,23 @@ FakeHttpServerResult spawn_fake_nakama_server(std::string response, std::string*
     result.thread = std::thread(
         [socket = std::move(listen_socket), response = std::move(response), captured_request]() mutable {
             sockaddr_in client_address {};
+#ifdef _WIN32
+            int client_length = sizeof(client_address);
+#else
             socklen_t client_length = sizeof(client_address);
-            const int client_fd = ::accept(socket.fd, reinterpret_cast<sockaddr*>(&client_address), &client_length);
-            assert(client_fd >= 0);
+#endif
+            const SocketHandle client_fd = ::accept(socket.fd, reinterpret_cast<sockaddr*>(&client_address), &client_length);
+            assert(SOCKET_IS_VALID(client_fd));
 
             ScopedSocket client_socket(client_fd);
             char buffer[2048] {};
             std::string request;
             while (true) {
+#ifdef _WIN32
+                const int received = ::recv(client_socket.fd, buffer, sizeof(buffer), 0);
+#else
                 const ssize_t received = ::recv(client_socket.fd, buffer, sizeof(buffer), 0);
+#endif
                 if (received <= 0) {
                     break;
                 }
@@ -101,7 +131,11 @@ FakeHttpServerResult spawn_fake_nakama_server(std::string response, std::string*
             const char* payload = response.data();
             std::size_t remaining = response.size();
             while (remaining > 0) {
+#ifdef _WIN32
+                const int sent = ::send(client_socket.fd, payload, static_cast<int>(remaining), 0);
+#else
                 const ssize_t sent = ::send(client_socket.fd, payload, remaining, 0);
+#endif
                 assert(sent > 0);
                 payload += sent;
                 remaining -= static_cast<std::size_t>(sent);
