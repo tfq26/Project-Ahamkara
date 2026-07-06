@@ -11,21 +11,39 @@ namespace ahamkara::client {
 /// in the game layer so the gameplay registry stays pure of any presentation
 /// concern.  See tools/blender/weapons/meshes/ for the authoritative mesh specs.
 struct WeaponViewmodelTransform {
+    // Rotation offsets (degrees) — applied after barrel-to-view-space correction
     float pitch_deg {0.0F};
     float yaw_deg {0.0F};
     float roll_deg {0.0F};
+
+    // Position offset from camera anchor (meters).
+    // Positive values shift right (+x), up (+y), forward/into-screen (+z).
+    float pos_right   {0.0F};
+    float pos_up      {0.0F};
+    float pos_forward {0.0F};
+
+    // FOV scale factor — the viewmodel is rendered at world_FOV * fov_scale.
+    // Values < 1.0 make the weapon appear slightly larger / closer, which
+    // improves visibility in first-person. Professional FPS titles commonly
+    // use 0.80–0.90 for this.
+    float fov_scale {1.0F};
 };
 
 constexpr std::size_t kWeaponViewmodelCount = 3;
 
-/// Per-weapon viewmodel transforms.  These are subtle orientation offsets that
-/// make each weapon look correct in first-person.  Zeroed means the weapon's
-/// authored +X barrel is shown as-is (after the renderer's shared -90° Y
-/// barrel-to-view-space correction).
+// Per-weapon viewmodel transforms.  Order matches weapon_index convention:
+//   0 = AR-15, 1 = Shotgun, 2 = Rocket Launcher.
+//
+// Fields: pitch_deg, yaw_deg, roll_deg, pos_right, pos_up, pos_forward, fov_scale
+//
+// Tuning notes:
+//   - AR-15 sits naturally at the player's shoulder with a hint of downward tilt.
+//   - Shotgun is bulkier — shifted further right/down for a heavier feel.
+//   - Rocket Launcher is moved further down+left so the tube clears the screen center.
 inline const std::array<WeaponViewmodelTransform, kWeaponViewmodelCount> kWeaponViewmodelTransforms = {{
-    {0.0F, 0.0F, 0.0F},  // AR-15
-    {0.0F, 0.0F, 0.0F},  // Shotgun
-    {0.0F, 0.0F, 0.0F},  // Rocket Launcher
+    { -2.0F,   0.0F, 0.0F,  0.05F, -0.05F,  0.05F, 0.85F },  // AR-15
+    { -3.0F,   0.0F, 0.0F,  0.08F, -0.08F,  0.03F, 0.80F },  // Shotgun
+    { -5.0F,   0.0F, 2.0F,  0.12F, -0.15F,  0.02F, 0.90F },  // Rocket Launcher
 }};
 
 /// Resolve a weapon index to its compiled viewmodel mesh path.

@@ -77,28 +77,12 @@ struct WorldResources {
 // keeps the conversion in one place so all weapon meshes share the same
 // authored orientation regardless of how the view frame is constructed.
 //
-// Per-weapon adjustments (pitch/yaw/roll offsets in degrees) are stored here;
-// the canonical copy lives in client/include/ahamkara/client/weapon_viewmodel_data.h.
-// The renderer keeps a local mirror so ae_render stays independent of the game
-// and client layers.
-//
-    // The rotation order is: barrel (-90° Y + weapon yaw) -> weapon pitch -> weapon roll.
+// Per-weapon adjustments (position offset, FOV scale, pitch/yaw/roll offsets)
+// are provided per-frame via DebugScene fields (viewmodel_position_offset,
+// viewmodel_fov_scale, viewmodel_pitch/yaw/roll_deg), populated from the
+// canonical data in client/include/ahamkara/client/weapon_viewmodel_data.h.
+// The rotation order is: barrel (-90° Y + weapon yaw) -> weapon pitch -> weapon roll.
     // All matrices are column-major (ae::gl_compat::Mat4) and post-multiplied.
-
-    struct WeaponViewmodelTransform {
-        float pitch_deg {0.0F};
-        float yaw_deg {0.0F};
-        float roll_deg {0.0F};
-    };
-
-[[nodiscard]] WeaponViewmodelTransform weapon_viewmodel_transform(int weapon_index) {
-    switch (weapon_index) {
-        case 0: return {};
-        case 1: return {};
-        case 2: return {};
-        default: return {};
-    }
-}
 
 GLuint compile_overlay_shader(GLenum type, const char* src) {
     GLuint shader = glCreateShader(type);
@@ -1820,16 +1804,30 @@ void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
                                              ? std::min(1.0F, scene.muzzle_flash_time * 18.0F)
                                              : 0.0F);
 
+        // Start from camera-anchor position, then add per-weapon position
+        // offset (forward/right/up) from the scene.  The per-weapon offset
+        // is added on top of the base position so it does not interact with
+        // the idle bob or recoil kick computations.
+        const Vec3 vm_offset = scene.viewmodel_position_offset;
         const Vec3 weapon_pos {
             camera_pos.x + forward.x * (0.47F - recoil_kick * 0.04F)
                 - right.x * (0.30F + idle_bob_x)
-                - up.x * (0.24F + idle_bob_y + recoil_kick * 0.03F),
+                - up.x * (0.24F + idle_bob_y + recoil_kick * 0.03F)
+                + forward.x * vm_offset.z
+                + right.x * vm_offset.x
+                + up.x * vm_offset.y,
             camera_pos.y + forward.y * (0.47F - recoil_kick * 0.04F)
                 - right.y * (0.30F + idle_bob_x)
-                - up.y * (0.24F + idle_bob_y + recoil_kick * 0.03F),
+                - up.y * (0.24F + idle_bob_y + recoil_kick * 0.03F)
+                + forward.y * vm_offset.z
+                + right.y * vm_offset.x
+                + up.y * vm_offset.y,
             camera_pos.z + forward.z * (0.47F - recoil_kick * 0.04F)
                 - right.z * (0.30F + idle_bob_x)
-                - up.z * (0.24F + idle_bob_y + recoil_kick * 0.03F),
+                - up.z * (0.24F + idle_bob_y + recoil_kick * 0.03F)
+                + forward.z * vm_offset.z
+                + right.z * vm_offset.x
+                + up.z * vm_offset.y,
         };
 
         auto make_basis = [](Vec3 basis_right, Vec3 basis_up, Vec3 basis_forward, Vec3 translation) {
@@ -1850,14 +1848,12 @@ void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
         viewmodel = viewmodel * ae::gl_compat::mat4_scale(0.62F, 0.62F, 0.62F);
 
         // Apply authored-to-view-space barrel correction (-90° Y) plus
-        // per-weapon pitch/yaw/roll adjustments.  See the orientation
-        // contract comment near WeaponViewmodelTransform above for the full
-        // axis convention.
-        const auto weapon_pose = weapon_viewmodel_transform(scene.weapon_index);
-        viewmodel = viewmodel * ae::gl_compat::mat4_rotate(-90.0F + weapon_pose.yaw_deg,
+        // per-weapon pitch/yaw/roll adjustments from scene data.  See the
+        // orientation contract comment above for the full axis convention.
+        viewmodel = viewmodel * ae::gl_compat::mat4_rotate(-90.0F + scene.viewmodel_yaw_deg,
                                                            0.0F, 1.0F, 0.0F);
-        viewmodel = viewmodel * ae::gl_compat::mat4_rotate(weapon_pose.pitch_deg, 1.0F, 0.0F, 0.0F);
-        viewmodel = viewmodel * ae::gl_compat::mat4_rotate(weapon_pose.roll_deg, 0.0F, 0.0F, 1.0F);
+        viewmodel = viewmodel * ae::gl_compat::mat4_rotate(scene.viewmodel_pitch_deg, 1.0F, 0.0F, 0.0F);
+        viewmodel = viewmodel * ae::gl_compat::mat4_rotate(scene.viewmodel_roll_deg, 0.0F, 0.0F, 1.0F);
 
         if (scene.weapon_animation_override) {
             ae::gl_compat::Mat4 weapon_anim = ae::gl_compat::Mat4::identity();
@@ -1865,9 +1861,38 @@ void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
             viewmodel = viewmodel * weapon_anim;
         }
 
+        // Apply per-weapon FOV scale: if the viewmodel FOV differs from the
+        // world FOV, replace the projection matrix just for the weapon draw.
+        const float kWorldFovDeg = 60.0F;
+        float weapon_fov_deg = kWorldFovDeg;
+        ae::gl_compat::Mat4 saved_projection;
+        bool fov_scaled = false;
+        if (std::abs(scene.viewmodel_fov_scale - 1.0F) > 0.001F) {
+            weapon_fov_deg = kWorldFovDeg * scene.viewmodel_fov_scale;
+            int fb_w = 1, fb_h = 1;
+            backend->get_framebuffer_size(fb_w, fb_h);
+            if (fb_w < 1) fb_w = 1;
+            if (fb_h < 1) fb_h = 1;
+            const float fb_aspect = static_cast<float>(fb_w) / static_cast<float>(fb_h);
+            const LocalMat4 weapon_proj = perspective(
+                weapon_fov_deg * kPi / 180.0F, fb_aspect, 0.05F, 250.0F);
+            auto& st = ae::gl_compat::state();
+            saved_projection = st.projection;
+            std::memcpy(st.projection.m, weapon_proj.values.data(), sizeof(float) * 16);
+            fov_scaled = true;
+        }
+
         const MatrixSnapshot weapon_snapshot = begin_world_transform(viewmodel);
         backend->set_depth_test(false);
         backend->set_depth_write(false);
+
+        // Restore the original projection after begin_world_transform stashed
+        // the weapon projection, so end_matrix_snapshot restores the weapon
+        // projection back and we restore the original after that.
+        if (fov_scaled) {
+            auto& st = ae::gl_compat::state();
+            st.projection = saved_projection;
+        }
 
         if (scene.weapon_model != nullptr) {
             const ae::render::Mat4* joints = nullptr;

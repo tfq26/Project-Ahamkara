@@ -147,6 +147,16 @@ struct DebugScene {
     float character_joint_matrices[4096] {};
     int character_joint_count {0};
 
+    // Viewmodel offset tuning — populated per-frame from the client layer's
+    // per-weapon data (kWeaponViewmodelTransforms).  These are additive to the
+    // base viewmodel position/rotation computed from the camera anchor.
+    // Position offset: {right, up, forward} in meters.
+    Vec3 viewmodel_position_offset {};
+    float viewmodel_fov_scale {1.0F};
+    float viewmodel_pitch_deg {0.0F};
+    float viewmodel_yaw_deg {0.0F};
+    float viewmodel_roll_deg {0.0F};
+
     // Screen shake state
     float screen_shake_intensity {0.0F};
     float screen_shake_angle {0.0F};

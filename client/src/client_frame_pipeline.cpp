@@ -8,6 +8,7 @@
 #include "ahamkara/client/window_input_provider.h"
 #include "ahamkara/client/debug_render_runtime.h"
 #include "ahamkara/client/debug_scene_bridge.h"
+#include "ahamkara/client/weapon_viewmodel_data.h"
 #include "ahamkara/game/movement.h"
 #include "ahamkara/game/net_types.h"
 
@@ -290,6 +291,22 @@ void ClientFramePipeline::stage_build_scene() {
         std::memcpy(scene_.weapon_joint_matrices, joints, static_cast<std::size_t>(copy_count) * sizeof(ae::render::Mat4));
     } else {
         scene_.weapon_joint_count = 0;
+    }
+
+    // Populate viewmodel offset tuning from presentation-layer per-weapon data.
+    // These are additive to the base viewmodel position/rotation computed from
+    // the camera anchor.  No fields leak into gameplay or WeaponRuntime.
+    {
+        const auto& vm = weapon_viewmodel_transform(curr_snap_.weapon_index);
+        scene_.viewmodel_position_offset = {
+            vm.pos_right,
+            vm.pos_up,
+            vm.pos_forward,
+        };
+        scene_.viewmodel_fov_scale   = vm.fov_scale;
+        scene_.viewmodel_pitch_deg   = vm.pitch_deg;
+        scene_.viewmodel_yaw_deg     = vm.yaw_deg;
+        scene_.viewmodel_roll_deg    = vm.roll_deg;
     }
 
     scene_.weapon_animation_override = weapon_animation_.has_transform();
