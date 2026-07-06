@@ -17,12 +17,27 @@
 #include <vector>
 
 #if defined(_WIN32)
-#error "The Nakama HTTP bridge currently supports POSIX socket platforms only."
-#endif
-
+#include <winsock2.h>
+#include <ws2tcpip.h>
+using SocketHandle = SOCKET;
+using SSizeT = int;
+#define CLOSE_SOCKET(s) closesocket(s)
+#define SOCKET_ERRNO WSAGetLastError()
+#define SOCKET_ERRMSG(e) (std::to_string(e))
+#define SOCKET_IS_VALID(s) ((s) != INVALID_SOCKET)
+#define SOCKET_INVALID INVALID_SOCKET
+#else
 #include <netdb.h>
 #include <sys/socket.h>
 #include <unistd.h>
+using SocketHandle = int;
+using SSizeT = ssize_t;
+#define CLOSE_SOCKET(s) ::close(s)
+#define SOCKET_ERRNO errno
+#define SOCKET_ERRMSG(e) std::strerror(e)
+#define SOCKET_IS_VALID(s) ((s) >= 0)
+#define SOCKET_INVALID (-1)
+#endif
 
 namespace wish::integrations::nakama {
 
@@ -299,40 +314,46 @@ wish::core::AuthResult perform_account_lookup(const BridgeSettings& settings, co
     }
 
     const std::unique_ptr<addrinfo, void (*)(addrinfo*)> resolved_guard(resolved, ::freeaddrinfo);
-    int sock = -1;
+#if defined(_WIN32)
+    {
+        WSADATA wsaData;
+        WSAStartup(MAKEWORD(2, 2), &wsaData);
+    }
+#endif
+    SocketHandle sock = SOCKET_INVALID;
     for (addrinfo* current = resolved; current != nullptr; current = current->ai_next) {
         sock = ::socket(current->ai_family, current->ai_socktype, current->ai_protocol);
-        if (sock < 0) {
+        if (!SOCKET_IS_VALID(sock)) {
             continue;
         }
 
         timeval timeout {};
         timeout.tv_sec = settings.timeout_ms / 1000;
         timeout.tv_usec = (settings.timeout_ms % 1000) * 1000;
-        ::setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-        ::setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+        ::setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeout), static_cast<int>(sizeof(timeout)));
+        ::setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char*>(&timeout), static_cast<int>(sizeof(timeout)));
 
         if (::connect(sock, current->ai_addr, current->ai_addrlen) == 0) {
             break;
         }
 
-        ::close(sock);
-        sock = -1;
+        CLOSE_SOCKET(sock);
+        sock = SOCKET_INVALID;
     }
 
-    if (sock < 0) {
+    if (!SOCKET_IS_VALID(sock)) {
         return reject_result("failed to connect to Nakama");
     }
 
     const std::string request_text = build_http_request(settings, request.token);
     std::size_t total_sent = 0;
     while (total_sent < request_text.size()) {
-        const ssize_t sent = ::send(
+        const SSizeT sent = ::send(
             sock, request_text.data() + static_cast<std::ptrdiff_t>(total_sent),
-            request_text.size() - total_sent, 0);
+            static_cast<int>(request_text.size() - total_sent), 0);
         if (sent <= 0) {
-            const std::string error_message = std::strerror(errno);
-            ::close(sock);
+            const std::string error_message = SOCKET_ERRMSG(SOCKET_ERRNO);
+            CLOSE_SOCKET(sock);
             return reject_result("failed to send Nakama validation request: " + error_message);
         }
         total_sent += static_cast<std::size_t>(sent);
@@ -341,18 +362,18 @@ wish::core::AuthResult perform_account_lookup(const BridgeSettings& settings, co
     std::string response;
     std::array<char, 2048> buffer {};
     while (true) {
-        const ssize_t received = ::recv(sock, buffer.data(), buffer.size(), 0);
+        const SSizeT received = ::recv(sock, buffer.data(), static_cast<int>(buffer.size()), 0);
         if (received == 0) {
             break;
         }
         if (received < 0) {
-            const std::string error_message = std::strerror(errno);
-            ::close(sock);
+            const std::string error_message = SOCKET_ERRMSG(SOCKET_ERRNO);
+            CLOSE_SOCKET(sock);
             return reject_result("failed to read Nakama validation response: " + error_message);
         }
         response.append(buffer.data(), static_cast<std::size_t>(received));
     }
-    ::close(sock);
+    CLOSE_SOCKET(sock);
 
     const int status_code = parse_http_status(response);
     if (status_code != 200) {

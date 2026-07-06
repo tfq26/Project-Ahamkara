@@ -24,3 +24,7 @@ target_link_libraries(wish_engine
         ae_core
         ae_network
 )
+
+if(WIN32)
+    target_link_libraries(wish_engine PRIVATE ws2_32)
+endif()
