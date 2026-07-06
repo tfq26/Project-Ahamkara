@@ -13,7 +13,9 @@
 
 #define AE_LOG_CATEGORY "Runtime"
 
+#if !defined(_WIN32)
 #include <sys/resource.h>
+#endif
 
 #if defined(__APPLE__)
 #include <mach/mach.h>
@@ -21,6 +23,12 @@
 #include <sys/sysctl.h>
 #elif defined(__linux__)
 #include <unistd.h>
+#endif
+
+#if defined(_WIN32)
+#define NOMINMAX
+#include <windows.h>
+#include <psapi.h>
 #endif
 
 namespace ae {
@@ -35,6 +43,7 @@ double current_wall_seconds() {
     return std::chrono::duration<double>(elapsed).count();
 }
 
+#if !defined(_WIN32)
 double process_cpu_seconds() {
     rusage usage {};
     if (getrusage(RUSAGE_SELF, &usage) != 0) {
@@ -48,6 +57,17 @@ double process_cpu_seconds() {
         static_cast<double>(usage.ru_stime.tv_sec) + static_cast<double>(usage.ru_stime.tv_usec) / 1'000'000.0;
     return user_seconds + system_seconds;
 }
+#elif defined(_WIN32)
+double process_cpu_seconds() {
+    FILETIME create, exit, kernel, user;
+    if (GetProcessTimes(GetCurrentProcess(), &create, &exit, &kernel, &user)) {
+        const ULARGE_INTEGER k = {{kernel.dwLowDateTime, kernel.dwHighDateTime}};
+        const ULARGE_INTEGER u = {{user.dwLowDateTime, user.dwHighDateTime}};
+        return static_cast<double>(k.QuadPart + u.QuadPart) / 10000000.0; // 100ns units → seconds
+    }
+    return 0.0;
+}
+#endif
 
 #if defined(__APPLE__)
 bool read_macos_system_cpu_ticks(double& total_ticks, double& active_ticks) {
@@ -169,6 +189,42 @@ RuntimeMetricsSnapshot read_linux_memory_metrics() {
 
     return snapshot;
 }
+#elif defined(_WIN32)
+bool read_windows_system_cpu_ticks(double& total_ticks, double& active_ticks) {
+    FILETIME idle, kernel, user;
+    if (GetSystemTimes(&idle, &kernel, &user)) {
+        const ULARGE_INTEGER idle_time = {{idle.dwLowDateTime, idle.dwHighDateTime}};
+        const ULARGE_INTEGER kernel_time = {{kernel.dwLowDateTime, kernel.dwHighDateTime}};
+        const ULARGE_INTEGER user_time = {{user.dwLowDateTime, user.dwHighDateTime}};
+
+        // Kernel time includes idle time on Windows
+        const double idle_val = static_cast<double>(idle_time.QuadPart);
+        const double kernel_val = static_cast<double>(kernel_time.QuadPart);
+        const double user_val = static_cast<double>(user_time.QuadPart);
+
+        total_ticks = kernel_val + user_val;
+        active_ticks = kernel_val - idle_val + user_val;
+        return true;
+    }
+    log_warning_cat(AE_LOG_CATEGORY, "GetSystemTimes failed for system CPU metric");
+    return false;
+}
+
+RuntimeMetricsSnapshot read_windows_memory_metrics() {
+    RuntimeMetricsSnapshot snapshot;
+    PROCESS_MEMORY_COUNTERS pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+        snapshot.process_rss_mb = static_cast<double>(pmc.WorkingSetSize) / kBytesPerMegabyte;
+        snapshot.process_virtual_mb = static_cast<double>(pmc.PagefileUsage) / kBytesPerMegabyte;
+    }
+    MEMORYSTATUSEX ms;
+    ms.dwLength = sizeof(ms);
+    if (GlobalMemoryStatusEx(&ms)) {
+        snapshot.system_total_memory_mb = static_cast<double>(ms.ullTotalPhys) / kBytesPerMegabyte;
+        snapshot.system_used_memory_mb = static_cast<double>(ms.ullTotalPhys - ms.ullAvailPhys) / kBytesPerMegabyte;
+    }
+    return snapshot;
+}
 #endif
 
 }  // namespace
@@ -188,6 +244,8 @@ RuntimeMetricsCollector::CpuTimes RuntimeMetricsCollector::read_cpu_times() cons
     read_macos_system_cpu_ticks(cpu_times.system_total_ticks, cpu_times.system_active_ticks);
 #elif defined(__linux__)
     read_linux_system_cpu_ticks(cpu_times.system_total_ticks, cpu_times.system_active_ticks);
+#elif defined(_WIN32)
+    read_windows_system_cpu_ticks(cpu_times.system_total_ticks, cpu_times.system_active_ticks);
 #endif
 
     return cpu_times;
@@ -198,6 +256,8 @@ RuntimeMetricsSnapshot RuntimeMetricsCollector::read_memory_metrics() const {
     return read_macos_memory_metrics();
 #elif defined(__linux__)
     return read_linux_memory_metrics();
+#elif defined(_WIN32)
+    return read_windows_memory_metrics();
 #else
     return {};
 #endif
