@@ -33,4 +33,18 @@ private:
     ae::render::WeaponModelCache cache_ {};
 };
 
+/// Apply two-bone IK to the viewmodel arm skeleton so the hand reaches the
+/// weapon grip socket position defined by kWeaponGripSockets.
+///
+/// @param weapon_index  Current weapon index (resolves grip socket data).
+/// @param joint_matrices  Flat array of column-major Mat4 joint matrices
+///                        (8 joints * 16 floats each). Modified in-place.
+/// @param joint_count  Number of joint matrices in the array.
+///
+/// The IK operates in model space and adjusts the shoulder (idx 2) and elbow
+/// (idx 3) joint rotations so the hand (idx 5) reaches the grip target.
+void apply_viewmodel_arm_ik(int weapon_index,
+                             float* joint_matrices,
+                             int joint_count);
+
 }  // namespace ahamkara::client

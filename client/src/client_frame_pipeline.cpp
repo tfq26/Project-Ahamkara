@@ -8,6 +8,7 @@
 #include "ahamkara/client/window_input_provider.h"
 #include "ahamkara/client/debug_render_runtime.h"
 #include "ahamkara/client/debug_scene_bridge.h"
+#include "ahamkara/client/weapon_viewmodel_data.h"
 #include "ahamkara/game/movement.h"
 #include "ahamkara/game/net_types.h"
 
@@ -290,6 +291,30 @@ void ClientFramePipeline::stage_build_scene() {
         std::memcpy(scene_.weapon_joint_matrices, joints, static_cast<std::size_t>(copy_count) * sizeof(ae::render::Mat4));
     } else {
         scene_.weapon_joint_count = 0;
+    }
+
+
+    // Apply viewmodel arm IK to position hands at weapon grip sockets.
+    // This runs on the scene copy of joint matrices (not the cache originals)
+    // and adjusts shoulder/elbow rotations so the hand reaches the grip target.
+    if (scene_.weapon_joint_count > 0) {
+        apply_viewmodel_arm_ik(curr_snap_.weapon_index,
+                                scene_.weapon_joint_matrices,
+                                scene_.weapon_joint_count);
+    }
+
+    // Populate debug IK visualization fields.
+    {
+        auto grip = weapon_grip_sockets(curr_snap_.weapon_index);
+        scene_.ik_target_position = {grip.grip_right_x, grip.grip_right_y, grip.grip_right_z};
+        scene_.show_ik_target = true;
+        if (scene_.weapon_joint_count > 5) {
+            const float* jm = scene_.weapon_joint_matrices;
+            scene_.arm_shoulder_pos = {jm[2*16+12], jm[2*16+13], jm[2*16+14]};
+            scene_.arm_elbow_pos    = {jm[3*16+12], jm[3*16+13], jm[3*16+14]};
+            scene_.arm_hand_pos     = {jm[5*16+12], jm[5*16+13], jm[5*16+14]};
+            scene_.show_arm_chain = true;
+        }
     }
 
     scene_.weapon_animation_override = weapon_animation_.has_transform();
