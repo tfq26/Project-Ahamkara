@@ -2,23 +2,39 @@
 
 #include "ae/core/log.h"
 
-#include <arpa/inet.h>
+#include <algorithm>
 #include <cerrno>
 #include <cstring>
-#include <netinet/in.h>
 #include <sstream>
+#include <string>
+#include <string_view>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
-#include <algorithm>
-#include <string>
-#include <string_view>
+#endif
 
 namespace wish::admin {
 namespace {
 
 constexpr int kRequestBufferSize = 4096;
+
+// Platform abstraction helpers
+#ifdef _WIN32
+#define SOCKET_EINTR WSAEINTR
+#define SOCKET_EBADF WSAENOTSOCK
+inline int socket_errno() { return WSAGetLastError(); }
+#else
+#define SOCKET_EINTR EINTR
+#define SOCKET_EBADF EBADF
+inline int socket_errno() { return errno; }
+#endif
 
 std::string seconds_to_json(float seconds) {
     std::ostringstream stream;
@@ -28,13 +44,17 @@ std::string seconds_to_json(float seconds) {
     return stream.str();
 }
 
-bool write_all(int fd, const std::string& data) {
+bool write_all(HttpAdminServer::SocketHandle fd, const std::string& data) {
     const char* ptr = data.data();
     std::size_t remaining = data.size();
     while (remaining > 0) {
+#ifdef _WIN32
+        const int sent = ::send(fd, ptr, static_cast<int>(remaining), 0);
+#else
         const ssize_t sent = ::send(fd, ptr, remaining, 0);
+#endif
         if (sent < 0) {
-            if (errno == EINTR) {
+            if (socket_errno() == SOCKET_EINTR) {
                 continue;
             }
             return false;
@@ -60,16 +80,16 @@ bool HttpAdminServer::start(ae::u16 port, StatusProvider provider) {
     status_provider_ = std::move(provider);
 
     listen_fd_ = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (listen_fd_ < 0) {
+    if (!socket_is_valid(listen_fd_)) {
         ae::log_error("Failed to create admin HTTP socket.");
         return false;
     }
 
     const int reuse = 1;
-    if (::setsockopt(listen_fd_, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+    if (::setsockopt(listen_fd_, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&reuse), sizeof(reuse)) < 0) {
         ae::log_error("Failed to enable SO_REUSEADDR for admin HTTP socket.");
-        ::close(listen_fd_);
-        listen_fd_ = -1;
+        close_socket(listen_fd_);
+        listen_fd_ = socket_invalid();
         return false;
     }
 
@@ -80,15 +100,15 @@ bool HttpAdminServer::start(ae::u16 port, StatusProvider provider) {
 
     if (::bind(listen_fd_, reinterpret_cast<sockaddr*>(&address), sizeof(address)) < 0) {
         ae::log_error("Failed to bind admin HTTP socket.");
-        ::close(listen_fd_);
-        listen_fd_ = -1;
+        close_socket(listen_fd_);
+        listen_fd_ = socket_invalid();
         return false;
     }
 
     if (::listen(listen_fd_, 16) < 0) {
         ae::log_error("Failed to listen on admin HTTP socket.");
-        ::close(listen_fd_);
-        listen_fd_ = -1;
+        close_socket(listen_fd_);
+        listen_fd_ = socket_invalid();
         return false;
     }
 
@@ -103,10 +123,10 @@ void HttpAdminServer::stop() {
     }
 
     running_ = false;
-    if (listen_fd_ >= 0) {
+    if (socket_is_valid(listen_fd_)) {
         ::shutdown(listen_fd_, SHUT_RDWR);
-        ::close(listen_fd_);
-        listen_fd_ = -1;
+        close_socket(listen_fd_);
+        listen_fd_ = socket_invalid();
     }
 
     if (thread_.joinable()) {
@@ -128,16 +148,16 @@ void HttpAdminServer::serve() {
         timeout.tv_sec = 0;
         timeout.tv_usec = 250000;
 
-        const int ready = ::select(listen_fd_ + 1, &read_fds, nullptr, nullptr, &timeout);
+        const int ready = ::select(static_cast<int>(listen_fd_ + 1), &read_fds, nullptr, nullptr, &timeout);
         if (!running_) {
             break;
         }
 
         if (ready < 0) {
-            if (errno == EINTR) {
+            if (socket_errno() == SOCKET_EINTR) {
                 continue;
             }
-            if (errno != EBADF) {
+            if (socket_errno() != SOCKET_EBADF) {
                 ae::log_error("Admin HTTP select loop failed.");
             }
             break;
@@ -148,23 +168,31 @@ void HttpAdminServer::serve() {
         }
 
         sockaddr_in client_address {};
+#ifdef _WIN32
+        int client_length = sizeof(client_address);
+#else
         socklen_t client_length = sizeof(client_address);
-        const int client_fd = ::accept(listen_fd_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
-        if (client_fd < 0) {
-            if (errno != EINTR && errno != EBADF) {
+#endif
+        const SocketHandle client_fd = ::accept(listen_fd_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
+        if (!socket_is_valid(client_fd)) {
+            if (socket_errno() != SOCKET_EINTR && socket_errno() != SOCKET_EBADF) {
                 ae::log_warning("Admin HTTP accept failed.");
             }
             continue;
         }
 
-        handle_client(client_fd);
-        ::close(client_fd);
+        handle_client(static_cast<int>(client_fd));
+        close_socket(client_fd);
     }
 }
 
 void HttpAdminServer::handle_client(int client_fd) const {
     char buffer[kRequestBufferSize + 1] {};
+#ifdef _WIN32
+    const int received = ::recv(client_fd, buffer, kRequestBufferSize, 0);
+#else
     const ssize_t received = ::recv(client_fd, buffer, kRequestBufferSize, 0);
+#endif
     if (received <= 0) {
         return;
     }
