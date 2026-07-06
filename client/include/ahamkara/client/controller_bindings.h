@@ -17,6 +17,7 @@ struct ControllerBindings {
     ae::GamepadInputCode metrics {ae::encode_gamepad_button_code(6)};
     ae::GamepadInputCode menu {ae::encode_gamepad_button_code(7)};
     ae::GamepadInputCode toggle_perspective {ae::encode_gamepad_button_code(9)};
+    ae::GamepadInputCode aim {ae::encode_gamepad_axis_positive_code(4)};
     ae::GamepadInputCode fire {ae::encode_gamepad_axis_positive_code(5)};
 
     [[nodiscard]] bool load_from_file(const std::string& path);

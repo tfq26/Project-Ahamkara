@@ -74,6 +74,7 @@ ahamkara::game::PlayerInputCommand WindowInputProvider::gather_input(float delta
 
     const auto mouse = window_.mouse_state();
     command.fire_held = mouse.button_down[static_cast<ae::usize>(ae::MouseButton::Left)];
+    command.aim_held = mouse.button_down[static_cast<ae::usize>(ae::MouseButton::Right)];
     command.reload_pressed = window_.is_key_pressed(ae::KeyCode::R);
     command.ability_pressed = window_.is_key_pressed(ae::KeyCode::E);
     command.interact_pressed = window_.is_key_pressed(ae::KeyCode::F);
@@ -87,6 +88,8 @@ ahamkara::game::PlayerInputCommand WindowInputProvider::gather_input(float delta
         const float left_y = apply_deadzone(gamepad.axis(ae::GamepadAxis::LeftY), kStickDeadzone);
         const float right_x = apply_deadzone(gamepad.axis(ae::GamepadAxis::RightX), kStickDeadzone);
         const float right_y = apply_deadzone(gamepad.axis(ae::GamepadAxis::RightY), kStickDeadzone);
+        const float left_trigger =
+            apply_deadzone((gamepad.axis(ae::GamepadAxis::LeftTrigger) + 1.0F) * 0.5F, kTriggerDeadzone);
         const float right_trigger =
             apply_deadzone((gamepad.axis(ae::GamepadAxis::RightTrigger) + 1.0F) * 0.5F, kTriggerDeadzone);
 
@@ -99,6 +102,7 @@ ahamkara::game::PlayerInputCommand WindowInputProvider::gather_input(float delta
         command.crouch_held = command.crouch_held || debug_state.is_code_down(controller_bindings_.crouch);
         command.slide_pressed = command.slide_pressed || debug_state.is_code_pressed(controller_bindings_.slide);
         command.fire_held = command.fire_held || debug_state.is_code_down(controller_bindings_.fire) || right_trigger > 0.5F;
+        command.aim_held = command.aim_held || debug_state.is_code_down(controller_bindings_.aim) || left_trigger > 0.5F;
         command.reload_pressed = command.reload_pressed || debug_state.is_code_pressed(controller_bindings_.reload);
         command.ability_pressed = command.ability_pressed || debug_state.is_code_pressed(controller_bindings_.ability);
         command.interact_pressed = command.interact_pressed || debug_state.is_code_pressed(controller_bindings_.interact);

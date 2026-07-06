@@ -1995,7 +1995,10 @@ void DebugRenderer::render(DebugScene& scene, const std::function<void()>& draw_
         end_matrix_snapshot(screen_snapshot);
     }
 
-    const LocalMat4 projection = perspective(60.0F * kPi / 180.0F, aspect_ratio, 0.05F, 250.0F);
+    const float world_fov_deg = (scene.camera_fov_override_deg > 0.0F)
+                                     ? scene.camera_fov_override_deg
+                                     : 60.0F;
+    const LocalMat4 projection = perspective(world_fov_deg * kPi / 180.0F, aspect_ratio, 0.05F, 250.0F);
     const LocalMat4 view = look_at(scene.camera_position, scene.camera_target, {0.0F, 1.0F, 0.0F});
 
     for (int i = 0; i < 16; ++i) {

@@ -296,17 +296,36 @@ void ClientFramePipeline::stage_build_scene() {
     // Populate viewmodel offset tuning from presentation-layer per-weapon data.
     // These are additive to the base viewmodel position/rotation computed from
     // the camera anchor.  No fields leak into gameplay or WeaponRuntime.
+    //
+    // During ADS, the viewmodel offset is linearly interpolated between the
+    // hip-fire position and the hip-fire position + ADS offset, using the
+    // ads_blend value (0=hip, 1=fully aimed) from the weapon animation state.
     {
         const auto& vm = weapon_viewmodel_transform(curr_snap_.weapon_index);
+        const auto& ads = weapon_ads_transform(curr_snap_.weapon_index);
+        const float ads_blend = weapon_animation_.ads_blend();
+
+        // Linearly blend between hip and ADS position offset
+        const float blended_right   = vm.pos_right   + ads.ads_pos_right   * ads_blend;
+        const float blended_up      = vm.pos_up      + ads.ads_pos_up      * ads_blend;
+        const float blended_forward = vm.pos_forward  + ads.ads_pos_forward * ads_blend;
+
         scene_.viewmodel_position_offset = {
-            vm.pos_right,
-            vm.pos_up,
-            vm.pos_forward,
+            blended_right,
+            blended_up,
+            blended_forward,
         };
         scene_.viewmodel_fov_scale   = vm.fov_scale;
-        scene_.viewmodel_pitch_deg   = vm.pitch_deg;
-        scene_.viewmodel_yaw_deg     = vm.yaw_deg;
-        scene_.viewmodel_roll_deg    = vm.roll_deg;
+
+        // Blend rotation offsets
+        scene_.viewmodel_pitch_deg   = vm.pitch_deg   + ads.ads_pitch_deg   * ads_blend;
+        scene_.viewmodel_yaw_deg     = vm.yaw_deg     + ads.ads_yaw_deg     * ads_blend;
+        scene_.viewmodel_roll_deg    = vm.roll_deg    + ads.ads_roll_deg    * ads_blend;
+
+        // Camera FOV zoom: interpolate from base FOV down to base * ads_fov_scale
+        constexpr float kBaseFovDeg = 60.0F;
+        const float target_ads_fov = kBaseFovDeg * ads.ads_fov_scale;
+        scene_.camera_fov_override_deg = kBaseFovDeg - (kBaseFovDeg - target_ads_fov) * ads_blend;
     }
 
     // Apply viewmodel arm IK to position hands at weapon grip sockets.

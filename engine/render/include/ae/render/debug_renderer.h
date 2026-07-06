@@ -147,6 +147,11 @@ struct DebugScene {
     float character_joint_matrices[4096] {};
     int character_joint_count {0};
 
+    // Camera FOV override for ADS zoom effect. When > 0, the renderer uses
+    // this value instead of the default 60° world FOV. When 0, the default
+    // FOV is used. Set per-frame from the client layer's ADS blend.
+    float camera_fov_override_deg {0.0F};
+
     // Viewmodel offset tuning — populated per-frame from the client layer's
     // per-weapon data (kWeaponViewmodelTransforms).  These are additive to the
     // base viewmodel position/rotation computed from the camera anchor.

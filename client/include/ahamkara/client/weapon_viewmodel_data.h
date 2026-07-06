@@ -114,4 +114,60 @@ inline WeaponViewmodelTransform weapon_viewmodel_transform(int index) {
     return {};
 }
 
+// ============================================================
+// ADS (Aim Down Sights) transform data
+// ============================================================
+
+/// Per-weapon ADS transform offset applied on top of the hip-fire position.
+/// When fully aimed, the total viewmodel offset becomes:
+///   hip_offset + ads_offset
+/// The ADS offset typically cancels the hip offset to bring the weapon toward
+/// screen center (e.g., ads_pos_right = -hip_pos_right).
+struct WeaponAdsTransform {
+    // Position offset added to hip-fire position during ADS (meters).
+    float ads_pos_right   {0.0F};
+    float ads_pos_up      {0.0F};
+    float ads_pos_forward {0.0F};
+
+    // Rotation offset added to hip-fire rotation during ADS (degrees).
+    float ads_pitch_deg   {0.0F};
+    float ads_yaw_deg     {0.0F};
+    float ads_roll_deg    {0.0F};
+
+    // World camera FOV scale during ADS (0.0-1.0).
+    // The camera FOV becomes: base_FOV * ads_fov_scale.
+    // E.g., 0.67 at 60° base = ~40° FOV (common FPS zoom).
+    float ads_fov_scale   {1.0F};
+};
+
+// Per-weapon ADS transforms.  Order matches weapon_viewmodel_data convention:
+//   0 = AR-15, 1 = Shotgun, 2 = Rocket Launcher.
+//
+// The position offsets negate each weapon's hip offset to bring the weapon
+// toward center.  The pitch adds a slight downward tilt to align with the
+// invisible sight picture.
+inline const std::array<WeaponAdsTransform, kWeaponViewmodelCount> kWeaponAdsTransforms = {{
+    // AR-15: cancel hip offset, slight forward+up, tight zoom
+    { -0.05F,  0.05F, -0.05F,   // negate hip pos
+      -2.0F,   0.0F,   0.0F,   // slight tilt down
+      0.70F },                   // 42° zoom
+
+    // Shotgun: cancel hip offset, bring fully centered
+    { -0.08F,  0.08F, -0.03F,   // negate hip pos
+      -2.5F,   0.0F,   0.0F,   // slight tilt down
+      0.67F },                   // 40° zoom
+
+    // Rocket Launcher: cancel hip offset, slight upward for tube clearance
+    { -0.12F,  0.15F, -0.02F,   // negate hip pos
+      -3.0F,   0.0F,   0.0F,   // tilt down more for sight picture
+      0.75F },                   // 45° zoom
+}};
+
+inline WeaponAdsTransform weapon_ads_transform(int index) {
+    if (index >= 0 && static_cast<std::size_t>(index) < kWeaponAdsTransforms.size()) {
+        return kWeaponAdsTransforms[static_cast<std::size_t>(index)];
+    }
+    return {};
+}
+
 }  // namespace ahamkara::client

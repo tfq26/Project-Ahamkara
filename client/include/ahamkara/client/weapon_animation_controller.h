@@ -34,6 +34,7 @@ public:
 
     [[nodiscard]] bool has_transform() const { return has_transform_; }
     [[nodiscard]] const std::array<float, 16>& transform() const { return transform_; }
+    [[nodiscard]] float ads_blend() const { return anim_state_.ads_blend; }
 
     /// Melee API
     bool trigger_melee();

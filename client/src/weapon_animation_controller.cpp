@@ -188,7 +188,7 @@ void WeaponAnimationController::update_weapon(float dt,
     evaluate_weapon_animation(
         anim_state_, profile.anim_config, dt, speed,
         input.look_delta.x, input.look_delta.y,
-        is_moving, input.sprint_held, input.fire_held, local);
+        is_moving, input.aim_held, input.fire_held, local);
 
     // --- Reload ---
     if (!reload_active_
