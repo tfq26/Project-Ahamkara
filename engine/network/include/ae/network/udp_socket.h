@@ -2,6 +2,10 @@
 
 #include "ae/core/types.h"
 
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
+
 #include <string>
 
 namespace ae {
@@ -37,7 +41,11 @@ public:
     [[nodiscard]] bool is_open() const;
 
 private:
-    int socket_fd_ {-1};
+#ifdef _WIN32
+    SOCKET socket_fd_{INVALID_SOCKET};
+#else
+    int socket_fd_{-1};
+#endif
 };
 
 }  // namespace ae
