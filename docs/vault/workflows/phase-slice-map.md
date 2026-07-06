@@ -16,7 +16,262 @@ Rules:
 - Deferred items stay out of active work until the user reactivates them.
 
 The active slice notes are materialized in `docs/vault/queue-tasks/open/`. HDR
-stays deferred and is intentionally not queued right now.
+stays deferred and is intentionally not queued right now. The Phase 11+ blocks
+below are the new expansion track for agent fan-out; the earlier baseline
+phases follow after them.
+
+## Phase A - Autonomous Validation and Playtest Harness
+
+### Slice A0 - Action and input abstraction
+
+Tasks:
+
+- automated input injection for local and headless clients
+- action vocabulary for move, look, interact, combat, and recovery
+- input playback and repeatable seed/state setup
+
+### Slice A1 - Scenario runner
+
+Tasks:
+
+- scriptable playtest routes
+- movement, pickup, and interaction smoke scenarios
+- respawn and recovery loops
+
+### Slice A2 - Gameplay affordances
+
+Tasks:
+
+- explicit interaction hooks for objects and triggers
+- encounter and objective affordances for automation
+- combat surfaces that can be exercised without manual driving
+
+### Slice A3 - Validation and reporting
+
+Tasks:
+
+- deterministic replay/state capture
+- failure artifacts and logs
+- pass/fail output wired into the queue/report workflow
+
+## Phase 11 - Autonomous Validation Mesh
+
+### Slice 11A - Scenario runner expansion
+
+Tasks:
+
+- scripted movement, interaction, combat, and recovery routes
+- repeatable state setup for local and headless sessions
+- support for multiple validation scenarios per run
+
+### Slice 11B - Action vocabulary
+
+Tasks:
+
+- input verbs for move, look, interact, fire, reload, use ability, pause
+- camera and recovery actions for agent control
+- controller and keyboard parity for the harness
+
+### Slice 11C - Evidence capture
+
+Tasks:
+
+- deterministic replay capture
+- logs, snapshots, and failure artifact bundles
+- machine-readable pass/fail summary output
+
+### Slice 11D - Queue/report wiring
+
+Tasks:
+
+- validation output linked into queue task reports
+- report templates for automated playtest evidence
+- failure metadata for later review and reruns
+
+## Phase 12 - Traversal and Presentation Expansion
+
+### Slice 12A - Locomotion verbs
+
+Tasks:
+
+- sprint, slide, mantle, dodge, crouch, and ledge behavior slices
+- traversal edge cases exposed to the harness
+- movement tuning slices with deterministic validation
+
+### Slice 12B - Camera and viewmodel
+
+Tasks:
+
+- first-person camera transition slices
+- FOV, bob, landing, and impulse presentation slices
+- weapon/viewmodel state slices
+
+### Slice 12C - Accessibility and remap
+
+Tasks:
+
+- input remapping slices
+- controller parity slices
+- accessibility fallback presentation slices
+
+## Phase 13 - Combat Sandbox Scale-Out
+
+### Slice 13A - Weapon families
+
+Tasks:
+
+- weapon archetype slices
+- ammo/reserve and reload family slices
+- fire-mode and recoil family slices
+
+### Slice 13B - Damage model
+
+Tasks:
+
+- crit, falloff, shield, and surface interaction slices
+- hitscan/projectile damage split slices
+- damage feedback validation slices
+
+### Slice 13C - Combat feedback
+
+Tasks:
+
+- hitmarker and combat UI slices
+- audio/VFX feedback slices
+- combat clarity and recovery slices
+
+## Phase 14 - Encounter, AI, and Objective Systems
+
+### Slice 14A - AI behavior
+
+Tasks:
+
+- senses, behavior, and squad coordination slices
+- enemy archetype slices
+- boss or elite behavior slices
+
+### Slice 14B - Objectives and triggers
+
+Tasks:
+
+- objective condition slices
+- trigger and checkpoint slices
+- encounter validation slices
+
+### Slice 14C - Encounter authoring
+
+Tasks:
+
+- encounter definition slices
+- reward resolution slices
+- scripted flow validation slices
+
+## Phase 15 - Activities, Missions, and Progression
+
+### Slice 15A - Activity flow
+
+Tasks:
+
+- activity state machine slices
+- mission branching and modifier slices
+- objective-to-reward state slices
+
+### Slice 15B - Inventory and loadout
+
+Tasks:
+
+- inventory, gear, perk, and currency slices
+- loadout save/load slices
+- reward/persistence boundary slices
+
+## Phase 16 - World Scale and Destination Content
+
+### Slice 16A - Streaming and residency
+
+Tasks:
+
+- sector streaming slices
+- residency and unload slices
+- destination metadata slices
+
+### Slice 16B - Patrol/world layout
+
+Tasks:
+
+- patrol space slices
+- social space slices
+- transition and encounter slice boundaries
+
+## Phase 17 - Social, Live Ops, and Services
+
+### Slice 17A - Social graph
+
+Tasks:
+
+- party, invite, roster, and presence slices
+- session join/reconnect slices
+
+### Slice 17B - Live ops
+
+Tasks:
+
+- live modifier slices
+- seasonal content slices
+- degraded-mode validation slices
+
+## Phase 18 - Tools, Authoring, and Content Factory
+
+### Slice 18A - Import/export validation
+
+Tasks:
+
+- asset linting slices
+- schema and metadata slices
+- import/export roundtrip slices
+
+### Slice 18B - Batch generation
+
+Tasks:
+
+- batch transform slices
+- content factory throughput slices
+- automated report generation slices
+
+## Phase 19 - Performance, Stability, and Ship Hardening
+
+### Slice 19A - Perf budgets
+
+Tasks:
+
+- frame-time budget slices
+- profiling and regression slices
+- batch/parallel execution slices
+
+### Slice 19B - Stability and diagnostics
+
+Tasks:
+
+- crash reporting slices
+- deterministic replay slices
+- memory and leak detection slices
+
+## Phase 20 - Platform, Accessibility, and Release Variants
+
+### Slice 20A - Platform variants
+
+Tasks:
+
+- packaging and build-flavor slices
+- platform-constraint slices
+- save/profile portability slices
+
+### Slice 20B - Accessibility and localization
+
+Tasks:
+
+- localization slices
+- text scaling and subtitle slices
+- accessibility option slices
 
 ## Phase 0 - Foundation Hardening
 

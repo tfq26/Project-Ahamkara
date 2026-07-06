@@ -28,10 +28,16 @@ constexpr const char* kDefaultShowcaseLevel =
 int main(int argc, char** argv) {
     ae::init_file_logging("logs");
     const char* level_path = kDefaultShowcaseLevel;
+    bool autoplay = false;
     for (int i = 1; i + 1 < argc; ++i) {
         if (std::string(argv[i]) == "--level") {
             level_path = argv[i + 1];
             break;
+        }
+    }
+    for (int i = 1; i < argc; ++i) {
+        if (std::string(argv[i]) == "--autoplay") {
+            autoplay = true;
         }
     }
 
@@ -39,11 +45,18 @@ int main(int argc, char** argv) {
     // files, but Flashback just showcases the engine running a level.
     ahamkara::client::ClientConfig client_config {};
     ahamkara::client::ControllerBindings controller_bindings {};
+    const auto autoplay_scenario = autoplay
+        ? ahamkara::client::make_default_autoplay_scenario(level_path)
+        : ahamkara::client::PlaytestScenario {};
 
     ae::log_info(std::string("Flashback demo: booting the engine on level '") +
                  level_path + "'. (Run from the repo root so assets resolve.)");
 
-    const int result = run_local_client(client_config, controller_bindings, level_path);
+    const int result = run_local_client(
+        client_config,
+        controller_bindings,
+        level_path,
+        autoplay ? &autoplay_scenario : nullptr);
     ae::shutdown_file_logging();
     return result;
 }

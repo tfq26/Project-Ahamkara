@@ -201,7 +201,8 @@ inline bool write_player_input(ByteWriter& writer, const PlayerInputCommand& com
         && writer.write_bool(command.slide_pressed)
         && writer.write_bool(command.fire_held)
         && writer.write_bool(command.reload_pressed)
-        && writer.write_bool(command.ability_pressed);
+        && writer.write_bool(command.ability_pressed)
+        && writer.write_bool(command.interact_pressed);
 }
 
 inline bool read_player_input(ByteReader& reader, PlayerInputCommand& command) {
@@ -216,7 +217,8 @@ inline bool read_player_input(ByteReader& reader, PlayerInputCommand& command) {
         && reader.read_bool(command.slide_pressed)
         && reader.read_bool(command.fire_held)
         && reader.read_bool(command.reload_pressed)
-        && reader.read_bool(command.ability_pressed);
+        && reader.read_bool(command.ability_pressed)
+        && reader.read_bool(command.interact_pressed);
 }
 
 inline bool write_player_state(ByteWriter& writer, const ReplicatedPlayerState& state) {
@@ -433,7 +435,7 @@ constexpr ae::usize player_input_packet_size() {
         + sizeof(float)       // client_time
         + sizeof(float) * 2   // move_axis
         + sizeof(float) * 2   // look_delta
-        + sizeof(ae::u8) * 7; // bools
+        + sizeof(ae::u8) * 8; // bools
 }
 
 constexpr ae::usize server_snapshot_packet_size() {

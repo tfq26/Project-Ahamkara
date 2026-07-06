@@ -5,6 +5,7 @@
 #include "ae/platform/window.h"
 #include "ae/ui/ahamkara_ui.h"
 #include "ahamkara/client/camera_mode.h"
+#include "ahamkara/client/window_input_provider.h"
 #include "ahamkara/client/debug_render_runtime.h"
 #include "ahamkara/client/debug_scene_bridge.h"
 #include "ahamkara/game/movement.h"
@@ -25,7 +26,7 @@ ClientFramePipeline::ClientFramePipeline(
     ae::Application& application,
     ae::render::DebugRenderer& renderer,
     ThreadedLocalRuntime& simulation,
-    WindowInputProvider& window_input,
+    IInputProvider& input_provider,
     DebugFrontendState& frontend_state,
     DebugUiController& ui_controller,
     ClientMenuState& menu_state,
@@ -35,12 +36,13 @@ ClientFramePipeline::ClientFramePipeline(
     ae::render::ShadowPass& shadow_pass,
     ae::render::PbrRenderer& pbr_renderer,
     const ae::render::LevelRenderScene* level_scene,
-    const ae::render::LevelAsset* level_asset)
+    const ae::render::LevelAsset* level_asset,
+    bool autoplay_mode)
     : window_(window)
     , application_(application)
     , renderer_(renderer)
     , simulation_(simulation)
-    , window_input_(window_input)
+    , input_provider_(input_provider)
     , frontend_state_(frontend_state)
     , ui_controller_(ui_controller)
     , menu_state_(menu_state)
@@ -50,7 +52,8 @@ ClientFramePipeline::ClientFramePipeline(
     , shadow_pass_(shadow_pass)
     , pbr_renderer_(pbr_renderer)
     , level_scene_(level_scene)
-    , level_asset_(level_asset) {
+    , level_asset_(level_asset)
+    , autoplay_mode_(autoplay_mode) {
     if (menu_system_.load_from_directory("assets/menus")) {
         // Seed settings from current config
         menu_system_.set_variable("gamma", client_config_.gamma);
@@ -108,7 +111,9 @@ ClientFramePipeline::ClientFramePipeline(
             client_config_.audio.sfx_volume = sfx;
             client_config_.audio.enabled = audio_on;
             client_config_.mouse_sensitivity = sens;
-            window_input_.set_mouse_sensitivity(sens);
+            if (auto* window_input = dynamic_cast<WindowInputProvider*>(&input_provider_)) {
+                window_input->set_mouse_sensitivity(sens);
+            }
 
             // Save to config file
             client_config_.save_to_file("client/config/ahamkara.cfg");
@@ -118,6 +123,12 @@ ClientFramePipeline::ClientFramePipeline(
 
         menu_initialized_ = true;
         menu_system_.show_screen("main_menu");
+
+        if (autoplay_mode_) {
+            menu_system_.pop_to_root();
+            menu_state_.start_gameplay();
+            gameplay_active_ = true;
+        }
     }
 
     // Load HUD layout
@@ -225,7 +236,7 @@ void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
 
 void ClientFramePipeline::stage_gather_gameplay_input() {
     simulation_.set_paused(menu_state_.simulation_should_pause());
-    raw_input_ = window_input_.gather_input(smoothed_delta_);
+    raw_input_ = input_provider_.gather_input(smoothed_delta_);
     if (menu_state_.gameplay_input_enabled()) {
         simulation_.submit_input(raw_input_);
     }
@@ -441,7 +452,9 @@ void ClientFramePipeline::stage_present() {
 
 void ClientFramePipeline::stage_post_frame() {
     if (ui_actions_.config_applied) {
-        window_input_.set_mouse_sensitivity(client_config_.mouse_sensitivity);
+        if (auto* window_input = dynamic_cast<WindowInputProvider*>(&input_provider_)) {
+            window_input->set_mouse_sensitivity(client_config_.mouse_sensitivity);
+        }
         audio_engine_.set_master_volume(client_config_.audio.master_volume);
     }
     if (ui_actions_.quit_application) {
@@ -452,6 +465,10 @@ void ClientFramePipeline::stage_post_frame() {
     }
 
     simulation_.set_paused(menu_state_.simulation_should_pause());
+
+    if (input_provider_.finished()) {
+        application_.shutdown();
+    }
 }
 
 }  // namespace ahamkara::client

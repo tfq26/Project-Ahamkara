@@ -22,6 +22,7 @@ void ThreadedLocalRuntime::ThreadSafeInputProvider::set_input(const ahamkara::ga
     command_.fire_held = command.fire_held;
     command_.reload_pressed = command_.reload_pressed || command.reload_pressed;
     command_.ability_pressed = command_.ability_pressed || command.ability_pressed;
+    command_.interact_pressed = command_.interact_pressed || command.interact_pressed;
 }
 
 ahamkara::game::PlayerInputCommand ThreadedLocalRuntime::ThreadSafeInputProvider::gather_input(float) {
@@ -32,9 +33,14 @@ ahamkara::game::PlayerInputCommand ThreadedLocalRuntime::ThreadSafeInputProvider
     command_.slide_pressed = false;
     command_.reload_pressed = false;
     command_.ability_pressed = false;
+    command_.interact_pressed = false;
     command_.look_delta = {0.0F, 0.0F};
 
     return command;
+}
+
+bool ThreadedLocalRuntime::ThreadSafeInputProvider::finished() const {
+    return finished_;
 }
 
 ThreadedLocalRuntime::ThreadedLocalRuntime()
@@ -84,6 +90,13 @@ void ThreadedLocalRuntime::set_colliders(const ahamkara::game::ColliderBox* coll
     simulation_.set_colliders(colliders, count);
 }
 
+void ThreadedLocalRuntime::set_interaction_targets(
+    const ahamkara::game::InteractionTargetDefinition* targets,
+    std::size_t count) {
+    std::lock_guard<std::mutex> lock(sim_mutex_);
+    simulation_.set_interaction_targets(targets, count);
+}
+
 void ThreadedLocalRuntime::set_audio_player(ahamkara::game::IAudioPlayer* player) {
     std::lock_guard<std::mutex> lock(sim_mutex_);
     simulation_.set_audio_player(player);
@@ -109,6 +122,26 @@ void ThreadedLocalRuntime::restart_match() {
     prev_snapshot_ = {};
     curr_snapshot_ = {};
     last_tick_time_ = std::chrono::steady_clock::now();
+}
+
+ahamkara::game::ReplicatedPlayerState ThreadedLocalRuntime::get_player_state() const {
+    std::lock_guard<std::mutex> lock(sim_mutex_);
+    return simulation_.get_player_state();
+}
+
+int ThreadedLocalRuntime::get_interaction_success_count() const {
+    std::lock_guard<std::mutex> lock(sim_mutex_);
+    return simulation_.get_interaction_success_count();
+}
+
+int ThreadedLocalRuntime::get_reload_request_count() const {
+    std::lock_guard<std::mutex> lock(sim_mutex_);
+    return simulation_.get_reload_request_count();
+}
+
+int ThreadedLocalRuntime::get_ability_use_count() const {
+    std::lock_guard<std::mutex> lock(sim_mutex_);
+    return simulation_.get_ability_use_count();
 }
 
 void ThreadedLocalRuntime::get_snapshots(

@@ -120,6 +120,11 @@ int main(int argc, char** argv) {
         return run_local_client(client_config, controller_bindings, level_path);
     }
 
+    if (argc > 1 && std::string(argv[1]) == "--autoplay") {
+        const auto scenario = ahamkara::client::make_default_autoplay_scenario(level_path);
+        return run_playtest_client(level_path, scenario);
+    }
+
     if (argc > 1 && std::string(argv[1]) == "--window") {
         return run_windowed_client(client_config);
     }

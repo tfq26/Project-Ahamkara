@@ -48,6 +48,7 @@ void test_player_input_packet_round_trip() {
     source.fire_held = true;
     source.reload_pressed = false;
     source.ability_pressed = true;
+    source.interact_pressed = true;
 
     ahamkara::game::PacketEnvelope out_env {};
     out_env.sequence = 7;
@@ -80,6 +81,7 @@ void test_player_input_packet_round_trip() {
     assert(decoded.fire_held == source.fire_held);
     assert(decoded.reload_pressed == source.reload_pressed);
     assert(decoded.ability_pressed == source.ability_pressed);
+    assert(decoded.interact_pressed == source.interact_pressed);
 }
 
 void test_snapshot_packet_round_trip() {

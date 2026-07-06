@@ -24,10 +24,39 @@ active queue until a concrete trigger fires.
 
 ## Contents
 
+- [Phase A — Autonomous Validation & Playtest Harness](#phase-a--autonomous-validation--playtest-harness)
 - [Part I — FPS Playable Roadmap (Tiger-Class North Star)](#part-i--fps-playable-roadmap-tiger-class-north-star)
 - [Part II — Engine Foundations Roadmap](#part-ii--engine-foundations-roadmap)
 - [Part III — 7/10 Roadmap (Indie-FPS Feel Milestone)](#part-iii--710-roadmap-indie-fps-feel-milestone)
 - [Part IV — Streamlining & Hardening Plan](#part-iv--streamlining--hardening-plan)
+- [Part V — Autonomous Scale Roadmap (10,000+ Atomic Tasks)](#part-v--autonomous-scale-roadmap-10000-atomic-tasks)
+
+---
+
+## Phase A — Autonomous Validation & Playtest Harness
+
+This is the prerequisite track for agent-driven testing. Build it before the
+roadmap grows into a much larger phase/task tree, because later phases should
+inherit a reliable way to validate gameplay without human hand-holding.
+
+**Goal:** frontier agents can move, interact, combat-test, and recover through
+real gameplay flows while producing deterministic evidence.
+
+**Workstreams**
+- Action vocabulary and input injection for automated clients.
+- Scenario runner for scripted movement, interaction, combat, and respawn.
+- Gameplay affordances for objects, triggers, pickups, and encounter scripting.
+- Deterministic replay, snapshots, and failure artifact capture.
+- Validation outputs that fit the queue/report workflow.
+
+**Exit criteria:** an automated agent can complete a representative playtest
+route and emit machine-readable evidence that a later agent can review.
+
+**Status:** partial
+
+Core harness landing is in place. The remaining work here is broader scenario
+coverage, richer failure artifacts, and server-session validation so later
+phases can assume autonomous playtest execution from the start.
 
 ---
 
@@ -327,7 +356,8 @@ hardware, with content tooling and CI sufficient for sustained production.
 - **Data model / ECS:** progressively move authoritative state to ECS; keep
   cosmetic/render-only state separate from gameplay state.
 - **Testing & validation:** focused tests at utility/runtime boundaries;
-  net-condition simulation; honest runtime-confirmation discipline.
+  net-condition simulation; honest runtime-confirmation discipline; autonomous
+  playtest harnesses for movement, interaction, combat, and recovery flows.
 - **Docs & memory:** keep `docs/systems/` truthful; record decisions; keep the
   queue/reports loop tight.
 - **Security/services hygiene:** server authority, input validation, no secrets
@@ -336,13 +366,15 @@ hardware, with content tooling and CI sufficient for sustained production.
 ### 6. Near-Term Execution Order (function before fidelity)
 
 1. Accept in-review slices (level meshes revised, UV plumbing, Path A/B).
-2. Core cleanups: `render-present-semantics`, `input-routing-cleanup`,
+2. Build the autonomous validation harness so later phases can be exercised
+   without manual playthroughs.
+3. Core cleanups: `render-present-semantics`, `input-routing-cleanup`,
    `ui-screen-split-plan`.
-3. `runtime-confirm-prototype-levels` (needs a GL display).
-4. `textured-material-showcase` → make textures visibly work.
-5. `level-driven-sky-and-fog` → cheap legibility.
-6. Begin Phase 2 (player/movement feel).
-7. Define ownership boundaries for the gameplay runtime:
+4. `runtime-confirm-prototype-levels` (needs a GL display).
+5. `textured-material-showcase` → make textures visibly work.
+6. `level-driven-sky-and-fog` → cheap legibility.
+7. Begin Phase 2 (player/movement feel).
+8. Define ownership boundaries for the gameplay runtime:
    - `World` remains the orchestrator for match state, simulation stepping,
      dummies/projectiles/collision, respawn, and replay/history snapshots.
    - `Player` owns player-specific runtime data such as loadout, armor, active
@@ -351,7 +383,7 @@ hardware, with content tooling and CI sufficient for sustained production.
      first-person camera math instead of keeping that logic in `World`.
    - Weapon presentation should be separated from weapon runtime so
      attachments, viewmodels, and animation live in a presentation layer.
-8. HDR/render-target foundation stays **deferred** until a trigger fires and
+9. HDR/render-target foundation stays **deferred** until a trigger fires and
    remains out of the active queue until then.
 
 These map to the queued tasks in `../vault/queue-tasks/`.
@@ -777,6 +809,74 @@ easier.
 - Build/test/docs tell the same story without tribal memory.
 
 ---
+
+## Part V — Autonomous Scale Roadmap (10,000+ Atomic Tasks)
+
+This is the expansion layer for the roadmap. The point is not to create a
+single impossible-to-review mega-list; it is to define phase families that can
+be decomposed into thousands of small, agent-safe queue items with one owner,
+one validation path, and one reviewable outcome each.
+
+### Operating Rules
+
+- Every queue task must be small enough for one worker to finish without human
+  debugging.
+- Each task must have one primary subsystem boundary and one observable
+  acceptance bar.
+- Manual playtesting is not an acceptable final validation path when the
+  autonomous harness can exercise the flow.
+- If a flow still requires human driving, the first task is to make it
+  automatable.
+- Frontier agents should validate by replay, state capture, scripted scenario,
+  or headless simulation before a human is asked to verify anything visually.
+
+### Task Budget
+
+| Phase | Budget | Outcome |
+|---|---:|---|
+| 11. Autonomous Validation Mesh | 850 | Scenario-driven testing, replay, evidence capture, bot-safe play loops |
+| 12. Traversal and Presentation Expansion | 950 | More movement verbs, camera states, accessibility, and viewmodel depth |
+| 13. Combat Sandbox Scale-Out | 1500 | Weapon families, attachments, damage models, recoil, and ammo economy |
+| 14. Encounter, AI, and Objective Systems | 1400 | Enemy archetypes, behaviors, objectives, and encounter scripting |
+| 15. Activities, Missions, and Progression | 1100 | Mission flow, rewards, loadouts, inventory, and progression loops |
+| 16. World Scale and Destination Content | 1300 | Streaming spaces, region metadata, patrol content, and world events |
+| 17. Social, Live Ops, and Services | 1000 | Parties, matchmaking, presence, live modifiers, and service seams |
+| 18. Tools, Authoring, and Content Factory | 1500 | Higher-throughput content creation, validation, and import tooling |
+| 19. Performance, Stability, and Ship Hardening | 1100 | Budgets, crash safety, threading, and deterministic verification |
+| 20. Platform, Accessibility, and Release Variants | 500 | Input remap, accessibility, packaging, localization, and variants |
+
+Total planning budget: **11,200 atomic tasks**.
+
+### Phase Families
+
+- **Phase 11:** validation mesh, scenario runner, artifact capture, and
+  evidence-driven automation.
+- **Phase 12:** traversal expansion, camera/viewmodel states, and accessibility
+  coverage.
+- **Phase 13:** combat sandbox scale-out across weapon families, damage, and
+  feedback.
+- **Phase 14:** encounters, AI, objective logic, and enemy archetypes.
+- **Phase 15:** activities, missions, rewards, loadouts, and progression.
+- **Phase 16:** destination scale, streaming, region metadata, and world
+  events.
+- **Phase 17:** social systems, matchmaking, live ops, and service validation.
+- **Phase 18:** authoring tooling, import validation, and content factory
+  throughput.
+- **Phase 19:** performance budgets, stability, deterministic replay, and CI
+  gating.
+- **Phase 20:** platform variants, accessibility, localization, and packaging.
+
+### Expansion Rules
+
+1. Split each phase family into one queue task per focused behavior change.
+2. Keep one validation target per task.
+3. Prefer small vertical slices over broad feature bundles.
+4. Use the autonomous harness for all gameplay-facing verification.
+5. Use reports to record what was proven, what remains manual, and what was
+   intentionally deferred.
+
+The companion slice map in `../vault/workflows/phase-slice-map.md` should be
+kept in sync with this document whenever a phase is activated.
 
 ## Related
 

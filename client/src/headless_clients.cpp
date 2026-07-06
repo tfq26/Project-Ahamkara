@@ -10,6 +10,7 @@
 #include "ae/render/compiled_level.h"
 #include "ae/runtime/application.h"
 #include "ahamkara/client/client_config.h"
+#include "ahamkara/client/playtest_harness.h"
 #include "ahamkara/game/client_prediction.h"
 #include "ahamkara/game/net_packets.h"
 #include "ahamkara/game/net_types.h"
@@ -43,7 +44,7 @@ void print_sandbox_help() {
               << "  help                     Show this help\n"
               << "  status                   Print current player state\n"
               << "  step <ticks> <inputs>    Simulate ticks with inputs\n"
-              << "                           Inputs: w a s d sprint jump slide crouch fire reload ability\n"
+              << "                           Inputs: w a s d sprint jump slide crouch fire reload ability interact\n"
               << "                           Example: step 60 w sprint\n"
               << "  quit                     Exit sandbox\n";
 }
@@ -128,6 +129,11 @@ bool apply_input_token(const std::string& token, ahamkara::game::PlayerInputComm
 
     if (token == "ability") {
         command.ability_pressed = true;
+        return true;
+    }
+
+    if (token == "interact") {
+        command.interact_pressed = true;
         return true;
     }
 
@@ -304,6 +310,21 @@ int run_sandbox_client(const char* level_path) {
 
     application.shutdown();
     return EXIT_SUCCESS;
+}
+
+int run_playtest_client(const char* level_path, const ahamkara::client::PlaytestScenario& scenario) {
+    ae::Application application(ae::RuntimeMode::Tests);
+    application.start();
+
+    ahamkara::client::PlaytestScenario resolved = scenario;
+    if (resolved.level_path.empty() && level_path != nullptr && level_path[0] != '\0') {
+        resolved.level_path = level_path;
+    }
+
+    ae::log_info("Starting autonomous playtest scenario: " + resolved.name);
+    const auto result = ahamkara::client::run_playtest_scenario(resolved);
+    application.shutdown();
+    return result.passed ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 int run_network_client(const std::string& server_ip, int argc, char** argv) {

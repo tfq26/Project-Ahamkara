@@ -15,6 +15,7 @@
 #include "ahamkara/client/controller_bindings.h"
 #include "ahamkara/client/debug_frontend_runtime.h"
 #include "ahamkara/client/debug_ui_controller.h"
+#include "ahamkara/client/playtest_harness.h"
 #include "ahamkara/client/threaded_local_runtime.h"
 #include "ahamkara/client/window_input_provider.h"
 #include "ahamkara/client/audio_player.h"
@@ -23,11 +24,13 @@
 #include <exception>
 #include <memory>
 #include <string>
+#include <vector>
 
 int run_local_client(
     ahamkara::client::ClientConfig& client_config,
     const ahamkara::client::ControllerBindings& controller_bindings,
-    const char* level_path) {
+    const char* level_path,
+    const ahamkara::client::PlaytestScenario* autoplay_scenario) {
 
     ae::init_file_logging("logs");
 
@@ -73,8 +76,13 @@ int run_local_client(
     shadow_pass.initialize(renderer.backend(), 2048);
 
     // ── Simulation + input ──────────────────────────────────────────────
-    auto window_input = std::make_unique<ahamkara::client::WindowInputProvider>(
-        *window, client_config.mouse_sensitivity, controller_bindings);
+    std::unique_ptr<ahamkara::client::IInputProvider> input_provider;
+    if (autoplay_scenario != nullptr) {
+        input_provider = std::make_unique<ahamkara::client::ScenarioInputProvider>(*autoplay_scenario);
+    } else {
+        input_provider = std::make_unique<ahamkara::client::WindowInputProvider>(
+            *window, client_config.mouse_sensitivity, controller_bindings);
+    }
 
     ahamkara::client::ThreadedLocalRuntime simulation;
 
@@ -107,6 +115,32 @@ int run_local_client(
         ae::log_info("No --level specified; starting with an empty world (no level meshes).");
     }
 
+    if (autoplay_scenario != nullptr) {
+        ClientSimulationSnapshot previous_snapshot {};
+        ClientSimulationSnapshot current_snapshot {};
+        float alpha = 0.0F;
+        simulation.get_snapshots(previous_snapshot, current_snapshot, alpha);
+
+        std::vector<ahamkara::game::InteractionTargetDefinition> interaction_targets =
+            autoplay_scenario->interaction_targets;
+        if (autoplay_scenario->add_spawn_training_target) {
+            interaction_targets.push_back(ahamkara::game::InteractionTargetDefinition {
+                5001,
+                {
+                    current_snapshot.player_position.x + autoplay_scenario->spawn_training_target_offset.x,
+                    current_snapshot.player_position.y + autoplay_scenario->spawn_training_target_offset.y,
+                    current_snapshot.player_position.z + autoplay_scenario->spawn_training_target_offset.z
+                },
+                1.5F,
+                true,
+                "flashback_terminal"
+            });
+        }
+        if (!interaction_targets.empty()) {
+            simulation.set_interaction_targets(interaction_targets.data(), interaction_targets.size());
+        }
+    }
+
     ahamkara::client::AudioPlayer audio_player;
     audio_player.apply_config(client_config.audio);
     simulation.set_audio_player(&audio_player);
@@ -125,15 +159,15 @@ int run_local_client(
     simulation.set_paused(menu_state.simulation_should_pause());
 
     ae::log_info("Debug view started. WASD move, mouse look, LMB fire, R reload, "
-        "Space jump, Shift sprint, Ctrl crouch, C slide, 1-3 weapons, "
+        "Space jump, Shift sprint, Ctrl crouch, C slide, F interact, 1-3 weapons, "
         "Esc menu, Tab scoreboard, F3 metrics, V third-person.");
 
     // ── Frame pipeline — explicit stage order ───────────────────────────
     ahamkara::client::ClientFramePipeline pipeline(
-        *window, application, renderer, simulation, *window_input,
+        *window, application, renderer, simulation, *input_provider,
         frontend_state, ui_controller, menu_state, client_config,
         controller_bindings, audio_engine, shadow_pass, pbr_renderer,
-        &level_scene, loaded_level_asset_view);
+        &level_scene, loaded_level_asset_view, autoplay_scenario != nullptr);
 
     while (application.is_running()) {
         if (!pipeline.run_one_frame()) break;

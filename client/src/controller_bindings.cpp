@@ -45,6 +45,7 @@ void assign_binding(std::string_view key, ae::GamepadInputCode code, ControllerB
     else if (key == "reload") bindings.reload = code;
     else if (key == "sprint") bindings.sprint = code;
     else if (key == "ability") bindings.ability = code;
+    else if (key == "interact") bindings.interact = code;
     else if (key == "metrics") bindings.metrics = code;
     else if (key == "menu") bindings.menu = code;
     else if (key == "toggle_perspective") bindings.toggle_perspective = code;
@@ -105,6 +106,7 @@ bool ControllerBindings::save_to_file(const std::string& path) const {
     write_binding(file, "reload", reload);
     write_binding(file, "sprint", sprint);
     write_binding(file, "ability", ability);
+    write_binding(file, "interact", interact);
     write_binding(file, "metrics", metrics);
     write_binding(file, "menu", menu);
     write_binding(file, "toggle_perspective", toggle_perspective);
@@ -113,4 +115,3 @@ bool ControllerBindings::save_to_file(const std::string& path) const {
 }
 
 }  // namespace ahamkara::client
-

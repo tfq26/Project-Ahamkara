@@ -29,6 +29,15 @@ struct HistoricalState {
     bool dummy_alive[kMaxDummies] {};
 };
 
+struct InteractionTargetState {
+    ae::u32 interaction_id {0};
+    Vec3 position {};
+    float radius {1.0F};
+    bool active {true};
+    bool one_shot {true};
+    std::string label {};
+};
+
 struct FloatingDamageNumber {
     Vec3 position {};
     float value {0.0F};
@@ -126,6 +135,12 @@ public:
     [[nodiscard]] float get_hitmarker_time() const { return hitmarker_timer_; }
     [[nodiscard]] bool get_hitmarker_is_critical() const { return hitmarker_is_critical_; }
     [[nodiscard]] float get_muzzle_flash_time() const { return muzzle_flash_timer_; }
+    [[nodiscard]] int get_interaction_attempt_count() const { return interaction_attempt_count_; }
+    [[nodiscard]] int get_interaction_success_count() const { return interaction_success_count_; }
+    [[nodiscard]] bool did_last_interaction_succeed() const { return last_interaction_succeeded_; }
+    [[nodiscard]] const std::string& get_last_interaction_label() const { return last_interaction_label_; }
+    [[nodiscard]] int get_reload_request_count() const { return reload_request_count_; }
+    [[nodiscard]] int get_ability_use_count() const { return ability_use_count_; }
 
     void set_hitmarker(float time, bool is_critical) { hitmarker_timer_ = time; hitmarker_is_critical_ = is_critical; }
     void set_muzzle_flash(float time) { muzzle_flash_timer_ = time; }
@@ -153,6 +168,7 @@ public:
     void spawn_muzzle_particles(const Vec3& position, const Vec3& forward);
     void spawn_impact_particles(const Vec3& position, const Vec3& normal);
     void spawn_bullet_hole_decal(const Vec3& position, const Vec3& normal);
+    void set_interaction_targets(const InteractionTargetDefinition* targets, std::size_t count);
 
     /// Fire cooldown (seconds remaining).  Negative means ready to fire.
     /// Delegates to the active weapon state.
@@ -187,6 +203,7 @@ private:
     void update_projectiles(float delta_seconds);
     void update_particles(float delta_seconds);
     void update_decals(float delta_seconds);
+    void process_interactions(const PlayerInputCommand& input);
     void resolve_moving_platform(float delta_seconds);
     /// Centralized sync: EnTT registry → output arrays (called once per tick).
     /// The EnTT registry is the authoritative runtime state; output arrays
@@ -242,6 +259,14 @@ private:
     std::deque<HistoricalState> history_buffer_;
     AudioEvent audio_event_queue_[kMaxAudioEventsPerTick] {};
     int audio_event_count_ {0};
+
+    std::vector<InteractionTargetState> interaction_targets_;
+    int interaction_attempt_count_ {0};
+    int interaction_success_count_ {0};
+    bool last_interaction_succeeded_ {false};
+    std::string last_interaction_label_ {};
+    int reload_request_count_ {0};
+    int ability_use_count_ {0};
 
     float respawn_timer_ {0.0F};
     ae::u32 player_kills_ {0};

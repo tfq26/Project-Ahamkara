@@ -13,6 +13,7 @@ struct ControllerBindings {
     ae::GamepadInputCode reload {ae::encode_gamepad_button_code(3)};
     ae::GamepadInputCode sprint {ae::encode_gamepad_button_code(4)};
     ae::GamepadInputCode ability {ae::encode_gamepad_button_code(5)};
+    ae::GamepadInputCode interact {ae::encode_gamepad_button_code(8)};
     ae::GamepadInputCode metrics {ae::encode_gamepad_button_code(6)};
     ae::GamepadInputCode menu {ae::encode_gamepad_button_code(7)};
     ae::GamepadInputCode toggle_perspective {ae::encode_gamepad_button_code(9)};
@@ -23,4 +24,3 @@ struct ControllerBindings {
 };
 
 }  // namespace ahamkara::client
-

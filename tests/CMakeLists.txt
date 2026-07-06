@@ -7,6 +7,12 @@ add_executable(ahamkara_smoke_tests
     ../client/src/local_play.cpp
 )
 
+add_executable(ahamkara_playtest_harness_tests
+    src/playtest_harness_tests.cpp
+    ../client/src/local_play.cpp
+    ../client/src/playtest_harness.cpp
+)
+
 add_executable(ahamkara_world_tests
     src/world_tests.cpp
 )
@@ -41,8 +47,8 @@ if(TARGET ae_platform)
 
     add_test(NAME ahamkara_window_input_provider_tests COMMAND ahamkara_window_input_provider_tests)
 endif()
-
 target_compile_features(ahamkara_smoke_tests PRIVATE cxx_std_20)
+target_compile_features(ahamkara_playtest_harness_tests PRIVATE cxx_std_20)
 target_compile_features(ahamkara_world_tests PRIVATE cxx_std_20)
 target_compile_features(ahamkara_movement_tests PRIVATE cxx_std_20)
 target_compile_features(ahamkara_player_movement_controller_tests PRIVATE cxx_std_20)
@@ -53,6 +59,19 @@ target_include_directories(ahamkara_smoke_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/../client/include
 )
 
+target_include_directories(ahamkara_playtest_harness_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../client/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/render/include
+)
+
+target_link_libraries(ahamkara_playtest_harness_tests
+    PRIVATE
+        ae_network
+        ae_runtime
+        ahamkara_game
+)
 target_link_libraries(ahamkara_smoke_tests
     PRIVATE
         ae_network
@@ -63,6 +82,7 @@ target_link_libraries(ahamkara_smoke_tests
 # ae_render only exists in GUI (non-headless) configs; link it when available.
 if(TARGET ae_render)
     target_link_libraries(ahamkara_smoke_tests PRIVATE ae_render)
+    target_link_libraries(ahamkara_playtest_harness_tests PRIVATE ae_render)
 endif()
 
 target_link_libraries(ahamkara_world_tests
@@ -82,10 +102,10 @@ target_link_libraries(ahamkara_player_movement_controller_tests
 )
 
 add_test(NAME ahamkara_smoke_tests COMMAND ahamkara_smoke_tests)
+add_test(NAME ahamkara_playtest_harness_tests COMMAND ahamkara_playtest_harness_tests)
 add_test(NAME ahamkara_world_tests COMMAND ahamkara_world_tests)
 add_test(NAME ahamkara_movement_tests COMMAND ahamkara_movement_tests)
 add_test(NAME ahamkara_player_movement_controller_tests COMMAND ahamkara_player_movement_controller_tests)
-
 add_executable(ahamkara_collision_tests
     src/collision_tests.cpp
 )

@@ -144,6 +144,30 @@ float LocalPlaySimulation::get_muzzle_flash_time() const {
     return world_.get_muzzle_flash_time();
 }
 
+int LocalPlaySimulation::get_interaction_attempt_count() const {
+    return world_.get_interaction_attempt_count();
+}
+
+int LocalPlaySimulation::get_interaction_success_count() const {
+    return world_.get_interaction_success_count();
+}
+
+int LocalPlaySimulation::get_reload_request_count() const {
+    return world_.get_reload_request_count();
+}
+
+int LocalPlaySimulation::get_ability_use_count() const {
+    return world_.get_ability_use_count();
+}
+
+bool LocalPlaySimulation::did_last_interaction_succeed() const {
+    return world_.did_last_interaction_succeed();
+}
+
+const std::string& LocalPlaySimulation::get_last_interaction_label() const {
+    return world_.get_last_interaction_label();
+}
+
 const ahamkara::game::ParticleState* LocalPlaySimulation::get_particles() const { return kEmptyParticles; }
 int LocalPlaySimulation::get_particle_count() const { return 0; }
 const ahamkara::game::DecalState* LocalPlaySimulation::get_decals() const { return kEmptyDecals; }
@@ -209,6 +233,12 @@ ahamkara::game::TargetDummyState LocalPlaySimulation::get_interpolated_dummy(int
 
 void LocalPlaySimulation::set_colliders(const ahamkara::game::ColliderBox* colliders, std::size_t count) {
     world_.set_colliders(colliders, count);
+}
+
+void LocalPlaySimulation::set_interaction_targets(
+    const ahamkara::game::InteractionTargetDefinition* targets,
+    std::size_t count) {
+    world_.set_interaction_targets(targets, count);
 }
 
 void LocalPlaySimulation::set_audio_player(ahamkara::game::IAudioPlayer* player) {

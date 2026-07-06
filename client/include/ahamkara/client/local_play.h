@@ -5,6 +5,7 @@
 #include "ae/core/tick.h"
 
 #include <memory>
+#include <string>
 
 namespace ahamkara::client {
 
@@ -21,6 +22,7 @@ public:
      * @param delta_seconds Frame delta time.
      */
     virtual ahamkara::game::PlayerInputCommand gather_input(float delta_seconds) = 0;
+    [[nodiscard]] virtual bool finished() const { return false; }
 };
 
 /**
@@ -60,6 +62,12 @@ public:
     [[nodiscard]] float get_hitmarker_time() const;
     [[nodiscard]] bool get_hitmarker_is_critical() const;
     [[nodiscard]] float get_muzzle_flash_time() const;
+    [[nodiscard]] int get_interaction_attempt_count() const;
+    [[nodiscard]] int get_interaction_success_count() const;
+    [[nodiscard]] bool did_last_interaction_succeed() const;
+    [[nodiscard]] const std::string& get_last_interaction_label() const;
+    [[nodiscard]] int get_reload_request_count() const;
+    [[nodiscard]] int get_ability_use_count() const;
 
     [[nodiscard]] const ahamkara::game::ParticleState* get_particles() const;
     [[nodiscard]] int get_particle_count() const;
@@ -71,6 +79,7 @@ public:
     [[nodiscard]] ahamkara::game::TargetDummyState get_interpolated_dummy(int idx, float alpha) const;
 
     void set_colliders(const ahamkara::game::ColliderBox* colliders, std::size_t count);
+    void set_interaction_targets(const ahamkara::game::InteractionTargetDefinition* targets, std::size_t count);
     void set_audio_player(ahamkara::game::IAudioPlayer* player);
     bool load_level(const std::string& path);
 

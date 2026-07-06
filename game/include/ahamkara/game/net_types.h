@@ -43,6 +43,7 @@ struct PlayerInputCommand {
     bool fire_held {false};
     bool reload_pressed {false};
     bool ability_pressed {false};
+    bool interact_pressed {false};
     ae::u8 weapon_slot {0};
 };
 

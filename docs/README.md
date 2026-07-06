@@ -24,6 +24,8 @@ context quickly.
   integration notes.
 - [roadmap](roadmap/roadmap.md) - Consolidated roadmap (FPS north star, engine
   foundations, 7/10 milestone, streamlining).
+- [autonomous scale roadmap](roadmap/autonomous-scale-roadmap.md) - Phase and
+  task-budget expansion for frontier-agent execution.
 - [reports](reports/README.md) - Historical subagent and investigation reports.
 - [vault](vault/README.md) - Shared Markdown/Obsidian vault for agent memory.
 

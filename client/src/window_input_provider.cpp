@@ -76,6 +76,7 @@ ahamkara::game::PlayerInputCommand WindowInputProvider::gather_input(float delta
     command.fire_held = mouse.button_down[static_cast<ae::usize>(ae::MouseButton::Left)];
     command.reload_pressed = window_.is_key_pressed(ae::KeyCode::R);
     command.ability_pressed = window_.is_key_pressed(ae::KeyCode::E);
+    command.interact_pressed = window_.is_key_pressed(ae::KeyCode::F);
     command.look_delta.x = mouse.delta_x * mouse_sensitivity_;
     command.look_delta.y = mouse.delta_y * mouse_sensitivity_;
 
@@ -100,6 +101,7 @@ ahamkara::game::PlayerInputCommand WindowInputProvider::gather_input(float delta
         command.fire_held = command.fire_held || debug_state.is_code_down(controller_bindings_.fire) || right_trigger > 0.5F;
         command.reload_pressed = command.reload_pressed || debug_state.is_code_pressed(controller_bindings_.reload);
         command.ability_pressed = command.ability_pressed || debug_state.is_code_pressed(controller_bindings_.ability);
+        command.interact_pressed = command.interact_pressed || debug_state.is_code_pressed(controller_bindings_.interact);
     }
 
     return command;

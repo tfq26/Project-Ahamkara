@@ -11,6 +11,7 @@
 #include "ahamkara/client/weapon_animation_controller.h"
 #include "ahamkara/game/animation_adapter.h"
 #include "ahamkara/client/window_input_provider.h"
+#include "ahamkara/client/local_play.h"
 #include "ahamkara/client/audio_player.h"
 #include "ahamkara/game/net_types.h"
 #include "ae/audio/audio_engine.h"
@@ -44,7 +45,7 @@ public:
         ae::Application& application,
         ae::render::DebugRenderer& renderer,
         ThreadedLocalRuntime& simulation,
-        WindowInputProvider& window_input,
+        IInputProvider& input_provider,
         DebugFrontendState& frontend_state,
         DebugUiController& ui_controller,
         ClientMenuState& menu_state,
@@ -54,7 +55,8 @@ public:
         ae::render::ShadowPass& shadow_pass,
         ae::render::PbrRenderer& pbr_renderer,
         const ae::render::LevelRenderScene* level_scene,
-        const ae::render::LevelAsset* level_asset);
+        const ae::render::LevelAsset* level_asset,
+        bool autoplay_mode = false);
 
     /// Run one full frame. Returns false when the window or application
     /// requests shutdown.
@@ -86,7 +88,7 @@ private:
     ae::Application& application_;
     ae::render::DebugRenderer& renderer_;
     ThreadedLocalRuntime& simulation_;
-    WindowInputProvider& window_input_;
+    IInputProvider& input_provider_;
     DebugFrontendState& frontend_state_;
     DebugUiController& ui_controller_;
     ClientMenuState& menu_state_;
@@ -116,6 +118,7 @@ private:
     bool gameplay_active_{false};
     bool menu_initialized_{false};
     bool hud_loaded_{false};
+    bool autoplay_mode_{false};
 };
 
 }  // namespace ahamkara::client

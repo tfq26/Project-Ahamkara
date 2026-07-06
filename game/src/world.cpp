@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <vector>
 
 namespace ahamkara::game {
@@ -121,6 +122,8 @@ void World::apply_world_definition(const WorldDefinition& definition) {
         dummies_[idx] = {};
         dummies_[idx].alive = false;
     }
+
+    set_interaction_targets(definition.interaction_targets, definition.interaction_target_count);
 }
 
 void World::reset_player_to_spawn() {
@@ -332,10 +335,19 @@ void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
         collider_count_,
         jolt_->character);
 
-    if (input.reload_pressed) start_reload();
+    if (input.reload_pressed) {
+        start_reload();
+        ++reload_request_count_;
+        queue_audio_event(AudioEvent{"reload", 1.0F, AudioCategory::Weapon});
+    }
     if (input.weapon_slot != static_cast<ae::u8>(player_.loadout().active_slot) && input.weapon_slot < static_cast<ae::u8>(WeaponSlot::Count)) {
         switch_weapon(input.weapon_slot);
     }
+    if (input.ability_pressed) {
+        ++ability_use_count_;
+        queue_audio_event(AudioEvent{"ability", 1.0F, AudioCategory::SFX});
+    }
+    process_interactions(input);
 
     tick_weapon(delta_seconds, input.fire_held);
 
@@ -623,6 +635,78 @@ void World::spawn_bullet_hole_decal(const Vec3& position, const Vec3& normal) {
     d.alive = true;
 }
 
+void World::set_interaction_targets(const InteractionTargetDefinition* targets, std::size_t count) {
+    interaction_targets_.clear();
+    if (targets == nullptr || count == 0) {
+        return;
+    }
+
+    interaction_targets_.reserve(count);
+    for (std::size_t idx = 0; idx < count; ++idx) {
+        const auto& target = targets[idx];
+        InteractionTargetState state {};
+        state.interaction_id = target.interaction_id;
+        state.position = target.position;
+        state.radius = std::max(0.0F, target.radius);
+        state.active = true;
+        state.one_shot = target.one_shot;
+        if (target.label != nullptr) {
+            state.label = target.label;
+        }
+        interaction_targets_.push_back(std::move(state));
+    }
+
+    last_interaction_succeeded_ = false;
+    last_interaction_label_.clear();
+}
+
+void World::process_interactions(const PlayerInputCommand& input) {
+    if (!input.interact_pressed || interaction_targets_.empty()) {
+        return;
+    }
+
+    ++interaction_attempt_count_;
+
+    const Vec3& player_pos = player_.state().position;
+    const float radius = 1.5F;
+    const float radius_sq = radius * radius;
+
+    InteractionTargetState* closest_target = nullptr;
+    float closest_distance_sq = std::numeric_limits<float>::max();
+
+    for (auto& target : interaction_targets_) {
+        if (!target.active) {
+            continue;
+        }
+
+        const float dx = target.position.x - player_pos.x;
+        const float dy = target.position.y - player_pos.y;
+        const float dz = target.position.z - player_pos.z;
+        const float distance_sq = dx * dx + dy * dy + dz * dz;
+        const float target_radius_sq = target.radius * target.radius;
+        if (distance_sq <= std::max(radius_sq, target_radius_sq) && distance_sq < closest_distance_sq) {
+            closest_distance_sq = distance_sq;
+            closest_target = &target;
+        }
+    }
+
+    if (!closest_target) {
+        last_interaction_succeeded_ = false;
+        last_interaction_label_.clear();
+        return;
+    }
+
+    ++interaction_success_count_;
+    last_interaction_succeeded_ = true;
+    last_interaction_label_ = closest_target->label;
+
+    const char* sound_key = closest_target->label.empty() ? "interaction" : closest_target->label.c_str();
+    queue_audio_event(AudioEvent{sound_key, 1.0F, AudioCategory::SFX});
+    if (closest_target->one_shot) {
+        closest_target->active = false;
+    }
+}
+
 void World::update_particles(float delta_seconds) {
     for (int i = 0; i < particle_count_; ++i) {
         auto& p = particles_[i];
@@ -730,6 +814,15 @@ void World::restart_match() {
     match_over_ = false;
     respawn_timer_ = 0.0F;
     damage_feedback_timer_ = 0.0F;
+    interaction_attempt_count_ = 0;
+    interaction_success_count_ = 0;
+    last_interaction_succeeded_ = false;
+    last_interaction_label_.clear();
+    reload_request_count_ = 0;
+    ability_use_count_ = 0;
+    for (auto& target : interaction_targets_) {
+        target.active = true;
+    }
 
     reset_player_to_spawn();
     player_.reset_weapon_runtime(0, 150);

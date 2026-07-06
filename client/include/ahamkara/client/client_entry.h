@@ -2,6 +2,7 @@
 
 #include "ahamkara/client/client_config.h"
 #include "ahamkara/client/controller_bindings.h"
+#include "ahamkara/client/playtest_harness.h"
 
 #include <string>
 
@@ -15,8 +16,10 @@
 int run_local_client(
     ahamkara::client::ClientConfig& client_config,
     const ahamkara::client::ControllerBindings& controller_bindings,
-    const char* level_path);
+    const char* level_path,
+    const ahamkara::client::PlaytestScenario* autoplay_scenario = nullptr);
 
 int run_windowed_client(const ahamkara::client::ClientConfig& client_config);
 int run_sandbox_client(const char* level_path);
+int run_playtest_client(const char* level_path, const ahamkara::client::PlaytestScenario& scenario);
 int run_network_client(const std::string& server_ip, int argc, char** argv);

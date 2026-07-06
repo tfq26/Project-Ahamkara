@@ -49,6 +49,16 @@ constexpr std::array<TargetDummyState, 3> kTargetDummies {{
     }
 }};
 
+constexpr std::array<InteractionTargetDefinition, 1> kInteractionTargets {{
+    {
+        1,
+        {-10.5F, 0.0F, 0.0F},
+        1.5F,
+        true,
+        "training_terminal"
+    }
+}};
+
 }  // namespace
 
 const WorldDefinition& debug_javelin4() {
@@ -58,7 +68,9 @@ const WorldDefinition& debug_javelin4() {
         nullptr,
         {{-12.0F, 0.0F, 0.0F}, 0.0F},
         kTargetDummies.data(),
-        kTargetDummies.size()
+        kTargetDummies.size(),
+        kInteractionTargets.data(),
+        kInteractionTargets.size()
     };
     static const WorldDefinition hydrated {
         definition.id,
@@ -66,7 +78,9 @@ const WorldDefinition& debug_javelin4() {
         &maps::javelin4(),
         definition.player_spawn,
         definition.target_dummies,
-        definition.target_dummy_count
+        definition.target_dummy_count,
+        definition.interaction_targets,
+        definition.interaction_target_count
     };
     return hydrated;
 }
