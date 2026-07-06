@@ -161,7 +161,8 @@ void solve_two_bone_arm(
 
 void apply_viewmodel_arm_ik(int weapon_index,
                              float* joint_matrices,
-                             int joint_count) {
+                             int joint_count,
+                             const float* ik_offset) {
     // Need at least up to hand joint (index 5 = 6 joints * 16 floats)
     if (joint_count <= kHandJoint || joint_matrices == nullptr) {
         return;
@@ -176,10 +177,21 @@ void apply_viewmodel_arm_ik(int weapon_index,
     // Get the grip socket position for this weapon (viewmodel-local space).
     auto grip = weapon_grip_sockets(weapon_index);
 
+    // Apply optional reload IK offset (used during reload animation phases
+    // to move the hand away from the grip socket to the magazine position).
+    float grip_x = grip.grip_right_x;
+    float grip_y = grip.grip_right_y;
+    float grip_z = grip.grip_right_z;
+    if (ik_offset != nullptr) {
+        grip_x += ik_offset[0];
+        grip_y += ik_offset[1];
+        grip_z += ik_offset[2];
+    }
+
     // Compute target position relative to the shoulder joint.
-    float tx = grip.grip_right_x - shoulder_x;
-    float ty = grip.grip_right_y - shoulder_y;
-    float tz = grip.grip_right_z - shoulder_z;
+    float tx = grip_x - shoulder_x;
+    float ty = grip_y - shoulder_y;
+    float tz = grip_z - shoulder_z;
 
     // Solve the two-bone IK chain.
     float rqx, rqy, rqz, rqw;

@@ -11,6 +11,12 @@ namespace {
 
 constexpr float kPi = 3.14159265358979323846F;
 
+/// Smooth Hermite interpolation: smoothstep from 0 to 1 over [edge0, edge1].
+inline float smoothstep(float edge0, float edge1, float x) {
+    const float t = std::clamp((x - edge0) / (edge1 - edge0), 0.0F, 1.0F);
+    return t * t * (3.0F - 2.0F * t);
+}
+
 }  // namespace
 
 WeaponAnimationController::WeaponAnimationController() {
@@ -108,6 +114,7 @@ WeaponAnimProfile WeaponAnimationController::make_rl_profile() {
     p.anim_config.recoil.ads_kick_multiplier = 0.65F;
     p.anim_config.recoil.recoil_joint = 0;
     p.reload_duration = 2.8F;
+    p.reload_data = weapon_reload_data(kRlWeaponIndex);
     p.melee_duration = 0.65F;
     p.melee_reach = 1.5F;
     p.melee_damage = 30.0F;
@@ -119,6 +126,11 @@ void WeaponAnimationController::reset() {
     has_transform_ = false;
     reload_active_ = false;
     reload_timer_ = 0.0F;
+    reload_phase_ = ReloadPhase::Idle;
+    reload_normalized_ = 0.0F;
+    reload_ik_offset_[0] = 0.0F;
+    reload_ik_offset_[1] = 0.0F;
+    reload_ik_offset_[2] = 0.0F;
     melee_active_ = false;
     melee_timer_ = 0.0F;
     melee_phase_ = 0;
@@ -190,36 +202,114 @@ void WeaponAnimationController::update_weapon(float dt,
         input.look_delta.x, input.look_delta.y,
         is_moving, input.sprint_held, input.fire_held, local);
 
-    // --- Reload ---
+    // --- Reload (phase-driven animation) ---
+    // Phase timing:
+    //   GrabMag:      hand moves from grip to magazine position
+    //   RemoveMag:    hand holds magazine, weapon tilts to expose magwell
+    //   InsertMag:    hand inserts new magazine, weapon returns from tilt
+    //   ReturnToGrip: hand moves back from magazine to grip
     if (!reload_active_
         && input.reload_pressed
         && snapshot.ammo_current < snapshot.ammo_max
         && snapshot.reserve_ammo > 0) {
         reload_active_ = true;
         reload_timer_ = profile.reload_duration;
+        reload_phase_ = ReloadPhase::GrabMag;
+        reload_normalized_ = 0.0F;
         anim_state_.reload_anim_time = profile.reload_duration;
         anim_state_.is_reloading = true;
     }
 
     if (reload_active_) {
+        // --- Phase computation ---
         reload_timer_ = std::max(0.0F, reload_timer_ - dt);
-        const float reload_blend = 1.0F - (reload_timer_ / profile.reload_duration);
-        const float settle = std::sin(std::clamp(reload_blend, 0.0F, 1.0F) * kPi);
+        reload_normalized_ = 1.0F - (reload_timer_ / profile.reload_duration);
 
+        const auto& rd = profile.reload_data;
+
+        // Determine current phase from normalized progress.
+        if (reload_normalized_ < rd.grab_start) {
+            reload_phase_ = ReloadPhase::Idle;
+        } else if (reload_normalized_ < rd.grab_end) {
+            reload_phase_ = ReloadPhase::GrabMag;
+        } else if (reload_normalized_ < rd.remove_end) {
+            reload_phase_ = ReloadPhase::RemoveMag;
+        } else if (reload_normalized_ < rd.insert_end) {
+            reload_phase_ = ReloadPhase::InsertMag;
+        } else if (reload_normalized_ < rd.return_end) {
+            reload_phase_ = ReloadPhase::ReturnToGrip;
+        } else {
+            reload_phase_ = ReloadPhase::Idle;
+        }
+
+        // --- IK offset: hand moves from grip (0,0,0) to magazine position ---
+        // During GrabMag: lerp IK offset from (0,0,0) to magazine position
+        // During RemoveMag: hold at magazine position
+        // During InsertMag: hold at magazine position
+        // During ReturnToGrip: lerp IK offset back to (0,0,0)
+        if (reload_phase_ == ReloadPhase::GrabMag) {
+            const float t = smoothstep(rd.grab_start, rd.grab_end, reload_normalized_);
+            reload_ik_offset_[0] = rd.mag_pos_x * t;
+            reload_ik_offset_[1] = rd.mag_pos_y * t;
+            reload_ik_offset_[2] = rd.mag_pos_z * t;
+        } else if (reload_phase_ == ReloadPhase::RemoveMag || reload_phase_ == ReloadPhase::InsertMag) {
+            // Hold hand at magazine position during these phases
+            reload_ik_offset_[0] = rd.mag_pos_x;
+            reload_ik_offset_[1] = rd.mag_pos_y;
+            reload_ik_offset_[2] = rd.mag_pos_z;
+        } else if (reload_phase_ == ReloadPhase::ReturnToGrip) {
+            const float t = 1.0F - smoothstep(rd.return_start, rd.return_end, reload_normalized_);
+            reload_ik_offset_[0] = rd.mag_pos_x * t;
+            reload_ik_offset_[1] = rd.mag_pos_y * t;
+            reload_ik_offset_[2] = rd.mag_pos_z * t;
+        } else {
+            reload_ik_offset_[0] = 0.0F;
+            reload_ik_offset_[1] = 0.0F;
+            reload_ik_offset_[2] = 0.0F;
+        }
+
+        // --- Weapon tilt: pitch up to expose magwell ---
+        // Tilt ramps up during GrabMag, holds through RemoveMag/InsertMag, fades in ReturnToGrip.
+        float tilt_weight = 0.0F;
+        if (reload_phase_ == ReloadPhase::GrabMag) {
+            tilt_weight = smoothstep(rd.grab_start, rd.grab_end, reload_normalized_);
+        } else if (reload_phase_ == ReloadPhase::RemoveMag || reload_phase_ == ReloadPhase::InsertMag) {
+            tilt_weight = 1.0F;
+        } else if (reload_phase_ == ReloadPhase::ReturnToGrip) {
+            tilt_weight = 1.0F - smoothstep(rd.return_start, rd.return_end, reload_normalized_);
+        }
+
+        // Apply position offset and tilt rotation
         ae::render::Mat4 reload_pose = ae::render::Mat4::identity();
-        reload_pose = reload_pose * ae::render::Mat4::translation(0.02F * settle, -0.09F * settle, -0.11F * settle);
-        reload_pose = reload_pose * make_axis_angle_rotation(1.0F, 0.0F, 0.0F, -22.0F * settle);
-        reload_pose = reload_pose * make_axis_angle_rotation(0.0F, 1.0F, 0.0F, 8.0F * settle);
-        reload_pose = reload_pose * make_axis_angle_rotation(0.0F, 0.0F, 1.0F, -4.0F * settle);
+        reload_pose = reload_pose * ae::render::Mat4::translation(
+            rd.offset_right * tilt_weight,
+            rd.offset_up * tilt_weight,
+            rd.offset_forward * tilt_weight);
+        reload_pose = reload_pose * make_axis_angle_rotation(1.0F, 0.0F, 0.0F,
+            rd.tilt_pitch_deg * tilt_weight);
+        reload_pose = reload_pose * make_axis_angle_rotation(0.0F, 1.0F, 0.0F,
+            rd.tilt_yaw_deg * tilt_weight);
+        reload_pose = reload_pose * make_axis_angle_rotation(0.0F, 0.0F, 1.0F,
+            rd.tilt_roll_deg * tilt_weight);
 
         local = local * reload_pose;
 
         if (reload_timer_ <= 0.0F) {
             reload_active_ = false;
+            reload_phase_ = ReloadPhase::Idle;
+            reload_normalized_ = 0.0F;
+            reload_ik_offset_[0] = 0.0F;
+            reload_ik_offset_[1] = 0.0F;
+            reload_ik_offset_[2] = 0.0F;
             anim_state_.is_reloading = false;
             anim_state_.reload_anim_time = 0.0F;
         }
     } else {
+        reload_phase_ = ReloadPhase::Idle;
+        reload_normalized_ = 0.0F;
+        reload_ik_offset_[0] = 0.0F;
+        reload_ik_offset_[1] = 0.0F;
+        reload_ik_offset_[2] = 0.0F;
         anim_state_.is_reloading = false;
         anim_state_.reload_anim_time = 0.0F;
     }
