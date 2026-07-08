@@ -178,8 +178,16 @@ VFX feedback: fixed snapshot chain for damage flash, particles, and decals; impl
 
 ## 2026-07-08 — TASK-20260704-1410-streaming-residency
 
-|- **Agent**: oz
-|- **Task**: Add async area streaming and residency management — region-based ResidencyManager with load/unload boundary detection and deterministic pending-transition queue
-|- **Files changed**: `engine/core/include/ae/core/residency_manager.h` (NEW), `tests/src/streaming_residency_tests.cpp` (NEW), `tests/CMakeLists.txt` (MODIFIED)
-|- **Validation**: debug build + 21/21 tests pass (12 new streaming residency tests)
-|- **Report**: `docs/reports/subagents/streaming-residency-report.md`
+- **Agent**: oz
+- **Task**: Add async area streaming and residency management — region-based ResidencyManager with load/unload boundary detection and deterministic pending-transition queue
+- **Files changed**: `engine/core/include/ae/core/residency_manager.h` (NEW), `tests/src/streaming_residency_tests.cpp` (NEW), `tests/CMakeLists.txt` (MODIFIED)
+- **Validation**: debug build + 21/21 tests pass (12 new streaming residency tests)
+- **Report**: `docs/reports/subagents/streaming-residency-report.md`
+
+## TASK-20260704-1700-job-system-frame-allocator — Review needed 2026-07-08
+
+Improved job system (condition variable wake-up, dispatch(), submit_after_all()) and frame allocator (ring-buffer, multi-slot). 20 new core_tests (12 job system + 8 frame allocator). Build (debug) + all available test suites pass. Pre-existing admin_server build failure blocks full run-tests.sh.
+- **Agent**: oz
+- **Branch**: agent/oz/job-system-frame-allocator
+- **Files changed**: `job_system.h`, `job_system.cpp`, `frame_allocator.h`, `frame_allocator.cpp`, `tests/src/core_tests.cpp` (new), `tests/CMakeLists.txt`
+- **Report**: `docs/reports/subagents/TASK-20260704-1700-job-system-frame-allocator-report.md`

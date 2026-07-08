@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <memory>
 #include <string>
@@ -27,6 +28,11 @@ namespace ae {
  *       // do work...
  *   });
  *   jobs.wait(handle);
+ *
+ *   // Bulk dispatch
+ *   std::vector<JobHandle> batch = jobs.dispatch(8, [](int i) {
+ *       // parallel for body
+ *   });
  *
  *   jobs.shutdown();
  * @endcode
@@ -68,6 +74,18 @@ public:
      */
     [[nodiscard]] JobHandle submit_after(JobHandle parent, JobFunction fn);
 
+    /**
+     * @brief Submit a job that waits for multiple parents to complete.
+     * The job only runs after all parents in the list finish.
+     */
+    [[nodiscard]] JobHandle submit_after_all(const std::vector<JobHandle>& parents, JobFunction fn);
+
+    /**
+     * @brief Dispatch count jobs, each receiving its index [0, count).
+     * @return Vector of count handles, one per job.
+     */
+    [[nodiscard]] std::vector<JobHandle> dispatch(int count, std::function<void(int)> fn);
+
     /** Block until a specific job completes. */
     void wait(JobHandle handle);
 
@@ -85,11 +103,18 @@ private:
         bool completed {false};
     };
 
+    /** Pop one ready job (under lock). Returns -1 if none. */
+    int pop_ready_job_locked();
+
+    /** Execute a job and notify dependents. Returns true if a job was run. */
+    bool execute_job(int job_idx);
+
     void worker_loop(int worker_index);
 
     std::vector<std::unique_ptr<Job>> jobs_;
     std::vector<int> ready_jobs_;
     std::mutex jobs_mutex_;
+    std::condition_variable jobs_cv_;
     std::atomic<int> jobs_remaining_ {0};
     std::atomic<bool> running_ {false};
 

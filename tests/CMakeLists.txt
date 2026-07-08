@@ -179,6 +179,20 @@ target_link_libraries(ahamkara_logging_tests
 
 add_test(NAME ahamkara_logging_tests COMMAND ahamkara_logging_tests)
 
+add_executable(ahamkara_core_tests
+    src/core_tests.cpp
+)
+
+target_compile_features(ahamkara_core_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_core_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+
+target_link_libraries(ahamkara_core_tests
+    PRIVATE
+        ae_core
+)
+
+add_test(NAME ahamkara_core_tests COMMAND ahamkara_core_tests)
+
 add_executable(ahamkara_weapon_loader_tests
     src/weapon_loader_tests.cpp
 )
