@@ -358,3 +358,14 @@ target_link_libraries(ahamkara_streaming_residency_tests
 )
 
 add_test(NAME ahamkara_streaming_residency_tests COMMAND ahamkara_streaming_residency_tests)
+
+add_executable(ahamkara_runtime_boundary_tests
+    src/runtime_boundary_tests.cpp
+)
+
+target_compile_features(ahamkara_runtime_boundary_tests PRIVATE cxx_std_20)
+target_compile_definitions(ahamkara_runtime_boundary_tests PRIVATE
+    $<$<BOOL:${AHAMKARA_BUILD_CLIENT}>:AHAMKARA_BUILD_CLIENT=$<BOOL:${AHAMKARA_BUILD_CLIENT}>>
+    $<$<BOOL:${AHAMKARA_BUILD_SERVER}>:AHAMKARA_BUILD_SERVER=$<BOOL:${AHAMKARA_BUILD_SERVER}>>
+)
+add_test(NAME ahamkara_runtime_boundary_tests COMMAND ahamkara_runtime_boundary_tests)

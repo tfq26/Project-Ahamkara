@@ -14,11 +14,8 @@ RUN apt-get update \
 WORKDIR /src
 COPY . .
 
-RUN cmake -S . -B build -G Ninja \
-        -DAHAMKARA_BUILD_CLIENT=OFF \
-        -DAHAMKARA_BUILD_TESTS=OFF \
-        -DAHAMKARA_BUILD_SAMPLES=OFF \
-    && cmake --build build --target ahamkara_server -j"$(nproc)"
+RUN cmake --preset debug-headless \
+    && cmake --build build/debug-headless --target ahamkara_server -j"$(nproc)"
 
 FROM ubuntu:24.04
 

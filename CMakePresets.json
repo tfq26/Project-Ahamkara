@@ -53,6 +53,34 @@
     {
       "name": "debug-headless",
       "configurePreset": "debug-headless"
+    },
+    {
+      "name": "package",
+      "configurePreset": "debug",
+      "description": "Build for packaging (debug configuration)"
+    },
+    {
+      "name": "package-debug-headless",
+      "configurePreset": "debug-headless",
+      "description": "Build for packaging (debug-headless configuration)"
+    }
+  ],
+  "packagePresets": [
+    {
+      "name": "package",
+      "displayName": "Package debug",
+      "description": "Package the debug build into a TGZ/ZIP archive",
+      "generators": ["TGZ", "ZIP"],
+      "configurations": ["Debug"],
+      "configurePreset": "debug"
+    },
+    {
+      "name": "package-debug-headless",
+      "displayName": "Package debug-headless",
+      "description": "Package the debug-headless build into a TGZ/ZIP archive",
+      "generators": ["TGZ", "ZIP"],
+      "configurations": ["Debug"],
+      "configurePreset": "debug-headless"
     }
   ]
 }

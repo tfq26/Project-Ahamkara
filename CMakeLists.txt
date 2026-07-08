@@ -135,3 +135,21 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/wish-test-client/CMakeLists.txt")
     add_subdirectory(tools/wish-test-client)
 endif()
+
+# ---------------------------------------------------------------------------
+# Packaging
+# ---------------------------------------------------------------------------
+set(CPACK_PACKAGE_NAME "Ahamkara")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VENDOR "Ahamkara")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Ahamkara game engine")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/user/ahamkara")
+
+set(CPACK_GENERATOR "TGZ;ZIP")
+
+set(CPACK_ARCHIVE_COMPONENT_INSTALL OFF)
+
+include(CPack)
+
+# Install rules (libraries, headers, binaries)
+include(cmake/InstallRules.cmake)
