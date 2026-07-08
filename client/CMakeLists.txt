@@ -8,6 +8,7 @@ add_library(ahamkara_client_lib STATIC
     src/controller_bindings.cpp
     src/debug_client.cpp
     src/debug_frontend_runtime.cpp
+    src/debug_inspector.cpp
     src/debug_render_runtime.cpp
     src/debug_scene_bridge.cpp
     src/debug_ui_controller.cpp
@@ -18,8 +19,8 @@ add_library(ahamkara_client_lib STATIC
     src/window_input_provider.cpp
     src/audio_player.cpp
     src/weapon_presentation.cpp
+    src/playtest_harness.cpp
 )
-
 target_compile_features(ahamkara_client_lib PUBLIC cxx_std_20)
 
 target_include_directories(ahamkara_client_lib

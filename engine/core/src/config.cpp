@@ -97,6 +97,33 @@ bool ConfigRegistry::save_to_file(const std::string& path) const {
     return true;
 }
 
+std::string ConfigRegistry::get_value(std::string_view key) const {
+    auto it = vars_.find(std::string(key));
+    if (it != vars_.end() && it->second.serialize) {
+        return it->second.serialize();
+    }
+    return {};
+}
+
+bool ConfigRegistry::set_value(std::string_view key, std::string_view value) {
+    auto it = vars_.find(std::string(key));
+    if (it != vars_.end() && it->second.reload) {
+        it->second.reload(value);
+        log_debug_cat(AE_LOG_CATEGORY, "cvar set via console: " + std::string(key) + " = " + std::string(value));
+        return true;
+    }
+    return false;
+}
+
+std::vector<std::string> ConfigRegistry::all_keys() const {
+    std::vector<std::string> keys;
+    keys.reserve(vars_.size());
+    for (const auto& [key, _] : vars_) {
+        keys.push_back(key);
+    }
+    return keys;
+}
+
 int ConfigRegistry::poll_reload(const std::string& path) {
     std::error_code error;
     const auto write_time = std::filesystem::last_write_time(path, error);

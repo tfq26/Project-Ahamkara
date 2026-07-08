@@ -289,6 +289,27 @@ target_link_libraries(ahamkara_reliable_channel_tests
 
 add_test(NAME ahamkara_reliable_channel_tests COMMAND ahamkara_reliable_channel_tests)
 
+add_executable(ahamkara_console_tests
+    src/console_tests.cpp
+    ../engine/core/src/console.cpp
+)
+
+target_compile_features(ahamkara_console_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_console_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include)
+target_link_libraries(ahamkara_console_tests PRIVATE ae_core)
+add_test(NAME ahamkara_console_tests COMMAND ahamkara_console_tests)
+
+add_executable(ahamkara_file_watcher_tests
+    src/file_watcher_tests.cpp
+    ../engine/core/src/file_watcher.cpp
+    ../engine/core/src/log.cpp
+)
+
+target_compile_features(ahamkara_file_watcher_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_file_watcher_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include)
+target_link_libraries(ahamkara_file_watcher_tests PRIVATE ae_core)
+add_test(NAME ahamkara_file_watcher_tests COMMAND ahamkara_file_watcher_tests)
+
 add_executable(ahamkara_nav_grid_tests
     src/nav_grid_tests.cpp
 )

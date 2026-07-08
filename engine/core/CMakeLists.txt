@@ -1,5 +1,7 @@
 add_library(ae_core STATIC
     src/config.cpp
+    src/console.cpp
+    src/file_watcher.cpp
     src/frame_allocator.cpp
     src/job_system.cpp
     src/log.cpp

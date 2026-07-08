@@ -163,6 +163,21 @@ public:
      */
     int poll_reload(const std::string& path);
 
+    // --- Console/cvar integration ---
+
+    /// Return the serialized value of a registered cvar, or empty string if not found.
+    [[nodiscard]] std::string get_value(std::string_view key) const;
+
+    /// Set a cvar value from a string (via its reload function).
+    /// Returns true if the key was found and the value was applied.
+    bool set_value(std::string_view key, std::string_view value);
+
+    /// List all registered cvar keys.
+    [[nodiscard]] std::vector<std::string> all_keys() const;
+
+    /// Number of registered cvars.
+    [[nodiscard]] std::size_t count() const { return vars_.size(); }
+
 private:
     ConfigRegistry() = default;
 

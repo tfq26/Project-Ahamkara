@@ -1,7 +1,10 @@
 #include "ae/core/log.h"
+#include "ae/core/console.h"
 #include "ahamkara/client/client_frame_pipeline.h"
 
 #include "ae/core/math.h"
+#include <imgui.h>
+#include <algorithm>
 #include "ae/platform/window.h"
 #include "ae/ui/ahamkara_ui.h"
 #include "ahamkara/client/camera_mode.h"
@@ -13,7 +16,6 @@
 #include "ahamkara/game/net_types.h"
 
 #include <GLFW/glfw3.h>
-#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <string>
@@ -134,6 +136,31 @@ ClientFramePipeline::ClientFramePipeline(
 
     // Load HUD layout
     hud_loaded_ = hud_system_.load("assets/menus/hud.json");
+
+    // ── Authoring: Developer Console ────────────────────────────────────
+    console_.register_builtins();
+    console_.set_config_registry(&ae::ConfigRegistry::instance());
+
+    // Register a custom console command to reload shaders.
+    console_.register_command("reload_shaders", "Reload GPU shaders from disk (placeholder)",
+        [](const std::vector<std::string>&, ae::Console& self) {
+            self.print_tagged("Console", "Shader reload triggered (stub — implement renderer reload hook).");
+        });
+
+    // Register a custom console command to show debug render stats.
+    console_.register_command("show_collision", "Toggle collision debug geometry",
+        [](const std::vector<std::string>&, ae::Console& self) {
+            self.print_tagged("Console", "Collision debug geometry toggle (stub — implement in debug renderer).");
+        });
+
+    // ── Authoring: File Watcher ─────────────────────────────────────────
+    // Watch the config file for live-reload.
+    file_watcher_.watch("client/config/ahamkara.cfg", [this](const std::string& path) {
+        ae::log_info_cat("Client", "Config file changed: " + path);
+        ae::ConfigRegistry::instance().reload_from_file(path);
+    });
+
+    ae::log_info_cat("Client", "Developer console initialized. Press ` (backtick) to open.");
 }
 
 bool ClientFramePipeline::run_one_frame() {
@@ -222,6 +249,26 @@ void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
     if (glfw_win) {
         glfwSetInputMode(glfw_win, GLFW_CURSOR,
             menu_state_.cursor_should_capture() ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+    }
+
+    // ── Console toggle (backtick/tilde) ────────────────────────────────
+    if (window_.is_key_pressed(ae::KeyCode::Backtick)) {
+        console_open_ = !console_open_;
+        console_history_pos_ = -1;
+        console_input_buffer_[0] = '\0';
+        if (console_open_) {
+            // Show cursor for console input
+            if (glfw_win) {
+                glfwSetInputMode(glfw_win, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            }
+        }
+        ae::log_info_cat("Client", console_open_ ? "Console opened." : "Console closed.");
+    }
+
+    // ── Inspector toggle (F2) ───────────────────────────────────────────
+    if (window_.is_key_pressed(ae::KeyCode::F2)) {
+        inspector_.toggle();
+        ae::log_info_cat("Client", inspector_.visible() ? "Inspector opened." : "Inspector closed.");
     }
 
     const std::string base_title = "Flashback";
@@ -470,6 +517,9 @@ void ClientFramePipeline::stage_render_ui() {
     if (menu_initialized_) menu_system_.poll_hot_reload();
     if (hud_loaded_)      hud_system_.poll_hot_reload();
 
+    // ── Authoring: poll file watcher ────────────────────────────────────
+    file_watcher_.poll();
+
     // Update dynamic menu variables
     if (menu_initialized_) {
         menu_system_.set_variable("build_date", __DATE__ " " __TIME__);
@@ -508,7 +558,78 @@ void ClientFramePipeline::stage_render_ui() {
         hud_system_.render(io.DisplaySize.x, io.DisplaySize.y, hud_state);
     }
 
+    // ── Authoring: Debug Inspector overlay ──────────────────────────────
+    inspector_.render(curr_snap_);
+
+    // ── Authoring: Developer Console overlay ────────────────────────────
+    if (console_open_) {
+        render_console_overlay();
+    }
+
     ae::ui::end_ui_frame();
+}
+
+void ClientFramePipeline::render_console_overlay() {
+    // Console window — dark semi-transparent overlay at the top of the screen
+    const float console_height = ImGui::GetIO().DisplaySize.y * 0.45F;
+    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, console_height), ImGuiCond_Always);
+
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar
+                           | ImGuiWindowFlags_NoResize
+                           | ImGuiWindowFlags_NoMove
+                           | ImGuiWindowFlags_NoSavedSettings
+                           | ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+    if (ImGui::Begin("##console", &console_open_, flags)) {
+        // Log area (scrollable)
+        ImGui::BeginChild("##console_log", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), false,
+                          ImGuiWindowFlags_AlwaysVerticalScrollbar);
+
+        const int line_count = console_.log_line_count();
+        for (int i = 0; i < line_count; ++i) {
+            const auto& line = console_.log_line(i);
+            // Simple color tagging
+            switch (line.type) {
+                case ae::Console::LogLine::kError:
+                    ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "%s", line.text.c_str());
+                    break;
+                case ae::Console::LogLine::kOutput:
+                    ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.2f, 1.0f), "%s", line.text.c_str());
+                    break;
+                default:
+                    ImGui::TextUnformatted(line.text.c_str());
+                    break;
+            }
+        }
+
+        // Auto-scroll
+        if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY() * 0.9f) {
+            ImGui::SetScrollHereY(1.0f);
+        }
+
+        ImGui::EndChild();
+
+        // Input line
+        ImGui::PushItemWidth(-1.0f);
+        console_input_buffer_[0] = '\0';
+        if (ImGui::InputText("##console_input", console_input_buffer_, kConsoleBufSize,
+                             ImGuiInputTextFlags_EnterReturnsTrue)) {
+            std::string input(console_input_buffer_);
+            if (!input.empty()) {
+                console_.execute(input);
+                console_input_buffer_[0] = '\0';
+                console_history_pos_ = -1;
+            }
+        }
+        ImGui::PopItemWidth();
+
+        // Keep focus on the console input
+        if (ImGui::IsWindowAppearing()) {
+            ImGui::SetKeyboardFocusHere(-1);
+        }
+    }
+    ImGui::End();
 }
 
 void ClientFramePipeline::stage_present() {
