@@ -200,4 +200,12 @@ Improved job system (condition variable wake-up, dispatch(), submit_after_all())
 |  - New: `console.h/cpp`, `file_watcher.h/cpp`, `debug_inspector.h/cpp`
 |  - Modified: `config.h/cpp`, `client_frame_pipeline.h/cpp`, CMakeLists files, test files
 |- **Validation**: console_tests 12/12 pass, file_watcher_tests 11/11 pass
-|- **Report**: `docs/reports/subagents/20260704-1720-authoring-inspector-tooling-report.md`
+||- **Report**: `docs/reports/subagents/20260704-1720-authoring-inspector-tooling-report.md`
+
+## 2026-07-08 — TASK-20260704-1740-ci-packaging
+
+||- **Agent**: oz
+||- **Task**: CI packaging, runtime-boundary tests, build matrix, CPack, GitHub Actions
+||- **Files changed**: 10 files: new (`.github/workflows/ci.yml`, `cmake/InstallRules.cmake`, `scripts/validate-matrix.sh`, `tests/src/runtime_boundary_tests.cpp`); modified (`CMakeLists.txt`, `CMakePresets.json`, `Dockerfile`, `tests/CMakeLists.txt`, `tests/src/nakama_bridge_tests.cpp`, `docs/vault/workflows/phase-slice-map.md`)
+||- **Validation**: 20/26 tests pass (ahamkara_runtime_boundary_tests 9/9 new). Pre-existing server build failure on macOS blocks full debug build.
+||- **Report**: `docs/reports/subagents/20260708-1740-ci-packaging-report.md`
