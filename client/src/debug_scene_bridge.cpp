@@ -3,6 +3,7 @@
 #include "ae/core/math.h"
 #include "ahamkara/game/movement.h"
 #include "ahamkara/game/weapon_registry.h"
+#include "ahamkara/client/weapon_viewmodel_data.h"
 
 #include <algorithm>
 #include <cmath>
@@ -122,6 +123,19 @@ ae::render::DebugScene build_debug_scene(
     scene.weapon_index = current_snapshot.weapon_index;
     scene.reserve_ammo = current_snapshot.reserve_ammo;
     scene.weapon_name = ahamkara::game::weapon_name(current_snapshot.weapon_index);
+
+    // Per-weapon viewmodel offsets — populated from the canonical presentation
+    // data in weapon_viewmodel_data.h.  These are stored in the client layer
+    // and remain fully decoupled from gameplay/weapon-runtime code.
+    {
+        const int wi = current_snapshot.weapon_index;
+        const auto vm = weapon_viewmodel_transform(wi);
+        scene.viewmodel_position_offset = {vm.pos_right, vm.pos_up, vm.pos_forward};
+        scene.viewmodel_fov_scale = vm.fov_scale;
+        scene.viewmodel_pitch_deg = vm.pitch_deg;
+        scene.viewmodel_yaw_deg   = vm.yaw_deg;
+        scene.viewmodel_roll_deg  = vm.roll_deg;
+    }
     scene.always_day = inputs.always_day;
     scene.menu_visible = inputs.menu_visible;
     scene.menu_tab = inputs.menu_tab;

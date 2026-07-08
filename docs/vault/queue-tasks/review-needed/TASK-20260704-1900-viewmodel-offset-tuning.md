@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: open
+status: completed
 created: 2026-07-04
 queued_by: user
 assigned_to: opencode
@@ -12,7 +12,7 @@ subsystems:
   - client
   - engine/render
 related_feature:
-report:
+report: reports/subagents/1900-viewmodel-offset-tuning-report.md
 ---
 
 # TASK-20260704-1900-viewmodel-offset-tuning

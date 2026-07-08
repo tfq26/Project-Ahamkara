@@ -150,3 +150,11 @@ Build (debug) clean; 14/14 test suites pass. Branch: agent/phase5/sensory-polish
 - **Files changed**: `gl_platform.h`, `debug_renderer.cpp`, `render_backend.h`
 - **Validation**: debug build + 17/17 tests pass
 - **Report**: `docs/reports/subagents/TASK-20260704-1350-legacy-gl-retirement-report.md`
+
+## TASK-20260704-1900-viewmodel-offset-tuning — Completed 2026-07-08
+
+- **Agent**: oz
+- **Task**: Wire per-weapon position/rotation/FOV viewmodel offsets from `kWeaponViewmodelTransforms` into `DebugScene` fields in `debug_scene_bridge.cpp`.
+- **Files changed**: `client/src/debug_scene_bridge.cpp`
+- **Validation**: Clean syntax check via full project flags; all game tests pass (world: pass, movement: pass, gameplay: pass, collision: pass)
+- **Report**: `docs/reports/subagents/1900-viewmodel-offset-tuning-report.md`
