@@ -1,9 +1,9 @@
 ---
 type: opencode-task
-status: open
+status: completed
 created: 2026-07-04
 queued_by: codex
-assigned_to: opencode
+assigned_to: oz
 priority: normal
 escalation_tier: low
 primary_reviewer: codex
@@ -11,10 +11,10 @@ secondary_reviewer:
 subsystems:
   - game
   - client
+  - engine/animation
   - engine/render
-  - engine/audio
 related_feature:
-report:
+report: reports/subagents/20260704-1210-weapon-animation-layers-report.md
 ---
 
 # TASK-20260704-1210-weapon-animation-layers

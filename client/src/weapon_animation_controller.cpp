@@ -189,6 +189,10 @@ float WeaponAnimationController::melee_normalized() const {
     return std::clamp(1.0F - (melee_timer_ / melee_duration_), 0.0F, 1.0F);
 }
 
+void WeaponAnimationController::notify_fired() {
+    ae::animation::fire_weapon_kick(anim_state_);
+}
+
 void WeaponAnimationController::update_weapon(float dt,
                                                const ClientSimulationSnapshot& snapshot,
                                                const ahamkara::game::PlayerInputCommand& input) {
@@ -196,11 +200,41 @@ void WeaponAnimationController::update_weapon(float dt,
     const float speed = horizontal_speed(snapshot.player_state.velocity);
     const bool is_moving = speed > 0.1F;
 
-    ae::render::Mat4 local = ae::render::Mat4::identity();
-    evaluate_weapon_animation(
-        anim_state_, profile.anim_config, dt, speed,
+    // ── ADS blend ─────────────────────────────────────────────
+    float ads_target = input.aim_held ? 1.0F : 0.0F;
+    float ads_speed = (profile.anim_config.ads_transition_time > 0.0F)
+                          ? 1.0F / profile.anim_config.ads_transition_time
+                          : 10.0F;
+    if (anim_state_.ads_blend < ads_target) {
+        anim_state_.ads_blend = std::min(
+            anim_state_.ads_blend + ads_speed * dt, ads_target);
+    } else if (anim_state_.ads_blend > ads_target) {
+        anim_state_.ads_blend = std::max(
+            anim_state_.ads_blend - ads_speed * dt, ads_target);
+    }
+
+    // ── Evaluate each animation layer ─────────────────────────
+    ae::render::Mat4 sway_offset, bob_offset, recoil_offset;
+    ae::animation::evaluate_sway_layer(
+        anim_state_, profile.anim_config, dt,
         input.look_delta.x, input.look_delta.y,
-        is_moving, input.aim_held, input.fire_held, local);
+        anim_state_.ads_blend, sway_offset);
+    ae::animation::evaluate_bob_layer(
+        anim_state_, profile.anim_config, dt,
+        speed, is_moving, bob_offset);
+    ae::animation::evaluate_recoil_kick_layer(
+        anim_state_, profile.anim_config, dt, recoil_offset);
+
+    // ── Compose layers: sway * bob * recoil ──────────────────
+    ae::render::Mat4 local = ae::render::Mat4::identity();
+    local = local * sway_offset;
+    local = local * bob_offset;
+    local = local * recoil_offset;
+
+    // ── ADS position (bring weapon closer) ────────────────────
+    float ads_z = anim_state_.ads_blend * (-0.15F);
+    float ads_y = anim_state_.ads_blend * (-0.02F);
+    local = local * ae::render::Mat4::translation(0.0F, ads_y, ads_z);
 
     // --- Reload (phase-driven animation) ---
     // Phase timing:

@@ -69,7 +69,129 @@ void CharacterAnimInstance::set_on_ground(bool on_ground) {
 }
 
 // ============================================================
-// Weapon animation
+// Layer helpers
+// ============================================================
+
+namespace {
+// Small epsilon for float comparisons
+constexpr float kLayerEpsilon = 0.0001F;
+}  // namespace
+
+// ============================================================
+// Weapon animation layers
+// ============================================================
+
+void evaluate_sway_layer(WeaponAnimState& state,
+                          const WeaponAnimConfig& config,
+                          float dt, float look_delta_x, float look_delta_y,
+                          float ads_blend,
+                          render::Mat4& out_offset) {
+    // Effective amplitude includes ADS reduction
+    float effective_amp = config.sway_amplitude *
+                          (1.0F + ads_blend * (config.ads_sway_multiplier - 1.0F));
+
+    // Sway velocity follows look delta
+    state.sway_velocity_x += look_delta_x * dt * 0.5F;
+    state.sway_velocity_y += look_delta_y * dt * 0.5F;
+
+    // Damping
+    float damping = config.sway_damping;
+    state.sway_velocity_x *= std::exp(-damping * dt);
+    state.sway_velocity_y *= std::exp(-damping * dt);
+
+    // Accumulate phase for idle oscillation
+    state.sway_phase += dt * config.sway_frequency;
+    if (state.sway_phase > 1000.0F) state.sway_phase -= 1000.0F;
+
+    float sway_x = state.sway_velocity_x +
+                   std::sin(state.sway_phase) * effective_amp * 0.5F;
+    float sway_y = state.sway_velocity_y +
+                   std::cos(state.sway_phase * 1.3F) * effective_amp * 0.5F;
+
+    // Compose offset: translation + subtle rotation
+    out_offset = render::Mat4::identity();
+    out_offset = out_offset *
+                 render::Mat4::translation(sway_x, sway_y, 0.0F);
+
+    float sway_rot_x = sway_y * 0.5F;
+    float sway_rot_y = sway_x * 0.5F;
+    float sqrt_mag = std::sqrt(sway_rot_x * sway_rot_x + sway_rot_y * sway_rot_y);
+    if (sqrt_mag > kLayerEpsilon) {
+        float half_angle = sqrt_mag * 0.5F;
+        float s = std::sin(half_angle);
+        float inv_mag = 1.0F / sqrt_mag;
+        out_offset = out_offset *
+                     render::Mat4::rotation_quat(
+                         sway_rot_x * inv_mag * s,
+                         sway_rot_y * inv_mag * s,
+                         0.0F,
+                         std::cos(half_angle));
+    }
+}
+
+void evaluate_bob_layer(WeaponAnimState& state,
+                         const WeaponAnimConfig& config,
+                         float dt, float player_speed, bool is_moving,
+                         render::Mat4& out_offset) {
+    out_offset = render::Mat4::identity();
+
+    if (!is_moving || player_speed < kLayerEpsilon) {
+        return;
+    }
+
+    // Frequency ramps from walk to sprint speed
+    float freq = config.bob_frequency_walk;
+    if (player_speed > 5.0F) {
+        freq = config.bob_frequency_sprint;
+    }
+
+    float speed_factor = std::min(player_speed / 6.0F, 1.0F);
+    state.bob_phase += dt * freq * speed_factor;
+    if (state.bob_phase > 1000.0F) state.bob_phase -= 1000.0F;
+
+    float bob_vert = std::sin(state.bob_phase * 2.0F) *
+                     config.bob_amplitude_vertical * speed_factor;
+    float bob_horiz = std::cos(state.bob_phase) *
+                      config.bob_amplitude_horizontal * speed_factor;
+
+    out_offset = out_offset *
+                 render::Mat4::translation(bob_horiz, bob_vert, 0.0F);
+
+    // Subtle roll from horizontal bob
+    float bob_roll = bob_horiz * 0.3F;
+    float half_roll = bob_roll * 0.5F;
+    out_offset = out_offset *
+                 render::Mat4::rotation_quat(0.0F, 0.0F,
+                                              std::sin(half_roll),
+                                              std::cos(half_roll));
+}
+
+void fire_weapon_kick(WeaponAnimState& state) {
+    state.fire_anim_time = 0.05F;  // ~3 frames of visible kick
+}
+
+void evaluate_recoil_kick_layer(WeaponAnimState& state,
+                                 const WeaponAnimConfig& config,
+                                 float dt,
+                                 render::Mat4& out_offset) {
+    out_offset = render::Mat4::identity();
+
+    if (state.fire_anim_time > 0.0F) {
+        state.fire_anim_time -= dt;
+        if (state.fire_anim_time < 0.0F) state.fire_anim_time = 0.0F;
+    }
+
+    float kick = (state.fire_anim_time > 0.0F)
+                     ? (state.fire_anim_time / 0.05F) * 0.01F
+                     : 0.0F;
+
+    if (std::abs(kick) > kLayerEpsilon) {
+        out_offset = render::Mat4::translation(0.0F, -kick, 0.0F);
+    }
+}
+
+// ============================================================
+// Composite weapon animation (convenience wrapper)
 // ============================================================
 
 void evaluate_weapon_animation(WeaponAnimState& state,
@@ -89,82 +211,30 @@ void evaluate_weapon_animation(WeaponAnimState& state,
         state.ads_blend = std::max(state.ads_blend - ads_speed * dt, ads_target);
     }
 
-    // ── Idle sway ─────────────────────────────────────────────
-    float effective_sway_amp = config.sway_amplitude *
-                               (1.0F + state.ads_blend * (config.ads_sway_multiplier - 1.0F));
-
-    // Sway velocity follows look delta
-    state.sway_velocity_x += look_delta_x * dt * 0.5F;
-    state.sway_velocity_y += look_delta_y * dt * 0.5F;
-
-    // Damping
-    float damping = config.sway_damping;
-    state.sway_velocity_x *= std::exp(-damping * dt);
-    state.sway_velocity_y *= std::exp(-damping * dt);
-
-    // Accumulate phase
-    state.sway_phase += dt * config.sway_frequency;
-    if (state.sway_phase > 1000.0F) state.sway_phase -= 1000.0F;
-
-    float sway_x = state.sway_velocity_x + std::sin(state.sway_phase) * effective_sway_amp * 0.5F;
-    float sway_y = state.sway_velocity_y + std::cos(state.sway_phase * 1.3F) * effective_sway_amp * 0.5F;
-
-    // ── Movement bob ──────────────────────────────────────────
-    float bob_freq = config.bob_frequency_walk;
-    if (player_speed > 5.0F) bob_freq = config.bob_frequency_sprint;
-
-    float bob_speed_factor = std::min(player_speed / 6.0F, 1.0F);
-    state.bob_phase += dt * bob_freq * bob_speed_factor;
-    if (state.bob_phase > 1000.0F) state.bob_phase -= 1000.0F;
-
-    float bob_vertical = 0.0F;
-    float bob_horizontal = 0.0F;
-    if (is_moving) {
-        bob_vertical = std::sin(state.bob_phase * 2.0F) * config.bob_amplitude_vertical * bob_speed_factor;
-        bob_horizontal = std::cos(state.bob_phase) * config.bob_amplitude_horizontal * bob_speed_factor;
-    }
-
-    // ── Fire animation ───────────────────────────────────────
+    // ── Fire pressed triggers recoil kick ────────────────────
     if (fire_pressed) {
-        state.fire_anim_time = 0.05F;  // ~3 frames kick
+        fire_weapon_kick(state);
     }
-    if (state.fire_anim_time > 0.0F) {
-        state.fire_anim_time -= dt;
-        if (state.fire_anim_time < 0.0F) state.fire_anim_time = 0.0F;
-    }
-    float fire_kick = (state.fire_anim_time > 0.0F)
-                          ? state.fire_anim_time / 0.05F * 0.01F
-                          : 0.0F;
 
-    // ── Compose final transform ──────────────────────────────
+    // ── Evaluate each layer ───────────────────────────────────
+    render::Mat4 sway_offset, bob_offset, recoil_offset;
+    evaluate_sway_layer(state, config, dt, look_delta_x, look_delta_y,
+                         state.ads_blend, sway_offset);
+    evaluate_bob_layer(state, config, dt, player_speed, is_moving,
+                        bob_offset);
+    evaluate_recoil_kick_layer(state, config, dt, recoil_offset);
 
-    // Start with identity
+    // ── Compose layers: sway * bob * recoil ──────────────────
     out_transform = render::Mat4::identity();
+    out_transform = out_transform * sway_offset;
+    out_transform = out_transform * bob_offset;
+    out_transform = out_transform * recoil_offset;
 
-    // Apply translation: sway + bob + ADS position (bring weapon closer)
-    float ads_translate_z = state.ads_blend * (-0.15F);  // pull weapon closer in ADS
-    float ads_translate_y = state.ads_blend * (-0.02F);  // slight drop for sight alignment
-
+    // ── ADS position (bring weapon closer) ────────────────────
+    float ads_z = state.ads_blend * (-0.15F);
+    float ads_y = state.ads_blend * (-0.02F);
     out_transform = out_transform *
-                    render::Mat4::translation(
-                        sway_x + bob_horizontal,
-                        sway_y + bob_vertical + ads_translate_y - fire_kick,
-                        ads_translate_z);
-
-    // Apply subtle rotation from sway
-    float sway_rot_x = sway_y * 0.5F;
-    float sway_rot_y = sway_x * 0.5F;
-    float sway_rot_z = bob_horizontal * 0.3F;
-
-    float half_x = std::sin(sway_rot_x * 0.5F);
-    float half_y = std::sin(sway_rot_y * 0.5F);
-    float half_z = std::sin(sway_rot_z * 0.5F);
-    float half_w = std::cos(std::sqrt(sway_rot_x * sway_rot_x +
-                                       sway_rot_y * sway_rot_y +
-                                       sway_rot_z * sway_rot_z) * 0.5F);
-
-    out_transform = out_transform *
-                    render::Mat4::rotation_quat(half_x, half_y, half_z, half_w);
+                    render::Mat4::translation(0.0F, ads_y, ads_z);
 }
 
 }  // namespace ae::animation

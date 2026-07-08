@@ -38,6 +38,10 @@ public:
     [[nodiscard]] const std::array<float, 16>& transform() const { return transform_; }
     [[nodiscard]] float ads_blend() const { return anim_state_.ads_blend; }
 
+    /// Notify the controller that the weapon was fired this frame.
+    /// Triggers a recoil kick impulse on the next tick().
+    void notify_fired();
+
     // Melee API
     bool trigger_melee();
     [[nodiscard]] bool is_melee_active() const { return melee_active_; }
