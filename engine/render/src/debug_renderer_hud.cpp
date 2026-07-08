@@ -537,6 +537,52 @@ void draw_menu_overlay(const DebugScene& scene, int width, int height) {
 }
 
 // ============================================================================
+// Damage flash red overlay
+// ============================================================================
+
+void draw_damage_flash_overlay(const DebugScene& scene, int width, int height) {
+    const float intensity = scene.damage_flash_intensity;
+    if (intensity <= 0.0F) return;
+
+    const MatrixSnapshot snapshot = begin_screen_space(width, height);
+
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Full-screen red flash with fade toward center (vignette)
+    // Inner zone: 60% of screen — lower intensity, fades to clear at center
+    // Outer ring: edges — full flash intensity
+    const float inner_frac = 0.55F;
+    const float inner_x = static_cast<float>(width) * inner_frac;
+    const float inner_y = static_cast<float>(height) * inner_frac;
+    const float outer_w = static_cast<float>(width);
+    const float outer_h = static_cast<float>(height);
+    const float inner_w = static_cast<float>(width) * (1.0F - inner_frac * 2.0F);
+    const float inner_h = static_cast<float>(height) * (1.0F - inner_frac * 2.0F);
+
+    // Clamp alpha for readability
+    const float outer_alpha = std::min(intensity * 0.6F, 0.5F);
+
+    // Top bar
+    glColor4f(0.7F, 0.05F, 0.05F, outer_alpha);
+    draw_screen_quad(0.0F, 0.0F, outer_w, inner_y);
+
+    // Bottom bar
+    draw_screen_quad(0.0F, outer_h - inner_y, outer_w, inner_y);
+
+    // Left bar
+    draw_screen_quad(0.0F, 0.0F, inner_x, outer_h);
+
+    // Right bar
+    draw_screen_quad(outer_w - inner_x, 0.0F, inner_x, outer_h);
+
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    end_screen_space(snapshot);
+}
+
+// ============================================================================
 // First-person weapon placeholder
 // ============================================================================
 

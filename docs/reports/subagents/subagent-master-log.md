@@ -150,3 +150,5 @@ Build (debug) clean; 14/14 test suites pass. Branch: agent/phase5/sensory-polish
 - **Files changed**: `gl_platform.h`, `debug_renderer.cpp`, `render_backend.h`
 - **Validation**: debug build + 17/17 tests pass
 - **Report**: `docs/reports/subagents/TASK-20260704-1350-legacy-gl-retirement-report.md`
+## TASK-20260704-1230-vfx-feedback — Implemented 2026-07-08
+|VFX feedback: fixed snapshot chain for damage flash, particles, and decals; implemented `draw_damage_flash_overlay()` (red vignette) in HUD; wired world values through `local_play.cpp` and `threaded_local_runtime.cpp`. Build (debug) clean; 16/16 tests pass (world/gameplay/movement). Branch: agent/oz/vfx-feedback. Report: docs/reports/subagents/TASK-20260704-1230-vfx-feedback-report.md

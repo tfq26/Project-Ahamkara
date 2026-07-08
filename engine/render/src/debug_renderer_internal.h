@@ -85,6 +85,7 @@ void draw_gpu_profiler_overlay(const DebugScene& scene, int width, int height);
 // --- HUD / debug overlays (debug_renderer_hud.cpp) --------------------------
 void draw_crosshair_overlay(const DebugScene& scene, int width, int height);
 void draw_hud(const DebugScene& scene, int width, int height, float hud_brightness);
+void draw_damage_flash_overlay(const DebugScene& scene, int width, int height);
 void draw_viewmodel_placeholder(const DebugScene& scene, int width, int height);
 void draw_menu_overlay(const DebugScene& scene, int width, int height);
 void draw_scene_overlay(const DebugScene& scene, int width, int height);

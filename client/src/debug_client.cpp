@@ -116,8 +116,8 @@ int run_local_client(
     }
 
     if (autoplay_scenario != nullptr) {
-        ClientSimulationSnapshot previous_snapshot {};
-        ClientSimulationSnapshot current_snapshot {};
+        ahamkara::client::ClientSimulationSnapshot previous_snapshot {};
+        ahamkara::client::ClientSimulationSnapshot current_snapshot {};
         float alpha = 0.0F;
         simulation.get_snapshots(previous_snapshot, current_snapshot, alpha);
 

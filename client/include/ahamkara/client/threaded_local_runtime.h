@@ -58,8 +58,8 @@ private:
     std::atomic<bool> running_ {false};
     std::atomic<bool> paused_ {false};
 
-    std::mutex sim_mutex_;
-    std::mutex snapshot_mutex_;
+    mutable std::mutex sim_mutex_;
+    mutable std::mutex snapshot_mutex_;
 
     ClientSimulationSnapshot prev_snapshot_ {};
     ClientSimulationSnapshot curr_snapshot_ {};

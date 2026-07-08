@@ -179,6 +179,7 @@ public:
     void queue_audio_event(const AudioEvent& event);
     [[nodiscard]] HistoricalState get_historical_state(ae::u32 target_tick) const;
 
+    [[nodiscard]] float get_damage_feedback_timer() const { return damage_feedback_timer_; }
     void apply_damage_to_player(float damage, const Vec3& attacker_pos);
     [[nodiscard]] bool is_player_alive() const { return player_.is_alive(); }
     void respawn_player();
