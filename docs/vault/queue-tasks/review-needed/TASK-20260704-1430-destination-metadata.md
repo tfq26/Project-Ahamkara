@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: open
+status: review-needed
 created: 2026-07-04
 queued_by: codex
 assigned_to: opencode
@@ -13,7 +13,7 @@ subsystems:
   - game
   - engine/core
 related_feature:
-report:
+report: reports/subagents/20260708-1430-destination-metadata-report.md
 ---
 
 # TASK-20260704-1430-destination-metadata
