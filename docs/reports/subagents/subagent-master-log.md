@@ -171,4 +171,14 @@ VFX feedback: fixed snapshot chain for damage flash, particles, and decals; impl
 - **Task**: Wire each weapon index to its correct compiled viewmodel mesh path (per-weapon viewmodel meshes)
 - **Files changed**: Verified already-implemented on main (commit 8b89a5d4) — `weapon_viewmodel_mesh_path()` returns per-weapon paths
 - **Validation**: debug build + 20/20 tests pass (includes ahamkara_weapon_loader_tests verifying archetype mesh names)
-- **Report**: `docs/reports/subagents/TASK-20260704-1910-per-weapon-viewmodel-meshes-report.md`
+|- **Report**: `docs/reports/subagents/TASK-20260704-1910-per-weapon-viewmodel-meshes-report.md`
+
+## 2026-07-08 — TASK-20260704-1720-authoring-inspector-tooling
+
+- **Agent**: oz
+- **Task**: Developer console with cvar integration, polling file watcher, thin debug inspector overlay
+- **Files changed**:
+  - New: `console.h/cpp`, `file_watcher.h/cpp`, `debug_inspector.h/cpp`
+  - Modified: `config.h/cpp`, `client_frame_pipeline.h/cpp`, CMakeLists files, test files
+- **Validation**: console_tests 12/12 pass, file_watcher_tests 11/11 pass
+- **Report**: `docs/reports/subagents/20260704-1720-authoring-inspector-tooling-report.md`

@@ -15,6 +15,8 @@
 #include "ahamkara/client/audio_player.h"
 #include "ahamkara/game/net_types.h"
 #include "ae/audio/audio_engine.h"
+#include "ae/core/console.h"
+#include "ae/core/file_watcher.h"
 #include "ae/input/input_map.h"
 #include "ae/render/compiled_level.h"
 #include "ae/render/debug_renderer.h"
@@ -23,6 +25,7 @@
 #include "ae/runtime/application.h"
 #include "ae/ui/menu_system.h"
 #include "ae/ui/hud_system.h"
+#include "ahamkara/client/debug_inspector.h"
 
 namespace ae {
 class PlatformWindow;
@@ -81,6 +84,9 @@ private:
     void stage_render_ui();
     // Stage 9 — present to screen
     void stage_present();
+    // Console overlay rendering (called from stage_render_ui)
+    void render_console_overlay();
+
     // Stage 10 — apply post-frame actions
     void stage_post_frame();
 
@@ -118,7 +124,17 @@ private:
     bool gameplay_active_{false};
     bool menu_initialized_{false};
     bool hud_loaded_{false};
-    bool autoplay_mode_{false};
+    static constexpr int kConsoleBufSize = 512;
+
+    // Authoring / tooling state
+    ae::Console console_;
+    ae::FileWatcher file_watcher_;
+    DebugInspector inspector_;
+    char console_input_buffer_[kConsoleBufSize] {};
+    int console_history_pos_ {-1};
+    bool console_open_ {false};
+
+    bool autoplay_mode_ {false};
 };
 
 }  // namespace ahamkara::client
