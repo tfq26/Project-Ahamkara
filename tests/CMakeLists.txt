@@ -292,3 +292,21 @@ target_include_directories(ahamkara_encounter_scripting_tests PRIVATE ${CMAKE_CU
 target_link_libraries(ahamkara_encounter_scripting_tests PRIVATE ahamkara_game)
 
 add_test(NAME ahamkara_encounter_scripting_tests COMMAND ahamkara_encounter_scripting_tests)
+
+add_executable(ahamkara_streaming_residency_tests
+    src/streaming_residency_tests.cpp
+)
+
+target_compile_features(ahamkara_streaming_residency_tests PRIVATE cxx_std_20)
+
+target_include_directories(ahamkara_streaming_residency_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+)
+
+target_link_libraries(ahamkara_streaming_residency_tests
+    PRIVATE
+        ae_core
+)
+
+add_test(NAME ahamkara_streaming_residency_tests COMMAND ahamkara_streaming_residency_tests)

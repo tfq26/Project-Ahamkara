@@ -1,9 +1,10 @@
 ---
 type: opencode-task
-status: open
+status: completed
 created: 2026-07-04
+completed: 2026-07-08
 queued_by: codex
-assigned_to: opencode
+assigned_to: oz
 priority: normal
 escalation_tier: low
 primary_reviewer: codex
@@ -13,7 +14,7 @@ subsystems:
   - game
   - engine/core
 related_feature:
-report:
+report: reports/subagents/streaming-residency-report.md
 ---
 
 # TASK-20260704-1410-streaming-residency

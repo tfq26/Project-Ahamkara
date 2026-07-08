@@ -171,4 +171,12 @@ VFX feedback: fixed snapshot chain for damage flash, particles, and decals; impl
 - **Task**: Wire each weapon index to its correct compiled viewmodel mesh path (per-weapon viewmodel meshes)
 - **Files changed**: Verified already-implemented on main (commit 8b89a5d4) — `weapon_viewmodel_mesh_path()` returns per-weapon paths
 - **Validation**: debug build + 20/20 tests pass (includes ahamkara_weapon_loader_tests verifying archetype mesh names)
-- **Report**: `docs/reports/subagents/TASK-20260704-1910-per-weapon-viewmodel-meshes-report.md`
+|- **Report**: `docs/reports/subagents/TASK-20260704-1910-per-weapon-viewmodel-meshes-report.md`
+
+## 2026-07-08 — TASK-20260704-1410-streaming-residency
+
+|- **Agent**: oz
+|- **Task**: Add async area streaming and residency management — region-based ResidencyManager with load/unload boundary detection and deterministic pending-transition queue
+|- **Files changed**: `engine/core/include/ae/core/residency_manager.h` (NEW), `tests/src/streaming_residency_tests.cpp` (NEW), `tests/CMakeLists.txt` (MODIFIED)
+|- **Validation**: debug build + 21/21 tests pass (12 new streaming residency tests)
+|- **Report**: `docs/reports/subagents/streaming-residency-report.md`
