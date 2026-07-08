@@ -150,3 +150,11 @@ Build (debug) clean; 14/14 test suites pass. Branch: agent/phase5/sensory-polish
 - **Files changed**: `gl_platform.h`, `debug_renderer.cpp`, `render_backend.h`
 - **Validation**: debug build + 17/17 tests pass
 - **Report**: `docs/reports/subagents/TASK-20260704-1350-legacy-gl-retirement-report.md`
+
+## 2026-07-08 — TASK-20260704-1910-per-weapon-viewmodel-meshes
+
+- **Agent**: oz
+- **Task**: Wire each weapon index to its correct compiled viewmodel mesh path (per-weapon viewmodel meshes)
+- **Files changed**: Verified already-implemented on main (commit 8b89a5d4) — `weapon_viewmodel_mesh_path()` returns per-weapon paths
+- **Validation**: debug build + 20/20 tests pass (includes ahamkara_weapon_loader_tests verifying archetype mesh names)
+- **Report**: `docs/reports/subagents/TASK-20260704-1910-per-weapon-viewmodel-meshes-report.md`

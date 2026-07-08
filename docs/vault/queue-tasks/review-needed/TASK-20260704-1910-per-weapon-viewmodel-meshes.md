@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: open
+status: completed
 created: 2026-07-04
 queued_by: user
 assigned_to: opencode
@@ -13,7 +13,7 @@ subsystems:
   - engine/render
   - tools
 related_feature:
-report:
+report: reports/subagents/TASK-20260704-1910-per-weapon-viewmodel-meshes-report.md
 ---
 
 # TASK-20260704-1910-per-weapon-viewmodel-meshes
