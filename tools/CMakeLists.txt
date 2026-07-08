@@ -44,3 +44,23 @@ set_target_properties(ahamkara_controller_mapper PROPERTIES
 set_target_properties(ahamkara_asset_importer PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tools
 )
+
+add_executable(ahamkara_diagnostics
+    diagnostics/diagnostics_tool.cpp
+)
+
+target_compile_features(ahamkara_diagnostics PRIVATE cxx_std_20)
+
+target_include_directories(ahamkara_diagnostics
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+)
+
+target_link_libraries(ahamkara_diagnostics
+    PRIVATE
+        ae_core
+)
+
+set_target_properties(ahamkara_diagnostics PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tools
+)

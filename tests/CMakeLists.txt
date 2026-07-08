@@ -358,3 +358,38 @@ target_link_libraries(ahamkara_streaming_residency_tests
 )
 
 add_test(NAME ahamkara_streaming_residency_tests COMMAND ahamkara_streaming_residency_tests)
+
+add_executable(ahamkara_telemetry_tests
+    src/telemetry_tests.cpp
+    ../engine/core/src/telemetry.cpp
+)
+
+target_compile_features(ahamkara_telemetry_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_telemetry_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include)
+target_link_libraries(ahamkara_telemetry_tests PRIVATE ae_core)
+add_test(NAME ahamkara_telemetry_tests COMMAND ahamkara_telemetry_tests)
+
+add_executable(ahamkara_crash_handler_tests
+    src/crash_handler_tests.cpp
+    ../engine/core/src/crash_handler.cpp
+    ../engine/core/src/time.cpp
+    ../engine/core/src/log.cpp
+)
+
+target_compile_features(ahamkara_crash_handler_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_crash_handler_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include)
+target_link_libraries(ahamkara_crash_handler_tests PRIVATE ae_core)
+add_test(NAME ahamkara_crash_handler_tests COMMAND ahamkara_crash_handler_tests)
+
+add_executable(ahamkara_diagnostics_tests
+    src/diagnostics_tests.cpp
+    ../engine/core/src/diagnostics.cpp
+    ../engine/core/src/crash_handler.cpp
+    ../engine/core/src/time.cpp
+    ../engine/core/src/log.cpp
+)
+
+target_compile_features(ahamkara_diagnostics_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_diagnostics_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include)
+target_link_libraries(ahamkara_diagnostics_tests PRIVATE ae_core)
+add_test(NAME ahamkara_diagnostics_tests COMMAND ahamkara_diagnostics_tests)
