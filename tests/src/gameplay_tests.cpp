@@ -1,5 +1,7 @@
 #include "ahamkara/game/gameplay_types.h"
 #include "ahamkara/game/components.h"
+#include "ahamkara/game/player.h"
+#include "ahamkara/game/weapon_runtime.h"
 
 #include <cassert>
 #include <cmath>
@@ -418,9 +420,9 @@ void test_match_state_add_score() {
     assert(ms.individual_score[1] == 5);
     assert(ms.match_winner_id == 1);
 
-    ms.add_score(Team::Blue, 3, 3);
-    assert(ms.team_score_blue == 3);
-    assert(ms.individual_score[3] == 3);
+    ms.add_score(Team::Blue, 3, 6);
+    assert(ms.team_score_blue == 6);
+    assert(ms.individual_score[3] == 6);
     assert(ms.match_winner_id == 3);
 
     // FFA / no team: individual only
@@ -498,6 +500,42 @@ void test_weapon_state_can_reload() {
     std::cout << "test_weapon_state_can_reload passed.\n";
 }
 
+void test_weapon_runtime_defaults() {
+    WeaponRuntime runtime{};
+    runtime.reset();
+    assert(runtime.active_weapon_index() == 0);
+    assert(runtime.state().ammo_in_magazine == kWeaponRegistry[0].magazine_size);
+    assert(runtime.state().magazine_capacity == kWeaponRegistry[0].magazine_size);
+    assert(runtime.state().reserve_ammo == kWeaponRegistry[0].magazine_size * 3);
+    assert(runtime.can_fire());
+    std::cout << "test_weapon_runtime_defaults passed.\n";
+}
+
+void test_weapon_runtime_reload_cycle() {
+    WeaponRuntime runtime{};
+    runtime.reset();
+    runtime.state().ammo_in_magazine = 5;
+    runtime.state().reserve_ammo = 10;
+    runtime.state().magazine_capacity = 30;
+    runtime.start_reload();
+    assert(runtime.state().is_reloading);
+    runtime.tick(2.0F);
+    assert(!runtime.state().is_reloading);
+    assert(runtime.state().ammo_in_magazine == 15);
+    assert(runtime.state().reserve_ammo == 0);
+    std::cout << "test_weapon_runtime_reload_cycle passed.\n";
+}
+
+void test_weapon_runtime_equip() {
+    WeaponRuntime runtime{};
+    runtime.reset();
+    runtime.equip(1);
+    assert(runtime.active_weapon_index() == 1);
+    assert(runtime.state().ammo_in_magazine == kWeaponRegistry[1].magazine_size);
+    assert(runtime.state().magazine_capacity == kWeaponRegistry[1].magazine_size);
+    std::cout << "test_weapon_runtime_equip passed.\n";
+}
+
 void test_loadout_defaults() {
     Loadout lo{};
     assert(lo.active_slot == 0);
@@ -516,6 +554,44 @@ void test_player_loadout_selection() {
     assert(sel.secondary_weapon_index == 5);
     assert(sel.melee_weapon_index == 8);
     std::cout << "test_player_loadout_selection passed.\n";
+}
+
+void test_player_reset_and_spawn() {
+    Player player{};
+    player.reset();
+
+    PlayerSpawnDefinition spawn{};
+    spawn.position = {4.0F, 2.0F, -3.0F};
+    spawn.yaw = 90.0F;
+
+    player.reset_to_spawn(spawn);
+
+    assert(player.state().position.x == 4.0F);
+    assert(player.state().position.y == 2.0F);
+    assert(player.state().position.z == -3.0F);
+    assert(player.state().yaw == 90.0F);
+    assert(player.state().health == 100.0F);
+    assert(player.state().shield == 100.0F);
+    assert(player.loadout().active_slot == 0);
+    assert(player.get_active_weapon_index() == 0);
+    assert(player.get_reserve_ammo() == 150);
+    std::cout << "test_player_reset_and_spawn passed.\n";
+}
+
+void test_player_switch_weapon_and_damage() {
+    Player player{};
+    player.reset();
+
+    player.switch_weapon(static_cast<int>(WeaponSlot::Secondary));
+    assert(player.loadout().active_slot == static_cast<int>(WeaponSlot::Secondary));
+    assert(player.get_active_weapon_index() == 1);
+    assert(player.get_ammo_current() == kWeaponRegistry[1].magazine_size);
+
+    const float actual_damage = player.apply_damage(30.0F);
+    assert(actual_damage > 10.0F && actual_damage < 11.0F);
+    assert(player.state().health < 100.0F);
+    assert(player.state().shield < 100.0F);
+    std::cout << "test_player_switch_weapon_and_damage passed.\n";
 }
 
 // ===================================================================
@@ -593,8 +669,13 @@ int main() {
     test_weapon_definition_defaults();
     test_weapon_state_can_fire();
     test_weapon_state_can_reload();
+    test_weapon_runtime_defaults();
+    test_weapon_runtime_reload_cycle();
+    test_weapon_runtime_equip();
     test_loadout_defaults();
     test_player_loadout_selection();
+    test_player_reset_and_spawn();
+    test_player_switch_weapon_and_damage();
 
     // Status Effects
     test_status_effect_defaults();

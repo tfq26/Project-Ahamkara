@@ -16,6 +16,7 @@ namespace ae::render {
 struct GltfMesh {
     std::vector<float> positions;   // interleaved xyz
     std::vector<float> normals;     // interleaved xyz
+    std::vector<float> uvs;         // interleaved uv (TEXCOORD_0); empty if absent
     std::vector<float> joint_indices; // 4 indices per vertex
     std::vector<float> joint_weights; // 4 weights per vertex
     std::vector<std::uint32_t> indices;

@@ -17,6 +17,7 @@ public:
         const ControllerBindings& controller_bindings);
 
     ahamkara::game::PlayerInputCommand gather_input(float delta_seconds) override;
+    void set_mouse_sensitivity(float mouse_sensitivity);
 
 private:
     const ae::PlatformWindow& window_;

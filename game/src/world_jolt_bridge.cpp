@@ -22,10 +22,27 @@ void initialize_jolt_once() {
 // --- Character contact validation --------------------------------------------
 
 bool AhamkaraCharacterContactListener::OnContactValidate(
-    const JPH::CharacterVirtual* /*inCharacter*/,
-    const JPH::BodyID& /*inBodyID2*/,
+    const JPH::CharacterVirtual* inCharacter,
+    const JPH::BodyID& inBodyID2,
     const JPH::SubShapeID& /*inSubShapeID2*/) {
-    // Always allow contacts; additional game-specific filtering can be added here.
+    if (!world_ || !world_->jolt_ || !world_->colliders_) {
+        return true;
+    }
+
+    auto& bi = world_->jolt_->physics_system.GetBodyInterface();
+    JPH::uint64 userData = bi.GetUserData(inBodyID2);
+
+    if (userData < world_->collider_count_) {
+        const auto& c = world_->colliders_[userData];
+        if (c.jump_through) {
+            // Reject collision if character is moving upwards
+            float vy = inCharacter->GetLinearVelocity().GetY();
+            if (vy > 0.01F) {
+                return false;
+            }
+        }
+    }
+
     return true;
 }
 

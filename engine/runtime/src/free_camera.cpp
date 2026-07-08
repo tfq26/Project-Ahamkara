@@ -1,4 +1,7 @@
 #include "ae/runtime/free_camera.h"
+#include "ae/core/log.h"
+
+#define AE_LOG_CATEGORY "Runtime"
 
 namespace ae {
 namespace {
@@ -9,11 +12,14 @@ constexpr Vec3 world_up {0.0F, 1.0F, 0.0F};
 
 FreeCamera::FreeCamera() {
     update_basis_vectors();
+    log_debug_cat(AE_LOG_CATEGORY, "FreeCamera created (default)");
 }
 
 FreeCamera::FreeCamera(const Vec3& position, float yaw_degrees, float pitch_degrees)
     : position_(position) {
     set_rotation(yaw_degrees, pitch_degrees);
+    log_debug_cat(AE_LOG_CATEGORY, "FreeCamera created at (" +
+                  std::to_string(position.x) + "," + std::to_string(position.y) + "," + std::to_string(position.z) + ")");
 }
 
 void FreeCamera::set_position(const Vec3& position) {

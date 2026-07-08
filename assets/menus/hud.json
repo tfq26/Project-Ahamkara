@@ -1,0 +1,47 @@
+{
+    "name": "Gameplay HUD",
+    "elements": [
+        {
+            "type": "health_bar",
+            "x": 0.03, "y": 0.04,
+            "anchor": "top_left",
+            "width": 320, "height": 28
+        },
+        {
+            "type": "ammo_counter",
+            "x": 0.97, "y": 0.97,
+            "anchor": "bottom_right",
+            "width": 180, "height": 60
+        },
+        {
+            "type": "crosshair",
+            "x": 0.5, "y": 0.5,
+            "anchor": "center",
+            "width": 0, "height": 0
+        },
+        {
+            "type": "grenade",
+            "x": 0.345, "y": 0.94,
+            "anchor": "bottom_center",
+            "width": 56, "height": 56
+        },
+        {
+            "type": "special",
+            "x": 0.415, "y": 0.94,
+            "anchor": "bottom_center",
+            "width": 56, "height": 56
+        },
+        {
+            "type": "artifact",
+            "x": 0.585, "y": 0.94,
+            "anchor": "bottom_center",
+            "width": 56, "height": 56
+        },
+        {
+            "type": "ultimate",
+            "x": 0.655, "y": 0.94,
+            "anchor": "bottom_center",
+            "width": 56, "height": 56
+        }
+    ]
+}

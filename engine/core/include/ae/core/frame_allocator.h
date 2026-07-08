@@ -76,6 +76,7 @@ private:
     std::size_t capacity_;
     std::size_t offset_{0};
     std::size_t peak_used_{0};
+    bool oom_logged_{false};
 };
 
 }  // namespace ae

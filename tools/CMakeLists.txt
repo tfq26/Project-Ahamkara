@@ -10,7 +10,9 @@ add_executable(ahamkara_asset_importer
     asset_importer_registry.cpp
     asset_importer_texture.cpp
     asset_importer_material.cpp
+    asset_importer_level.cpp
     asset_importer_dispatch.cpp
+    asset_importer_pack.cpp
 )
 
 target_compile_features(ahamkara_controller_mapper PRIVATE cxx_std_20)

@@ -2,18 +2,36 @@
 
 #include "ae/core/log.h"
 
-#include <arpa/inet.h>
+#define AE_LOG_CATEGORY "Network"
+
 #include <cerrno>
 #include <cstring>
+#include <sstream>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
-#include <sstream>
 #include <sys/socket.h>
 #include <unistd.h>
+#endif
 
 namespace ae {
 namespace {
 
+#ifdef _WIN32
+bool set_non_blocking(SOCKET socket_fd) {
+    u_long mode = 1;
+    if (ioctlsocket(socket_fd, FIONBIO, &mode) != 0) {
+        log_error("Failed to set socket to non-blocking mode.");
+        return false;
+    }
+    return true;
+}
+#else
 bool set_non_blocking(int socket_fd) {
     const int flags = fcntl(socket_fd, F_GETFL, 0);
     if (flags < 0) {
@@ -28,10 +46,15 @@ bool set_non_blocking(int socket_fd) {
 
     return true;
 }
+#endif
 
-std::string make_errno_message(const char* prefix) {
+std::string make_socket_error_message(const char* prefix) {
     std::ostringstream stream;
+#ifdef _WIN32
+    stream << prefix << ": WSA error " << WSAGetLastError();
+#else
     stream << prefix << ": " << std::strerror(errno);
+#endif
     return stream.str();
 }
 
@@ -45,8 +68,13 @@ bool UdpSocket::open(u16 port) {
     close();
 
     socket_fd_ = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+#ifdef _WIN32
+    if (socket_fd_ == INVALID_SOCKET) {
+        log_error(make_socket_error_message("Failed to create UDP socket"));
+#else
     if (socket_fd_ < 0) {
-        log_error(make_errno_message("Failed to create UDP socket"));
+        log_error(make_socket_error_message("Failed to create UDP socket"));
+#endif
         return false;
     }
 
@@ -61,19 +89,29 @@ bool UdpSocket::open(u16 port) {
     address.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if (::bind(socket_fd_, reinterpret_cast<sockaddr*>(&address), sizeof(address)) < 0) {
-        log_error(make_errno_message("Failed to bind UDP socket"));
+        log_error(make_socket_error_message("Failed to bind UDP socket"));
         close();
         return false;
     }
 
+    log_info_cat(AE_LOG_CATEGORY, "UDP socket opened on port " + std::to_string(port));
     return true;
 }
 
 void UdpSocket::close() {
+#ifdef _WIN32
+    if (socket_fd_ != INVALID_SOCKET) {
+        log_info_cat(AE_LOG_CATEGORY, "UDP socket closed");
+        ::closesocket(socket_fd_);
+        socket_fd_ = INVALID_SOCKET;
+    }
+#else
     if (socket_fd_ >= 0) {
+        log_info_cat(AE_LOG_CATEGORY, "UDP socket closed");
         ::close(socket_fd_);
         socket_fd_ = -1;
     }
+#endif
 }
 
 bool UdpSocket::send_to(const NetAddress& address, const void* data, usize size) const {
@@ -95,18 +133,27 @@ bool UdpSocket::send_to(const NetAddress& address, const void* data, usize size)
 
     const auto sent = ::sendto(
         socket_fd_,
+#ifdef _WIN32
+        reinterpret_cast<const char*>(data),
+#else
         data,
+#endif
         size,
         0,
         reinterpret_cast<const sockaddr*>(&destination),
         sizeof(destination));
 
     if (sent < 0) {
-        log_error(make_errno_message("Failed to send UDP packet"));
+        log_error(make_socket_error_message("Failed to send UDP packet"));
         return false;
     }
 
-    return static_cast<usize>(sent) == size;
+    if (static_cast<usize>(sent) != size) {
+        log_warning_cat(AE_LOG_CATEGORY, "Partial send: " + std::to_string(sent) + "/" + std::to_string(static_cast<int>(size)) + " bytes");
+        return false;
+    }
+
+    return true;
 }
 
 i32 UdpSocket::receive_from(NetAddress& from, void* buffer, usize max_size) const {
@@ -116,27 +163,43 @@ i32 UdpSocket::receive_from(NetAddress& from, void* buffer, usize max_size) cons
     }
 
     sockaddr_in source {};
+#ifdef _WIN32
+    int source_length = sizeof(source);
+#else
     socklen_t source_length = sizeof(source);
+#endif
     const auto received = ::recvfrom(
         socket_fd_,
+#ifdef _WIN32
+        reinterpret_cast<char*>(buffer),
+#else
         buffer,
+#endif
         max_size,
         0,
         reinterpret_cast<sockaddr*>(&source),
         &source_length);
 
     if (received < 0) {
+#ifdef _WIN32
+        if (WSAGetLastError() == WSAEWOULDBLOCK) {
+            return 0;
+        }
+
+        log_error(make_socket_error_message("Failed to receive UDP packet"));
+#else
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             return 0;
         }
 
-        log_error(make_errno_message("Failed to receive UDP packet"));
+        log_error(make_socket_error_message("Failed to receive UDP packet"));
+#endif
         return -1;
     }
 
     char ip_buffer[INET_ADDRSTRLEN] {};
     if (::inet_ntop(AF_INET, &source.sin_addr, ip_buffer, sizeof(ip_buffer)) == nullptr) {
-        log_error(make_errno_message("Failed to convert source address"));
+        log_error(make_socket_error_message("Failed to convert source address"));
         return -1;
     }
 
@@ -146,7 +209,11 @@ i32 UdpSocket::receive_from(NetAddress& from, void* buffer, usize max_size) cons
 }
 
 bool UdpSocket::is_open() const {
+#ifdef _WIN32
+    return socket_fd_ != INVALID_SOCKET;
+#else
     return socket_fd_ >= 0;
+#endif
 }
 
 }  // namespace ae

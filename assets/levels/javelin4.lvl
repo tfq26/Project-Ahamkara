@@ -1,0 +1,79 @@
+# Ahamkara sample level: Javelin-4 inspired obstacle course.
+# See docs/asset_pipeline.md for the .lvl source format.
+
+name=Javelin-4
+sky_color=0.3 0.4 0.6
+ambient=0.05 0.05 0.1
+gravity=20.0
+
+[spawn]
+-12.0 1.5 0.0 0.0 team=1
+12.0 1.5 0.0 180.0 team=2
+
+[collision]
+# Central platform
+-4.0 -4.0 4.0 4.0 1.5 0.0 wall=false jump_through=false auto_step=false surface=0
+# Central pillar
+-0.8 -0.8 0.8 0.8 3.5 0.0 wall=true jump_through=false auto_step=false surface=0
+# North ramp lower
+-1.5 4.0 1.5 4.3 0.75 0.0 wall=false jump_through=false auto_step=true surface=0
+# North ramp upper
+-1.5 4.0 1.5 4.6 1.5 0.0 wall=false jump_through=false auto_step=true surface=0
+# South ramp lower
+-1.5 -4.6 1.5 -4.0 0.75 0.0 wall=false jump_through=false auto_step=true surface=0
+# South ramp upper
+-1.5 -4.3 1.5 -4.0 1.5 0.0 wall=false jump_through=false auto_step=true surface=0
+# East ramp lower
+4.0 -1.5 4.6 1.5 0.75 0.0 wall=false jump_through=false auto_step=true surface=0
+# East ramp upper
+4.0 -1.5 4.3 1.5 1.5 0.0 wall=false jump_through=false auto_step=true surface=0
+# West ramp lower
+-4.6 -1.5 -4.0 1.5 0.75 0.0 wall=false jump_through=false auto_step=true surface=0
+# West ramp upper
+-4.3 -1.5 -4.0 1.5 1.5 0.0 wall=false jump_through=false auto_step=true surface=0
+# Cover pillars
+2.0 0.6 3.2 1.4 2.2 0.0 wall=true jump_through=false auto_step=false surface=0
+-3.2 0.6 -2.0 1.4 2.2 0.0 wall=true jump_through=false auto_step=false surface=0
+2.0 -1.4 3.2 -0.6 2.2 0.0 wall=true jump_through=false auto_step=false surface=0
+-3.2 -1.4 -2.0 -0.6 2.2 0.0 wall=true jump_through=false auto_step=false surface=0
+# NE bridge
+5.0 5.0 9.0 9.0 1.15 0.0 wall=false jump_through=true auto_step=false surface=0
+# NW bridge
+-9.0 5.0 -5.0 9.0 1.15 0.0 wall=false jump_through=true auto_step=false surface=0
+# SE bridge
+5.0 -9.0 9.0 -5.0 1.15 0.0 wall=false jump_through=true auto_step=false surface=0
+# SW bridge
+-9.0 -9.0 -5.0 -5.0 1.15 0.0 wall=false jump_through=true auto_step=false surface=0
+# Alpha spawn
+-13.0 -3.0 -10.0 3.0 0.3 0.0 wall=false jump_through=false auto_step=true surface=0
+# Bravo spawn
+10.0 -3.0 13.0 3.0 0.3 0.0 wall=false jump_through=false auto_step=true surface=0
+# Alpha spawn cover
+-13.0 0.0 -11.0 1.5 1.5 0.0 wall=true jump_through=false auto_step=false surface=0
+-13.0 -1.5 -11.0 0.0 1.5 0.0 wall=true jump_through=false auto_step=false surface=0
+# Bravo spawn cover
+11.0 0.0 13.0 1.5 1.5 0.0 wall=true jump_through=false auto_step=false surface=0
+11.0 -1.5 13.0 0.0 1.5 0.0 wall=true jump_through=false auto_step=false surface=0
+# North alcove
+-2.0 8.0 2.0 9.5 0.3 0.0 wall=false jump_through=false auto_step=true surface=0
+# South alcove
+-2.0 -9.5 2.0 -8.0 0.3 0.0 wall=false jump_through=false auto_step=true surface=0
+# Side route platforms
+5.0 6.0 7.0 8.0 1.0 0.0 wall=false jump_through=true auto_step=false surface=0
+-7.0 6.0 -5.0 8.0 1.0 0.0 wall=false jump_through=true auto_step=false surface=0
+5.0 -8.0 7.0 -6.0 1.0 0.0 wall=false jump_through=true auto_step=false surface=0
+-7.0 -8.0 -5.0 -6.0 1.0 0.0 wall=false jump_through=true auto_step=false surface=0
+# Cover blocks
+5.5 2.5 6.5 3.5 0.9 0.0 wall=true jump_through=false auto_step=false surface=0
+-6.5 2.5 -5.5 3.5 0.9 0.0 wall=true jump_through=false auto_step=false surface=0
+5.5 -3.5 6.5 -2.5 0.9 0.0 wall=true jump_through=false auto_step=false surface=0
+-6.5 -3.5 -5.5 -2.5 0.9 0.0 wall=true jump_through=false auto_step=false surface=0
+2.5 5.5 3.5 6.5 0.9 0.0 wall=true jump_through=false auto_step=false surface=0
+-3.5 5.5 -2.5 6.5 0.9 0.0 wall=true jump_through=false auto_step=false surface=0
+2.5 -6.5 3.5 -5.5 0.9 0.0 wall=true jump_through=false auto_step=false surface=0
+-3.5 -6.5 -2.5 -5.5 0.9 0.0 wall=true jump_through=false auto_step=false surface=0
+# Boundary walls
+-14.0 -14.2 14.0 -13.8 0.4 0.0 wall=true jump_through=false auto_step=false surface=0
+-14.0 13.8 14.0 14.2 0.4 0.0 wall=true jump_through=false auto_step=false surface=0
+-14.2 -14.0 -13.8 14.0 0.4 0.0 wall=true jump_through=false auto_step=false surface=0
+13.8 -14.0 14.2 14.0 0.4 0.0 wall=true jump_through=false auto_step=false surface=0

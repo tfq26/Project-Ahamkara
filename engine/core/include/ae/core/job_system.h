@@ -7,6 +7,8 @@
 #include <thread>
 #include <vector>
 
+#include <mutex>
+
 namespace ae {
 
 /**
@@ -79,12 +81,15 @@ private:
     struct Job {
         JobFunction function;
         std::atomic<int> unfinished_parents {0};
+        std::vector<int> children;
+        bool completed {false};
     };
 
     void worker_loop(int worker_index);
 
     std::vector<std::unique_ptr<Job>> jobs_;
-    std::atomic<int> next_job_index_ {0};
+    std::vector<int> ready_jobs_;
+    std::mutex jobs_mutex_;
     std::atomic<int> jobs_remaining_ {0};
     std::atomic<bool> running_ {false};
 

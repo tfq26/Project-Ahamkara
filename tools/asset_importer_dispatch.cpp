@@ -1,6 +1,7 @@
 #include "asset_importer_dispatch.h"
 #include "asset_importer_texture.h"
 #include "asset_importer_material.h"
+#include "asset_importer_level.h"
 #include "ae/render/compiled_mesh.h"
 #include "ae/render/gltf_loader.h"
 
@@ -76,6 +77,10 @@ bool import_entry(const ImportEntry& entry) {
         return compile_material(entry);
     }
 
+    if (entry.kind == "level") {
+        return compile_level(entry);
+    }
+
     if (entry.kind == "sprite" || entry.kind == "audio" || entry.kind == "data") {
         return copy_asset(entry);
     }
@@ -87,13 +92,15 @@ bool import_entry(const ImportEntry& entry) {
 void print_usage() {
     std::cout << "Usage:\n"
               << "  ahamkara_asset_importer --manifest <path>\n"
-              << "  ahamkara_asset_importer --model <source.gltf> <output.aemesh>\n\n"
+              << "  ahamkara_asset_importer --model <source.gltf> <output.aemesh>\n"
+              << "  ahamkara_asset_importer --pack <registry.tsv> <output.pkg>\n\n"
               << "Manifest lines use:\n"
               << "  <kind> <source> <output> [metadata]\n\n"
               << "Kinds:\n"
               << "  model    glTF 2.0 source compiled to Ahamkara .aemesh\n"
               << "  texture  TGA source compiled to Ahamkara .aetex\n"
               << "  material text source compiled to Ahamkara .aemat\n"
+              << "  level    text source compiled to Ahamkara .aelevel\n"
               << "  sprite   copied passthrough; optional metadata copied beside output\n"
               << "  audio    copied passthrough for first pipeline slice\n"
               << "  data     copied passthrough for miscellaneous runtime data\n";

@@ -1,6 +1,10 @@
+#include "ae/core/log.h"
 #include "ae/animation/animation_driver.h"
 
 #include <cmath>
+
+
+#define AE_LOG_CATEGORY "Animation"
 
 namespace ae::animation {
 

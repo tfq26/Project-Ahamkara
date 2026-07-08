@@ -1,8 +1,11 @@
 #include "jolt_backend.h"  // Internal: defines CollisionWorld::Impl
+#include "ae/core/log.h"
 
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseQuery.h>
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
+
+#define AE_LOG_CATEGORY "Collision"
 
 namespace ae::collision {
 
@@ -12,13 +15,24 @@ namespace ae::collision {
 
 CollisionWorld::CollisionWorld()
     : impl_(std::make_unique<Impl>()) {
+    log_info_cat(AE_LOG_CATEGORY, "CollisionWorld initialized");
 }
 
-CollisionWorld::~CollisionWorld() = default;
+CollisionWorld::~CollisionWorld() {
+    if (impl_) {
+        auto stats = get_stats();
+        log_info_cat(AE_LOG_CATEGORY, "CollisionWorld destroyed (" + std::to_string(stats.body_count) +
+                      " bodies, " + std::to_string(stats.active_dynamic_bodies) + " active dynamic)");
+    }
+}
 
 BodyHandle CollisionWorld::add_body(const BodyDef& def) {
     JPH::ShapeRefC shape = impl_->create_shape(def.collider);
-    if (!shape) return kInvalidBodyHandle;
+    if (!shape) {
+        log_warning_cat(AE_LOG_CATEGORY, "add_body: shape creation failed (type=" +
+                        std::to_string(static_cast<int>(def.collider.shape)) + ")");
+        return kInvalidBodyHandle;
+    }
 
     JPH::EMotionType motion_type = JPH::EMotionType::Static;
     JPH::ObjectLayer jolt_layer = jolt_helpers::to_jolt_layer(def.layer);
@@ -40,7 +54,11 @@ BodyHandle CollisionWorld::add_body(const BodyDef& def) {
     body_settings.mUserData = def.user_data;
 
     JPH::Body* body = impl_->physics_system.GetBodyInterface().CreateBody(body_settings);
-    if (!body) return kInvalidBodyHandle;
+    if (!body) {
+        log_warning_cat(AE_LOG_CATEGORY, "add_body: Jolt body creation failed (layer=" +
+                        std::to_string(static_cast<int>(def.layer)) + ")");
+        return kInvalidBodyHandle;
+    }
 
     impl_->physics_system.GetBodyInterface().AddBody(body->GetID(), JPH::EActivation::DontActivate);
 
@@ -51,13 +69,24 @@ BodyHandle CollisionWorld::add_body(const BodyDef& def) {
     ib.active = true;
     impl_->bodies[handle] = ib;
 
+    log_debug_cat(AE_LOG_CATEGORY, "add_body: handle=" + std::to_string(handle) +
+                  " type=" + std::to_string(static_cast<int>(def.type)) +
+                  " layer=" + std::to_string(static_cast<int>(def.layer)) +
+                  " pos=(" + std::to_string(def.position.x) + "," +
+                  std::to_string(def.position.y) + "," +
+                  std::to_string(def.position.z) + ")");
     return handle;
 }
 
 void CollisionWorld::remove_body(BodyHandle handle) {
     auto it = impl_->bodies.find(handle);
-    if (it == impl_->bodies.end()) return;
+    if (it == impl_->bodies.end()) {
+        log_trace_cat(AE_LOG_CATEGORY, "remove_body: unknown handle " + std::to_string(handle));
+        return;
+    }
 
+    log_debug_cat(AE_LOG_CATEGORY, "remove_body: handle=" + std::to_string(handle) +
+                  " type=" + std::to_string(static_cast<int>(it->second.def.type)));
     auto& bi = impl_->physics_system.GetBodyInterface();
     bi.RemoveBody(it->second.jolt_id);
     bi.DestroyBody(it->second.jolt_id);
@@ -116,8 +145,15 @@ AABB CollisionWorld::get_body_aabb(BodyHandle handle) const {
 
 void CollisionWorld::set_body_active(BodyHandle handle, bool active) {
     auto it = impl_->bodies.find(handle);
-    if (it == impl_->bodies.end()) return;
+    if (it == impl_->bodies.end()) {
+        log_trace_cat(AE_LOG_CATEGORY, "set_body_active: unknown handle " + std::to_string(handle));
+        return;
+    }
 
+    if (it->second.active != active) {
+        log_debug_cat(AE_LOG_CATEGORY, "set_body_active: handle=" + std::to_string(handle) +
+                      " active=" + std::to_string(active));
+    }
     it->second.active = active;
     if (!active) {
         impl_->physics_system.GetBodyInterface().DeactivateBody(it->second.jolt_id);
@@ -125,6 +161,7 @@ void CollisionWorld::set_body_active(BodyHandle handle, bool active) {
 }
 
 void CollisionWorld::step(float delta_seconds) {
+    log_trace_cat(AE_LOG_CATEGORY, "step: dt=" + std::to_string(delta_seconds));
     impl_->physics_system.Update(
         delta_seconds,
         1,

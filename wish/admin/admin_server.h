@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
+
 #include "ae/core/types.h"
 
 #include <chrono>
@@ -53,6 +57,20 @@ private:
     void serve();
     void handle_client(int client_fd) const;
 
+#ifdef _WIN32
+    using SocketHandle = unsigned long long;
+#else
+    using SocketHandle = int;
+#endif
+
+    static void close_socket(SocketHandle s) {
+#ifdef _WIN32
+        closesocket(s);
+#else
+        ::close(s);
+#endif
+    }
+
     static std::string make_response(int status_code, std::string_view status_text, std::string body);
     static std::string make_json_response(std::string body);
     static std::string make_error_response(int status_code, std::string_view status_text, std::string body);
@@ -65,7 +83,23 @@ private:
     static std::string parse_method(std::string_view request_line);
 
     ae::u16 port_ {0};
-    int listen_fd_ {-1};
+    SocketHandle listen_fd_ {socket_invalid()};
+
+    static SocketHandle socket_invalid() {
+#ifdef _WIN32
+        return INVALID_SOCKET;
+#else
+        return -1;
+#endif
+    }
+
+    static bool socket_is_valid(SocketHandle s) {
+#ifdef _WIN32
+        return s != INVALID_SOCKET;
+#else
+        return s >= 0;
+#endif
+    }
     StatusProvider status_provider_ {};
     std::thread thread_ {};
     bool running_ {false};

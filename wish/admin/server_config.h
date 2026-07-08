@@ -17,6 +17,7 @@ struct ServerConfig {
     int max_players {8};
     float disconnect_timeout_seconds {10.0F};
     float match_duration_seconds {600.0F};
+    std::string map_path {"assets/compiled/levels/javelin4.aelevel"};
 };
 
 namespace detail {
@@ -150,6 +151,11 @@ inline ServerConfig load_server_config(int argc, char** argv) {
         detail::apply_cli_int(argv[i], "max-players", config.max_players);
         detail::apply_cli_float(argv[i], "disconnect-timeout", config.disconnect_timeout_seconds);
         detail::apply_cli_float(argv[i], "match-duration", config.match_duration_seconds);
+
+        const std::string_view map_raw = detail::cli_value(argv[i], "map");
+        if (!map_raw.empty()) {
+            config.map_path = std::string(map_raw);
+        }
     }
 
     if (config.tick_rate <= 0.0F) {

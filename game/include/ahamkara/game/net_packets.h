@@ -33,19 +33,22 @@ struct PacketHeader {
     PacketType type {PacketType::PlayerInput};
 };
 
+static constexpr ae::u16 kMaxAuthTokenLength = 512;
+static constexpr ae::u16 kMaxPlayerIdLength = 64;
+
 struct ClientHelloPacket {
     ae::u16 protocol_version {kProtocolVersion};
-    ae::u64 session_token {0};
+    ae::u16 auth_token_length {0};
+    char auth_token[kMaxAuthTokenLength] {};
 };
 
 struct ServerWelcomePacket {
     ae::u16 protocol_version {kProtocolVersion};
-    ae::u64 session_token {0};
+    char player_id[kMaxPlayerIdLength] {};
 };
 
 struct ServerRejectPacket {
     ae::u16 protocol_version {kProtocolVersion};
-    ae::u64 session_token {0};
     HandshakeRejectReason reason {HandshakeRejectReason::VersionMismatch};
 };
 
@@ -54,8 +57,6 @@ struct ServerRejectPacket {
 }
 
 static_assert(std::is_trivially_copyable_v<ClientHelloPacket>);
-static_assert(std::is_trivially_copyable_v<ServerWelcomePacket>);
-static_assert(std::is_trivially_copyable_v<ServerRejectPacket>);
 
 namespace detail {
 
@@ -82,6 +83,15 @@ public:
     bool write_bool(bool value) {
         const ae::u8 encoded = value ? 1U : 0U;
         return write(encoded);
+    }
+
+    bool write_bytes(const char* data, ae::u16 length) {
+        if (position_ + length > buffer_.size()) {
+            return false;
+        }
+        std::memcpy(buffer_.data() + position_, data, length);
+        position_ += length;
+        return true;
     }
 
     [[nodiscard]] ae::usize bytes_written() const {
@@ -120,6 +130,15 @@ public:
         }
 
         value = encoded != 0U;
+        return true;
+    }
+
+    bool read_bytes(char* dest, ae::u16 length) {
+        if (position_ + length > buffer_.size()) {
+            return false;
+        }
+        std::memcpy(dest, buffer_.data() + position_, length);
+        position_ += length;
         return true;
     }
 
@@ -182,7 +201,8 @@ inline bool write_player_input(ByteWriter& writer, const PlayerInputCommand& com
         && writer.write_bool(command.slide_pressed)
         && writer.write_bool(command.fire_held)
         && writer.write_bool(command.reload_pressed)
-        && writer.write_bool(command.ability_pressed);
+        && writer.write_bool(command.ability_pressed)
+        && writer.write_bool(command.interact_pressed);
 }
 
 inline bool read_player_input(ByteReader& reader, PlayerInputCommand& command) {
@@ -197,7 +217,8 @@ inline bool read_player_input(ByteReader& reader, PlayerInputCommand& command) {
         && reader.read_bool(command.slide_pressed)
         && reader.read_bool(command.fire_held)
         && reader.read_bool(command.reload_pressed)
-        && reader.read_bool(command.ability_pressed);
+        && reader.read_bool(command.ability_pressed)
+        && reader.read_bool(command.interact_pressed);
 }
 
 inline bool write_player_state(ByteWriter& writer, const ReplicatedPlayerState& state) {
@@ -230,47 +251,107 @@ inline bool read_player_state(ByteReader& reader, ReplicatedPlayerState& state) 
 }
 
 inline bool write_snapshot(ByteWriter& writer, const ServerSnapshot& snapshot) {
-    return writer.write(snapshot.server_tick)
-        && writer.write(snapshot.last_processed_input)
-        && write_player_state(writer, snapshot.local_player);
+    if (!writer.write(snapshot.server_tick)
+        || !writer.write(snapshot.last_processed_input)
+        || !write_player_state(writer, snapshot.local_player)
+        || !writer.write(snapshot.projectile_count))
+        return false;
+    for (ae::u8 i = 0; i < snapshot.projectile_count; ++i) {
+        const auto& p = snapshot.projectiles[i];
+        if (!write_vec3(writer, p.position) || !write_vec3(writer, p.velocity)
+            || !writer.write(p.lifetime_seconds) || !writer.write_bool(p.alive)
+            || !writer.write(p.client_tick))
+            return false;
+    }
+    if (!writer.write(snapshot.dummy_count)) return false;
+    for (ae::u8 i = 0; i < snapshot.dummy_count; ++i) {
+        const auto& d = snapshot.dummies[i];
+        if (!writer.write(d.dummy_id) || !write_vec3(writer, d.position)
+            || !writer.write(d.yaw) || !writer.write(d.health)
+            || !writer.write_bool(d.alive))
+            return false;
+    }
+    if (!writer.write(snapshot.match_phase) || !writer.write(snapshot.match_time)
+        || !writer.write(snapshot.team_score_red) || !writer.write(snapshot.team_score_blue)
+        || !writer.write(snapshot.individual_score) || !writer.write(snapshot.remote_player_count))
+        return false;
+    for (ae::u8 i = 0; i < snapshot.remote_player_count; ++i) {
+        const auto& rp = snapshot.remote_players[i];
+        if (!writer.write(rp.player_id) || !write_vec3(writer, rp.position)
+            || !writer.write(rp.yaw) || !writer.write(rp.health))
+            return false;
+    }
+    return true;
 }
 
 inline bool read_snapshot(ByteReader& reader, ServerSnapshot& snapshot) {
-    return reader.read(snapshot.server_tick)
-        && reader.read(snapshot.last_processed_input)
-        && read_player_state(reader, snapshot.local_player);
+    if (!reader.read(snapshot.server_tick)
+        || !reader.read(snapshot.last_processed_input)
+        || !read_player_state(reader, snapshot.local_player)
+        || !reader.read(snapshot.projectile_count))
+        return false;
+    if (snapshot.projectile_count > 8) return false;
+    for (ae::u8 i = 0; i < snapshot.projectile_count; ++i) {
+        auto& p = snapshot.projectiles[i];
+        if (!read_vec3(reader, p.position) || !read_vec3(reader, p.velocity)
+            || !reader.read(p.lifetime_seconds) || !reader.read_bool(p.alive)
+            || !reader.read(p.client_tick))
+            return false;
+    }
+    if (!reader.read(snapshot.dummy_count) || snapshot.dummy_count > 4) return false;
+    for (ae::u8 i = 0; i < snapshot.dummy_count; ++i) {
+        auto& d = snapshot.dummies[i];
+        if (!reader.read(d.dummy_id) || !read_vec3(reader, d.position)
+            || !reader.read(d.yaw) || !reader.read(d.health)
+            || !reader.read_bool(d.alive))
+            return false;
+    }
+    if (!reader.read(snapshot.match_phase) || !reader.read(snapshot.match_time)
+        || !reader.read(snapshot.team_score_red) || !reader.read(snapshot.team_score_blue)
+        || !reader.read(snapshot.individual_score) || !reader.read(snapshot.remote_player_count))
+        return false;
+    if (snapshot.remote_player_count > 4) return false;
+    for (ae::u8 i = 0; i < snapshot.remote_player_count; ++i) {
+        auto& rp = snapshot.remote_players[i];
+        if (!reader.read(rp.player_id) || !read_vec3(reader, rp.position)
+            || !reader.read(rp.yaw) || !reader.read(rp.health))
+            return false;
+    }
+    return true;
 }
 
 inline bool write_client_hello(ByteWriter& writer, const ClientHelloPacket& packet) {
     return writer.write(packet.protocol_version)
-        && writer.write(packet.session_token);
+        && writer.write(packet.auth_token_length)
+        && writer.write_bytes(packet.auth_token, packet.auth_token_length);
 }
 
 inline bool read_client_hello(ByteReader& reader, ClientHelloPacket& packet) {
-    return reader.read(packet.protocol_version)
-        && reader.read(packet.session_token);
+    if (!reader.read(packet.protocol_version)
+        || !reader.read(packet.auth_token_length))
+        return false;
+    if (packet.auth_token_length > kMaxAuthTokenLength) return false;
+    return reader.read_bytes(packet.auth_token, packet.auth_token_length);
 }
 
 inline bool write_server_welcome(ByteWriter& writer, const ServerWelcomePacket& packet) {
     return writer.write(packet.protocol_version)
-        && writer.write(packet.session_token);
+        && writer.write_bytes(packet.player_id, kMaxPlayerIdLength);
 }
 
 inline bool read_server_welcome(ByteReader& reader, ServerWelcomePacket& packet) {
     return reader.read(packet.protocol_version)
-        && reader.read(packet.session_token);
+        && reader.read_bytes(packet.player_id, kMaxPlayerIdLength);
 }
 
 inline bool write_server_reject(ByteWriter& writer, const ServerRejectPacket& packet) {
     return writer.write(packet.protocol_version)
-        && writer.write(packet.session_token)
         && writer.write(static_cast<ae::u8>(packet.reason));
 }
 
 inline bool read_server_reject(ByteReader& reader, ServerRejectPacket& packet) {
     ae::u8 reason_value = 0;
     if (!reader.read(packet.protocol_version)
-        || !reader.read(packet.session_token)
         || !reader.read(reason_value)
         || reason_value == 0U
         || reason_value > static_cast<ae::u8>(HandshakeRejectReason::ServerBusy)) {
@@ -295,8 +376,54 @@ inline bool read_envelope(ByteReader& reader, PacketEnvelope& envelope) {
 
 }  // namespace detail
 
+// Wire size constants (at ahamkara::game scope, not detail)
+constexpr ae::usize kProjectileStateWireSize = sizeof(float)*3 + sizeof(float)*3 + sizeof(float) + sizeof(ae::u8) + sizeof(ae::u32);
+constexpr ae::usize kDummyStateWireSize = sizeof(ae::u32) + sizeof(float)*3 + sizeof(float) + sizeof(float) + sizeof(ae::u8);
+constexpr ae::usize kMaxSnapshotWireSize = sizeof(ae::u32)*2 + sizeof(ReplicatedPlayerState)
+    + sizeof(ae::u8) + kProjectileStateWireSize * 8
+    + sizeof(ae::u8) + kDummyStateWireSize * 4
+    + sizeof(ae::u8) + sizeof(float) + sizeof(ae::u32)*2 + sizeof(ae::u16)
+    + sizeof(ae::u8) + (sizeof(ae::u32) + sizeof(float)*3 + sizeof(float) + sizeof(float)) * 4;
+
+// Delta compression functions
+inline bool write_snapshot_delta(detail::ByteWriter& writer, const SnapshotDelta& d) {
+    if (!writer.write(d.server_tick) || !writer.write(d.last_processed_input) || !writer.write(d.dirty_mask))
+        return false;
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::PosX))) writer.write(d.pos_x);
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::PosY))) writer.write(d.pos_y);
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::PosZ))) writer.write(d.pos_z);
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::VelX))) writer.write(d.vel_x);
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::VelY))) writer.write(d.vel_y);
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::VelZ))) writer.write(d.vel_z);
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::Yaw))) writer.write(d.yaw);
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::Movement))) writer.write(d.movement);
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::Health))) writer.write(d.health);
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::Shield))) writer.write(d.shield);
+    return true;
+}
+
+inline bool read_snapshot_delta(detail::ByteReader& reader, SnapshotDelta& d) {
+    if (!reader.read(d.server_tick) || !reader.read(d.last_processed_input) || !reader.read(d.dirty_mask))
+        return false;
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::PosX)) && !reader.read(d.pos_x)) return false;
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::PosY)) && !reader.read(d.pos_y)) return false;
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::PosZ)) && !reader.read(d.pos_z)) return false;
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::VelX)) && !reader.read(d.vel_x)) return false;
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::VelY)) && !reader.read(d.vel_y)) return false;
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::VelZ)) && !reader.read(d.vel_z)) return false;
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::Yaw)) && !reader.read(d.yaw)) return false;
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::Movement)) && !reader.read(d.movement)) return false;
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::Health)) && !reader.read(d.health)) return false;
+    if (d.dirty_mask & (1 << static_cast<ae::u16>(PlayerDeltaBit::Shield)) && !reader.read(d.shield)) return false;
+    return true;
+}
+
 /// Envelope wire size: seq(2B) + ack_seq(2B) + ack_bitfield(4B)
 constexpr ae::usize kEnvelopeWireSize = sizeof(ae::u16) * 2 + sizeof(ae::u32);
+
+// Minimum hello packet wire size: magic(4)+version(2)+type(2)+envelope(10)+proto_version(2)+token_length(2)
+static constexpr ae::usize kMinClientHelloWireSize = sizeof(ae::u32) + sizeof(ae::u16) + sizeof(ae::u16)
+    + kEnvelopeWireSize + sizeof(ae::u16) + sizeof(ae::u16);
 
 constexpr ae::usize player_input_packet_size() {
     return sizeof(ae::u32)    // magic
@@ -308,24 +435,17 @@ constexpr ae::usize player_input_packet_size() {
         + sizeof(float)       // client_time
         + sizeof(float) * 2   // move_axis
         + sizeof(float) * 2   // look_delta
-        + sizeof(ae::u8) * 7; // bools
+        + sizeof(ae::u8) * 8; // bools
 }
 
 constexpr ae::usize server_snapshot_packet_size() {
-    return sizeof(ae::u32)    // magic
-        + sizeof(ae::u16)     // version
-        + sizeof(ae::u16)     // type
-        + kEnvelopeWireSize   // envelope
-        + sizeof(ae::u32)     // server_tick
-        + sizeof(ae::u32)     // last_processed_input
-        + sizeof(ae::u32)     // network_object_id
-        + sizeof(ae::u32)     // player_id
-        + sizeof(float) * 3   // position
-        + sizeof(float) * 3   // velocity
-        + sizeof(float)       // yaw
-        + sizeof(ae::u8)      // movement_state
-        + sizeof(float)       // health
-        + sizeof(float);      // shield
+    return kEnvelopeWireSize
+        + sizeof(ae::u32) + sizeof(ae::u32) + sizeof(ReplicatedPlayerState)
+        + sizeof(ae::u8) + kProjectileStateWireSize * 8
+        + sizeof(ae::u8) + kDummyStateWireSize * 4
+        + sizeof(ae::u8) + sizeof(float) + sizeof(ae::u32)*2 + sizeof(ae::u16)
+        + sizeof(ae::u8) + (sizeof(ae::u32) + sizeof(float)*3 + sizeof(float) + sizeof(float)) * 4
+        + sizeof(ae::u32) + sizeof(ae::u16)*2 + sizeof(ae::u16); // header
 }
 
 inline bool serialize_player_input_packet(
@@ -345,16 +465,26 @@ constexpr ae::usize client_hello_packet_size() {
         + sizeof(ae::u16)     // type
         + kEnvelopeWireSize   // envelope
         + sizeof(ae::u16)     // protocol_version
-        + sizeof(ae::u64);    // reserved session token
+        + sizeof(ae::u16)     // auth_token_length
+        + kMaxAuthTokenLength; // auth_token (max)
 }
 
 constexpr ae::usize server_welcome_packet_size() {
-    return client_hello_packet_size();
+    return sizeof(ae::u32)    // magic
+        + sizeof(ae::u16)     // version
+        + sizeof(ae::u16)     // type
+        + kEnvelopeWireSize   // envelope
+        + sizeof(ae::u16)     // protocol_version
+        + kMaxPlayerIdLength; // player_id
 }
 
 constexpr ae::usize server_reject_packet_size() {
-    return client_hello_packet_size()
-        + sizeof(ae::u8);    // reject reason
+    return sizeof(ae::u32)    // magic
+        + sizeof(ae::u16)     // version
+        + sizeof(ae::u16)     // type
+        + kEnvelopeWireSize   // envelope
+        + sizeof(ae::u16)     // protocol_version
+        + sizeof(ae::u8);     // reason
 }
 
 inline bool deserialize_player_input_packet(
@@ -375,53 +505,51 @@ inline bool deserialize_player_input_packet(
 inline bool serialize_server_snapshot_packet(
     const PacketEnvelope& envelope,
     const ServerSnapshot& snapshot,
-    std::span<std::byte, server_snapshot_packet_size()> buffer) {
-    detail::ByteWriter writer(buffer);
-    return detail::write_header(writer, PacketType::ServerSnapshot)
+    std::span<std::byte, server_snapshot_packet_size()> buffer,
+    ae::usize* out_bytes_written = nullptr) {
+    detail::ByteWriter writer(std::span<std::byte>(buffer.data(), buffer.size()));
+    bool ok = detail::write_header(writer, PacketType::ServerSnapshot)
         && detail::write_envelope(writer, envelope)
-        && detail::write_snapshot(writer, snapshot)
-        && writer.bytes_written() == buffer.size();
+        && detail::write_snapshot(writer, snapshot);
+    if (ok && out_bytes_written) *out_bytes_written = writer.bytes_written();
+    return ok;
 }
 
 inline bool deserialize_server_snapshot_packet(
     std::span<const std::byte> buffer,
     PacketEnvelope& envelope,
     ServerSnapshot& snapshot) {
-    if (buffer.size() != server_snapshot_packet_size()) {
-        return false;
-    }
-
     detail::ByteReader reader(buffer);
     return detail::read_header(reader, PacketType::ServerSnapshot)
         && detail::read_envelope(reader, envelope)
-        && detail::read_snapshot(reader, snapshot)
-        && reader.is_complete();
+        && detail::read_snapshot(reader, snapshot);
 }
 
 inline bool serialize_client_hello_packet(
     const PacketEnvelope& envelope,
     const ClientHelloPacket& packet,
-    std::span<std::byte, client_hello_packet_size()> buffer) {
-    detail::ByteWriter writer(buffer);
-    return detail::write_header(writer, PacketType::ClientHello)
+    std::span<std::byte, client_hello_packet_size()> buffer,
+    ae::usize* out_bytes_written = nullptr) {
+    detail::ByteWriter writer(std::span<std::byte>(buffer.data(), buffer.size()));
+    bool ok = detail::write_header(writer, PacketType::ClientHello)
         && detail::write_envelope(writer, envelope)
-        && detail::write_client_hello(writer, packet)
-        && writer.bytes_written() == buffer.size();
+        && detail::write_client_hello(writer, packet);
+    if (ok && out_bytes_written) *out_bytes_written = writer.bytes_written();
+    return ok;
 }
 
 inline bool deserialize_client_hello_packet(
     std::span<const std::byte> buffer,
     PacketEnvelope& envelope,
     ClientHelloPacket& packet) {
-    if (buffer.size() != client_hello_packet_size()) {
+    if (buffer.size() < kMinClientHelloWireSize) {
         return false;
     }
 
     detail::ByteReader reader(buffer);
     return detail::read_header(reader, PacketType::ClientHello)
         && detail::read_envelope(reader, envelope)
-        && detail::read_client_hello(reader, packet)
-        && reader.is_complete();
+        && detail::read_client_hello(reader, packet);
 }
 
 inline bool serialize_server_welcome_packet(

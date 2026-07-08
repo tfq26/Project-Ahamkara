@@ -170,6 +170,9 @@ private:
 
 /// Compressed animation state for network replication.
 /// 8 bytes total, suitable for server snapshots.
+#ifdef _MSC_VER
+#pragma pack(push, 1)
+#endif
 struct alignas(8) CompressedAnimState {
     std::uint8_t state_id : 6;         // AnimMovementState enum
     std::uint8_t blend_param : 8;      // quantized 0..255 → 0..1
@@ -181,6 +184,9 @@ struct alignas(8) CompressedAnimState {
     std::uint8_t flags : 4;            // is_ads, is_firing, is_on_ground, etc.
 };
 static_assert(sizeof(CompressedAnimState) == 8, "CompressedAnimState must be 8 bytes");
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 
 /// Quantize a float in [0,1] to a uint8_t
 inline std::uint8_t quantize_normalized(float value) {

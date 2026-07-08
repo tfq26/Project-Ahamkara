@@ -11,7 +11,34 @@
 #include <cstdio>
 #include <string>
 
+#include "gl_compat.h"
+
 namespace ae::render {
+
+namespace {
+
+struct MatrixSnapshot {
+    ae::gl_compat::Mat4 projection;
+    ae::gl_compat::Mat4 modelview;
+};
+
+MatrixSnapshot begin_screen_space(int width, int height) {
+    auto& st = ae::gl_compat::state();
+    MatrixSnapshot snapshot {st.projection, st.modelview};
+    st.projection = ae::gl_compat::mat4_ortho(0.0F, static_cast<float>(width),
+                                              static_cast<float>(height), 0.0F,
+                                              -1.0F, 1.0F);
+    st.modelview = ae::gl_compat::Mat4::identity();
+    return snapshot;
+}
+
+void end_screen_space(const MatrixSnapshot& snapshot) {
+    auto& st = ae::gl_compat::state();
+    st.projection = snapshot.projection;
+    st.modelview = snapshot.modelview;
+}
+
+}  // namespace
 
 void draw_metrics_overlay(const DebugScene& scene, int width, int height,
                           const std::array<double, 200>& frame_time_history,
@@ -32,18 +59,11 @@ void draw_metrics_overlay(const DebugScene& scene, int width, int height,
     char sys_cpu_buf[32];
     std::snprintf(sys_cpu_buf, sizeof(sys_cpu_buf), "%.1f%%", static_cast<double>(scene.system_cpu_percent));
 
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0.0, static_cast<double>(width), static_cast<double>(height), 0.0, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+    const MatrixSnapshot snapshot = begin_screen_space(width, height);
 
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_LIGHTING);
 
     // Panel layout — top-left metrics panel
     const float panel_w = 280.0F;
@@ -106,15 +126,11 @@ void draw_metrics_overlay(const DebugScene& scene, int width, int height,
     // 8.3 ms and 16.7 ms reference lines (120 fps & 60 fps)
     float y_8 = ms_to_y(8.3);
     glColor4f(0.25F, 0.88F, 0.35F, 0.3F);
-    glBegin(GL_LINES);
-    glVertex2f(spark_x, y_8); glVertex2f(spark_x + spark_w, y_8);
-    glEnd();
+    draw_screen_line(spark_x, y_8, spark_x + spark_w, y_8);
 
     float y_16 = ms_to_y(16.7);
     glColor4f(0.95F, 0.72F, 0.15F, 0.3F);
-    glBegin(GL_LINES);
-    glVertex2f(spark_x, y_16); glVertex2f(spark_x + spark_w, y_16);
-    glEnd();
+    draw_screen_line(spark_x, y_16, spark_x + spark_w, y_16);
 
     // Compute min/max of visible history
     double hist_min = 1e9;
@@ -133,17 +149,20 @@ void draw_metrics_overlay(const DebugScene& scene, int width, int height,
     float base_y = spark_y + spark_h;
 
     glLineWidth(1.5F);
-    glBegin(GL_LINE_STRIP);
-    for (int i = 0; i < sparkline_count; ++i) {
-        double v = frame_time_history[static_cast<std::size_t>(i)];
-        float sx = spark_x + static_cast<float>(i) * spark_w / static_cast<float>(sparkline_count - 1 > 0 ? sparkline_count - 1 : 1);
-        float sy = base_y - static_cast<float>(v - hist_min) * scale_y;
-        // Color gradient: green → yellow → red
-        float t = (v < 8.3) ? 0.0F : ((v < 16.7) ? static_cast<float>((v - 8.3) / 8.4) : 1.0F);
-        glColor4f(0.25F + t * 0.70F, 0.88F - t * 0.63F, 0.35F - t * 0.15F, 0.9F);
-        glVertex2f(sx, sy);
+    if (sparkline_count > 1) {
+        float prev_x = spark_x;
+        float prev_y = base_y - static_cast<float>(frame_time_history[0] - hist_min) * scale_y;
+        for (int i = 1; i < sparkline_count; ++i) {
+            double v = frame_time_history[static_cast<std::size_t>(i)];
+            float sx = spark_x + static_cast<float>(i) * spark_w / static_cast<float>(sparkline_count - 1);
+            float sy = base_y - static_cast<float>(v - hist_min) * scale_y;
+            float t = (v < 8.3) ? 0.0F : ((v < 16.7) ? static_cast<float>((v - 8.3) / 8.4) : 1.0F);
+            glColor4f(0.25F + t * 0.70F, 0.88F - t * 0.63F, 0.35F - t * 0.15F, 0.9F);
+            draw_screen_line(prev_x, prev_y, sx, sy);
+            prev_x = sx;
+            prev_y = sy;
+        }
     }
-    glEnd();
     glLineWidth(1.0F);
 
     // FPS label on sparkline
@@ -161,9 +180,7 @@ void draw_metrics_overlay(const DebugScene& scene, int width, int height,
     auto draw_ref_line = [&](float y, const char* label_text, float r, float g, float b) {
         float label_w = 28.0F;
         glColor4f(r, g, b, 0.4F);
-        glBegin(GL_LINES);
-        glVertex2f(spark_x + label_w, y); glVertex2f(spark_x + spark_w, y);
-        glEnd();
+        draw_screen_line(spark_x + label_w, y, spark_x + spark_w, y);
         draw_ui_text(spark_x + 2.0F, y - 7.0F, 1.1F, label_text, UiTextStyle::Muted);
     };
     draw_ref_line(y_8,  "120", 0.25F, 0.88F, 0.35F);
@@ -172,10 +189,7 @@ void draw_metrics_overlay(const DebugScene& scene, int width, int height,
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
 
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
+    end_screen_space(snapshot);
 }
 
 void draw_gpu_profiler_overlay(const DebugScene& scene, int width, int height) {
@@ -191,13 +205,7 @@ void draw_gpu_profiler_overlay(const DebugScene& scene, int width, int height) {
     const float bar_h = 14.0F;
     const float bar_gap = 6.0F;
 
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0.0, static_cast<double>(width), static_cast<double>(height), 0.0, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+    const MatrixSnapshot snapshot = begin_screen_space(width, height);
 
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
@@ -205,15 +213,11 @@ void draw_gpu_profiler_overlay(const DebugScene& scene, int width, int height) {
 
     // Panel background
     glColor4f(0.04F, 0.06F, 0.09F, 0.92F);
-    glBegin(GL_QUADS);
     draw_screen_quad(panel_x, panel_y, panel_w, panel_h);
-    glEnd();
 
     // Header bar
     glColor4f(0.16F, 0.28F, 0.44F, 1.0F);
-    glBegin(GL_QUADS);
     draw_screen_quad(panel_x, panel_y, panel_w, 28.0F);
-    glEnd();
 
     draw_ui_text(panel_x + 12.0F, panel_y + 8.0F, 2.0F, "GPU PROFILER", UiTextStyle::Header);
 
@@ -235,13 +239,9 @@ void draw_gpu_profiler_overlay(const DebugScene& scene, int width, int height) {
         if (bar_w < 2.0F) bar_w = 2.0F;
         float bar_actual_y = y_pos + 18.0F;
         glColor4f(r * 0.2F, g * 0.2F, b * 0.2F, 0.6F);
-        glBegin(GL_QUADS);
         draw_screen_quad(bar_area_x, bar_actual_y, bar_area_w, bar_h);
-        glEnd();
         glColor4f(r, g, b, 0.9F);
-        glBegin(GL_QUADS);
         draw_screen_quad(bar_area_x, bar_actual_y, bar_w, bar_h);
-        glEnd();
     };
 
     float y = bar_area_y;
@@ -260,10 +260,7 @@ void draw_gpu_profiler_overlay(const DebugScene& scene, int width, int height) {
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
 
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
+    end_screen_space(snapshot);
 }
 
 }  // namespace ae::render

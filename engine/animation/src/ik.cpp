@@ -1,7 +1,11 @@
+#include "ae/core/log.h"
 #include "ae/animation/ik.h"
 
 #include <algorithm>
 #include <cmath>
+
+
+#define AE_LOG_CATEGORY "Animation"
 
 namespace ae::animation {
 

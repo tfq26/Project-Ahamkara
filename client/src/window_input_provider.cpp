@@ -1,11 +1,14 @@
+#include "ae/core/log.h"
 #include "ahamkara/client/window_input_provider.h"
 
+#include <algorithm>
 #include <cmath>
 
-#include "ae/core/math.h"
 #include "ae/platform/gamepad.h"
 #include "ae/platform/mouse.h"
 #include "ae/platform/window.h"
+
+#define AE_LOG_CATEGORY "Client"
 
 namespace ahamkara::client {
 namespace {
@@ -40,30 +43,6 @@ WindowInputProvider::WindowInputProvider(
 
 ahamkara::game::PlayerInputCommand WindowInputProvider::gather_input(float delta_seconds) {
     ahamkara::game::PlayerInputCommand command {};
-    const ae::GamepadState& gamepad = window_.gamepad_state();
-    const ae::GamepadDebugState& debug_state = window_.gamepad_debug_state();
-
-    if (has_connected_gamepad(gamepad)) {
-        const float left_x = apply_deadzone(gamepad.axis(ae::GamepadAxis::LeftX), kStickDeadzone);
-        const float left_y = apply_deadzone(gamepad.axis(ae::GamepadAxis::LeftY), kStickDeadzone);
-        const float right_x = apply_deadzone(gamepad.axis(ae::GamepadAxis::RightX), kStickDeadzone);
-        const float right_y = apply_deadzone(gamepad.axis(ae::GamepadAxis::RightY), kStickDeadzone);
-        const float right_trigger =
-            apply_deadzone((gamepad.axis(ae::GamepadAxis::RightTrigger) + 1.0F) * 0.5F, kTriggerDeadzone);
-
-        command.move_axis.x = left_x;
-        command.move_axis.y = -left_y;
-        command.look_delta.x = right_x * mouse_sensitivity_ * kLookRateDegreesPerSecond * delta_seconds;
-        command.look_delta.y = -right_y * mouse_sensitivity_ * kLookRateDegreesPerSecond * delta_seconds;
-        command.sprint_held = debug_state.is_code_down(controller_bindings_.sprint);
-        command.jump_pressed = debug_state.is_code_pressed(controller_bindings_.jump);
-        command.crouch_held = debug_state.is_code_down(controller_bindings_.crouch);
-        command.slide_pressed = debug_state.is_code_pressed(controller_bindings_.slide);
-        command.fire_held = debug_state.is_code_down(controller_bindings_.fire) || right_trigger > 0.5F;
-        command.reload_pressed = debug_state.is_code_pressed(controller_bindings_.reload);
-        command.ability_pressed = debug_state.is_code_pressed(controller_bindings_.ability);
-        return command;
-    }
 
     if (window_.is_key_down(ae::KeyCode::W)) {
         command.move_axis.y += 1.0F;
@@ -85,14 +64,55 @@ ahamkara::game::PlayerInputCommand WindowInputProvider::gather_input(float delta
         || window_.is_key_down(ae::KeyCode::RightControl);
     command.slide_pressed = window_.is_key_pressed(ae::KeyCode::C);
 
+    // Weapon switching: 1=AR-15 (Primary slot 0), 2=Shotgun (Secondary slot 1), 3=Rocket (Melee slot 2)
+    if (window_.is_key_pressed(ae::KeyCode::Num1))
+        command.weapon_slot = 0;
+    else if (window_.is_key_pressed(ae::KeyCode::Num2))
+        command.weapon_slot = 1;
+    else if (window_.is_key_pressed(ae::KeyCode::Num3))
+        command.weapon_slot = 2;
+
     const auto mouse = window_.mouse_state();
     command.fire_held = mouse.button_down[static_cast<ae::usize>(ae::MouseButton::Left)];
+    command.aim_held = mouse.button_down[static_cast<ae::usize>(ae::MouseButton::Right)];
     command.reload_pressed = window_.is_key_pressed(ae::KeyCode::R);
     command.ability_pressed = window_.is_key_pressed(ae::KeyCode::E);
+    command.interact_pressed = window_.is_key_pressed(ae::KeyCode::F);
     command.look_delta.x = mouse.delta_x * mouse_sensitivity_;
     command.look_delta.y = mouse.delta_y * mouse_sensitivity_;
 
+    const ae::GamepadState& gamepad = window_.gamepad_state();
+    const ae::GamepadDebugState& debug_state = window_.gamepad_debug_state();
+    if (has_connected_gamepad(gamepad)) {
+        const float left_x = apply_deadzone(gamepad.axis(ae::GamepadAxis::LeftX), kStickDeadzone);
+        const float left_y = apply_deadzone(gamepad.axis(ae::GamepadAxis::LeftY), kStickDeadzone);
+        const float right_x = apply_deadzone(gamepad.axis(ae::GamepadAxis::RightX), kStickDeadzone);
+        const float right_y = apply_deadzone(gamepad.axis(ae::GamepadAxis::RightY), kStickDeadzone);
+        const float left_trigger =
+            apply_deadzone((gamepad.axis(ae::GamepadAxis::LeftTrigger) + 1.0F) * 0.5F, kTriggerDeadzone);
+        const float right_trigger =
+            apply_deadzone((gamepad.axis(ae::GamepadAxis::RightTrigger) + 1.0F) * 0.5F, kTriggerDeadzone);
+
+        command.move_axis.x = std::clamp(command.move_axis.x + left_x, -1.0F, 1.0F);
+        command.move_axis.y = std::clamp(command.move_axis.y - left_y, -1.0F, 1.0F);
+        command.look_delta.x += right_x * mouse_sensitivity_ * kLookRateDegreesPerSecond * delta_seconds;
+        command.look_delta.y += -right_y * mouse_sensitivity_ * kLookRateDegreesPerSecond * delta_seconds;
+        command.sprint_held = command.sprint_held || debug_state.is_code_down(controller_bindings_.sprint);
+        command.jump_pressed = command.jump_pressed || debug_state.is_code_pressed(controller_bindings_.jump);
+        command.crouch_held = command.crouch_held || debug_state.is_code_down(controller_bindings_.crouch);
+        command.slide_pressed = command.slide_pressed || debug_state.is_code_pressed(controller_bindings_.slide);
+        command.fire_held = command.fire_held || debug_state.is_code_down(controller_bindings_.fire) || right_trigger > 0.5F;
+        command.aim_held = command.aim_held || debug_state.is_code_down(controller_bindings_.aim) || left_trigger > 0.5F;
+        command.reload_pressed = command.reload_pressed || debug_state.is_code_pressed(controller_bindings_.reload);
+        command.ability_pressed = command.ability_pressed || debug_state.is_code_pressed(controller_bindings_.ability);
+        command.interact_pressed = command.interact_pressed || debug_state.is_code_pressed(controller_bindings_.interact);
+    }
+
     return command;
+}
+
+void WindowInputProvider::set_mouse_sensitivity(float mouse_sensitivity) {
+    mouse_sensitivity_ = mouse_sensitivity;
 }
 
 }  // namespace ahamkara::client

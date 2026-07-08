@@ -1,9 +1,12 @@
 #include "ae/collision/debug.h"
 #include "ae/collision/world.h"
 #include "ae/collision/layers.h"
+#include "ae/core/log.h"
 
 #include <cstdio>
 #include <cstring>
+
+#define AE_LOG_CATEGORY "Collision"
 
 namespace ae::collision {
 
@@ -80,6 +83,13 @@ void populate_debug_overlay(CollisionWorld& world, DebugOverlay& overlay) {
 
     int body_count = world.query_aabb(huge_box, all_mask, handles, kMaxBodyHandles);
 
+    if (body_count >= kMaxBodyHandles) {
+        log_warning_cat(AE_LOG_CATEGORY, "populate_debug_overlay: body count " +
+                        std::to_string(body_count) + " reached max " + std::to_string(kMaxBodyHandles) +
+                        "; some bodies not drawn");
+    }
+    log_debug_cat(AE_LOG_CATEGORY, "populate_debug_overlay: " + std::to_string(body_count) + " bodies");
+
     for (int i = 0; i < body_count; ++i) {
         AABB box = world.get_body_aabb(handles[i]);
         u64 user_data = world.get_body_user_data(handles[i]);
@@ -106,6 +116,13 @@ void populate_debug_overlay(CollisionWorld& world, DebugOverlay& overlay) {
 
 void populate_debug_hitboxes(const HitboxInstance* hitboxes, int hitbox_count,
                              DebugOverlay& overlay) {
+    int active_count = 0;
+    for (int i = 0; i < hitbox_count; ++i) {
+        if (hitboxes[i].active) ++active_count;
+    }
+    log_trace_cat(AE_LOG_CATEGORY, "populate_debug_hitboxes: " + std::to_string(active_count) +
+                  " active of " + std::to_string(hitbox_count));
+
     for (int i = 0; i < hitbox_count; ++i) {
         const auto& hb = hitboxes[i];
         if (!hb.active) continue;
@@ -122,6 +139,8 @@ void populate_debug_hitboxes(const HitboxInstance* hitboxes, int hitbox_count,
 
 void populate_debug_trace(const Ray& ray, const TraceResult& result,
                           DebugOverlay& overlay) {
+    log_trace_cat(AE_LOG_CATEGORY, "populate_debug_trace: " +
+                  std::string(result.hit ? "hit dist=" + std::to_string(result.distance) : "miss"));
     float r, g, b;
     DebugColors::trace_ray(r, g, b);
 

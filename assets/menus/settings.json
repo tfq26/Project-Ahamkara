@@ -1,0 +1,103 @@
+{
+    "name": "Settings",
+    "elements": [
+        {
+            "type": "panel",
+            "x": 0.5, "y": 0.50,
+            "anchor": "center",
+            "width": 520, "height": 440,
+            "rounding": 8,
+            "color": "panel",
+            "elements": [
+                {
+                    "type": "text",
+                    "content": "SETTINGS",
+                    "font": "header",
+                    "color": "text_primary",
+                    "x": 0.5, "y": 20,
+                    "anchor": "top_center"
+                },
+                { "type": "separator" },
+                {
+                    "type": "text",
+                    "content": "Video",
+                    "font": "body",
+                    "color": "accent",
+                    "x": 20, "y": 55,
+                    "anchor": "top_left"
+                },
+                {
+                    "type": "slider",
+                    "label": "Gamma",
+                    "setting": "gamma",
+                    "min": 0.5, "max": 2.0,
+                    "x": 20, "y": 85,
+                    "width": 350
+                },
+                {
+                    "type": "toggle",
+                    "label": "Fullscreen",
+                    "setting": "fullscreen",
+                    "x": 20, "y": 130,
+                    "width": 350
+                },
+                {
+                    "type": "text",
+                    "content": "Audio",
+                    "font": "body",
+                    "color": "accent",
+                    "x": 20, "y": 175,
+                    "anchor": "top_left"
+                },
+                {
+                    "type": "slider",
+                    "label": "Master Volume",
+                    "setting": "master_volume",
+                    "min": 0.0, "max": 1.0,
+                    "x": 20, "y": 205,
+                    "width": 350
+                },
+                {
+                    "type": "slider",
+                    "label": "SFX Volume",
+                    "setting": "sfx_volume",
+                    "min": 0.0, "max": 1.0,
+                    "x": 20, "y": 250,
+                    "width": 350
+                },
+                {
+                    "type": "toggle",
+                    "label": "Audio Enabled",
+                    "setting": "audio_enabled",
+                    "x": 20, "y": 295,
+                    "width": 350
+                },
+                {
+                    "type": "text",
+                    "content": "Controls",
+                    "font": "body",
+                    "color": "accent",
+                    "x": 20, "y": 340,
+                    "anchor": "top_left"
+                },
+                {
+                    "type": "slider",
+                    "label": "Mouse Sensitivity",
+                    "setting": "mouse_sensitivity",
+                    "min": 0.1, "max": 3.0,
+                    "x": 20, "y": 370,
+                    "width": 350
+                },
+                {
+                    "type": "button",
+                    "label": "BACK",
+                    "style": "secondary",
+                    "action": "pop_screen",
+                    "x": 0.5, "y": 405,
+                    "anchor": "top_center",
+                    "width": 200
+                }
+            ]
+        }
+    ]
+}

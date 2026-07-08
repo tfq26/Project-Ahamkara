@@ -1,113 +1,15 @@
 #include "ae/render/compiled_mesh.h"
+#include "ae/render/binary_io.h"
+#include "ae/core/log.h"
 
 #include <filesystem>
 #include <fstream>
-#include <limits>
-#include <stdexcept>
 #include <string_view>
+
+#define AE_LOG_CATEGORY "Render"
 
 namespace ae::render {
 namespace {
-
-constexpr std::uint32_t kMaxVectorElements = 100'000'000;
-constexpr std::uint32_t kMaxStringBytes = 1'048'576;
-
-bool write_bytes(std::ofstream& file, const void* data, std::size_t size) {
-    file.write(static_cast<const char*>(data), static_cast<std::streamsize>(size));
-    return static_cast<bool>(file);
-}
-
-template <typename T>
-bool write_value(std::ofstream& file, const T& value) {
-    return write_bytes(file, &value, sizeof(T));
-}
-
-template <typename T>
-bool write_vector(std::ofstream& file, const std::vector<T>& values) {
-    const auto byte_count = values.size() * sizeof(T);
-    if (byte_count == 0) {
-        return true;
-    }
-
-    return write_bytes(file, values.data(), byte_count);
-}
-
-bool write_string(std::ofstream& file, const std::string& value) {
-    const auto size = static_cast<std::uint32_t>(value.size());
-    return write_value(file, size) && write_bytes(file, value.data(), value.size());
-}
-
-bool read_bytes(std::ifstream& file, void* data, std::size_t size) {
-    file.read(static_cast<char*>(data), static_cast<std::streamsize>(size));
-    return static_cast<bool>(file);
-}
-
-template <typename T>
-bool read_value(std::ifstream& file, T& value) {
-    return read_bytes(file, &value, sizeof(T));
-}
-
-bool validate_count(std::uint32_t count, std::string_view label, std::string& error) {
-    if (count > kMaxVectorElements) {
-        error = std::string(label) + " count is unreasonably large";
-        return false;
-    }
-
-    return true;
-}
-
-template <typename T>
-bool read_vector(std::ifstream& file, std::vector<T>& values, std::uint32_t count, std::string_view label, std::string& error) {
-    if (!validate_count(count, label, error)) {
-        return false;
-    }
-
-    values.resize(count);
-    const auto byte_count = values.size() * sizeof(T);
-    if (byte_count == 0) {
-        return true;
-    }
-
-    if (!read_bytes(file, values.data(), byte_count)) {
-        error = "Failed to read " + std::string(label) + " data";
-        return false;
-    }
-
-    return true;
-}
-
-bool read_string(std::ifstream& file, std::string& value, std::string& error) {
-    std::uint32_t size = 0;
-    if (!read_value(file, size)) {
-        error = "Failed to read string size";
-        return false;
-    }
-
-    if (size > kMaxStringBytes) {
-        error = "String size is unreasonably large";
-        return false;
-    }
-
-    value.resize(size);
-    if (size == 0) {
-        return true;
-    }
-
-    if (!read_bytes(file, value.data(), size)) {
-        error = "Failed to read string data";
-        return false;
-    }
-
-    return true;
-}
-
-std::uint32_t checked_count(std::size_t value, std::string_view label) {
-    if (value > std::numeric_limits<std::uint32_t>::max()) {
-        throw std::runtime_error(std::string(label) + " count exceeds uint32 limit");
-    }
-
-    return static_cast<std::uint32_t>(value);
-}
 
 bool write_meshes(std::ofstream& file, const GltfModel& model, std::string& error) {
     const auto mesh_count = checked_count(model.meshes.size(), "mesh");
@@ -122,6 +24,7 @@ bool write_meshes(std::ofstream& file, const GltfModel& model, std::string& erro
         const auto joint_index_count = checked_count(mesh.joint_indices.size(), "joint index");
         const auto joint_weight_count = checked_count(mesh.joint_weights.size(), "joint weight");
         const auto index_count = checked_count(mesh.indices.size(), "index");
+        const auto uv_count = checked_count(mesh.uvs.size(), "uv");
         const std::uint32_t has_material_color = mesh.has_material_color ? 1U : 0U;
 
         if (!write_value(file, position_count) ||
@@ -137,7 +40,9 @@ bool write_meshes(std::ofstream& file, const GltfModel& model, std::string& erro
             !write_vector(file, mesh.normals) ||
             !write_vector(file, mesh.joint_indices) ||
             !write_vector(file, mesh.joint_weights) ||
-            !write_vector(file, mesh.indices)) {
+            !write_vector(file, mesh.indices) ||
+            !write_value(file, uv_count) ||
+            !write_vector(file, mesh.uvs)) {
             error = "Failed to write mesh data";
             return false;
         }
@@ -146,7 +51,7 @@ bool write_meshes(std::ofstream& file, const GltfModel& model, std::string& erro
     return true;
 }
 
-bool read_meshes(std::ifstream& file, GltfModel& model, std::string& error) {
+bool read_meshes(std::ifstream& file, GltfModel& model, std::uint32_t version, std::string& error) {
     std::uint32_t mesh_count = 0;
     if (!read_value(file, mesh_count) || !validate_count(mesh_count, "mesh", error)) {
         if (error.empty()) {
@@ -185,6 +90,17 @@ bool read_meshes(std::ifstream& file, GltfModel& model, std::string& error) {
             !read_vector(file, mesh.joint_weights, joint_weight_count, "joint weight", error) ||
             !read_vector(file, mesh.indices, index_count, "index", error)) {
             return false;
+        }
+
+        if (version >= 2) {
+            std::uint32_t uv_count = 0;
+            if (!read_value(file, uv_count) ||
+                !read_vector(file, mesh.uvs, uv_count, "uv", error)) {
+                if (error.empty()) {
+                    error = "Failed to read mesh uvs";
+                }
+                return false;
+            }
         }
     }
 
@@ -406,6 +322,7 @@ bool CompiledMeshLoader::load(const std::string& path, GltfModel& model) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
         error_ = "Failed to open: " + path;
+        log_error_cat(AE_LOG_CATEGORY, "CompiledMeshLoader: " + error_);
         return false;
     }
 
@@ -413,25 +330,30 @@ bool CompiledMeshLoader::load(const std::string& path, GltfModel& model) {
     std::uint32_t version = 0;
     if (!read_value(file, magic) || !read_value(file, version)) {
         error_ = "Failed to read compiled mesh header";
+        log_error_cat(AE_LOG_CATEGORY, "CompiledMeshLoader: " + error_);
         return false;
     }
 
     if (magic != CompiledMeshFormat::magic) {
         error_ = "Invalid compiled mesh magic";
+        log_error_cat(AE_LOG_CATEGORY, "CompiledMeshLoader: " + error_);
         return false;
     }
 
-    if (version != CompiledMeshFormat::version) {
+    if (version == 0 || version > CompiledMeshFormat::version) {
         error_ = "Unsupported compiled mesh version";
+        log_error_cat(AE_LOG_CATEGORY, "CompiledMeshLoader: " + error_);
         return false;
     }
 
-    if (!read_meshes(file, model, error_) ||
+    if (!read_meshes(file, model, version, error_) ||
         !read_skins(file, model, error_) ||
         !read_animations(file, model, error_)) {
+        log_error_cat(AE_LOG_CATEGORY, "CompiledMeshLoader: " + error_);
         return false;
     }
 
+    log_debug_cat(AE_LOG_CATEGORY, "Compiled mesh loaded: " + path);
     return true;
 }
 

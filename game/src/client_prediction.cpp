@@ -7,16 +7,22 @@ namespace ahamkara::game {
 
 ClientPredictionManager::ClientPredictionManager()
     : world_(std::make_unique<World>()) {
-    // The prediction world is a visual copy — client-side effects only.
-    world_->set_is_client(true);
+    // The prediction world runs in server mode so it simulates dummies,
+    // AI, and projectiles identically to the server.  This keeps the
+    // predicted state consistent with what the server will confirm.
+    world_->set_is_client(false);
 }
 
 ClientPredictionManager::~ClientPredictionManager() = default;
 
 void ClientPredictionManager::apply_input(
-    const PlayerInputCommand& input, float delta_seconds) {
-    // Apply input to the local prediction world for responsive feedback.
-    world_->tick(delta_seconds, input);
+    const PlayerInputCommand& input) {
+    // Advance the simulation by one fixed step, then apply the input.
+    // This mirrors the server's tick() path: advance_sim + apply_input.
+    world_->advance_sim(fixed_step_seconds_);
+    world_->apply_input(fixed_step_seconds_, input);
+
+    ++prediction_tick_;
 
     // Buffer input for potential replay during reconciliation.
     pending_inputs_.push_back(input);
@@ -49,25 +55,24 @@ void ClientPredictionManager::reconcile(const ServerSnapshot& snapshot) {
         // Reset prediction world to authoritative state.
         world_->set_player_state(authoritative);
 
-        // Replay unacknowledged inputs on the corrected state.
-        // NOTE: On the first snapshot (last_ack_ == 0 before reconcile),
-        // pending inputs accumulated before this snapshot are effectively
-        // dropped because we don't replay.  This is a known gap — see
-        // phase4a_network_ownership.md future work item #1.
-        if (last_ack_ != 0) {
-            constexpr float kFixedStep = 1.0F / 60.0F;
-            for (const auto& pending : pending_inputs_) {
-                world_->tick(kFixedStep, pending);
-            }
+        // Replay all unacknowledged inputs on the corrected state, using
+        // the manager's fixed step (not a hardcoded value).  The pending
+        // queue already had server-acknowledged inputs removed above, so
+        // it holds exactly the unacked inputs.
+        const float step = fixed_step_seconds_;
+        for (const auto& pending : pending_inputs_) {
+            world_->advance_sim(step);
+            world_->apply_input(step, pending);
         }
     }
 }
 
 void ClientPredictionManager::reset() {
     world_ = std::make_unique<World>();
-    world_->set_is_client(true);
+    world_->set_is_client(false);
     pending_inputs_.clear();
     last_ack_ = 0;
+    prediction_tick_ = 0;
 }
 
 }  // namespace ahamkara::game

@@ -2,6 +2,8 @@
 
 #include "ae/core/log.h"
 
+#define AE_LOG_CATEGORY "Platform"
+
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
@@ -135,7 +137,9 @@ KeyCode glfw_to_ae_key(int glfw_key) {
         case GLFW_KEY_RIGHT_ALT:      return KeyCode::RightAlt;
         case GLFW_KEY_RIGHT_SUPER:    return KeyCode::RightSuper;
         case GLFW_KEY_MENU:           return KeyCode::Menu;
-        default:                      return KeyCode::Unknown;
+        default:
+            log_warning_cat(AE_LOG_CATEGORY, "Unrecognized GLFW keycode: " + std::to_string(glfw_key));
+            return KeyCode::Unknown;
     }
 }
 
@@ -156,7 +160,9 @@ GamepadButton glfw_button_to_ae_button(int glfw_button) {
         case GLFW_GAMEPAD_BUTTON_DPAD_RIGHT: return GamepadButton::DPadRight;
         case GLFW_GAMEPAD_BUTTON_DPAD_DOWN: return GamepadButton::DPadDown;
         case GLFW_GAMEPAD_BUTTON_DPAD_LEFT: return GamepadButton::DPadLeft;
-        default: return GamepadButton::Count;
+        default:
+            log_debug_cat(AE_LOG_CATEGORY, "Unrecognized GLFW gamepad button: " + std::to_string(glfw_button));
+            return GamepadButton::Count;
     }
 }
 
@@ -168,7 +174,9 @@ GamepadAxis glfw_axis_to_ae_axis(int glfw_axis) {
         case GLFW_GAMEPAD_AXIS_RIGHT_Y: return GamepadAxis::RightY;
         case GLFW_GAMEPAD_AXIS_LEFT_TRIGGER: return GamepadAxis::LeftTrigger;
         case GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER: return GamepadAxis::RightTrigger;
-        default: return GamepadAxis::Count;
+        default:
+            log_debug_cat(AE_LOG_CATEGORY, "Unrecognized GLFW gamepad axis: " + std::to_string(glfw_axis));
+            return GamepadAxis::Count;
     }
 }
 
@@ -229,12 +237,15 @@ class GlfwWindow final : public PlatformWindow {
 public:
     explicit GlfwWindow(const WindowConfig& config) {
         if (!glfwInit()) {
+            log_error_cat(AE_LOG_CATEGORY, "glfwInit() failed");
             throw std::runtime_error("Failed to initialise GLFW.");
         }
 
         if (config.create_opengl_context) {
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
         } else {
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         }
@@ -297,6 +308,12 @@ public:
             }
         });
 
+        double cursor_x = 0.0;
+        double cursor_y = 0.0;
+        glfwGetCursorPos(window_, &cursor_x, &cursor_y);
+        mouse_state_.cursor_x = static_cast<float>(cursor_x);
+        mouse_state_.cursor_y = static_cast<float>(cursor_y);
+
         log_info("Platform window created (" + std::to_string(config.width)
                  + "x" + std::to_string(config.height) + ").");
     }
@@ -306,6 +323,7 @@ public:
             glfwDestroyWindow(window_);
             window_ = nullptr;
         }
+        log_info_cat(AE_LOG_CATEGORY, "Platform window destroyed");
         glfwTerminate();
     }
 
@@ -317,6 +335,7 @@ public:
         mouse_state_.delta_y = 0.0F;
 
         glfwPollEvents();
+        reconcile_polled_input();
 
         if (glfwWindowShouldClose(window_)) {
             return false;
@@ -383,6 +402,7 @@ private:
         if (mapped_gamepad_index >= 0) {
             GLFWgamepadstate glfw_state {};
             if (!glfwGetGamepadState(mapped_gamepad_index, &glfw_state)) {
+                log_warning_cat(AE_LOG_CATEGORY, "glfwGetGamepadState failed for index " + std::to_string(mapped_gamepad_index));
                 gamepad_state_ = {};
                 return;
             }
@@ -658,6 +678,68 @@ private:
     }
 
     static constexpr usize kKeyCount = static_cast<usize>(KeyCode::Menu) + 1;
+
+    void reconcile_key_state(int glfw_key) {
+        const KeyCode key = glfw_to_ae_key(glfw_key);
+        if (key == KeyCode::Unknown) {
+            return;
+        }
+
+        const auto idx = static_cast<usize>(key);
+        if (idx >= kKeyCount) {
+            return;
+        }
+
+        const bool was_down = key_state_[idx];
+        const bool is_down = glfwGetKey(window_, glfw_key) != GLFW_RELEASE;
+        if (is_down && !was_down) {
+            key_pressed_this_frame_[idx] = true;
+        } else if (!is_down && was_down) {
+            key_released_this_frame_[idx] = true;
+        }
+        key_state_[idx] = is_down;
+    }
+
+    void reconcile_polled_input() {
+        static constexpr int kPolledKeys[] = {
+            GLFW_KEY_ESCAPE,
+            GLFW_KEY_SPACE,
+            GLFW_KEY_LEFT_SHIFT,
+            GLFW_KEY_RIGHT_SHIFT,
+            GLFW_KEY_LEFT_CONTROL,
+            GLFW_KEY_RIGHT_CONTROL,
+            GLFW_KEY_A,
+            GLFW_KEY_C,
+            GLFW_KEY_D,
+            GLFW_KEY_E,
+            GLFW_KEY_F3,
+            GLFW_KEY_F4,
+            GLFW_KEY_L,
+            GLFW_KEY_R,
+            GLFW_KEY_S,
+            GLFW_KEY_V,
+            GLFW_KEY_W,
+            GLFW_KEY_1,
+            GLFW_KEY_2,
+            GLFW_KEY_3,
+        };
+
+        for (const int glfw_key : kPolledKeys) {
+            reconcile_key_state(glfw_key);
+        }
+
+        // Some macOS trackpad/disabled-cursor paths can update GLFW's virtual
+        // cursor position without reliably invoking the cursor callback.
+        // Reconcile the polled position after event dispatch so callbacks remain
+        // the fast path, while polling fills gaps without double-counting.
+        double cursor_x = 0.0;
+        double cursor_y = 0.0;
+        glfwGetCursorPos(window_, &cursor_x, &cursor_y);
+        mouse_state_.delta_x += static_cast<float>(cursor_x) - mouse_state_.cursor_x;
+        mouse_state_.delta_y += static_cast<float>(cursor_y) - mouse_state_.cursor_y;
+        mouse_state_.cursor_x = static_cast<float>(cursor_x);
+        mouse_state_.cursor_y = static_cast<float>(cursor_y);
+    }
 
     GLFWwindow* window_ {nullptr};
     bool key_state_[kKeyCount] {};

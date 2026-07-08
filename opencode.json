@@ -1,0 +1,76 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "/Users/taufeeqali/Projects/Ahamkara/docs/README.md",
+    "/Users/taufeeqali/Projects/Ahamkara/docs/vault/OPENCODE_WORKFLOW.md",
+    "/Users/taufeeqali/Projects/Ahamkara/docs/vault/queue-tasks/opencode-standing-instructions.md"
+  ],
+  "skills": {
+    "paths": [
+      "/Users/taufeeqali/Projects/Ahamkara/docs/vault/skills"
+    ]
+  },
+  "permission": {
+    "read": "allow",
+    "grep": "allow",
+    "glob": "allow",
+    "lsp": "allow",
+    "todowrite": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "edit": "allow",
+    "task": "allow",
+    "bash": {
+      "pwd": "allow",
+      "ls *": "allow",
+      "find *": "allow",
+      "cat *": "allow",
+      "sed *": "allow",
+      "head *": "allow",
+      "tail *": "allow",
+      "npm *": "allow",
+      "pnpm *": "allow",
+      "bun *": "allow",
+      "yarn *": "allow",
+      "cargo *": "allow",
+      "cmake *": "allow",
+      "ctest *": "allow",
+      "ninja *": "allow",
+      "go test*": "allow",
+      "go build*": "allow",
+      "dotnet test*": "allow",
+      "dotnet build*": "allow",
+      "./scripts/setup-dev.sh*": "allow",
+      "./scripts/run-tests.sh*": "allow",
+      "./scripts/start.sh*": "allow",
+      "./scripts/run_server.sh*": "allow",
+      "./scripts/run_client.sh*": "allow",
+      "./scripts/run_sandbox.sh*": "allow",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git show*": "allow",
+      "git rev-parse*": "allow",
+      "git ls-files*": "allow",
+      "git branch*": "allow",
+      "git checkout -b *": "allow",
+      "git add *": "allow",
+      "mkdir *": "allow",
+
+      "git push*": "ask",
+      "git commit*": "ask",
+      "rm *": "ask",
+      "rmdir *": "ask",
+      "sudo *": "ask",
+      "docker *": "ask",
+      "chmod *": "ask",
+      "chown *": "ask",
+      "curl * | *": "ask",
+      "wget * | *": "ask",
+
+      "rm -rf /": "deny",
+      "rm -rf ~": "deny",
+      "rm -rf .": "deny"
+    }
+  }
+}

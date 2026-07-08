@@ -1,0 +1,64 @@
+{
+    "name": "Loading",
+    "background": [0.03, 0.04, 0.08, 1.0],
+    "elements": [
+        {
+            "type": "panel",
+            "x": 0.5, "y": 0.75,
+            "anchor": "bottom_center",
+            "width": 500, "height": 120,
+            "color": "none",
+            "elements": [
+                {
+                    "type": "text",
+                    "content": "{loading_map_name}",
+                    "font": "header",
+                    "color": "text_primary",
+                    "x": 0.5, "y": 10,
+                    "anchor": "top_center"
+                },
+                {
+                    "type": "text",
+                    "content": "{loading_status}",
+                    "font": "small",
+                    "color": "text_secondary",
+                    "x": 0.5, "y": 42,
+                    "anchor": "top_center"
+                },
+                {
+                    "type": "progress_bar",
+                    "x": 0.5, "y": 70,
+                    "anchor": "top_center",
+                    "width": 360,
+                    "height": 8,
+                    "rounding": 4
+                },
+                {
+                    "type": "spinner",
+                    "x": 0.5, "y": 95,
+                    "anchor": "top_center",
+                    "radius": 10,
+                    "thickness": 2.5,
+                    "color": "accent"
+                }
+            ]
+        },
+        {
+            "type": "panel",
+            "x": 0.5, "y": 0.08,
+            "anchor": "top_center",
+            "width": 300, "height": 40,
+            "color": "none",
+            "elements": [
+                {
+                    "type": "text",
+                    "content": "FLASHBACK",
+                    "font": "small",
+                    "color": "text_secondary",
+                    "x": 0.5, "y": 10,
+                    "anchor": "top_center"
+                }
+            ]
+        }
+    ]
+}

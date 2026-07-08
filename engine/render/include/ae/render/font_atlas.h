@@ -18,7 +18,8 @@ public:
     [[nodiscard]] float measure_text(std::string_view text, float scale) const;
     [[nodiscard]] float line_height(float scale) const;
 
-    void draw_text(float x, float y, float scale, std::string_view text) const;
+    void draw_text(float x, float y, float scale, std::string_view text,
+                   float r = 1.0f, float g = 1.0f, float b = 1.0f, float a = 1.0f) const;
 
 private:
     struct Impl;

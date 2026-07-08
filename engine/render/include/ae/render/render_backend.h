@@ -28,16 +28,24 @@ struct QueryHandle {
     explicit operator bool() const { return id != 0; }
 };
 
+struct TextureHandle {
+    std::uint32_t id = 0;
+    explicit operator bool() const { return id != 0; }
+};
+
 inline bool operator==(BufferHandle a, BufferHandle b) { return a.id == b.id; }
 inline bool operator!=(BufferHandle a, BufferHandle b) { return a.id != b.id; }
 inline bool operator==(ShaderHandle a, ShaderHandle b) { return a.id == b.id; }
 inline bool operator!=(ShaderHandle a, ShaderHandle b) { return a.id != b.id; }
 inline bool operator==(QueryHandle a, QueryHandle b)  { return a.id == b.id; }
 inline bool operator!=(QueryHandle a, QueryHandle b)  { return a.id != b.id; }
+inline bool operator==(TextureHandle a, TextureHandle b)  { return a.id == b.id; }
+inline bool operator!=(TextureHandle a, TextureHandle b)  { return a.id != b.id; }
 
-constexpr BufferHandle kInvalidBuffer{0};
-constexpr ShaderHandle kInvalidShader{0};
-constexpr QueryHandle  kInvalidQuery{0};
+constexpr BufferHandle  kInvalidBuffer{0};
+constexpr ShaderHandle  kInvalidShader{0};
+constexpr QueryHandle   kInvalidQuery{0};
+constexpr TextureHandle kInvalidTexture{0};
 
 // ---------------------------------------------------------------------------
 // Shader program description
@@ -58,6 +66,7 @@ struct ShaderProgramDesc {
 struct GpuMesh {
     BufferHandle vbo_positions;
     BufferHandle vbo_normals;
+    BufferHandle vbo_texcoords;
     BufferHandle vbo_joints;
     BufferHandle vbo_weights;
     BufferHandle ibo_indices;
@@ -82,9 +91,8 @@ struct GpuModel {
 // The current OpenGL implementation lives in render_backend_opengl.cpp.
 // Future Vulkan / Metal / D3D backends implement this same interface.
 //
-// Immediate-mode debug drawing (glBegin/glEnd, fixed-function lighting,
-// matrix stack) is NOT part of this abstraction — those calls remain in
-// the debug renderer and are expected to be replaced by production rendering.
+// Immediate-mode debug drawing has been retired — the renderer now uses
+// core-profile VAO-based drawing throughout.
 
 class RenderBackend {
 public:
@@ -107,7 +115,9 @@ public:
     /// Called at the start of each frame.
     virtual void begin_frame() = 0;
 
-    /// Swap buffers / present the frame.  Called at the very end.
+    /// Present the frame by swapping the back/front buffers. This is the
+    /// presentation step only (DebugRenderer::present() calls this) and draws
+    /// nothing. Called once at the very end of a frame.
     virtual void end_frame() = 0;
 
     /// Query the current framebuffer size in pixels.
@@ -166,8 +176,13 @@ public:
     virtual void set_uniform_vec3(int location, float x, float y, float z) = 0;
     virtual void set_uniform_vec4(int location, float x, float y, float z, float w) = 0;
     virtual void set_uniform_mat4_array(int location,
-                                        const float* matrices,
-                                        int count) = 0;
+                                         const float* matrices,
+                                         int count) = 0;
+
+    // --- Textures ---
+    virtual TextureHandle create_texture(int width, int height, const void* rgba8_data) = 0;
+    virtual void destroy_texture(TextureHandle handle) = 0;
+    virtual void bind_texture(TextureHandle handle, int slot) = 0;
 
     // --- GPU mesh helpers ---
     /// Build GPU buffers from a CPU-side GltfMesh.

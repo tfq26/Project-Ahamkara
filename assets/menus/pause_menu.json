@@ -1,0 +1,60 @@
+{
+    "name": "Pause Menu",
+    "overlay": true,
+    "elements": [
+        {
+            "type": "panel",
+            "x": 0.5, "y": 0.45,
+            "anchor": "center",
+            "width": 360, "height": 340,
+            "rounding": 8,
+            "color": "panel",
+            "elements": [
+                {
+                    "type": "text",
+                    "content": "PAUSED",
+                    "font": "header",
+                    "color": "text_primary",
+                    "x": 0.5, "y": 24,
+                    "anchor": "top_center"
+                },
+                { "type": "separator" },
+                { "type": "spacer", "height": 16 },
+                {
+                    "type": "button",
+                    "label": "RESUME",
+                    "style": "primary",
+                    "action": "resume_game",
+                    "x": 0.5, "y": 70,
+                    "anchor": "top_center"
+                },
+                {
+                    "type": "button",
+                    "label": "SETTINGS",
+                    "style": "secondary",
+                    "action": "push_screen:settings",
+                    "x": 0.5, "y": 128,
+                    "anchor": "top_center"
+                },
+                {
+                    "type": "button",
+                    "label": "CHANGE MAP",
+                    "style": "secondary",
+                    "action": "push_screen:map_select",
+                    "x": 0.5, "y": 186,
+                    "anchor": "top_center"
+                },
+                { "type": "spacer", "height": 10 },
+                { "type": "separator" },
+                {
+                    "type": "button",
+                    "label": "QUIT TO MENU",
+                    "style": "danger",
+                    "action": "pop_to_root",
+                    "x": 0.5, "y": 270,
+                    "anchor": "top_center"
+                }
+            ]
+        }
+    ]
+}

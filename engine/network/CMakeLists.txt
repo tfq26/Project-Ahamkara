@@ -16,3 +16,7 @@ target_link_libraries(ae_network
     PUBLIC
         ae_core
 )
+
+if(WIN32)
+    target_link_libraries(ae_network PUBLIC ws2_32)
+endif()

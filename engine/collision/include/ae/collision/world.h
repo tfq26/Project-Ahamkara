@@ -4,6 +4,7 @@
 #include "ae/collision/layers.h"
 
 #include <cstddef>
+#include <memory>
 #include <vector>
 
 namespace ae::collision {

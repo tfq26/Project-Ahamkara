@@ -6,23 +6,13 @@
 #include "ae/render/debug_renderer.h"
 #include "ae/render/font_atlas.h"
 #include "ae/render/frustum.h"
+#include "ae/render/gl_platform.h"
 #include "ae/render/render_backend.h"
 #include "ae/render/skeletal_animation.h"
 
 #include <array>
 #include <cstdint>
 #include <string>
-
-// ---------------------------------------------------------------------------
-// Platform-specific GL headers
-// ---------------------------------------------------------------------------
-#if defined(__APPLE__)
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
-#else
-#include <GL/gl.h>
-#include <GL/glext.h>
-#endif
 
 namespace ae::render {
 
@@ -51,6 +41,12 @@ void draw_axes();
 void draw_box(Vec3 min, Vec3 max);
 void draw_player_marker(Vec3 position, float height, float yaw);
 void draw_screen_quad(float x, float y, float width, float height);
+void draw_screen_line(float x1, float y1, float x2, float y2);
+void draw_screen_line_loop(const float* points, int point_count);
+void draw_screen_triangle_fan(const float* points, int point_count);
+void draw_screen_triangle_strip(const float* points, int point_count);
+void draw_screen_triangles(const float* points, int point_count);
+void draw_screen_points(const float* points, int point_count);
 
 // --- Bitmap font glyph lookup (defined in debug_renderer.cpp) ---------------
 const std::array<std::uint8_t, 7>* glyph_for_char(char character);
@@ -89,6 +85,7 @@ void draw_gpu_profiler_overlay(const DebugScene& scene, int width, int height);
 // --- HUD / debug overlays (debug_renderer_hud.cpp) --------------------------
 void draw_crosshair_overlay(const DebugScene& scene, int width, int height);
 void draw_hud(const DebugScene& scene, int width, int height, float hud_brightness);
+void draw_viewmodel_placeholder(const DebugScene& scene, int width, int height);
 void draw_menu_overlay(const DebugScene& scene, int width, int height);
 void draw_scene_overlay(const DebugScene& scene, int width, int height);
 

@@ -13,6 +13,8 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <cstdio>
+#include <cstring>
 #include <thread>
 
 void run_camera_smoke_tests();
@@ -46,6 +48,7 @@ void test_player_input_packet_round_trip() {
     source.fire_held = true;
     source.reload_pressed = false;
     source.ability_pressed = true;
+    source.interact_pressed = true;
 
     ahamkara::game::PacketEnvelope out_env {};
     out_env.sequence = 7;
@@ -78,6 +81,7 @@ void test_player_input_packet_round_trip() {
     assert(decoded.fire_held == source.fire_held);
     assert(decoded.reload_pressed == source.reload_pressed);
     assert(decoded.ability_pressed == source.ability_pressed);
+    assert(decoded.interact_pressed == source.interact_pressed);
 }
 
 void test_snapshot_packet_round_trip() {
@@ -100,7 +104,8 @@ void test_snapshot_packet_round_trip() {
 
     ahamkara::game::PacketEnvelope in_env {};
     ahamkara::game::ServerSnapshot decoded {};
-    const bool deserialized = ahamkara::game::deserialize_server_snapshot_packet(buffer, in_env, decoded);
+    const bool deserialized = ahamkara::game::deserialize_server_snapshot_packet(
+        std::span<const std::byte>(buffer.data(), buffer.size()), in_env, decoded);
     assert(deserialized);
 
     assert(decoded.server_tick == source.server_tick);
@@ -122,7 +127,9 @@ void test_snapshot_packet_round_trip() {
 void test_client_hello_packet_round_trip() {
     ahamkara::game::ClientHelloPacket source {};
     source.protocol_version = ahamkara::game::kProtocolVersion;
-    source.session_token = 0x123456789ABCDEF0ULL;
+    const char test_token[] = "nakama-test-jwt-token-12345";
+    source.auth_token_length = static_cast<ae::u16>(sizeof(test_token) - 1);
+    std::memcpy(source.auth_token, test_token, source.auth_token_length);
 
     ahamkara::game::ClientHelloPacketBuffer buffer {};
     ahamkara::game::PacketEnvelope out_env {};
@@ -141,13 +148,14 @@ void test_client_hello_packet_round_trip() {
     assert(in_env.ack_sequence == out_env.ack_sequence);
     assert(in_env.ack_bitfield == out_env.ack_bitfield);
     assert(decoded.protocol_version == source.protocol_version);
-    assert(decoded.session_token == source.session_token);
+    assert(decoded.auth_token_length == source.auth_token_length);
+    assert(std::strncmp(decoded.auth_token, source.auth_token, source.auth_token_length) == 0);
 }
 
 void test_server_welcome_packet_round_trip() {
     ahamkara::game::ServerWelcomePacket source {};
     source.protocol_version = ahamkara::game::kProtocolVersion;
-    source.session_token = 0x0F0E0D0C0B0A0908ULL;
+    std::snprintf(source.player_id, ahamkara::game::kMaxPlayerIdLength, "%s", "player-42");
 
     ahamkara::game::ServerWelcomePacketBuffer buffer {};
     ahamkara::game::PacketEnvelope out_env {};
@@ -166,13 +174,12 @@ void test_server_welcome_packet_round_trip() {
     assert(in_env.ack_sequence == out_env.ack_sequence);
     assert(in_env.ack_bitfield == out_env.ack_bitfield);
     assert(decoded.protocol_version == source.protocol_version);
-    assert(decoded.session_token == source.session_token);
+    assert(std::strncmp(decoded.player_id, source.player_id, ahamkara::game::kMaxPlayerIdLength) == 0);
 }
 
 void test_server_reject_packet_round_trip() {
     ahamkara::game::ServerRejectPacket source {};
     source.protocol_version = ahamkara::game::kProtocolVersion;
-    source.session_token = 0xCAFEBABEDEADBEEFULL;
     source.reason = ahamkara::game::HandshakeRejectReason::ServerBusy;
 
     ahamkara::game::ServerRejectPacketBuffer buffer {};
@@ -192,7 +199,6 @@ void test_server_reject_packet_round_trip() {
     assert(in_env.ack_sequence == out_env.ack_sequence);
     assert(in_env.ack_bitfield == out_env.ack_bitfield);
     assert(decoded.protocol_version == source.protocol_version);
-    assert(decoded.session_token == source.session_token);
     assert(decoded.reason == source.reason);
 }
 
@@ -213,7 +219,6 @@ void test_packet_validation_rejects_corruption() {
 void test_handshake_rejects_protocol_version_mismatch() {
     ahamkara::game::ClientHelloPacket source {};
     source.protocol_version = ahamkara::game::kProtocolVersion;
-    source.session_token = 0;
 
     ahamkara::game::ClientHelloPacketBuffer buffer {};
     ahamkara::game::PacketEnvelope envelope {};

@@ -24,9 +24,10 @@ void update_camera_state(
     // Clamp pitch to [-89, 89] degrees
     anchor.pitch = std::max(-89.0F, std::min(89.0F, anchor.pitch));
 
-    // Wrap yaw to [0, 360)
-    anchor.yaw = std::fmod(anchor.yaw, 360.0F);
+    // Wrap yaw to [-180, 180]
+    anchor.yaw = std::fmod(anchor.yaw + 180.0F, 360.0F);
     if (anchor.yaw < 0.0F) anchor.yaw += 360.0F;
+    anchor.yaw -= 180.0F;
 
     // Position camera at player position with eye height offset
     float eye_height = crouch_active ? 0.32F : 0.58F;

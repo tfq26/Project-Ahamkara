@@ -192,7 +192,13 @@ struct WeaponDefinition {
     float headshot_multiplier {2.0F};
     FireMode fire_mode {FireMode::Hitscan};
     WeaponSlot slot {WeaponSlot::Primary};
+    float rpm {400.0F};             ///< Rounds per minute — used to derive fire cooldown.
+    float reload_time_s {2.0F};     ///< Reload duration in seconds.
+    int reserve_ammo_max {150};     ///< Max reserve ammo (0 = use 3x magazine as default).
     std::vector<RecoilEntry> recoil_pattern {};
+
+    /// Seconds between shots derived from RPM.
+    [[nodiscard]] float fire_interval() const { return 60.0F / std::max(rpm, 1.0F); }
 };
 
 struct WeaponState {

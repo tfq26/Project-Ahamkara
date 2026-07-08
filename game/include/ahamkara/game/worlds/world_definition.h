@@ -1,0 +1,34 @@
+#pragma once
+
+#include "ahamkara/game/maps/map_definition.h"
+#include "ahamkara/game/net_types.h"
+
+#include <cstddef>
+
+namespace ahamkara::game {
+
+struct PlayerSpawnDefinition {
+    Vec3 position {};
+    float yaw {0.0F};
+};
+
+struct InteractionTargetDefinition {
+    ae::u32 interaction_id {0};
+    Vec3 position {};
+    float radius {1.0F};
+    bool one_shot {true};
+    const char* label {""};
+};
+
+struct WorldDefinition {
+    const char* id {""};
+    const char* display_name {""};
+    const MapDefinition* map {nullptr};
+    PlayerSpawnDefinition player_spawn {};
+    const TargetDummyState* target_dummies {nullptr};
+    std::size_t target_dummy_count {0};
+    const InteractionTargetDefinition* interaction_targets {nullptr};
+    std::size_t interaction_target_count {0};
+};
+
+}  // namespace ahamkara::game

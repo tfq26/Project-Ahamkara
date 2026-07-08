@@ -16,6 +16,7 @@ Usage:
 Modes:
   local        Configure, build, and launch the local debug view (default)
   debug-view   Same as local
+  flashback    Build and launch the Flashback engine demo
   window       Launch the windowed input diagnostics client
   sandbox      Launch the offline text sandbox
   network      Launch the dedicated server and client together
@@ -34,6 +35,8 @@ Examples:
   ./scripts/start.sh local
   ./scripts/start.sh network -- 127.0.0.1
   ./scripts/start.sh sandbox --skip-configure --skip-build
+  ./scripts/start.sh flashback
+  ./scripts/start.sh flashback -- --level assets/compiled/levels/textured_showcase.aelevel
 EOF
 }
 
@@ -70,7 +73,7 @@ while [ "$#" -gt 0 ]; do
             shift
             break
             ;;
-        local|debug-view|window|sandbox|network|server|client|configure|build)
+        local|debug-view|flashback|window|sandbox|network|server|client|configure|build)
             MODE="$1"
             shift
             ;;
@@ -99,6 +102,9 @@ case "$MODE" in
         ;;
     local|debug-view)
         exec "$SCRIPT_DIR/run_local.sh" "$@"
+        ;;
+    flashback)
+        exec "$SCRIPT_DIR/run_flashback.sh" "$@"
         ;;
     window)
         exec "$SCRIPT_DIR/run_windowed_client.sh" "$@"

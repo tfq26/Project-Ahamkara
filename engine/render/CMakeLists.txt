@@ -1,4 +1,5 @@
 add_library(ae_render STATIC
+    src/compiled_level.cpp
     src/compiled_material.cpp
     src/compiled_mesh.cpp
     src/compiled_texture.cpp
@@ -9,13 +10,21 @@ add_library(ae_render STATIC
     src/debug_renderer_metrics.cpp
     src/font_atlas.cpp
     src/frustum.cpp
+    src/gl_compat.cpp
     src/gltf_loader.cpp
     src/humanoid_mesh.cpp
+    src/atmosphere_pass.cpp
+    src/level_render.cpp
     src/map_geometry.cpp
+    src/pbr_renderer.cpp
+    src/ssao_pass.cpp
+    src/temporal_aa.cpp
     src/render_backend_opengl.cpp
+    src/shadow_pass.cpp
     src/skeletal_animation.cpp
     src/platform/mac_text_rasterizer.cpp
     src/text_rasterizer.cpp
+    src/weapon_model_cache.cpp
 )
 
 target_compile_features(ae_render PUBLIC cxx_std_20)
@@ -37,6 +46,7 @@ target_link_libraries(ae_render
         ae_core
         ae_platform
     PRIVATE
+        ae_animation
         OpenGL::GL
         glfw
         $<$<PLATFORM_ID:Darwin>:${COREFOUNDATION_FRAMEWORK}>

@@ -1,32 +1,14 @@
 #include "ae/render/compiled_texture.h"
+#include "ae/core/log.h"
+#include "ae/render/binary_io.h"
 
 #include <filesystem>
 #include <fstream>
 
+
+#define AE_LOG_CATEGORY "Render"
+
 namespace ae::render {
-namespace {
-
-bool write_bytes(std::ofstream& file, const void* data, std::size_t size) {
-    file.write(static_cast<const char*>(data), static_cast<std::streamsize>(size));
-    return static_cast<bool>(file);
-}
-
-template <typename T>
-bool write_value(std::ofstream& file, const T& value) {
-    return write_bytes(file, &value, sizeof(T));
-}
-
-bool read_bytes(std::ifstream& file, void* data, std::size_t size) {
-    file.read(static_cast<char*>(data), static_cast<std::streamsize>(size));
-    return static_cast<bool>(file);
-}
-
-template <typename T>
-bool read_value(std::ifstream& file, T& value) {
-    return read_bytes(file, &value, sizeof(T));
-}
-
-} // namespace
 
 bool save_compiled_texture(const std::string& path, const TextureAsset& texture, std::string& error) {
     error.clear();

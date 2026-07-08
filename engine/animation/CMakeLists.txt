@@ -7,6 +7,8 @@ add_library(ae_animation STATIC
     src/aim_recoil.cpp
     src/ik.cpp
     src/debug.cpp
+    src/animation_render_bridge.cpp
+    src/clip_player.cpp
 )
 
 target_compile_features(ae_animation PUBLIC cxx_std_20)

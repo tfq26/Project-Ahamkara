@@ -26,6 +26,19 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "debug-headless",
+      "displayName": "Debug Headless",
+      "description": "Debug build for remote agents that do not need the GLFW/OpenGL client",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/debug-headless",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "AHAMKARA_BUILD_CLIENT": "OFF",
+        "AHAMKARA_BUILD_SAMPLES": "OFF"
+      }
     }
   ],
   "buildPresets": [
@@ -36,6 +49,10 @@
     {
       "name": "release",
       "configurePreset": "release"
+    },
+    {
+      "name": "debug-headless",
+      "configurePreset": "debug-headless"
     }
   ]
 }

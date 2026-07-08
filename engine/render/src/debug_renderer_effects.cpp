@@ -6,6 +6,8 @@
 #include <cmath>
 #include <vector>
 
+#include "gl_compat.h"
+
 namespace ae::render {
 
 void draw_particles(RenderBackend& backend, BufferHandle& particle_vbo,
@@ -14,7 +16,6 @@ void draw_particles(RenderBackend& backend, BufferHandle& particle_vbo,
                     const Frustum& frustum) {
     if (scene.particle_count == 0) return;
 
-    glDisable(GL_LIGHTING);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE); // additive blending for particles
     glDepthMask(GL_FALSE); // particles don't write to depth
@@ -93,7 +94,6 @@ void draw_particles(RenderBackend& backend, BufferHandle& particle_vbo,
 
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
-    glEnable(GL_LIGHTING);
 }
 
 void draw_decals(RenderBackend& backend, BufferHandle& decal_vbo,
@@ -101,7 +101,6 @@ void draw_decals(RenderBackend& backend, BufferHandle& decal_vbo,
                  const DebugScene& scene, const Frustum& frustum) {
     if (scene.decal_count == 0) return;
 
-    glDisable(GL_LIGHTING);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_POLYGON_OFFSET_FILL);
@@ -176,7 +175,6 @@ void draw_decals(RenderBackend& backend, BufferHandle& decal_vbo,
 
     glDisable(GL_POLYGON_OFFSET_FILL);
     glDisable(GL_BLEND);
-    glEnable(GL_LIGHTING);
 }
 
 }  // namespace ae::render

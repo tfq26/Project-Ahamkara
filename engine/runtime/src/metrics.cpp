@@ -1,4 +1,5 @@
 #include "ae/runtime/metrics.h"
+#include "ae/core/log.h"
 
 #include <algorithm>
 #include <chrono>
@@ -10,7 +11,11 @@
 #include <string>
 #include <thread>
 
+#define AE_LOG_CATEGORY "Runtime"
+
+#if !defined(_WIN32)
 #include <sys/resource.h>
+#endif
 
 #if defined(__APPLE__)
 #include <mach/mach.h>
@@ -18,6 +23,12 @@
 #include <sys/sysctl.h>
 #elif defined(__linux__)
 #include <unistd.h>
+#endif
+
+#if defined(_WIN32)
+#define NOMINMAX
+#include <windows.h>
+#include <psapi.h>
 #endif
 
 namespace ae {
@@ -32,9 +43,11 @@ double current_wall_seconds() {
     return std::chrono::duration<double>(elapsed).count();
 }
 
+#if !defined(_WIN32)
 double process_cpu_seconds() {
     rusage usage {};
     if (getrusage(RUSAGE_SELF, &usage) != 0) {
+        log_warning_cat(AE_LOG_CATEGORY, "getrusage failed for process CPU metric");
         return 0.0;
     }
 
@@ -44,6 +57,17 @@ double process_cpu_seconds() {
         static_cast<double>(usage.ru_stime.tv_sec) + static_cast<double>(usage.ru_stime.tv_usec) / 1'000'000.0;
     return user_seconds + system_seconds;
 }
+#elif defined(_WIN32)
+double process_cpu_seconds() {
+    FILETIME create, exit, kernel, user;
+    if (GetProcessTimes(GetCurrentProcess(), &create, &exit, &kernel, &user)) {
+        const ULARGE_INTEGER k = {{kernel.dwLowDateTime, kernel.dwHighDateTime}};
+        const ULARGE_INTEGER u = {{user.dwLowDateTime, user.dwHighDateTime}};
+        return static_cast<double>(k.QuadPart + u.QuadPart) / 10000000.0; // 100ns units → seconds
+    }
+    return 0.0;
+}
+#endif
 
 #if defined(__APPLE__)
 bool read_macos_system_cpu_ticks(double& total_ticks, double& active_ticks) {
@@ -51,6 +75,7 @@ bool read_macos_system_cpu_ticks(double& total_ticks, double& active_ticks) {
     mach_msg_type_number_t count = HOST_CPU_LOAD_INFO_COUNT;
     if (host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, reinterpret_cast<host_info_t>(&cpu_info), &count)
         != KERN_SUCCESS) {
+        log_warning_cat(AE_LOG_CATEGORY, "host_statistics failed for system CPU metric");
         return false;
     }
 
@@ -76,6 +101,8 @@ RuntimeMetricsSnapshot read_macos_memory_metrics() {
         == KERN_SUCCESS) {
         snapshot.process_rss_mb = static_cast<double>(task_basic_info.resident_size) / kBytesPerMegabyte;
         snapshot.process_virtual_mb = static_cast<double>(task_basic_info.virtual_size) / kBytesPerMegabyte;
+    } else {
+        log_warning_cat(AE_LOG_CATEGORY, "task_info failed for process memory metric");
     }
 
     vm_size_t page_size = 0;
@@ -88,6 +115,8 @@ RuntimeMetricsSnapshot read_macos_memory_metrics() {
         const double used_pages = static_cast<double>(
             vm_stats.active_count + vm_stats.inactive_count + vm_stats.wire_count + vm_stats.compressor_page_count);
         snapshot.system_used_memory_mb = used_pages * static_cast<double>(page_size) / kBytesPerMegabyte;
+    } else {
+        log_warning_cat(AE_LOG_CATEGORY, "host_statistics64 failed for system memory metric");
     }
 
     std::uint64_t total_memory_bytes = 0;
@@ -102,6 +131,7 @@ RuntimeMetricsSnapshot read_macos_memory_metrics() {
 bool read_linux_system_cpu_ticks(double& total_ticks, double& active_ticks) {
     std::ifstream stat_file("/proc/stat");
     if (!stat_file.is_open()) {
+        log_warning_cat(AE_LOG_CATEGORY, "Cannot open /proc/stat for system CPU metric");
         return false;
     }
 
@@ -159,6 +189,42 @@ RuntimeMetricsSnapshot read_linux_memory_metrics() {
 
     return snapshot;
 }
+#elif defined(_WIN32)
+bool read_windows_system_cpu_ticks(double& total_ticks, double& active_ticks) {
+    FILETIME idle, kernel, user;
+    if (GetSystemTimes(&idle, &kernel, &user)) {
+        const ULARGE_INTEGER idle_time = {{idle.dwLowDateTime, idle.dwHighDateTime}};
+        const ULARGE_INTEGER kernel_time = {{kernel.dwLowDateTime, kernel.dwHighDateTime}};
+        const ULARGE_INTEGER user_time = {{user.dwLowDateTime, user.dwHighDateTime}};
+
+        // Kernel time includes idle time on Windows
+        const double idle_val = static_cast<double>(idle_time.QuadPart);
+        const double kernel_val = static_cast<double>(kernel_time.QuadPart);
+        const double user_val = static_cast<double>(user_time.QuadPart);
+
+        total_ticks = kernel_val + user_val;
+        active_ticks = kernel_val - idle_val + user_val;
+        return true;
+    }
+    log_warning_cat(AE_LOG_CATEGORY, "GetSystemTimes failed for system CPU metric");
+    return false;
+}
+
+RuntimeMetricsSnapshot read_windows_memory_metrics() {
+    RuntimeMetricsSnapshot snapshot;
+    PROCESS_MEMORY_COUNTERS pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+        snapshot.process_rss_mb = static_cast<double>(pmc.WorkingSetSize) / kBytesPerMegabyte;
+        snapshot.process_virtual_mb = static_cast<double>(pmc.PagefileUsage) / kBytesPerMegabyte;
+    }
+    MEMORYSTATUSEX ms;
+    ms.dwLength = sizeof(ms);
+    if (GlobalMemoryStatusEx(&ms)) {
+        snapshot.system_total_memory_mb = static_cast<double>(ms.ullTotalPhys) / kBytesPerMegabyte;
+        snapshot.system_used_memory_mb = static_cast<double>(ms.ullTotalPhys - ms.ullAvailPhys) / kBytesPerMegabyte;
+    }
+    return snapshot;
+}
 #endif
 
 }  // namespace
@@ -166,6 +232,7 @@ RuntimeMetricsSnapshot read_linux_memory_metrics() {
 RuntimeMetricsCollector::RuntimeMetricsCollector() {
     const unsigned int hardware_threads = std::thread::hardware_concurrency();
     logical_core_count_ = hardware_threads > 0 ? static_cast<double>(hardware_threads) : 1.0;
+    log_debug_cat(AE_LOG_CATEGORY, "RuntimeMetricsCollector initialized: logical_cores=" + std::to_string(logical_core_count_));
 }
 
 RuntimeMetricsCollector::CpuTimes RuntimeMetricsCollector::read_cpu_times() const {
@@ -177,6 +244,8 @@ RuntimeMetricsCollector::CpuTimes RuntimeMetricsCollector::read_cpu_times() cons
     read_macos_system_cpu_ticks(cpu_times.system_total_ticks, cpu_times.system_active_ticks);
 #elif defined(__linux__)
     read_linux_system_cpu_ticks(cpu_times.system_total_ticks, cpu_times.system_active_ticks);
+#elif defined(_WIN32)
+    read_windows_system_cpu_ticks(cpu_times.system_total_ticks, cpu_times.system_active_ticks);
 #endif
 
     return cpu_times;
@@ -187,6 +256,8 @@ RuntimeMetricsSnapshot RuntimeMetricsCollector::read_memory_metrics() const {
     return read_macos_memory_metrics();
 #elif defined(__linux__)
     return read_linux_memory_metrics();
+#elif defined(_WIN32)
+    return read_windows_memory_metrics();
 #else
     return {};
 #endif
