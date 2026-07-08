@@ -3,31 +3,42 @@
 #include <cstddef>
 #include <cstdint>
 #include <new>
+#include <vector>
 
 namespace ae {
 
 /**
- * @brief A simple bump/arena allocator for per-frame temporary allocations.
+ * @brief Ring-buffer frame allocator for per-frame temporary allocations.
  *
- * Allocates by bumping a pointer. O(1) allocation, O(1) reset.
- * Reset at the start of each frame to reclaim all memory at once.
+ * Manages a ring of slots (default 3). Each frame advances to the next slot,
+ * resetting its bump pointer. Allocations within a frame are linear bumps.
+ * The ring-buffer design ensures data from the previous N-1 frames remains
+ * valid while the current frame allocates, supporting double/triple-buffered
+ * pipelines.
  *
  * Thread-safe: NO. Use one per thread, or protect externally.
  *
  * Usage:
  * @code
- *   FrameAllocator alloc(4 * 1024 * 1024); // 4 MB arena
+ *   // 12 MB total = 3 slots × 4 MB each
+ *   FrameAllocator alloc(12 * 1024 * 1024, 3);
+ *
  *   void game_loop() {
- *       alloc.reset();
- *       // ... temp allocations this frame ...
+ *       alloc.end_frame();  // advance to next slot, reclaim oldest
+ *
  *       int* data = alloc.allocate_array<int>(100);
- *       // data is valid until next reset()
+ *       // data is valid until the slot is reclaimed after num_slots frames
  *   }
  * @endcode
  */
 class FrameAllocator {
 public:
-    explicit FrameAllocator(std::size_t arena_size_bytes);
+    /**
+     * @param arena_size_bytes  Total memory to reserve across all slots.
+     * @param num_slots         Number of ring-buffer slots (default 3).
+     *                          Each slot gets arena_size_bytes / num_slots.
+     */
+    explicit FrameAllocator(std::size_t arena_size_bytes, int num_slots = 3);
     ~FrameAllocator();
 
     FrameAllocator(const FrameAllocator&) = delete;
@@ -36,13 +47,13 @@ public:
     FrameAllocator& operator=(FrameAllocator&&) = delete;
 
     /**
-     * @brief Allocate raw memory with given alignment.
-     * @return Pointer to allocated memory, or nullptr if out of space.
+     * @brief Allocate raw memory from the current slot with given alignment.
+     * @return Pointer to allocated memory, or nullptr if the current slot is full.
      */
     [[nodiscard]] void* allocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t));
 
     /**
-     * @brief Allocate an array of T (uninitialized).
+     * @brief Allocate an array of T (uninitialized) from the current slot.
      */
     template <typename T>
     [[nodiscard]] T* allocate_array(std::size_t count) {
@@ -50,7 +61,7 @@ public:
     }
 
     /**
-     * @brief Allocate and default-construct a single T.
+     * @brief Allocate and default-construct a single T in the current slot.
      */
     template <typename T>
     [[nodiscard]] T* allocate_object() {
@@ -59,22 +70,43 @@ public:
         return nullptr;
     }
 
-    /** Reset the bump pointer to the start. Call once per frame. */
-    void reset();
+    /**
+     * @brief Advance to the next ring-buffer slot.
+     * Call once per frame, before allocating for the new frame.
+     */
+    void end_frame();
 
-    /** Bytes currently used. */
-    [[nodiscard]] std::size_t used() const { return offset_; }
+    /**
+     * @brief Reset all slots and start from slot 0.
+     * Use at initialization or when flushing the entire ring.
+     */
+    void reset_all();
 
-    /** Peak bytes used since last reset. */
+    /** Bytes used in the current slot. */
+    [[nodiscard]] std::size_t used() const { return slot_offsets_[current_slot_]; }
+
+    /** Peak bytes used in any single slot since last reset_all. */
     [[nodiscard]] std::size_t peak_used() const { return peak_used_; }
 
-    /** Total arena capacity in bytes. */
+    /** Total backing memory capacity in bytes. */
     [[nodiscard]] std::size_t capacity() const { return capacity_; }
+
+    /** Size of each individual slot in bytes. */
+    [[nodiscard]] std::size_t slot_size() const { return slot_size_; }
+
+    /** Number of ring-buffer slots. */
+    [[nodiscard]] int num_slots() const { return num_slots_; }
+
+    /** Current slot index [0, num_slots). */
+    [[nodiscard]] int current_slot() const { return current_slot_; }
 
 private:
     std::uint8_t* memory_;
     std::size_t capacity_;
-    std::size_t offset_{0};
+    std::size_t slot_size_;
+    int num_slots_;
+    int current_slot_{0};
+    std::vector<std::size_t> slot_offsets_;  ///< bump offset per slot
     std::size_t peak_used_{0};
     bool oom_logged_{false};
 };

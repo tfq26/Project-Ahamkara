@@ -15,7 +15,7 @@ subsystems:
   - server
   - tools
 related_feature:
-report:
+report: reports/subagents/TASK-20260704-1700-job-system-frame-allocator-report.md
 ---
 
 # TASK-20260704-1700-job-system-frame-allocator

@@ -171,4 +171,12 @@ VFX feedback: fixed snapshot chain for damage flash, particles, and decals; impl
 - **Task**: Wire each weapon index to its correct compiled viewmodel mesh path (per-weapon viewmodel meshes)
 - **Files changed**: Verified already-implemented on main (commit 8b89a5d4) — `weapon_viewmodel_mesh_path()` returns per-weapon paths
 - **Validation**: debug build + 20/20 tests pass (includes ahamkara_weapon_loader_tests verifying archetype mesh names)
-- **Report**: `docs/reports/subagents/TASK-20260704-1910-per-weapon-viewmodel-meshes-report.md`
+|- **Report**: `docs/reports/subagents/TASK-20260704-1910-per-weapon-viewmodel-meshes-report.md`
+
+## TASK-20260704-1700-job-system-frame-allocator — Review needed 2026-07-08
+
+Improved job system (condition variable wake-up, dispatch(), submit_after_all()) and frame allocator (ring-buffer, multi-slot). 20 new core_tests (12 job system + 8 frame allocator). Build (debug) + all available test suites pass. Pre-existing admin_server build failure blocks full run-tests.sh.
+- **Agent**: oz
+- **Branch**: agent/oz/job-system-frame-allocator
+- **Files changed**: `job_system.h`, `job_system.cpp`, `frame_allocator.h`, `frame_allocator.cpp`, `tests/src/core_tests.cpp` (new), `tests/CMakeLists.txt`
+- **Report**: `docs/reports/subagents/TASK-20260704-1700-job-system-frame-allocator-report.md`
