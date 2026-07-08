@@ -141,8 +141,8 @@ Build (debug) clean; 14/14 test suites pass. Branch: agent/phase5/sensory-polish
 ## TASK-20260704-1520-encounter-scripting — Self-validated 2026-07-05
 |Encounter scripting: EncounterDef/TriggerDef/SpawnWaveDef/ObjectiveDef, EncounterManager with full lifecycle (wave spawn, trigger eval, objective tracking), 9 tests. Build + 19/19 tests pass. Report: reports/subagents/TASK-20260704-1520-encounter-scripting-report.md
 ## TASK-20260704-1920-viewmodel-arm-hand-ik — Implemented (not validated) 2026-07-06
-||Viewmodel arm/hand IK: per-weapon grip socket transforms, two-bone IK solver (shoulder→elbow→hand) in presentation layer, wired into client_frame_pipeline, debug IK visualization. Build + test validation skipped (cmake not on PATH). Report: reports/subagents/TASK-20260704-1920-viewmodel-arm-hand-ik-report.md
-## TASK-20260704-1930-reload-animation-sequence — Implemented (not validated) 2026-07-06
+|||Viewmodel arm/hand IK: per-weapon grip socket transforms, two-bone IK solver (shoulder→elbow→hand) in presentation layer, wired into client_frame_pipeline, debug IK visualization. Build + test validation skipped (cmake not on PATH). Report: reports/subagents/TASK-20260704-1920-viewmodel-arm-hand-ik-report.md
+|## TASK-20260704-1930-reload-animation-sequence — Implemented (not validated) 2026-07-06
 ||Phase-driven reload animation: 4-phase sequence (GrabMag→RemoveMag→InsertMag→ReturnToGrip) driven by WeaponRuntime::reload_timer(), per-weapon reload data (AR-15/Shotgun/RL), hand IK offset to magazine position, weapon tilt during reload phases, data-driven phase timing. Build + test validation skipped (GLFW not available in headless env). Branch: agent/viewmodel/1930-reload. Report: reports/subagents/TASK-20260704-1930-reload-animation-sequence-report.md
 
 ## 2026-07-05 — TASK-20260704-1350-legacy-gl-retirement
@@ -164,3 +164,11 @@ Build (debug) clean; 14/14 test suites pass. Branch: agent/phase5/sensory-polish
 ## TASK-20260704-1230-vfx-feedback — Implemented 2026-07-08
 
 VFX feedback: fixed snapshot chain for damage flash, particles, and decals; implemented `draw_damage_flash_overlay()` (red vignette) in HUD; wired world values through `local_play.cpp` and `threaded_local_runtime.cpp`. Build (debug) clean; 16/16 tests pass (world/gameplay/movement). Branch: agent/oz/vfx-feedback. Report: docs/reports/subagents/TASK-20260704-1230-vfx-feedback-report.md
+
+## 2026-07-08 — TASK-20260704-1910-per-weapon-viewmodel-meshes
+
+- **Agent**: oz
+- **Task**: Wire each weapon index to its correct compiled viewmodel mesh path (per-weapon viewmodel meshes)
+- **Files changed**: Verified already-implemented on main (commit 8b89a5d4) — `weapon_viewmodel_mesh_path()` returns per-weapon paths
+- **Validation**: debug build + 20/20 tests pass (includes ahamkara_weapon_loader_tests verifying archetype mesh names)
+- **Report**: `docs/reports/subagents/TASK-20260704-1910-per-weapon-viewmodel-meshes-report.md`
