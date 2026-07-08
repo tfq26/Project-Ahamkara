@@ -180,6 +180,22 @@ struct DebugScene {
     Vec3 arm_shoulder_pos {};
     Vec3 arm_elbow_pos {};
     Vec3 arm_hand_pos {};
+
+    // --- Frame pacing and memory budget fields (populated by client pipeline) ---
+    double frame_budget_ms {16.7};                 // target budget
+    double frame_p1_low_ms {0.0};                  // 1% low frame time
+    double frame_rolling_avg_ms {0.0};             // rolling average frame time
+    double frame_budget_compliance {1.0};           // fraction within budget [0,1]
+    bool frame_pacing_healthy {true};              // smooth avg < budget
+    bool frame_regression {false};                 // regression detected
+    std::uint8_t rss_pressure {0};                 // 0=Ok, 1=Warning, 2=Critical
+    double rss_bytes {0.0};                        // current RSS
+    double rss_peak_bytes {0.0};                   // peak RSS
+    double rss_soft_budget {0.0};                  // RSS soft budget
+    double rss_hard_budget {0.0};                  // RSS hard budget
+    std::uint8_t frame_alloc_pressure {0};          // 0=Ok, 1=Warning, 2=Critical
+    double frame_alloc_peak_bytes {0.0};           // frame allocator peak
+    double frame_alloc_capacity_bytes {0.0};       // frame allocator capacity
 };
 
 class DebugRenderer {

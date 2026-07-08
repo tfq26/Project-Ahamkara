@@ -3,8 +3,10 @@ add_library(ae_core STATIC
     src/console.cpp
     src/file_watcher.cpp
     src/frame_allocator.cpp
+    src/frame_pacer.cpp
     src/job_system.cpp
     src/log.cpp
+    src/memory_budget.cpp
     src/time.cpp
 )
 

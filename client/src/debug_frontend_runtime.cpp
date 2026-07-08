@@ -91,6 +91,9 @@ void process_debug_hotkeys(
 }
 
 float update_debug_frame_timing(DebugFrontendState& state) {
+    state.frame_pacer.end_frame();
+    state.frame_pacer.start_frame();
+
     const double current_time = ae::now_seconds();
     float raw_delta = static_cast<float>(current_time - state.last_time_seconds);
     if (raw_delta > 0.1F) {
@@ -108,6 +111,8 @@ float update_debug_frame_timing(DebugFrontendState& state) {
 }
 
 void update_debug_metrics(DebugFrontendState& state, float frame_delta_seconds) {
+    state.budget_tracker.update_rss();
+
     state.metrics_update_accumulator += frame_delta_seconds;
     const bool compute_percentiles =
         (state.metrics_update_accumulator >= 1.0 || state.displayed_metrics.fps <= 0.0);

@@ -225,6 +225,22 @@ ae::render::DebugScene build_debug_scene(
         }
     }
 
+    // Budget/pacing fields — populated regardless of metrics visibility
+    scene.frame_budget_ms = inputs.frame_budget_ms;
+    scene.frame_p1_low_ms = inputs.frame_p1_low_ms;
+    scene.frame_rolling_avg_ms = inputs.frame_rolling_avg_ms;
+    scene.frame_budget_compliance = inputs.frame_budget_compliance;
+    scene.frame_pacing_healthy = inputs.frame_pacing_healthy;
+    scene.frame_regression = inputs.frame_regression;
+    scene.rss_pressure = inputs.rss_pressure;
+    scene.rss_bytes = inputs.rss_bytes;
+    scene.rss_peak_bytes = inputs.rss_peak_bytes;
+    scene.rss_soft_budget = inputs.rss_soft_budget;
+    scene.rss_hard_budget = inputs.rss_hard_budget;
+    scene.frame_alloc_pressure = inputs.frame_alloc_pressure;
+    scene.frame_alloc_peak_bytes = inputs.frame_alloc_peak_bytes;
+    scene.frame_alloc_capacity_bytes = inputs.frame_alloc_capacity_bytes;
+
     if (inputs.displayed_metrics != nullptr) {
         scene.metrics_visible = inputs.metrics_visible;
         scene.gpu_profiler_visible = inputs.gpu_profiler_visible;
