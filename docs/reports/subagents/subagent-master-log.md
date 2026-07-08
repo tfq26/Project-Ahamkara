@@ -115,6 +115,8 @@ Matrix-stack compatibility is fully removed, the gameplay/menu boundary now read
 
 ## TASK-20260704-1000-weapon-runtime-foundation — Review needed 2026-07-04
 Hardened WeaponRuntime seam with explicit subclass contract, on_fire() hook, and reload_timer() accessor; wired on_fire() through Player/World into firing paths; confirmed WeaponModelCache is read-only from gameplay; clarified Player weapon-ownership docs. Build + 17/17 tests pass. Report: reports/subagents/TASK-20260704-1000-weapon-runtime-foundation-report.md
+## TASK-20260704-1210-weapon-animation-layers — Review needed 2026-07-08
+Extracted weapon animation layers (sway, bob, recoil kick) from monolithic evaluate_weapon_animation() into composable standalone functions. Each layer produces an independent render::Mat4 offset. Added notify_fired() to WeaponAnimationController for external recoil-trigger hookup. Backward-compatible wrapper preserved. Build (debug) + world/movement/gameplay/weapon-loader tests pass (4/4). Pre-existing client compile failures block full run-tests.sh. Report: reports/subagents/20260704-1210-weapon-animation-layers-report.md
 
 ## 2026-07-05 — agent/phase3/combat-core
 

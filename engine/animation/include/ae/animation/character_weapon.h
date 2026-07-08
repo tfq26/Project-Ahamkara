@@ -146,7 +146,60 @@ struct WeaponAnimState {
     float reload_anim_time {0.0F};
 };
 
+// ============================================================
+// Layer evaluation functions
+//
+// Each function produces a weapon-space transform offset for one
+// animation layer. Callers compose layers by multiplying:
+//   final = sway_offset * bob_offset * recoil_offset
+//
+// Layers are intentionally independent:
+//   - Sway: mouse-driven subtle lateral motion
+//   - Bob: movement-driven vertical/rhythmic oscillation
+//   - Recoil kick: brief impulse kick on fire events
+//
+// New weapon types reuse these layers by providing a tuned
+// WeaponAnimConfig. The layering system is generic and does not
+// depend on weapon-specific logic.
+// ============================================================
+
+/// Evaluate weapon sway layer (mouse look → lateral motion).
+/// @param state Must have valid sway_phase, sway_velocity_x/y.
+/// @param config Sway parameters (amplitude, frequency, damping).
+/// @param dt Delta time in seconds.
+/// @param look_delta_x Horizontal mouse delta this frame.
+/// @param look_delta_y Vertical mouse delta this frame.
+/// @param ads_blend Current ADS blend factor [0,1] for sway reduction.
+/// @param out_offset Output: sway-only transform offset.
+void evaluate_sway_layer(WeaponAnimState& state, const WeaponAnimConfig& config,
+                          float dt, float look_delta_x, float look_delta_y,
+                          float ads_blend, render::Mat4& out_offset);
+
+/// Evaluate weapon bob layer (movement → vertical/horizontal oscillation).
+/// @param state Must have valid bob_phase.
+/// @param config Bob parameters (amplitudes, frequencies).
+/// @param dt Delta time in seconds.
+/// @param player_speed Current player speed (m/s).
+/// @param is_moving Whether the player is moving.
+/// @param out_offset Output: bob-only transform offset.
+void evaluate_bob_layer(WeaponAnimState& state, const WeaponAnimConfig& config,
+                         float dt, float player_speed, bool is_moving,
+                         render::Mat4& out_offset);
+
+/// Evaluate weapon recoil kick layer (fire impulse → brief kick + recovery).
+/// @param state Must have valid fire_anim_time; call fire_weapon_kick() to trigger a kick.
+/// @param config Recoil kick parameters (implicit in fire_anim_time max).
+/// @param dt Delta time in seconds.
+/// @param out_offset Output: recoil-kick-only transform offset.
+void evaluate_recoil_kick_layer(WeaponAnimState& state, const WeaponAnimConfig& config,
+                                 float dt, render::Mat4& out_offset);
+
+/// Trigger a recoil kick impulse on the next evaluate_recoil_kick_layer() call.
+/// Sets the fire_anim_time so the recoil layer produces a brief upward kick.
+void fire_weapon_kick(WeaponAnimState& state);
+
 /// Evaluate first-person weapon animation and produce a weapon-space transform.
+/// Convenience wrapper that composes all three layers internally.
 /// @param state Runtime state (updated in place).
 /// @param config Weapon configuration.
 /// @param dt Delta time.
