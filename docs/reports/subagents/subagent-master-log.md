@@ -160,3 +160,7 @@ Build (debug) clean; 14/14 test suites pass. Branch: agent/phase5/sensory-polish
 - **Files changed**: `client/src/debug_scene_bridge.cpp`
 - **Validation**: Clean syntax check via full project flags; all game tests pass (world: pass, movement: pass, gameplay: pass, collision: pass)
 - **Report**: `docs/reports/subagents/1900-viewmodel-offset-tuning-report.md`
+
+## TASK-20260704-1230-vfx-feedback — Implemented 2026-07-08
+
+VFX feedback: fixed snapshot chain for damage flash, particles, and decals; implemented `draw_damage_flash_overlay()` (red vignette) in HUD; wired world values through `local_play.cpp` and `threaded_local_runtime.cpp`. Build (debug) clean; 16/16 tests pass (world/gameplay/movement). Branch: agent/oz/vfx-feedback. Report: docs/reports/subagents/TASK-20260704-1230-vfx-feedback-report.md

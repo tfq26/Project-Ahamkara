@@ -168,10 +168,10 @@ const std::string& LocalPlaySimulation::get_last_interaction_label() const {
     return world_.get_last_interaction_label();
 }
 
-const ahamkara::game::ParticleState* LocalPlaySimulation::get_particles() const { return kEmptyParticles; }
-int LocalPlaySimulation::get_particle_count() const { return 0; }
-const ahamkara::game::DecalState* LocalPlaySimulation::get_decals() const { return kEmptyDecals; }
-int LocalPlaySimulation::get_decal_count() const { return 0; }
+const ahamkara::game::ParticleState* LocalPlaySimulation::get_particles() const { return world_.get_particles(); }
+int LocalPlaySimulation::get_particle_count() const { return world_.get_particle_count(); }
+const ahamkara::game::DecalState* LocalPlaySimulation::get_decals() const { return world_.get_decals(); }
+int LocalPlaySimulation::get_decal_count() const { return world_.get_decal_count(); }
 
 ahamkara::game::Vec3 LocalPlaySimulation::get_interpolated_player_position(float alpha) const {
     if (!has_previous_state_) {
@@ -284,7 +284,7 @@ bool LocalPlaySimulation::is_player_alive() const {
 }
 
 float LocalPlaySimulation::get_damage_feedback_timer() const {
-    return 0.0F;
+    return world_.get_damage_feedback_timer();
 }
 
 const ahamkara::game::AbilityState& LocalPlaySimulation::get_ability_state() const {

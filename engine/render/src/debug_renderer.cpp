@@ -2204,6 +2204,12 @@ void DebugRenderer::render(DebugScene& scene, const std::function<void()>& draw_
         draw_menu_overlay(scene, width, height);
     }
     draw_scene_overlay(scene, width, height);
+
+    // Draw damage flash red vignette overlay (on top of HUD, behind menu)
+    if (!scene.menu_visible) {
+        draw_damage_flash_overlay(scene, width, height);
+    }
+
     // End UI pass timer
     if (impl_->gpu_timers_supported) {
         impl_->backend->end_query(impl_->gpu_timer_queries[3]);

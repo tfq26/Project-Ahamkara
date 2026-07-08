@@ -190,8 +190,17 @@ ClientSimulationSnapshot ThreadedLocalRuntime::build_snapshot_locked() const {
         snapshot.projectiles[i] = simulation_.get_projectiles()[i];
     }
 
-    snapshot.particle_count = 0;
-    snapshot.decal_count = 0;
+    snapshot.particle_count =
+        std::min(simulation_.get_particle_count(), ClientSimulationSnapshot::kMaxParticles);
+    for (int i = 0; i < snapshot.particle_count; ++i) {
+        snapshot.particles[i] = simulation_.get_particles()[i];
+    }
+
+    snapshot.decal_count =
+        std::min(simulation_.get_decal_count(), ClientSimulationSnapshot::kMaxDecals);
+    for (int i = 0; i < snapshot.decal_count; ++i) {
+        snapshot.decals[i] = simulation_.get_decals()[i];
+    }
 
     snapshot.player_kills = simulation_.get_player_kills();
     snapshot.player_deaths = simulation_.get_player_deaths();
