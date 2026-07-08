@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: open
+status: review-needed
 created: 2026-07-04
 queued_by: codex
 assigned_to: opencode
@@ -15,7 +15,7 @@ subsystems:
   - server
   - tools
 related_feature:
-report:
+report: docs/reports/subagents/20260708-1730-telemetry-crash-reporting-report.md
 ---
 
 # TASK-20260704-1730-telemetry-crash-reporting

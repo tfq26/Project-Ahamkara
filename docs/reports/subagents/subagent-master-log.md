@@ -200,4 +200,16 @@ Improved job system (condition variable wake-up, dispatch(), submit_after_all())
 |  - New: `console.h/cpp`, `file_watcher.h/cpp`, `debug_inspector.h/cpp`
 |  - Modified: `config.h/cpp`, `client_frame_pipeline.h/cpp`, CMakeLists files, test files
 |- **Validation**: console_tests 12/12 pass, file_watcher_tests 11/11 pass
-|- **Report**: `docs/reports/subagents/20260704-1720-authoring-inspector-tooling-report.md`
+||- **Report**: `docs/reports/subagents/20260704-1720-authoring-inspector-tooling-report.md`
+
+## 2026-07-08 — TASK-20260704-1730-telemetry-crash-reporting
+
+|- **Agent**: oz
+|- **Task**: Telemetry, crash reporting, and diagnostics capture infrastructure
+|- **Files changed**:
+|  - New: telemetry.h/cpp, crash_handler.h/cpp, diagnostics.h/cpp
+|  - New: tools/diagnostics/diagnostics_tool.cpp
+|  - New: tests/src/telemetry_tests.cpp, crash_handler_tests.cpp, diagnostics_tests.cpp
+|  - Modified: engine/core/CMakeLists.txt, tests/CMakeLists.txt, tools/CMakeLists.txt
+|- **Validation**: ahamkara_telemetry_tests 7/7, ahamkara_crash_handler_tests 6/6, ahamkara_diagnostics_tests 5/5 — all pass (100%). Build: debug-headless clean. Existing logging tests pass (9/9). Pre-existing job system hang in utility_tests (unrelated).
+|- **Report**: `docs/reports/subagents/20260708-1730-telemetry-crash-reporting-report.md`
