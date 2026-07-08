@@ -38,6 +38,14 @@ struct DeathmatchSnapshot {
     ae::u16 individual_score {0};
 };
 
+/// Result of a lag-compensated hit validation.
+struct HitValidationResult {
+    bool hit {false};
+    int hit_dummy_idx {-1};
+    Vec3 hit_position {};
+    float damage {0};
+    bool is_headshot {false};
+};
 /// Serialize a deathmatch snapshot payload into a ByteWriter.
 inline bool write_deathmatch_snapshot(detail::ByteWriter& writer, const DeathmatchSnapshot& snap) {
     if (!writer.write(snap.server_tick)
@@ -85,6 +93,10 @@ struct PlayerSlot {
     std::chrono::steady_clock::time_point last_seen {};
     ae::u32 client_tick {0};
 
+    // Last player state sent to this client, for delta compression.
+    // Updated each time we broadcast a snapshot for this slot.
+    ReplicatedPlayerState last_sent_player_state {};
+
     // Input buffering: the server tick() applies the most recent
     // buffered input per slot, not per-packet.  simulate_input()
     // stores input here, tick() drains it.
@@ -116,6 +128,17 @@ public:
     /// Called by the server after deserializing the PlayerInputCommand.
     void simulate_input(wish::session::SessionId sid, float delta_seconds,
                         const PlayerInputCommand& cmd);
+
+    /// Lag-compensated hit validation.  Queries the server history buffer
+    /// at the client's perceived tick and runs ray-vs-dummy hit detection
+    /// against the historical dummy positions from that tick.
+    [[nodiscard]] HitValidationResult validate_hit(
+        wish::session::SessionId firing_player,
+        ae::u32 client_tick,
+        const Vec3& origin,
+        const Vec3& forward,
+        float base_damage,
+        float headshot_multiplier);
 
     ae::usize build_snapshot_bytes(wish::session::SessionId sid,
                                    std::span<std::byte> buffer) override;

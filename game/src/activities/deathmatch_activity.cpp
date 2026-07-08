@@ -156,11 +156,47 @@ void DeathmatchActivity::for_each_connected_snapshot(
         writer.write(env.ack_sequence);
         writer.write(env.ack_bitfield);
 
-        // Activity tag
-        ae::u16 activity_tag = 1;
-        writer.write(activity_tag);
+        // Delta-compressed player state portion
+        SnapshotDelta delta = compute_player_delta(
+            current_snapshot_.local_player, slot.last_sent_player_state);
+        if (!write_snapshot_delta(writer, delta)) continue;
+        slot.last_sent_player_state = current_snapshot_.local_player;
 
-        if (!write_deathmatch_snapshot(writer, current_snapshot_)) continue;
+        // Projectiles
+        if (!writer.write(current_snapshot_.projectile_count)) continue;
+        for (ae::u8 pi = 0; pi < current_snapshot_.projectile_count && pi < 8; ++pi) {
+            const auto& p = current_snapshot_.projectiles[pi];
+            if (!write_vec3(writer, p.position)
+                || !write_vec3(writer, p.velocity)
+                || !writer.write(p.lifetime_seconds)
+                || !writer.write_bool(p.alive)
+                || !writer.write(p.client_tick))
+                continue; // NOLINT (intentional early-exit on serialization failure)
+        }
+
+        // Dummies
+        if (!writer.write(current_snapshot_.dummy_count)) continue;
+        for (ae::u8 di = 0; di < current_snapshot_.dummy_count && di < 4; ++di) {
+            const auto& d = current_snapshot_.dummies[di];
+            if (!writer.write(d.dummy_id)
+                || !write_vec3(writer, d.position)
+                || !writer.write(d.yaw)
+                || !writer.write(d.health)
+                || !writer.write_bool(d.alive))
+                continue;
+        }
+
+        // Match state
+        if (!writer.write(current_snapshot_.match_phase)
+            || !writer.write(current_snapshot_.match_time)
+            || !writer.write(current_snapshot_.team_score_red)
+            || !writer.write(current_snapshot_.team_score_blue)
+            || !writer.write(current_snapshot_.individual_score))
+            continue;
+
+        // Remote players (none mapped yet — reserved for future use)
+        const ae::u8 zero_remote = 0;
+        if (!writer.write(zero_remote)) continue;
 
         fn(ctx, slot.session_id, snapshot_buffer_.data(), writer.bytes_written());
     }
@@ -269,6 +305,130 @@ void DeathmatchActivity::apply_anti_cheat(const PlayerInputCommand& cmd) {
                         + " units in one tick (max " + std::to_string(kMaxDistPerTick) + ")");
     }
     prev_player_position_ = current_pos;
+}
+
+// ---------------------------------------------------------------------------
+// Lag-compensated hit validation — server rewind
+// ---------------------------------------------------------------------------
+
+HitValidationResult DeathmatchActivity::validate_hit(
+    wish::session::SessionId /*firing_player*/,
+    ae::u32 client_tick,
+    const Vec3& origin,
+    const Vec3& forward,
+    float base_damage,
+    float headshot_multiplier)
+{
+    // Query the server's history buffer for the tick the client perceived
+    // when they fired.  If the tick is outside the retained window, bail.
+    HistoricalState hist{};
+    if (!history_buffer_.get(client_tick, hist)) {
+        return {};
+    }
+
+    constexpr float kHitscanRange = 1000.0F;
+    constexpr float kDummyRadius = 0.35F;
+    constexpr float kDummyHalfHeight = 1.0F;
+
+    Vec3 ray_end {
+        origin.x + forward.x * kHitscanRange,
+        origin.y + forward.y * kHitscanRange,
+        origin.z + forward.z * kHitscanRange
+    };
+
+    float closest_t = kHitscanRange;
+    bool hit_something = false;
+    bool is_headshot = false;
+    int hit_dummy_idx = -1;
+    Vec3 hit_position = ray_end;
+
+    // Ray direction (normalised).
+    Vec3 ray_dir {
+        ray_end.x - origin.x,
+        ray_end.y - origin.y,
+        ray_end.z - origin.z
+    };
+    float ray_len = std::sqrt(ray_dir.x * ray_dir.x +
+                              ray_dir.y * ray_dir.y +
+                              ray_dir.z * ray_dir.z);
+    if (ray_len > 0.001F) {
+        ray_dir.x /= ray_len;
+        ray_dir.y /= ray_len;
+        ray_dir.z /= ray_len;
+    }
+
+    // Test each dummy at its historical position (lag compensation).
+    for (int i = 0; i < HistoricalState::kMaxDummies; ++i) {
+        if (!hist.dummy_alive[i]) continue;
+
+        const Vec3 d_pos = hist.dummy_positions[i];
+        const Vec3 d_bottom = {d_pos.x, d_pos.y - kDummyHalfHeight, d_pos.z};
+        const Vec3 d_top    = {d_pos.x, d_pos.y + kDummyHalfHeight, d_pos.z};
+
+        // Ray-vs-infinite-cylinder test (XZ plane).
+        Vec3 oc = {origin.x - d_pos.x, origin.y - d_pos.y, origin.z - d_pos.z};
+        float a = ray_dir.x * ray_dir.x + ray_dir.z * ray_dir.z;
+        if (a < 0.001F) continue;  // Ray is near-vertical — skip cylinder test.
+        float b = 2.0F * (oc.x * ray_dir.x + oc.z * ray_dir.z);
+        float c = oc.x * oc.x + oc.z * oc.z - kDummyRadius * kDummyRadius;
+        float disc = b * b - 4.0F * a * c;
+
+        if (disc >= 0.0F) {
+            float sqrt_disc = std::sqrt(disc);
+            float t0 = (-b - sqrt_disc) / (2.0F * a);
+            float t1 = (-b + sqrt_disc) / (2.0F * a);
+            if (t0 > t1) std::swap(t0, t1);
+
+            // Test cylinder body.
+            for (float t : {t0, t1}) {
+                if (t > 0.001F && t < closest_t) {
+                    float hit_y = origin.y + ray_dir.y * t;
+                    if (hit_y >= d_bottom.y && hit_y <= d_top.y) {
+                        closest_t = t;
+                        hit_something = true;
+                        hit_dummy_idx = i;
+                        hit_position = {origin.x + ray_dir.x * t, hit_y,
+                                        origin.z + ray_dir.z * t};
+                        is_headshot = (hit_y >= d_top.y - 0.3F);
+                    }
+                }
+            }
+
+            // Hemisphere caps (approximate as full-sphere test for top and
+            // bottom centres).
+            for (const Vec3& cap_center : {d_top, d_bottom}) {
+                Vec3 to_cap = {origin.x - cap_center.x,
+                               origin.y - cap_center.y,
+                               origin.z - cap_center.z};
+                float cap_b = 2.0F * (to_cap.x * ray_dir.x +
+                                      to_cap.y * ray_dir.y +
+                                      to_cap.z * ray_dir.z);
+                float cap_c = to_cap.x * to_cap.x +
+                              to_cap.y * to_cap.y +
+                              to_cap.z * to_cap.z - kDummyRadius * kDummyRadius;
+                float cap_disc = cap_b * cap_b - 4.0F * cap_c;
+                if (cap_disc >= 0.0F) {
+                    float cap_t = (-cap_b - std::sqrt(cap_disc)) * 0.5F;
+                    if (cap_t > 0.001F && cap_t < closest_t) {
+                        closest_t = cap_t;
+                        hit_something = true;
+                        is_headshot = (&cap_center == &d_top);
+                        hit_dummy_idx = i;
+                        hit_position = {origin.x + ray_dir.x * cap_t,
+                                        origin.y + ray_dir.y * cap_t,
+                                        origin.z + ray_dir.z * cap_t};
+                    }
+                }
+            }
+        }
+    }
+
+    if (!hit_something) return {};
+
+    float damage = base_damage;
+    if (is_headshot) damage *= headshot_multiplier;
+
+    return {true, hit_dummy_idx, hit_position, damage, is_headshot};
 }
 
 }  // namespace ahamkara::game::activities

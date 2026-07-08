@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: open
+status: implemented
 created: 2026-07-04
 queued_by: codex
 assigned_to: opencode
@@ -12,7 +12,7 @@ subsystems:
   - engine/render
   - client
 related_feature:
-report:
+report: docs/reports/subagents/TASK-20260704-1350-legacy-gl-retirement-report.md
 ---
 
 # TASK-20260704-1350-legacy-gl-retirement
@@ -95,7 +95,7 @@ When done or blocked:
 
 1. Write a report in `docs/reports/subagents/` using the report template.
 2. Append `docs/reports/subagents/subagent-master-log.md`.
-3. Update this task status and `report:` frontmatter.
+3. Update this task status and `report: docs/reports/subagents/TASK-20260704-1350-legacy-gl-retirement-report.md` frontmatter.
 4. Move or copy this task to `docs/vault/queue-tasks/review-needed/` or
    `docs/vault/queue-tasks/blocked/`.
 
