@@ -4,9 +4,11 @@
 #include "ae/render/compiled_mesh.h"
 #include "ae/render/compiled_texture.h"
 #include "ae/core/log.h"
+#include "ae/render/frustum.h"
 #include "ae/render/pbr_renderer.h"
 #include "ae/core/log.h"
 
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
 
@@ -107,6 +109,31 @@ PbrMaterialParams material_to_pbr_params(const MaterialAsset& material) {
     return params;
 }
 
+// Try to load a single LOD mesh for an instance.
+// Returns true and sets `out_model` on success; `out_model` is left untouched on failure.
+bool try_load_lod(RenderBackend& backend, const std::string& mesh_path, GpuModel& out_model) {
+    CompiledMeshLoader loader;
+    GltfModel model;
+    if (!loader.load(mesh_path, model)) {
+        return false;
+    }
+    out_model = backend.create_gpu_model(model);
+    return true;
+}
+
+// Load a LOD variant by asset id.
+bool load_lod_variant(const std::string& asset_id, const std::string& asset_root,
+                      RenderBackend& backend,
+                      GpuModel& out_model) {
+    std::string resolved;
+    if (!resolve_asset_path(asset_id, asset_root, resolved)) {
+        return false;
+    }
+    return try_load_lod(backend, resolved, out_model);
+}
+
+const char* kLodSuffixes[kLodLevelCount] = {"", ".lod1", ".lod2"};
+
 void LevelRenderScene::build(const LevelAsset& level, RenderBackend& backend, const std::string& asset_root) {
     auto load_texture = [&](const std::string& tex_id) -> TextureHandle {
         std::string path;
@@ -127,20 +154,25 @@ void LevelRenderScene::build(const LevelAsset& level, RenderBackend& backend, co
     };
 
     for (const auto& mi : level.mesh_instances) {
-        std::string mesh_path;
-        if (!resolve_asset_path(mi.mesh_asset_id, asset_root, mesh_path)) {
-            continue;
-        }
-
-        CompiledMeshLoader mesh_loader;
-        GltfModel model;
-        if (!mesh_loader.load(mesh_path, model)) {
+        // Resolve LOD0 path first (required).
+        std::string lod0_path;
+        if (!resolve_asset_path(mi.mesh_asset_id, asset_root, lod0_path)) {
             continue;
         }
 
         LevelRenderInstance instance;
-        instance.model = backend.create_gpu_model(model);
         compose_model_matrix(mi, instance.model_matrix);
+
+        // Load LOD0 (mandatory).
+        try_load_lod(backend, lod0_path, instance.lod_models[0]);
+
+        // Load LOD1 (optional).
+        const std::string lod1_id = mi.mesh_asset_id + kLodSuffixes[1];
+        load_lod_variant(lod1_id, asset_root, backend, instance.lod_models[1]);
+
+        // Load LOD2 (optional).
+        const std::string lod2_id = mi.mesh_asset_id + kLodSuffixes[2];
+        load_lod_variant(lod2_id, asset_root, backend, instance.lod_models[2]);
 
         if (!mi.material_asset_id.empty()) {
             std::string mat_path;
@@ -167,7 +199,9 @@ void LevelRenderScene::build(const LevelAsset& level, RenderBackend& backend, co
 
 void LevelRenderScene::destroy(RenderBackend& backend) {
     for (auto& instance : instances_) {
-        backend.destroy_gpu_model(instance.model);
+        for (int i = 0; i < kLodLevelCount; ++i) {
+            backend.destroy_gpu_model(instance.lod_models[i]);
+        }
     }
     for (auto& handle : owned_textures_) {
         if (handle.id != 0) {
@@ -198,12 +232,68 @@ PbrDrawCall make_level_draw_call(const LevelRenderInstance& instance, GpuMesh& m
     return draw_call;
 }
 
-void LevelRenderScene::submit(PbrRenderer& pbr) const {
-    for (const auto& instance : instances_) {
-        for (const auto& mesh : instance.model.meshes) {
-            PbrDrawCall draw_call = make_level_draw_call(instance, const_cast<GpuMesh&>(mesh));
-            pbr.submit(draw_call);
+LodLevel resolve_instance_lod(const LevelRenderInstance& instance,
+                               const float* camera_position) {
+    // Compute squared distance from camera to instance center.
+    const float dx = instance.model_matrix[12] - camera_position[0];
+    const float dy = instance.model_matrix[13] - camera_position[1];
+    const float dz = instance.model_matrix[14] - camera_position[2];
+    const float dist_sq = dx * dx + dy * dy + dz * dz;
+
+    LodLevel lod = select_lod(dist_sq);
+
+    // Fall back to a higher-detail LOD if the selected model has no meshes.
+    // LOD0 is always expected to have meshes (or the instance wouldn't exist).
+    while (static_cast<int>(lod) > 0 &&
+           instance.lod_models[static_cast<int>(lod)].meshes.empty()) {
+        lod = static_cast<LodLevel>(static_cast<int>(lod) - 1);
+    }
+    return lod;
+}
+
+std::vector<LodBatchedCall> batch_level_draw_calls(
+    const std::vector<LevelRenderInstance>& instances,
+    const float* camera_position) {
+
+    struct DrawCallSortEntry {
+        const GpuMesh* mesh;
+        const LevelRenderInstance* instance;
+        std::uint64_t sort_key;
+    };
+    std::vector<DrawCallSortEntry> entries;
+
+    for (const auto& instance : instances) {
+        const LodLevel lod = resolve_instance_lod(instance, camera_position);
+        const GpuModel& model = instance.lod_models[static_cast<int>(lod)];
+
+        for (const auto& mesh : model.meshes) {
+            // Sort key combines VBO and IBO handles so identical meshes group.
+            const std::uint64_t key =
+                (static_cast<std::uint64_t>(mesh.vbo_positions.id) << 32) |
+                static_cast<std::uint64_t>(mesh.ibo_indices.id);
+            entries.push_back({&mesh, &instance, key});
         }
+    }
+
+    // Sort by mesh identity so same-mesh draw calls are consecutive.
+    std::sort(entries.begin(), entries.end(),
+              [](const DrawCallSortEntry& a, const DrawCallSortEntry& b) {
+                  return a.sort_key < b.sort_key;
+              });
+
+    std::vector<LodBatchedCall> result;
+    result.reserve(entries.size());
+    for (auto& e : entries) {
+        result.push_back({const_cast<GpuMesh*>(e.mesh), e.instance});
+    }
+    return result;
+}
+
+void LevelRenderScene::submit(PbrRenderer& pbr, const float* camera_position) const {
+    std::vector<LodBatchedCall> calls = batch_level_draw_calls(instances_, camera_position);
+    for (const auto& call : calls) {
+        PbrDrawCall draw_call = make_level_draw_call(*call.instance, *call.mesh);
+        pbr.submit(draw_call);
     }
 }
 

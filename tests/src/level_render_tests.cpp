@@ -124,12 +124,12 @@ int test_draw_call_assembly() {
 
     // A model with N meshes assembles into N draw calls (one per mesh).
     ae::render::LevelRenderInstance multi;
-    multi.model.meshes.resize(3);
-    multi.model.meshes[0].vbo_positions = {11};
-    multi.model.meshes[1].vbo_positions = {12};
-    multi.model.meshes[2].vbo_positions = {13};
+    multi.lod_models[0].meshes.resize(3);
+    multi.lod_models[0].meshes[0].vbo_positions = {11};
+    multi.lod_models[0].meshes[1].vbo_positions = {12};
+    multi.lod_models[0].meshes[2].vbo_positions = {13};
     int draw_calls = 0;
-    for (auto& m : multi.model.meshes) {
+    for (auto& m : multi.lod_models[0].meshes) {
         const ae::render::PbrDrawCall d = ae::render::make_level_draw_call(multi, m);
         if (d.mesh != &m) {
             return fail("multi-mesh draw call mesh pointer mismatch");

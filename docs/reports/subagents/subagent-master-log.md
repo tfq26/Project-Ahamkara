@@ -165,6 +165,9 @@ Build (debug) clean; 14/14 test suites pass. Branch: agent/phase5/sensory-polish
 
 VFX feedback: fixed snapshot chain for damage flash, particles, and decals; implemented `draw_damage_flash_overlay()` (red vignette) in HUD; wired world values through `local_play.cpp` and `threaded_local_runtime.cpp`. Build (debug) clean; 16/16 tests pass (world/gameplay/movement). Branch: agent/oz/vfx-feedback. Report: docs/reports/subagents/TASK-20260704-1230-vfx-feedback-report.md
 
+## TASK-20260704-1420-lod-batching — Review needed 2026-07-08
+|LOD chains + batching: LevelRenderInstance now has lod_models[3]; build() loads LOD0, LOD1, LOD2 variants; submit() selects LOD by camera distance + sorts draw calls by mesh identity for batching. 8 new tests (LOD selection, fallback, batching sort). Build (debug) + level_render_tests + lod_batching_tests pass. Pre-existing server errors block full run-tests.sh. Branch: agent/oz/lod-batching. Report: reports/subagents/20260708-1420-lod-batching-report.md
+
 ## 2026-07-08 — TASK-20260704-1910-per-weapon-viewmodel-meshes
 
 - **Agent**: oz

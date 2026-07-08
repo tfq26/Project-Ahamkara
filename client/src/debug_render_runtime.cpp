@@ -88,7 +88,7 @@ void render_local_debug_frame(
             }
             pbr_renderer.begin_frame(renderer.view_matrix(), renderer.projection_matrix(),
                                      renderer.camera_position(), &shadow_pass);
-            level_scene->submit(pbr_renderer);
+            level_scene->submit(pbr_renderer, renderer.camera_position());
             pbr_renderer.end_frame();
         });
     } else {
