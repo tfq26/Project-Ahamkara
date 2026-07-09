@@ -3,3 +3,10 @@
 .DS_Store
 /ahamkara_perf_*.csv
 logs/
+.mcp.json
+.vibe/
+.kiro/settings/
+.gemini/
+.ai/mcp/
+.kronn/tmp/
+.kronn/
