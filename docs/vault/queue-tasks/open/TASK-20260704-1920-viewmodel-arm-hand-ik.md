@@ -13,7 +13,7 @@ subsystems:
   - engine/render
   - engine/animation
 related_feature:
-report:
+report: docs/reports/subagents/TASK-20260704-1920-viewmodel-arm-hand-ik-report.md
 ---
 
 # TASK-20260704-1920-viewmodel-arm-hand-ik
@@ -105,3 +105,7 @@ When done or blocked:
 ## Notes For Codex Review
 
 Confirm the IK and hand rig stays in the presentation layer, does not leak into `WeaponRuntime` or gameplay code, and preserves the existing animation-driven weapon transform path.
+
+## Revision Note
+
+Codex review note: implementation is plausible, but it still needs build/test proof and runtime visual confirmation.

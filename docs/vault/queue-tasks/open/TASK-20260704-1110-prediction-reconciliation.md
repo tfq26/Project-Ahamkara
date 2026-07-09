@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: review-needed
+status: open
 created: 2026-07-04
 queued_by: codex
 assigned_to: phase4-netc
@@ -10,16 +10,16 @@ primary_reviewer: codex
 secondary_reviewer:
 subsystems:
   - game
-  - server
+  - client
 related_feature:
-report: docs/reports/subagents/TASK-20260704-1100-server-tick-ownership-report.md
+report: docs/reports/subagents/TASK-20260704-1110-prediction-reconciliation-report.md
 ---
 
-# TASK-20260704-1100-server-tick-ownership
+# TASK-20260704-1110-prediction-reconciliation
 
 ## Goal
 
-Move authoritative tick ownership onto the server path so sim progression, replicated state, and input consumption have one explicit source of truth.
+Make client-side prediction and reconciliation explicit and replayable so buffered input handling stays deterministic under latency.
 
 ## Background
 
@@ -42,26 +42,26 @@ In bounds:
 - Keep the server as the authority for sim progression and replicated state.
 - Keep client code as an input/presentation consumer, not the source of truth.
 - Keep the slice deterministic and replay-friendly.
-- server-owned tick progression
-- input consumption on the authoritative path
-- clear sim/input clock alignment
+- prediction state capture
+- reconciliation and replay path
+- buffered input handling under latency
 
 Out of bounds:
 
 - No matchmaking or service orchestration work.
 - No weapon balance or combat tuning pass.
 - No HUD redesign beyond thin adapters needed for validation.
-- prediction/reconciliation redesign
-- matchmaking or activity orchestration
-- HUD or menu ownership refactors
+- service/matchmaking changes
+- weapon balance changes
+- renderer or HUD redesign
 
 ## Likely Files
 
-  - `server/src/dedicated_server_main.cpp`
-  - `game/src/world.cpp`
-  - `game/include/ahamkara/game/world.h`
-  - `game/include/ahamkara/game/net_types.h`
   - `game/include/ahamkara/game/client_prediction.h`
+  - `game/src/client_prediction.cpp`
+  - `client/src/headless_clients.cpp`
+  - `client/src/local_play.cpp`
+  - `game/src/world.cpp`
 
 ## Implementation Plan
 
@@ -71,8 +71,8 @@ Out of bounds:
 
 ## Acceptance Bar
 
-- The server is the explicit authority for the sim step.
-- Client code no longer owns the tick timing contract.
+- Prediction and reconciliation are explicit in the runtime path.
+- Buffered input replay is deterministic.
 - Build and tests remain green.
 
 ## Review Tier
@@ -102,3 +102,7 @@ When done or blocked:
 
 Confirm the slice keeps the ownership boundary explicit and does not leak
 runtime authority back into the wrong subsystem.
+
+## Revision Note
+
+Codex review note: prediction_tick_ is still not aligned with the server tick counter; add a small follow-up note/test or a stronger contract statement.

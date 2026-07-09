@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: review-needed
+status: open
 created: 2026-07-04
 queued_by: codex
 assigned_to: opencode
@@ -116,3 +116,7 @@ When done or blocked:
 
 Confirm the runtime seam stays gameplay-only and that any cache access needed
 for weapon identity stays read-only from the runtime path.
+
+## Revision Note
+
+Codex review note: primary review passed, but this is high escalation and needs secondary review confirmation before it can close.

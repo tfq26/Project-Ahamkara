@@ -1,6 +1,6 @@
 ---
 type: opencode-task
-status: review-needed
+status: open
 created: 2026-07-04
 queued_by: user
 assigned_to: opencode
@@ -108,3 +108,7 @@ When done or blocked:
 ## Notes For Codex Review
 
 Confirm the reload animation is driven by presentation-layer state (consuming `WeaponRuntime::reload_timer()` as read-only input), and that ammo/reload gameplay logic in `WeaponRuntime` is not modified.
+
+## Revision Note
+
+Codex review note: presentation flow is in place, but the report is still unvalidated and needs runtime visual confirmation.
