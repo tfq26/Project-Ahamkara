@@ -358,3 +358,22 @@ target_link_libraries(ahamkara_streaming_residency_tests
 )
 
 add_test(NAME ahamkara_streaming_residency_tests COMMAND ahamkara_streaming_residency_tests)
+
+add_executable(ahamkara_destination_metadata_tests
+    src/destination_metadata_tests.cpp
+)
+
+target_compile_features(ahamkara_destination_metadata_tests PRIVATE cxx_std_20)
+
+target_include_directories(ahamkara_destination_metadata_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+)
+
+target_link_libraries(ahamkara_destination_metadata_tests
+    PRIVATE
+        ahamkara_game
+)
+
+add_test(NAME ahamkara_destination_metadata_tests COMMAND ahamkara_destination_metadata_tests)

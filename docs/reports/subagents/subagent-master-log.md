@@ -201,3 +201,9 @@ Improved job system (condition variable wake-up, dispatch(), submit_after_all())
 |  - Modified: `config.h/cpp`, `client_frame_pipeline.h/cpp`, CMakeLists files, test files
 |- **Validation**: console_tests 12/12 pass, file_watcher_tests 11/11 pass
 |- **Report**: `docs/reports/subagents/20260704-1720-authoring-inspector-tooling-report.md`
+
+## 2026-07-08
+- **TASK-20260704-1430-destination-metadata** — Completed 2026-07-08. Agent: oz.
+  Summary: Added destination metadata types (RegionType, RegionBounds, LandingZoneDefinition, AmbientPopulationSpawn, RegionDescriptor, DestinationMetadata) and optional destination pointer on WorldDefinition (null = backward compatible). 18/18 test suites pass including new ahamkara_destination_metadata_tests (13/13).
+  Report: reports/subagents/20260708-1430-destination-metadata-report.md
+  Validation: cmake --build --preset debug + ctest (18 test suites, all pass).
