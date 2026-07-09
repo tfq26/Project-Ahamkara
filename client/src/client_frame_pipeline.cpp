@@ -306,18 +306,35 @@ void ClientFramePipeline::stage_build_scene() {
     static float damage_flash_timer = 0.0F;
     static float prev_health = 100.0F;
 
+    const auto& pacer = frontend_state_.frame_pacer;
+    const auto& budget = frontend_state_.budget_tracker;
+
     scene_ = build_debug_scene(prev_snap_, curr_snap_,
         DebugSceneBuildInputs {
-            .camera_mode         = frontend_state_.camera_mode,
-            .metrics_visible     = frontend_state_.metrics_visible,
-            .gpu_profiler_visible = frontend_state_.gpu_profiler_visible,
-            .always_day          = frontend_state_.always_day,
-            .menu_visible        = menu_state_.visible(),
-            .menu_tab            = ui_controller_.active_menu_tab(),
-            .gamma               = client_config_.gamma,
-            .displayed_metrics   = &frontend_state_.displayed_metrics,
-            .alpha               = alpha_,
-            .level_asset         = level_asset_,
+            .camera_mode            = frontend_state_.camera_mode,
+            .metrics_visible        = frontend_state_.metrics_visible,
+            .gpu_profiler_visible   = frontend_state_.gpu_profiler_visible,
+            .always_day             = frontend_state_.always_day,
+            .menu_visible           = menu_state_.visible(),
+            .menu_tab               = ui_controller_.active_menu_tab(),
+            .gamma                  = client_config_.gamma,
+            .displayed_metrics      = &frontend_state_.displayed_metrics,
+            .alpha                  = alpha_,
+            .level_asset            = level_asset_,
+            .frame_budget_ms        = pacer.budget_ms(),
+            .frame_p1_low_ms        = pacer.percentile_01_low_ms(),
+            .frame_rolling_avg_ms   = pacer.rolling_avg_ms(),
+            .frame_budget_compliance = pacer.budget_compliance(),
+            .frame_pacing_healthy   = pacer.pacing_healthy(),
+            .frame_regression       = pacer.regression_detected(),
+            .rss_pressure           = static_cast<std::uint8_t>(budget.rss_pressure()),
+            .rss_bytes              = static_cast<double>(budget.rss_bytes()),
+            .rss_peak_bytes         = static_cast<double>(budget.peak_rss_bytes()),
+            .rss_soft_budget        = static_cast<double>(budget.rss_soft_bytes()),
+            .rss_hard_budget        = static_cast<double>(budget.rss_hard_bytes()),
+            .frame_alloc_pressure   = 0,  // populated per-frame if tracking a frame allocator
+            .frame_alloc_peak_bytes = 0.0,
+            .frame_alloc_capacity_bytes = 0.0,
         });
 
     weapon_animation_.tick(

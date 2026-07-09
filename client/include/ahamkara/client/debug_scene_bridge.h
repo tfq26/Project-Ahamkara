@@ -76,6 +76,22 @@ struct DebugSceneBuildInputs {
     const ae::RuntimeMetricsSnapshot* displayed_metrics {nullptr};
     float alpha {1.0F};
     const ae::render::LevelAsset* level_asset {nullptr};
+
+    // Frame pacing and memory budget data
+    double frame_budget_ms {16.7};
+    double frame_p1_low_ms {0.0};
+    double frame_rolling_avg_ms {0.0};
+    double frame_budget_compliance {1.0};
+    bool frame_pacing_healthy {true};
+    bool frame_regression {false};
+    std::uint8_t rss_pressure {0};
+    double rss_bytes {0.0};
+    double rss_peak_bytes {0.0};
+    double rss_soft_budget {0.0};
+    double rss_hard_budget {0.0};
+    std::uint8_t frame_alloc_pressure {0};
+    double frame_alloc_peak_bytes {0.0};
+    double frame_alloc_capacity_bytes {0.0};
 };
 
 [[nodiscard]] ae::render::DebugScene build_debug_scene(
