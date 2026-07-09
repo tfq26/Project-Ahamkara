@@ -710,6 +710,8 @@ Tasks:
 
 Tasks:
 
-- runtime-boundary tests
-- platform packaging
-- CI build/test matrix
+- `TASK-20260704-1740-ci-packaging`
+- runtime-boundary tests (`ahamkara_runtime_boundary_tests`)
+- platform packaging (CPack + install rules)
+- CI build/test matrix (GitHub Actions)
+- build matrix validation script (`scripts/validate-matrix.sh`)

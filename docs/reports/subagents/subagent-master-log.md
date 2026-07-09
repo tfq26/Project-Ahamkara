@@ -221,4 +221,11 @@ Improved job system (condition variable wake-up, dispatch(), submit_after_all())
 |  - Modified: engine/core/CMakeLists.txt, tests/CMakeLists.txt, tools/CMakeLists.txt
 |- **Validation**: ahamkara_telemetry_tests 7/7, ahamkara_crash_handler_tests 6/6, ahamkara_diagnostics_tests 5/5 — all pass (100%). Build: debug-headless clean. Existing logging tests pass (9/9). Pre-existing job system hang in utility_tests (unrelated).
 |- **Report**: `docs/reports/subagents/20260708-1730-telemetry-crash-reporting-report.md`
->>>>>>> origin/agent/oz/telemetry-crash-reporting
+
+## 2026-07-08 — TASK-20260704-1740-ci-packaging
+
+||- **Agent**: oz
+||- **Task**: CI packaging, runtime-boundary tests, build matrix, CPack, GitHub Actions
+||- **Files changed**: 10 files: new (`.github/workflows/ci.yml`, `cmake/InstallRules.cmake`, `scripts/validate-matrix.sh`, `tests/src/runtime_boundary_tests.cpp`); modified (`CMakeLists.txt`, `CMakePresets.json`, `Dockerfile`, `tests/CMakeLists.txt`, `tests/src/nakama_bridge_tests.cpp`, `docs/vault/workflows/phase-slice-map.md`)
+||- **Validation**: 20/26 tests pass (ahamkara_runtime_boundary_tests 9/9 new). Pre-existing server build failure on macOS blocks full debug build.
+||- **Report**: `docs/reports/subagents/20260708-1740-ci-packaging-report.md`

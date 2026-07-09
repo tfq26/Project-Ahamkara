@@ -69,7 +69,7 @@ struct ScopedSocket {
 struct FakeHttpServerResult {
     unsigned short port {0};
     std::thread thread {};
-|};
+};
 
 FakeHttpServerResult spawn_fake_nakama_server(std::string response, std::string* captured_request) {
     SocketHandle raw_sock = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);

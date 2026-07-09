@@ -432,4 +432,14 @@ target_compile_features(ahamkara_diagnostics_tests PRIVATE cxx_std_20)
 target_include_directories(ahamkara_diagnostics_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include)
 target_link_libraries(ahamkara_diagnostics_tests PRIVATE ae_core)
 add_test(NAME ahamkara_diagnostics_tests COMMAND ahamkara_diagnostics_tests)
->>>>>>> origin/agent/oz/telemetry-crash-reporting
+
+add_executable(ahamkara_runtime_boundary_tests
+    src/runtime_boundary_tests.cpp
+)
+
+target_compile_features(ahamkara_runtime_boundary_tests PRIVATE cxx_std_20)
+target_compile_definitions(ahamkara_runtime_boundary_tests PRIVATE
+    $<$<BOOL:${AHAMKARA_BUILD_CLIENT}>:AHAMKARA_BUILD_CLIENT=$<BOOL:${AHAMKARA_BUILD_CLIENT}>>
+    $<$<BOOL:${AHAMKARA_BUILD_SERVER}>:AHAMKARA_BUILD_SERVER=$<BOOL:${AHAMKARA_BUILD_SERVER}>>
+)
+add_test(NAME ahamkara_runtime_boundary_tests COMMAND ahamkara_runtime_boundary_tests)
