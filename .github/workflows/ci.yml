@@ -7,9 +7,16 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - develop
+      - "agent/**"
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+
+permissions:
+  contents: write
+  issues: write
 
 env:
   CMAKE_BUILD_PARALLEL_LEVEL: 4
@@ -86,3 +93,37 @@ jobs:
         with:
           name: ahamkara-package
           path: build/package/*.tar.gz
+
+  auto-merge:
+    needs: build-and-test
+    if: |
+      success() && (
+        startsWith(github.ref_name, 'agent/')
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Auto-merge into develop
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "Oz Agent"
+          git config user.email "oz-agent@warp.dev"
+          git fetch origin develop
+          git checkout develop
+          if git merge --no-ff "${{ github.ref_name }}" -m "Auto-merge ${{ github.ref_name }} into develop [skip ci]"; then
+            git push origin develop
+            echo "Merged ${{ github.ref_name }} into develop"
+            # Post success comment on the triggering issue if applicable
+            BRANCH="${{ github.ref_name }}"
+            ISSUE_NUM=$(echo "$BRANCH" | grep -oE '[0-9]+' | head -1)
+            if [ -n "$ISSUE_NUM" ]; then
+              gh issue comment "$ISSUE_NUM" --body "✅ Auto-merged into `develop`. Next stop: `main` via release PR." 2>/dev/null || true
+            fi
+          else
+            echo "Merge conflict — manual intervention needed"
+            exit 1
+          fi
