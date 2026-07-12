@@ -13,6 +13,7 @@
 #include "ae/core/log.h"
 
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>

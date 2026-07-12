@@ -4,11 +4,7 @@
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#if defined(__APPLE__)
-#include <OpenGL/gl.h>
-#else
-#include <GL/gl.h>
-#endif
+#include "ae/render/gl_platform.h"
 
 #include "../engine/render/src/gl_compat.h"
 
