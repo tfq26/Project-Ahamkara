@@ -22,6 +22,12 @@
 #ifndef GL_SAMPLES_PASSED
 #define GL_SAMPLES_PASSED 0x8914
 #endif
+#elif defined(_WIN32)
+// Windows SDK's GL/gl.h is legacy OpenGL 1.1 which conflicts with
+// the GL extension types used by the engine.  Use bundled Khronos
+// headers (engine/render/include/GL/) instead.
+#include <GL/glcorearb.h>
+#include <GL/glext.h>
 #else
 #include <GL/gl.h>
 #include <GL/glext.h>
