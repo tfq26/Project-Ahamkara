@@ -11,14 +11,19 @@
 #include <sstream>
 
 #include <csignal>
+
+#if !defined(_WIN32)
 #include <unistd.h>
 
 // execinfo.h for backtrace — available on macOS/BSD, glibc on Linux
 #include <execinfo.h>
+#endif
 
 #define AE_LOG_CATEGORY "CrashHandler"
 
 namespace ae {
+
+#if !defined(_WIN32)
 
 namespace {
 
@@ -184,6 +189,38 @@ std::vector<StackFrame> capture_stack_trace(int skip_frames) {
     }
     return frames;
 }
+
+#else  // _WIN32
+
+// ===================================================================
+// Windows stubs — crash_handler uses POSIX-only APIs (sigaction,
+// backtrace, etc.) that are not available on MSVC. We provide empty
+// implementations so the engine compiles on Windows.
+// ===================================================================
+
+CrashHandler::CrashHandler() = default;
+CrashHandler::~CrashHandler() = default;
+
+CrashHandler& CrashHandler::instance() {
+    static CrashHandler handler;
+    return handler;
+}
+
+void CrashHandler::install() {
+    installed_ = true;
+}
+
+void CrashHandler::uninstall() {
+    installed_ = false;
+}
+
+void CrashHandler::on_crash(CrashCallback /*cb*/) {}
+
+std::vector<StackFrame> capture_stack_trace(int /*skip_frames*/) {
+    return {};
+}
+
+#endif  // _WIN32
 
 const char* signal_name(int signum) {
     switch (signum) {
