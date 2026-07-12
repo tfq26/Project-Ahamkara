@@ -4,20 +4,8 @@
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#define GL_GLEXT_PROTOTYPES
-#if defined(__APPLE__)
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
-#ifndef GL_TIME_ELAPSED
-#define GL_TIME_ELAPSED 0x88BF
-#endif
-#ifndef GL_SAMPLES_PASSED
-#define GL_SAMPLES_PASSED 0x8914
-#endif
-#else
-#include <GL/gl.h>
-#include <GL/glext.h>
-#endif
+
+#include "ae/render/gl_platform.h"
 
 // Use the compat layer's core-profile draw helper without remapping this file's
 // own (real) GL calls.
