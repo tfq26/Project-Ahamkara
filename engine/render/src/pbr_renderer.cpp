@@ -5,6 +5,7 @@
 #include "ae/render/gl_platform.h"
 
 #include <cmath>
+#include <cstring>
 
 
 #define AE_LOG_CATEGORY "Render"

@@ -10,11 +10,7 @@
 #include <string_view>
 #include <vector>
 
-#if defined(__APPLE__)
-#include <OpenGL/gl3.h>
-#else
-#include <GL/glcorearb.h>
-#endif
+#include "ae/render/gl_platform.h"
 
 namespace ae::render {
 namespace {

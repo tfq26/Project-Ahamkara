@@ -10,12 +10,7 @@
 // We include the actual OpenGL headers for Core-compatible calls.
 // All legacy calls are intercepted by the macros in gl_compat.h and routed
 // through the functions in this file.
-#if defined(__APPLE__)
-#include <OpenGL/gl3.h>
-#include <OpenGL/gl3ext.h>
-#else
-#include <GL/glcorearb.h>
-#endif
+#include "ae/render/gl_platform.h"
 
 namespace ae {
 namespace gl_compat {
