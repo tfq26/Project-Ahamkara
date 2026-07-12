@@ -1,0 +1,244 @@
+{
+  "pending": {
+    "51": {
+      "number": 51,
+      "title": "TASK-20260709-1400-pipeline-smoke-test",
+      "body": "## Objective\nEnd-to-end smoke test for the autonomous pipeline. Codex should analyze this issue, create a branch, build, run tests, and push. The CI should auto-merge into develop.\n\n## Task\nAdd a single new test file at  that:\n- Tests that 1 + 1 == 2 (always passes)\n- Tests that  (always passes)\n\n## Files\n-  \u2014 add the new test source\n-  \u2014 two simple assertion tests\n\n## Validation\ncmake --build --preset debug\n./scripts/run-tests.sh --preset debug\n\n## Acceptance\nThe new test file compiles and both assertions pass.",
+      "detected_at": "2026-07-11T22:25:31.085609+00:00",
+      "labels": [
+        "task",
+        "priority-critical"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/51"
+    },
+    "50": {
+      "number": 50,
+      "title": "TASK-20260704-1010-weapon-fire-control",
+      "body": "## Objective\nImplement weapon fire control within the WeaponRuntime seam. Normalize fire modes (single, burst, auto), ammo/reload/reserves plumbing, RPM timing, and deterministic recoil/spread patterns.\n\n## Key Files\n- `game/src/weapon_runtime.cpp` / `game/include/ahamkara/game/weapon_runtime.h`\n- `game/src/weapon_loader.cpp` / `game/src/weapon_registry.cpp`\n- `game/src/world_projectile.cpp`\n- `game/src/world.cpp`\n- `tests/`\n\n## Acceptance Criteria\n1. FireMode enum (Single, Burst, Auto) selectable per weapon\n2. Ammo tracking (magazine reserves, reload timer) wired through WeaponRuntime\n3. RPM-based fire rate limiting with deterministic timing\n4. Recoil/spread pattern generator with seed-based reproducibility\n5. All existing tests still pass + new tests for fire control\n6. Builds with `cmake --build --preset debug`\n\n## Notes\n- WeaponRuntime::on_fire() hook already exists (TASK-1000)\n- Reuse existing ammo/cooldown infrastructure in world_projectile.cpp\n- Keep presentation concerns out of the runtime",
+      "detected_at": "2026-07-11T22:25:31.736704+00:00",
+      "labels": [
+        "task",
+        "open",
+        "priority-high"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/50"
+    },
+    "48": {
+      "number": 48,
+      "title": "TASK-20260623-1615-deep-logging-wish",
+      "body": "**Source**: `TASK-20260623-1615-deep-logging-wish.md`\n**Status**: blocked\n**Priority**: normal\n\n---\n\n\n# TASK-20260623-1615-deep-logging-wish\n\n## Goal\n\nInstrument `wish` (wish engine: protocol, runtime, integrations) with deep,\nlevel-gated logging under category `Wish`, per the parent epic's standard.\n\n## Background\n\nParent: [TASK-20260623-1600-deep-logging-epic](TASK-20260623-1600-deep-logging-epic.md).\n**Depends on** child 1601. Read the Shared Logging Standard there. See also the\nwish docs in `docs/wish/`.\n\n## Scope\n\nIn bounds (logging only):\n- Wish engine init/shutdown, runtime startup (Info).\n- Protocol message parse/dispatch, request/response lifecycle (Debug).\n- Integration/bridge events (e.g. Nakama bridge), session lifecycle (Info/Debug).\n- Per-message detail (Trace, gated).\n- Parse failures, protocol errors, integration failures (Warning/Error).\n- `#define AE_LOG_CATEGORY \"Wish\"`. No secrets/tokens in logs.\n\nOut of bounds: behavior changes; per-message Info spam.\n\n## Likely Files\n\n- `wish/src/*`, `wish/include/*`\n\n## Implementation Plan\n\n1. Add the `Wish` category define per TU.\n2. Engine/runtime lifecycle (Info); protocol/session (Debug); per-message (Trace).\n\n## Acceptance Bar\n\n- `Wish` logs at correct levels; default run unchanged; cheap when disabled.\n- No secret/token leakage.\n- Build clean; existing tests (incl. `ahamkara_nakama_bridge_tests`) green.\n\n## Review Tier\n\n- `low`.\n\n## Validation\n\n```sh\ncmake --build --preset debug-headless\n./scripts/run-tests.sh --preset debug-headless\n```\n\n## Reporting Required\n\nStandard: report, master log, status/`report: reports/subagents/TASK-20260623-1615-deep-logging-wish-report.md`, move to `review-needed/`.\n\n## Codex Review Outcome\n\nCodex found no actual `Wish` logging calls in the diff. Add real category-gated\nlogging in `wish/integrations/nakama/src/nakama_bridge.cpp` and any other\nin-scope `wish` C++ entry points, then resubmit.\n\n## Deferred Note\n\nThis slice is deferred until the user says the project is in a w",
+      "detected_at": "2026-07-11T22:25:32.143417+00:00",
+      "labels": [
+        "task",
+        "blocked",
+        "priority-normal"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/48"
+    },
+    "47": {
+      "number": 47,
+      "title": "TASK-20260623-1600-deep-logging-epic",
+      "body": "**Source**: `TASK-20260623-1600-deep-logging-epic.md`\n**Status**: blocked\n**Priority**: high\n\n---\n\n\n# TASK-20260623-1600-deep-logging-epic\n\n## Goal\n\nAdd deep, structured, level-gated logging across every component of the codebase\nso runtime behavior (init/shutdown, state transitions, resource load, errors,\nkey per-frame/per-tick milestones) is observable. This is a **parent/epic** task;\nthe actual work happens in the child tasks (one per component), executed one\nOpenCode pass at a time.\n\n## Background\n\nMotivation: runtime-confirm and debugging are painful because most subsystems\nare silent (e.g. the level-load path rendered nothing with no log line either\nway \u2014 see the level-authoring cluster). The logging facility\n(`engine/core/include/ae/core/log.h`) already has categorized variants\n(`log_info_cat` / `log_warning_cat` / `log_error_cat`) that prepend\n`[Level][Category][time]`, but it has **no debug/trace level and no runtime\nfiltering**, so \"deep\" logging would flood normal runs. Child #1 fixes that\nfirst; the rest instrument each component against the shared standard below.\n\n## First Read\n\n- [Docs index](../../README.md)\n- [Repo map](../01-repo-map.md)\n- [Agent handoff](../../guides/agent-handoff.md)\n- [Architecture](../../systems/architecture.md)\n- `engine/core/include/ae/core/log.h` (the logging facility)\n- [OpenCode standing instructions](opencode-standing-instructions.md)\n\n## Shared Logging Standard (the contract every child follows)\n\n1. **Categories.** Each component logs under one stable category string via a\n   file/translation-unit `#define AE_LOG_CATEGORY \"<Name>\"` and the `*_cat`\n   helpers. Category per component:\n   Core, Collision, Physics, Network, Runtime, Platform, Render, Animation, UI,\n   Input, Audio, Game, Client, Server, Wish, Tools.\n2. **Levels** (after child #1 adds debug/trace):\n   - `Error` \u2014 failures/unrecoverable paths. Always on.\n   - `Warning` \u2014 recoverable problems, fallbacks, missing assets. Always on.\n   - `Info` \u2014 significant lifec",
+      "detected_at": "2026-07-11T22:25:32.602425+00:00",
+      "labels": [
+        "task",
+        "blocked",
+        "priority-high"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/47"
+    },
+    "46": {
+      "number": 46,
+      "title": "TASK-20260620-1520-runtime-confirm-prototype-levels",
+      "body": "**Source**: `TASK-20260620-1520-runtime-confirm-prototype-levels.md`\n**Status**: blocked\n**Priority**: high\n\n---\n\n\n# TASK-20260620-1520-runtime-confirm-prototype-levels\n\n## Goal\n\nOn a machine with a GL display, run the client against the prototype levels and\nconfirm the world-render slices actually work end to end. This closes the\nruntime-confirmation gap left by TASK-20260620-1200 (level meshes),\nTASK-20260620-1330 (UV/textures), and TASK-20260620-1400 (level spec/emitter).\n\n## IMPORTANT\n\nThis task REQUIRES a GL display. It cannot be completed in a headless agent\nenvironment. Assign it to a worker or human on a machine with a window/display.\n\n## First Read\n\n- [Building / running](../../../guides/building.md)\n- [Level world meshes report](../../../reports/subagents/TASK-20260620-1200-level-driven-world-meshes-report.md)\n- [Level spec emitter report](../../../reports/subagents/TASK-20260620-1400-level-spec-and-lvl-emitter-report.md)\n\n## Scope\n\nIn bounds:\n\n- Build and run the client against `assets/compiled/levels/prototype_box.aelevel`\n  (e.g. `./scripts/start.sh local`, pointing the client `level_path` at it).\n- Confirm and record:\n  - the two `test_box` mesh instances render at the expected positions/scales,\n  - the HUD / crosshair / menu are NOT overwritten by the meshes (validates the\n    TASK-20260620-1200 render-order fix),\n  - spawns / collision behave (movement against the level),\n  - if TASK-20260620-1500 has landed, the albedo texture is visible.\n- Capture a screenshot or concise observed-behavior notes.\n\nOut of bounds:\n\n- Any code change beyond what is needed to point the client at the level.\n\n## Acceptance Bar\n\n- A written confirmation (with screenshot or precise notes) that meshes render\n  and overlays are intact, or a precise bug report if not.\n\n## Review Tier\n\n- `low`.\n\n## Validation\n\n```sh\n./scripts/start.sh local   # or the exact client invocation with the level path\n```\n\nReport observed behavior. If run headless and unable to display, move to\n`block",
+      "detected_at": "2026-07-11T22:25:32.919306+00:00",
+      "labels": [
+        "task",
+        "blocked",
+        "priority-high"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/46"
+    },
+    "45": {
+      "number": 45,
+      "title": "TASK-20260620-1510-level-driven-sky-and-fog",
+      "body": "**Source**: `TASK-20260620-1510-level-driven-sky-and-fog.md`\n**Status**: blocked\n**Priority**: high\n\n---\n\n\n# TASK-20260620-1510-level-driven-sky-and-fog\n\n## Goal\n\nDrive sky color, ambient, and distance fog from the loaded `LevelAsset` instead\nof hardcoded renderer values, and ensure fog reads as real depth in a space. A\ncheap, high-payoff legibility win for maps (no HDR required).\n\nImplementation has been split: the wiring work now lives in\n`TASK-20260628-0105-level-sky-fog-wiring-slice`, while this blocked task\nremains the display-confirmation slice.\n\n## Background\n\n`DebugRenderer` already has a screen-space sky pass and fog uniforms\n(`u_fog_color_loc`, `u_fog_params_loc`) but uses a hardcoded day/night palette.\n`LevelAsset` carries `sky_color`, `ambient`, `ground_material`, and\n`skybox_material`, none of which currently affect the runtime render. This wires\nthe level's environment settings into the existing passes.\n\n## First Read\n\n- [Renderer backend](../../systems/renderer_backend.md)\n- [Asset pipeline](../../systems/asset_pipeline.md) (level world settings)\n- [Architecture](../../systems/architecture.md)\n- [OpenCode standing instructions](../opencode-standing-instructions.md)\n\n## Scope\n\nIn bounds:\n\n- Thread the loaded `LevelAsset` sky/ambient into the renderer (clear color / sky\n  pass tint and the ambient term).\n- Apply distance fog using the level's sky color as fog color; expose a sane\n  density (per level or a tuned default).\n- Optionally render a simple ground tint from `ground_material`/level settings.\n\nOut of bounds:\n\n- Real skybox cubemap / procedural atmosphere / time-of-day (later phase).\n- HDR / tonemapping (deferred), height fog, aerial perspective.\n\n## Implementation Plan\n\n1. Pass the level's environment settings to the render path (extend the scene/\n   submission or a small renderer setter).\n2. Use them for the sky/clear tint, ambient, and fog color/density.\n3. Keep a sensible fallback when no level is loaded (current behavior).\n\n## Acceptance Bar\n",
+      "detected_at": "2026-07-11T22:25:33.250501+00:00",
+      "labels": [
+        "task",
+        "blocked",
+        "priority-high"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/45"
+    },
+    "44": {
+      "number": 44,
+      "title": "TASK-20260620-1500-textured-material-showcase",
+      "body": "**Source**: `TASK-20260620-1500-textured-material-showcase.md`\n**Status**: blocked\n**Priority**: high\n\n---\n\n\n# TASK-20260620-1500-textured-material-showcase\n\n## Goal\n\nProve the PBR texture path end to end: author a UV-mapped mesh + a textured\nmaterial, reference it from a level, and confirm an albedo texture actually\nsamples on a level mesh in the engine. This closes the loop opened by the UV\nplumbing (TASK-20260620-1330) and level-mesh (TASK-20260620-1200) work.\n\nImplementation has been split: the authoring/import work now lives in\n`TASK-20260628-0104-textured-material-authoring-slice`, while this blocked task\nremains the display-confirmation slice.\n\n## Background\n\nUVs now flow glTF `TEXCOORD_0` -> `.aemesh` -> `GpuMesh` -> PBR (`vUV`), and\n`LevelRenderScene` already loads material textures into `TextureHandle`s. But no\nauthored content exercises it: `test_box.gltf` has no UVs and no `.mat`/`.tga`\nis compiled, so textured output is still unproven. This task supplies that\ncontent.\n\n## First Read\n\n- [Asset pipeline](../../systems/asset_pipeline.md)\n- [UV plumbing report](../../../reports/subagents/TASK-20260620-1330-pbr-uv-plumbing-report.md)\n- [Level world meshes report](../../../reports/subagents/TASK-20260620-1200-level-driven-world-meshes-report.md)\n- [OpenCode standing instructions](../opencode-standing-instructions.md)\n\n## Dependencies\n\n- TASK-20260620-1200 (level meshes) and TASK-20260620-1330 (UVs) accepted/landed.\n\n## Scope\n\nIn bounds:\n\n- A UV-mapped textured cube glTF (with `TEXCOORD_0`) under `assets/models/`\n  (or extend `test_box.gltf` to include UVs).\n- A simple albedo `.tga` + a `.mat` referencing it under `assets/`.\n- Manifest entries to compile `model`, `texture`, and `material`.\n- A level spec (`assets/levels/*.json`) whose mesh instance references the mesh\n  and the material; generate its `.lvl` with `tools/levelgen/spec_to_lvl.py`.\n- Confirm the importer compiles all assets and the runtime resolves the material\n  textures (path-first resolution).\n",
+      "detected_at": "2026-07-11T22:25:33.578584+00:00",
+      "labels": [
+        "task",
+        "blocked",
+        "priority-high"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/44"
+    },
+    "43": {
+      "number": 43,
+      "title": "TASK-20260620-1400-level-spec-and-lvl-emitter",
+      "body": "**Source**: `TASK-20260620-1400-level-spec-and-lvl-emitter.md`\n**Status**: blocked\n**Priority**: high\n\n---\n\n\n# TASK-20260620-1400-level-spec-and-lvl-emitter\n\n## Goal\n\nDefine a canonical JSON level spec and a `spec -> .lvl` emitter (Path A), and\nship one or two greybox prototype levels generated from it. Compile them with the\nexisting importer and load them in the engine \u2014 including at least one mesh\ninstance so the level-mesh render path (TASK-20260620-1200) is runtime-confirmed.\n\n## Background\n\nThe engine already consumes `.lvl` -> `.aelevel` (world settings, `[spawn]`,\n`[collision]`, `[mesh]` sections \u2014 see asset pipeline doc). This task adds a\nsmall, human- and agent-friendly JSON spec plus an emitter so levels can be\ngenerated from a structured description without Blender. This is the fast\niteration loop in the authoring-stack decision.\n\n## First Read\n\n- [Docs index](../../../README.md)\n- [Asset pipeline](../../systems/asset_pipeline.md) (the `.lvl` format)\n- [Decision log: authoring stack](../../memory/decision-log.md)\n- [Level world meshes report](../../../reports/subagents/TASK-20260620-1200-level-driven-world-meshes-report.md)\n- [OpenCode standing instructions](../opencode-standing-instructions.md)\n\n## Scope\n\nIn bounds:\n\n- A JSON level spec schema (documented) covering: name + world settings\n  (sky/ambient/gravity, skybox/ground material ids), spawn points (pos/yaw/team),\n  collision boxes (AABB + flags + surface), and mesh instances (mesh asset id,\n  optional material id, transform). This spec is the shared contract reused by\n  Path B (TASK-20260620-1415).\n- An emitter (e.g. `tools/levelgen/spec_to_lvl.py`) that reads a spec JSON and\n  writes a valid `.lvl` matching the existing format exactly.\n- One or two example specs + generated `.lvl` files under `assets/levels/`,\n  including a mesh instance referencing `assets/compiled/models/test_box.aemesh`\n  so the PBR level-mesh path renders something.\n- Manifest entries so `ahamkara_asset_importer` compiles the n",
+      "detected_at": "2026-07-11T22:25:33.895792+00:00",
+      "labels": [
+        "task",
+        "blocked",
+        "priority-high"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/43"
+    },
+    "42": {
+      "number": 42,
+      "title": "TASK-20260704-1940-ads-aim-down-sights",
+      "body": "**Source**: `TASK-20260704-1940-ads-aim-down-sights.md`\n**Status**: open\n**Priority**: high\n\n---\n\n\n# TASK-20260704-1940-ads-aim-down-sights\n\n## Goal\n\nAdd aim-down-sights (ADS) behavior so the viewmodel smoothly transitions from hip-fire position to centered/zoomed position when the player aims. The weapon moves toward the center of the screen, FOV narrows, and the camera/viewmodel realigns as in professional FPS games.\n\n## Background\n\nCurrently there is no aiming mechanic \u2014 the weapon stays in the same position regardless of input. ADS is a core FPS mechanic where holding aim brings the weapon up to eye level (centered), narrows the field of view for magnification, and reduces weapon sway. This requires interpolating the viewmodel transform between hip and ADS positions based on an aim input signal.\n\n## First Read\n\n- [First-person camera/viewmodel rig report](../../queue-tasks/completed/TASK-20260628-0109-first-person-camera-viewmodel-rig.md)\n- [Weapon presentation separation report](../../queue-tasks/completed/TASK-20260628-0107-weapon-presentation-separation.md)\n- [Viewmodel offset tuning task](../open/TASK-20260704-1900-viewmodel-offset-tuning.md)\n- [Current input handling](../../../client/src/)\n- [Current viewmodel data](../../../client/include/ahamkara/client/weapon_viewmodel_data.h)\n\n## Scope\n\nIn bounds:\n\n- Define per-weapon ADS transform (position offset, FOV target) relative to hip-fire position.\n- Wire ADS input (right mouse button / gamepad aim trigger) to drive viewmodel transition.\n- Smoothly interpolate viewmodel transform between hip and ADS over ~0.15-0.25s.\n- Reduce camera FOV during ADS (zoom effect).\n- Reduce weapon sway/bob during ADS.\n- Keep ADS data in the presentation layer.\n\nOut of bounds:\n\n- No weapon accuracy/spread gameplay changes \u2014 purely visual.\n- No hip-fire crosshair changes.\n- No animation system changes beyond viewmodel transforms.\n- No reload animation changes.\n\n## Likely Files\n\n- `client/include/ahamkara/client/weapon_viewmodel_dat",
+      "detected_at": "2026-07-11T22:25:34.191016+00:00",
+      "labels": [
+        "task",
+        "open",
+        "priority-high"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/42"
+    },
+    "41": {
+      "number": 41,
+      "title": "TASK-20260704-1930-reload-animation-sequence",
+      "body": "**Source**: `TASK-20260704-1930-reload-animation-sequence.md`\n**Status**: open\n**Priority**: critical\n\n---\n\n\n# TASK-20260704-1930-reload-animation-sequence\n\n## Goal\n\nAdd a viewmodel reload animation sequence so the player sees the character's hand(s) remove the magazine/clip, insert a new one, and return to the grip \u2014 like professional FPS reloads. The animation should be driven by `WeaponRuntime::reload_timer()`.\n\n## Background\n\nCurrently `WeaponAnimationController` tracks a `reload_active_` flag and timer but applies only a procedural animation override (axis-angle rotation). There is no visual clip removal, hand-to-magazine movement, or sequential reload choreography. A proper reload animation has phases: hand moves to magazine \u2192 release/remove magazine \u2192 hand moves to new magazine \u2192 insert \u2192 hand returns to grip. The reload timer from `WeaponRuntime` should drive the phase progression.\n\n## Prerequisites\n\nThis task depends on viewmodel arm/hand IK (TASK-20260704-1920) being complete \u2014 hands must exist in the viewmodel before they can animate.\n\n## First Read\n\n- [Weapon animation controller](../../../client/include/ahamkara/client/weapon_animation_controller.h)\n- [Weapon runtime](../../../game/include/ahamkara/game/weapon_runtime.h)\n- [Weapon presentation separation report](../../queue-tasks/completed/TASK-20260628-0107-weapon-presentation-separation.md)\n- [First-person camera/viewmodel rig report](../../queue-tasks/completed/TASK-20260628-0109-first-person-camera-viewmodel-rig.md)\n- [Current animation code](../../../engine/animation/include/ae/animation/)\n\n## Scope\n\nIn bounds:\n\n- Define reload animation phases: grab_mag \u2192 remove_mag \u2192 insert_mag \u2192 return.\n- Each phase maps to a portion of the weapon's `reload_timer()` duration.\n- Animate hand IK targets through each phase (hand moves to magazine position, back to grip).\n- Optionally animate the weapon tilt/rotation during reload (weapon pivots to expose magwell).\n- Per-weapon reload timing (AR-15, shotgun, rocket ",
+      "detected_at": "2026-07-11T22:25:34.509582+00:00",
+      "labels": [
+        "task",
+        "open",
+        "priority-critical"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/41"
+    },
+    "40": {
+      "number": 40,
+      "title": "TASK-20260704-1920-viewmodel-arm-hand-ik",
+      "body": "**Source**: `TASK-20260704-1920-viewmodel-arm-hand-ik.md`\n**Status**: open\n**Priority**: critical\n\n---\n\n\n# TASK-20260704-1920-viewmodel-arm-hand-ik\n\n## Goal\n\nAdd a first-person arm and hand rig with IK (inverse kinematics) so the player sees hands holding the weapon at the correct grip positions. Hands should stay attached to the gun during idle, movement, and weapon switching.\n\n## Background\n\nCurrently the viewmodel only shows the weapon \u2014 there are no arms or hands visible. Professional FPS games render the character's hands gripping the weapon in specific positions (right hand on trigger/grip, left hand on foregrip/magwell). The arms connect from the camera origin (player's eye) down to the hands at the weapon grip points. This requires an IK solver that adjusts arm bone positions to keep hands locked to the weapon's grip sockets as the weapon moves/sways.\n\n## First Read\n\n- [Weapon presentation separation report](../../queue-tasks/completed/TASK-20260628-0107-weapon-presentation-separation.md)\n- [First-person camera/viewmodel rig report](../../queue-tasks/completed/TASK-20260628-0109-first-person-camera-viewmodel-rig.md)\n- [Current animation code](../../../engine/animation/)\n- [Weapon animation controller](../../../client/include/ahamkara/client/weapon_animation_controller.h)\n- [Current viewmodel data](../../../client/include/ahamkara/client/weapon_viewmodel_data.h)\n\n## Scope\n\nIn bounds:\n\n- Add arm/hand mesh rendering to the first-person viewmodel pipeline.\n- Define per-weapon grip socket positions (right hand grip, left hand foregrip).\n- Implement simple IK (two-bone arm solver) that positions hands at grip sockets.\n- Arms originate from camera origin/chest height and terminate at hand grip points.\n- Keep IK data in the presentation layer.\n- Preserve existing weapon sway/bob/recoil transform \u2014 IK should follow.\n\nOut of bounds:\n\n- No full-body IK or 3rd-person animation changes.\n- No procedural reload animation (separate task).\n- No weapon balance changes.\n- No n",
+      "detected_at": "2026-07-11T22:25:34.963052+00:00",
+      "labels": [
+        "task",
+        "open",
+        "priority-critical"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/40"
+    },
+    "39": {
+      "number": 39,
+      "title": "TASK-20260704-1740-ci-packaging",
+      "body": "**Source**: `TASK-20260704-1740-ci-packaging.md`\n**Status**: open\n**Priority**: normal\n\n---\n\n\n# TASK-20260704-1740-ci-packaging\n\n## Goal\n\nAdd runtime-boundary tests, packaging checks, and CI coverage so the repo is easier to ship and maintain.\n\n## Background\n\nPhase 10 is the production-readiness track: job system, frame allocator, profiling, authoring ergonomics, telemetry, crash reporting, and CI. These slices should make the engine faster and easier to work on without moving gameplay ownership around again.\n\n## First Read\n\n- [Docs index](../../README.md)\n- [Agent handoff](../../guides/agent-handoff.md)\n- [Roadmap (consolidated)](../../../roadmap/roadmap.md)\n- [Phase slice map](../../workflows/phase-slice-map.md)\n- [Deep logging core foundation report](../../queue-tasks/completed/TASK-20260623-1601-deep-logging-core-foundation.md)\n- [Render present semantics report](../../queue-tasks/completed/TASK-20260615-1215-render-present-semantics.md)\n- [UI screen split plan report](../../queue-tasks/completed/TASK-20260615-1300-ui-screen-split-plan.md)\n- [Current state](../../memory/current-state.md)\n\n## Scope\n\nIn bounds:\n\n- Keep the tooling slice focused on infrastructure and observability.\n- Keep gameplay state out of tooling ownership.\n- Keep validation honest and reproducible.\n- runtime-boundary tests\n- packaging / build matrix coverage\n- CI reliability checks\n\nOut of bounds:\n\n- No new game rules or combat systems.\n- No renderer fidelity expansion unless directly required for tooling.\n- No deferred HDR resurrection.\n- new gameplay features\n- renderer fidelity work\n- service orchestration changes\n\n## Likely Files\n\n  - `tests/CMakeLists.txt`\n  - `scripts/`\n  - `docs/vault/workflows/phase-slice-map.md`\n  - `engine/core/src/`\n\n## Implementation Plan\n\n1. Identify the current tooling/performance ownership boundary.\n2. Move the target infrastructure into the appropriate runtime/tooling subsystem.\n3. Validate with build/tests and any available smoke or profiling checks.\n\n## Acce",
+      "detected_at": "2026-07-11T22:25:35.273851+00:00",
+      "labels": [
+        "task",
+        "open",
+        "priority-normal"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/39"
+    },
+    "38": {
+      "number": 38,
+      "title": "TASK-20260704-1730-telemetry-crash-reporting",
+      "body": "**Source**: `TASK-20260704-1730-telemetry-crash-reporting.md`\n**Status**: open\n**Priority**: normal\n\n---\n\n\n# TASK-20260704-1730-telemetry-crash-reporting\n\n## Goal\n\nAdd telemetry, crash reporting, and diagnostics capture so runtime failures become actionable.\n\n## Background\n\nPhase 10 is the production-readiness track: job system, frame allocator, profiling, authoring ergonomics, telemetry, crash reporting, and CI. These slices should make the engine faster and easier to work on without moving gameplay ownership around again.\n\n## First Read\n\n- [Docs index](../../README.md)\n- [Agent handoff](../../guides/agent-handoff.md)\n- [Roadmap (consolidated)](../../../roadmap/roadmap.md)\n- [Phase slice map](../../workflows/phase-slice-map.md)\n- [Deep logging core foundation report](../../queue-tasks/completed/TASK-20260623-1601-deep-logging-core-foundation.md)\n- [Render present semantics report](../../queue-tasks/completed/TASK-20260615-1215-render-present-semantics.md)\n- [UI screen split plan report](../../queue-tasks/completed/TASK-20260615-1300-ui-screen-split-plan.md)\n- [Current state](../../memory/current-state.md)\n\n## Scope\n\nIn bounds:\n\n- Keep the tooling slice focused on infrastructure and observability.\n- Keep gameplay state out of tooling ownership.\n- Keep validation honest and reproducible.\n- runtime telemetry\n- crash reporting\n- diagnostic capture path\n\nOut of bounds:\n\n- No new game rules or combat systems.\n- No renderer fidelity expansion unless directly required for tooling.\n- No deferred HDR resurrection.\n- gameplay rule changes\n- renderer fidelity work\n- service orchestration changes\n\n## Likely Files\n\n  - `engine/core/src/`\n  - `client/src/`\n  - `server/src/`\n  - `docs/vault/workflows/phase-slice-map.md`\n\n## Implementation Plan\n\n1. Identify the current tooling/performance ownership boundary.\n2. Move the target infrastructure into the appropriate runtime/tooling subsystem.\n3. Validate with build/tests and any available smoke or profiling checks.\n\n## Acceptance Bar\n\n",
+      "detected_at": "2026-07-11T22:25:35.599081+00:00",
+      "labels": [
+        "task",
+        "open",
+        "priority-normal"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/38"
+    },
+    "37": {
+      "number": 37,
+      "title": "TASK-20260704-1710-profiling-budgets",
+      "body": "**Source**: `TASK-20260704-1710-profiling-budgets.md`\n**Status**: open\n**Priority**: normal\n\n---\n\n\n# TASK-20260704-1710-profiling-budgets\n\n## Goal\n\nAdd profiling, memory budgeting, and frame pacing checks so performance becomes a first-class development signal.\n\n## Background\n\nPhase 10 is the production-readiness track: job system, frame allocator, profiling, authoring ergonomics, telemetry, crash reporting, and CI. These slices should make the engine faster and easier to work on without moving gameplay ownership around again.\n\n## First Read\n\n- [Docs index](../../README.md)\n- [Agent handoff](../../guides/agent-handoff.md)\n- [Roadmap (consolidated)](../../../roadmap/roadmap.md)\n- [Phase slice map](../../workflows/phase-slice-map.md)\n- [Deep logging core foundation report](../../queue-tasks/completed/TASK-20260623-1601-deep-logging-core-foundation.md)\n- [Render present semantics report](../../queue-tasks/completed/TASK-20260615-1215-render-present-semantics.md)\n- [UI screen split plan report](../../queue-tasks/completed/TASK-20260615-1300-ui-screen-split-plan.md)\n- [Current state](../../memory/current-state.md)\n\n## Scope\n\nIn bounds:\n\n- Keep the tooling slice focused on infrastructure and observability.\n- Keep gameplay state out of tooling ownership.\n- Keep validation honest and reproducible.\n- CPU/GPU profiling path\n- memory and frame budgeting\n- performance regression visibility\n\nOut of bounds:\n\n- No new game rules or combat systems.\n- No renderer fidelity expansion unless directly required for tooling.\n- No deferred HDR resurrection.\n- new gameplay systems\n- fidelity feature work\n- service orchestration changes\n\n## Likely Files\n\n  - `engine/core/src/`\n  - `engine/render/src/`\n  - `client/src/`\n  - `tests/src/`\n\n## Implementation Plan\n\n1. Identify the current tooling/performance ownership boundary.\n2. Move the target infrastructure into the appropriate runtime/tooling subsystem.\n3. Validate with build/tests and any available smoke or profiling checks.\n\n## Acceptance ",
+      "detected_at": "2026-07-11T22:25:35.909179+00:00",
+      "labels": [
+        "task",
+        "open",
+        "priority-normal"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/37"
+    },
+    "36": {
+      "number": 36,
+      "title": "TASK-20260704-1630-live-content-hooks",
+      "body": "**Source**: `TASK-20260704-1630-live-content-hooks.md`\n**Status**: open\n**Priority**: normal\n\n---\n\n\n# TASK-20260704-1630-live-content-hooks\n\n## Goal\n\nAdd data-driven live-content hooks for rotating modifiers so activities can change without code churn.\n\n## Background\n\nPhase 9 sits on top of the networking core and turns it into usable matchmaking, activity, and social services. Keep the service seam clear so gameplay and session orchestration do not collapse into one file.\n\n## First Read\n\n- [Docs index](../../README.md)\n- [Agent handoff](../../guides/agent-handoff.md)\n- [Roadmap (consolidated)](../../../roadmap/roadmap.md)\n- [Phase slice map](../../workflows/phase-slice-map.md)\n- [Phase 4 netcode milestone review](../../queue-tasks/completed/TASK-20260622-1200-phase4-netcode-milestone-review.md)\n- [Current state](../../memory/current-state.md)\n\n## Scope\n\nIn bounds:\n\n- Keep session/matchmaking ownership out of the gameplay loop.\n- Keep service APIs explicit and testable.\n- Keep the slice compatible with the existing authoritative network model.\n- modifier data shape\n- activity-driven content toggles\n- server/client read path\n\nOut of bounds:\n\n- No combat tuning.\n- No rendering fidelity work.\n- No world-scale streaming rewrite.\n- combat balance rewrites\n- renderer fidelity work\n- world-streaming changes\n\n## Likely Files\n\n  - `server/src/`\n  - `client/src/`\n  - `game/include/ahamkara/game/gameplay_types.h`\n  - `docs/vault/workflows/phase-slice-map.md`\n\n## Implementation Plan\n\n1. Trace the service boundary and isolate the smallest useful orchestration seam.\n2. Move the target behavior into the service-facing layer while keeping gameplay adapters thin.\n3. Validate the session/service transitions with the existing build/test path.\n\n## Acceptance Bar\n\n- Live-content hooks are data-driven and explicit.\n- The slice keeps the activity layer clean.\n- Build and tests remain green.\n\n## Review Tier\n\n- `low` - primary reviewer signoff only\n\n## Validation\n\n```sh\ncmake --build --pres",
+      "detected_at": "2026-07-11T22:25:36.270799+00:00",
+      "labels": [
+        "task",
+        "open",
+        "priority-normal"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/36"
+    },
+    "35": {
+      "number": 35,
+      "title": "TASK-20260704-1620-identity-social",
+      "body": "**Source**: `TASK-20260704-1620-identity-social.md`\n**Status**: open\n**Priority**: normal\n\n---\n\n\n# TASK-20260704-1620-identity-social\n\n## Goal\n\nAdd identity, roster/invite, and basic anti-cheat/validation telemetry so social features have a service-backed seam.\n\n## Background\n\nPhase 9 sits on top of the networking core and turns it into usable matchmaking, activity, and social services. Keep the service seam clear so gameplay and session orchestration do not collapse into one file.\n\n## First Read\n\n- [Docs index](../../README.md)\n- [Agent handoff](../../guides/agent-handoff.md)\n- [Roadmap (consolidated)](../../../roadmap/roadmap.md)\n- [Phase slice map](../../workflows/phase-slice-map.md)\n- [Phase 4 netcode milestone review](../../queue-tasks/completed/TASK-20260622-1200-phase4-netcode-milestone-review.md)\n- [Current state](../../memory/current-state.md)\n\n## Scope\n\nIn bounds:\n\n- Keep session/matchmaking ownership out of the gameplay loop.\n- Keep service APIs explicit and testable.\n- Keep the slice compatible with the existing authoritative network model.\n- identity and social data shape\n- roster/invite flow\n- basic validation telemetry\n\nOut of bounds:\n\n- No combat tuning.\n- No rendering fidelity work.\n- No world-scale streaming rewrite.\n- combat rule changes\n- renderer changes\n- world-streaming refactors\n\n## Likely Files\n\n  - `server/src/`\n  - `client/src/`\n  - `engine/network/src/`\n  - `docs/vault/workflows/phase-slice-map.md`\n\n## Implementation Plan\n\n1. Trace the service boundary and isolate the smallest useful orchestration seam.\n2. Move the target behavior into the service-facing layer while keeping gameplay adapters thin.\n3. Validate the session/service transitions with the existing build/test path.\n\n## Acceptance Bar\n\n- Identity/social ownership is explicit.\n- Telemetry is treated as validation, not gameplay authority.\n- Build and tests remain green.\n\n## Review Tier\n\n- `low` - primary reviewer signoff only\n\n## Validation\n\n```sh\ncmake --build --preset debug\n./scr",
+      "detected_at": "2026-07-11T22:25:36.691485+00:00",
+      "labels": [
+        "task",
+        "open",
+        "priority-normal"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/35"
+    },
+    "34": {
+      "number": 34,
+      "title": "TASK-20260704-1610-activity-framework",
+      "body": "**Source**: `TASK-20260704-1610-activity-framework.md`\n**Status**: open\n**Priority**: normal\n\n---\n\n\n# TASK-20260704-1610-activity-framework\n\n## Goal\n\nAdd the activity framework for PvE, PvP, and social session routing so services can drive activities by type.\n\n## Background\n\nPhase 9 sits on top of the networking core and turns it into usable matchmaking, activity, and social services. Keep the service seam clear so gameplay and session orchestration do not collapse into one file.\n\n## First Read\n\n- [Docs index](../../README.md)\n- [Agent handoff](../../guides/agent-handoff.md)\n- [Roadmap (consolidated)](../../../roadmap/roadmap.md)\n- [Phase slice map](../../workflows/phase-slice-map.md)\n- [Phase 4 netcode milestone review](../../queue-tasks/completed/TASK-20260622-1200-phase4-netcode-milestone-review.md)\n- [Current state](../../memory/current-state.md)\n\n## Scope\n\nIn bounds:\n\n- Keep session/matchmaking ownership out of the gameplay loop.\n- Keep service APIs explicit and testable.\n- Keep the slice compatible with the existing authoritative network model.\n- activity lifecycle\n- session-type routing\n- lobby/launch ownership\n\nOut of bounds:\n\n- No combat tuning.\n- No rendering fidelity work.\n- No world-scale streaming rewrite.\n- combat tuning\n- renderer work\n- world-scale streaming changes\n\n## Likely Files\n\n  - `server/src/`\n  - `client/src/`\n  - `game/include/ahamkara/game/world.h`\n  - `engine/network/src/`\n\n## Implementation Plan\n\n1. Trace the service boundary and isolate the smallest useful orchestration seam.\n2. Move the target behavior into the service-facing layer while keeping gameplay adapters thin.\n3. Validate the session/service transitions with the existing build/test path.\n\n## Acceptance Bar\n\n- Activity lifecycle is explicit and testable.\n- The slice does not collapse into generic session spaghetti.\n- Build and tests remain green.\n\n## Review Tier\n\n- `low` - primary reviewer signoff only\n\n## Validation\n\n```sh\ncmake --build --preset debug\n./scripts/run-tests.sh --",
+      "detected_at": "2026-07-11T22:25:36.976286+00:00",
+      "labels": [
+        "task",
+        "open",
+        "priority-normal"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/34"
+    },
+    "33": {
+      "number": 33,
+      "title": "TASK-20260704-1600-matchmaking-parties",
+      "body": "**Source**: `TASK-20260704-1600-matchmaking-parties.md`\n**Status**: open\n**Priority**: normal\n\n---\n\n\n# TASK-20260704-1600-matchmaking-parties\n\n## Goal\n\nAdd party/fireteam handling and matchmaking/session orchestration so players can enter activities together.\n\n## Background\n\nPhase 9 sits on top of the networking core and turns it into usable matchmaking, activity, and social services. Keep the service seam clear so gameplay and session orchestration do not collapse into one file.\n\n## First Read\n\n- [Docs index](../../README.md)\n- [Agent handoff](../../guides/agent-handoff.md)\n- [Roadmap (consolidated)](../../../roadmap/roadmap.md)\n- [Phase slice map](../../workflows/phase-slice-map.md)\n- [Phase 4 netcode milestone review](../../queue-tasks/completed/TASK-20260622-1200-phase4-netcode-milestone-review.md)\n- [Current state](../../memory/current-state.md)\n\n## Scope\n\nIn bounds:\n\n- Keep session/matchmaking ownership out of the gameplay loop.\n- Keep service APIs explicit and testable.\n- Keep the slice compatible with the existing authoritative network model.\n- party/fireteam state\n- matchmaking/session orchestration\n- join/leave flow ownership\n\nOut of bounds:\n\n- No combat tuning.\n- No rendering fidelity work.\n- No world-scale streaming rewrite.\n- combat balance changes\n- renderer fidelity work\n- world streaming rewrite\n\n## Likely Files\n\n  - `server/src/`\n  - `client/src/`\n  - `engine/network/src/`\n  - `docs/vault/workflows/phase-slice-map.md`\n\n## Implementation Plan\n\n1. Trace the service boundary and isolate the smallest useful orchestration seam.\n2. Move the target behavior into the service-facing layer while keeping gameplay adapters thin.\n3. Validate the session/service transitions with the existing build/test path.\n\n## Acceptance Bar\n\n- Party/matchmaking ownership is explicit.\n- The slice stays within the service boundary.\n- Build and tests remain green.\n\n## Review Tier\n\n- `low` - primary reviewer signoff only\n\n## Validation\n\n```sh\ncmake --build --preset debug\n./scripts",
+      "detected_at": "2026-07-11T22:25:37.319083+00:00",
+      "labels": [
+        "task",
+        "open",
+        "priority-normal"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/33"
+    },
+    "32": {
+      "number": 32,
+      "title": "TASK-20260704-1530-persistence-rewards",
+      "body": "**Source**: `TASK-20260704-1530-persistence-rewards.md`\n**Status**: open\n**Priority**: normal\n\n---\n\n\n# TASK-20260704-1530-persistence-rewards\n\n## Goal\n\nAdd save/persistence and reward/pickup handling so activities can persist useful world and character state.\n\n## Background\n\nPhase 8 makes the game loop richer: inventory, AI, encounters, and persistence. These slices should grow the game systems without mixing in rendering or service orchestration work.\n\n## First Read\n\n- [Docs index](../../README.md)\n- [Agent handoff](../../guides/agent-handoff.md)\n- [Roadmap (consolidated)](../../../roadmap/roadmap.md)\n- [Phase slice map](../../workflows/phase-slice-map.md)\n- [AI navgrid A* report](../../queue-tasks/completed/TASK-20260622-1300-ai-navgrid-astar.md)\n- [AI path follower report](../../queue-tasks/completed/TASK-20260622-1310-ai-path-follower.md)\n- [AI navgrid from collision report](../../queue-tasks/completed/TASK-20260622-1320-ai-navgrid-from-collision.md)\n- [Milestone review AI nav/movement report](../../queue-tasks/completed/TASK-20260622-1330-milestone-review-ai-nav-and-movement.md)\n- [Current state](../../memory/current-state.md)\n\n## Scope\n\nIn bounds:\n\n- Keep gameplay ownership in the game layer.\n- Keep AI and persistence deterministic enough to validate.\n- Keep the slice compatible with later combat and service work.\n- save/persistence ownership\n- reward/pickup state\n- character/world persistence boundaries\n\nOut of bounds:\n\n- No multiplayer service integration.\n- No renderer fidelity work.\n- No streaming/world-scale refactor.\n- matchmaking orchestration\n- renderer work\n- combat tuning beyond required hooks\n\n## Likely Files\n\n  - `game/src/world.cpp`\n  - `game/include/ahamkara/game/world.h`\n  - `game/include/ahamkara/game/player.h`\n  - `client/src/`\n\n## Implementation Plan\n\n1. Identify the current gameplay seam for the target system.\n2. Move ownership into the intended gameplay data/runtime type.\n3. Validate the new behavior with focused tests or smoke checks.\n\n## ",
+      "detected_at": "2026-07-11T22:25:37.627095+00:00",
+      "labels": [
+        "task",
+        "open",
+        "priority-normal"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/32"
+    },
+    "31": {
+      "number": 31,
+      "title": "TASK-20260704-1520-encounter-scripting",
+      "body": "**Source**: `TASK-20260704-1520-encounter-scripting.md`\n**Status**: open\n**Priority**: normal\n\n---\n\n\n# TASK-20260704-1520-encounter-scripting\n\n## Goal\n\nAdd encounter scripting for objectives, triggers, and spawn flows so the game can author short activities.\n\n## Background\n\nPhase 8 makes the game loop richer: inventory, AI, encounters, and persistence. These slices should grow the game systems without mixing in rendering or service orchestration work.\n\n## First Read\n\n- [Docs index](../../README.md)\n- [Agent handoff](../../guides/agent-handoff.md)\n- [Roadmap (consolidated)](../../../roadmap/roadmap.md)\n- [Phase slice map](../../workflows/phase-slice-map.md)\n- [AI navgrid A* report](../../queue-tasks/completed/TASK-20260622-1300-ai-navgrid-astar.md)\n- [AI path follower report](../../queue-tasks/completed/TASK-20260622-1310-ai-path-follower.md)\n- [AI navgrid from collision report](../../queue-tasks/completed/TASK-20260622-1320-ai-navgrid-from-collision.md)\n- [Milestone review AI nav/movement report](../../queue-tasks/completed/TASK-20260622-1330-milestone-review-ai-nav-and-movement.md)\n- [Current state](../../memory/current-state.md)\n\n## Scope\n\nIn bounds:\n\n- Keep gameplay ownership in the game layer.\n- Keep AI and persistence deterministic enough to validate.\n- Keep the slice compatible with later combat and service work.\n- objective/trigger data shape\n- spawn flow ownership\n- encounter progression hooks\n\nOut of bounds:\n\n- No multiplayer service integration.\n- No renderer fidelity work.\n- No streaming/world-scale refactor.\n- matchmaking/session orchestration\n- renderer fidelity work\n- combat balance tuning\n\n## Likely Files\n\n  - `game/src/world.cpp`\n  - `game/include/ahamkara/game/world.h`\n  - `game/include/ahamkara/game/gameplay_types.h`\n  - `client/src/`\n\n## Implementation Plan\n\n1. Identify the current gameplay seam for the target system.\n2. Move ownership into the intended gameplay data/runtime type.\n3. Validate the new behavior with focused tests or smoke checks.\n\n#",
+      "detected_at": "2026-07-11T22:25:38.011498+00:00",
+      "labels": [
+        "task",
+        "open",
+        "priority-normal"
+      ],
+      "html_url": "https://github.com/tfq26/Project-Ahamkara/issues/31"
+    }
+  },
+  "in_progress": {}
+}

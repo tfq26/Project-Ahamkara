@@ -25,7 +25,7 @@ add_library(ae_render STATIC
     src/platform/mac_text_rasterizer.cpp
     src/text_rasterizer.cpp
     src/weapon_model_cache.cpp
-    $<$<PLATFORM_ID:Windows>:glad/src/gl.c>
+    $<$<PLATFORM_ID:Windows>:glad/src/gl.cpp>
 )
 
 target_compile_features(ae_render PUBLIC cxx_std_20)

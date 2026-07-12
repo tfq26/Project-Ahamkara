@@ -1,0 +1,440 @@
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'
+Traceback (most recent call last):
+  File "/Users/taufeeqali/Projects/Ahamkara/oz-poller.py", line 55, in <module>
+    def api_get(path: str) -> dict | list:
+TypeError: unsupported operand type(s) for |: 'type' and 'type'

@@ -1,0 +1,28 @@
+# Ahamkara Build Environment — used by agent-runner for autonomous builds
+# Includes ALL dependencies needed for the full debug preset
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Build tools
+    ca-certificates \
+    cmake \
+    g++ \
+    git \
+    ninja-build \
+    pkg-config \
+    # Graphics dependencies
+    libglfw3-dev \
+    libgl-dev \
+    mesa-common-dev \
+    libglu1-mesa-dev \
+    # Test framework
+    libgtest-dev \
+    libgmock-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# Verify cmake works
+RUN cmake --version && ninja --version && g++ --version
