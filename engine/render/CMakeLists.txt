@@ -25,6 +25,7 @@ add_library(ae_render STATIC
     src/platform/mac_text_rasterizer.cpp
     src/text_rasterizer.cpp
     src/weapon_model_cache.cpp
+    $<$<PLATFORM_ID:Windows>:glad/src/gl.c>
 )
 
 target_compile_features(ae_render PUBLIC cxx_std_20)
@@ -32,6 +33,8 @@ target_compile_features(ae_render PUBLIC cxx_std_20)
 target_include_directories(ae_render
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/glad/include
 )
 
 if(APPLE)

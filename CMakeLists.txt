@@ -25,7 +25,8 @@ set(TARGET_UNIT_TESTS OFF CACHE BOOL "" FORCE)
 set(TARGET_HELLO_WORLD OFF CACHE BOOL "" FORCE)
 set(TARGET_PERFORMANCE_TEST OFF CACHE BOOL "" FORCE)
 set(TARGET_SAMPLES OFF CACHE BOOL "" FORCE)
-set(USE_STATIC_CRT OFF CACHE BOOL "" FORCE)
+# NOTE: Jolt v5.0.0 uses USE_STATIC_MSVC_RUNTIME_LIBRARY, not USE_STATIC_CRT
+set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF CACHE BOOL "" FORCE)
 set(ENABLE_ALL_WARNINGS OFF CACHE BOOL "" FORCE)
 
 FetchContent_Declare(
@@ -59,6 +60,11 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(jolt glm entt miniaudio)
+
+# Force-fix Jolt CRT on Windows in case its internal CMake overrode our setting
+if(WIN32 AND TARGET Jolt)
+    set_property(TARGET Jolt PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+endif()
 
 option(AHAMKARA_BUILD_WISH_ADMIN "Build the Wish admin HTTP server (requires Lua/sol2)" OFF)
 

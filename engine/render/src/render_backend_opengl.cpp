@@ -67,6 +67,10 @@ public:
         }
         window_ = glfw_window;
         glfwMakeContextCurrent(window_);
+
+        // Load all GL function pointers via glad
+        gladLoadGL(reinterpret_cast<GLADloadfunc>(glfwGetProcAddress));
+
         return true;
     }
 
