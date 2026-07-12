@@ -389,16 +389,15 @@ def run_windows_build(branch: str) -> tuple[bool, str]:
             err_lines = (r.stdout + r.stderr).splitlines()
             # Grab last 100 lines
             tail = "\n".join(err_lines[-100:])
-            return False, f"Build exited with code {r.returncode}.\nLast 100 lines:\n{tail}"
+            return "fail", f"Build exited with code {r.returncode}.\nLast 100 lines:\n{tail}"
         # Build succeeded
-        # Grab the last few success lines
         lines = r.stdout.splitlines()
         tail = "\n".join(lines[-20:])
-        return True, f"Build OK.\n{tail}"
+        return "pass", f"Build OK.\n{tail}"
     except subprocess.TimeoutExpired:
-        return False, "Windows build timed out after 600s"
+        return "fail", "Windows build timed out after 600s"
     except Exception as e:
-        return False, f"Windows build SSH failed: {e}"
+        return "skip", f"Windows build SSH failed: {e}"
 
 
 def extract_latest_gemini_review(comments: list[dict]) -> str | None:
