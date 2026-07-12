@@ -228,7 +228,9 @@ const char* signal_name(int signum) {
         case SIGABRT: return "SIGABRT";
         case SIGFPE:  return "SIGFPE";
         case SIGILL:  return "SIGILL";
+#ifdef SIGBUS
         case SIGBUS:  return "SIGBUS";
+#endif
         case SIGINT:  return "SIGINT";
         case SIGTERM: return "SIGTERM";
         default:      return "UNKNOWN";
