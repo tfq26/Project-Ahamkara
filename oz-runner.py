@@ -52,6 +52,12 @@ OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 # Markers
 MARKER_CODING_DONE = "<!-- CODING_DONE -->"
 MARKER_GEMINI_REVIEW = "<!-- GEMINI_REVIEW -->"
+MARKER_WINDOWS_BUILD_FAIL = "<!-- WINDOWS_BUILD_FAIL -->"
+
+# Windows build host (gaming PC)
+WINDOWS_HOST = os.getenv("WINDOWS_BUILD_HOST", "100.124.18.104")
+WINDOWS_USER = os.getenv("WINDOWS_BUILD_USER", "taufe")
+WINDOWS_PATH = os.getenv("WINDOWS_BUILD_PATH", "C:\\Users\\taufe\\ahamkara")
 
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -332,6 +338,69 @@ def cleanup_worktree(issue_num: int):
 # ---------------------------------------------------------------------------
 # Gemini review parser
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Windows build on gaming PC
+# ---------------------------------------------------------------------------
+def run_windows_build(branch: str) -> tuple[bool, str]:
+    """
+    SSH into the gaming PC, pull the branch, rebuild clean, and return
+    (success, log_text).
+    """
+    log.info("=== Windows build: pulling branch %s on %s@%s ===",
+             branch, WINDOWS_USER, WINDOWS_HOST)
+
+    # Step 1: git pull branch on the PC
+    ssh_git = [
+        "ssh", f"{WINDOWS_USER}@{WINDOWS_HOST}",
+        f"cd {WINDOWS_PATH} && git fetch origin && git checkout {branch} && git pull"
+    ]
+    try:
+        r = subprocess.run(ssh_git, capture_output=True, text=True, timeout=60)
+        if r.returncode != 0:
+            return False, f"Git checkout failed:\n{r.stderr[:1000]}"
+    except subprocess.TimeoutExpired:
+        return False, "SSH timeout during git checkout (60s)"
+    except Exception as e:
+        return False, f"SSH failed during git checkout: {e}"
+
+    # Step 2: clean rebuild (delete build dir then reconfigure + build)
+    log.info("Windows build: clean rebuild...")
+
+    # We chain commands via cmd.exe over SSH with vcvars64.bat.
+    # Build script that runs via SSH:
+    build_cmds = (
+        f'rmdir /s /q {WINDOWS_PATH}\\build\\debug 2>nul && '
+        f'call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat" && '
+        f'"C:\\Program Files\\CMake\\bin\\cmake.exe" -S {WINDOWS_PATH} -B {WINDOWS_PATH}\\build\\debug '
+        f'-G Ninja -DCMAKE_BUILD_TYPE=Debug '
+        f'-DCMAKE_TOOLCHAIN_FILE={WINDOWS_PATH}\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake '
+        f'-DCMAKE_EXPORT_COMPILE_COMMANDS=ON >nul 2>&1 && '
+        f'"C:\\Program Files\\CMake\\bin\\cmake.exe" --build {WINDOWS_PATH}\\build\\debug -- -j8'
+    )
+    ssh_build = [
+        "ssh", f"{WINDOWS_USER}@{WINDOWS_HOST}",
+        f"cmd.exe /q /c \"\"{build_cmds}\"\""
+    ]
+
+    try:
+        r = subprocess.run(ssh_build, capture_output=True, text=True, timeout=600)
+        if r.returncode != 0:
+            # Build failed — capture tail of output for error context
+            err_lines = (r.stdout + r.stderr).splitlines()
+            # Grab last 100 lines
+            tail = "\n".join(err_lines[-100:])
+            return False, f"Build exited with code {r.returncode}.\nLast 100 lines:\n{tail}"
+        # Build succeeded
+        # Grab the last few success lines
+        lines = r.stdout.splitlines()
+        tail = "\n".join(lines[-20:])
+        return True, f"Build OK.\n{tail}"
+    except subprocess.TimeoutExpired:
+        return False, "Windows build timed out after 600s"
+    except Exception as e:
+        return False, f"Windows build SSH failed: {e}"
+
+
 def extract_latest_gemini_review(comments: list[dict]) -> str | None:
     """Extract the most recent GEMINI_REVIEW comment body."""
     for comment in reversed(comments):
@@ -441,8 +510,29 @@ def process_issue(issue: dict) -> None:
         # 6. Post CODING_DONE marker
         comment_on_issue(num, f"{MARKER_CODING_DONE} Attempt {attempt} pushed to `{branch}`.")
 
+        # 6.5 Build on Windows (gaming PC) — gate before server review
+        log.info("=== Windows build gate for branch %s ===", branch)
+        win_ok, win_log = run_windows_build(branch)
+
+        if not win_ok:
+            log.warning("Windows build FAILED for attempt %d", attempt)
+            failure_body = (
+                f"{MARKER_WINDOWS_BUILD_FAIL}\n"
+                f"### Windows Build Failed (attempt {attempt})\n\n"
+                f"```\n{win_log[-3000:]}\n```"
+            )
+            comment_on_issue(num, failure_body)
+            fix_context = (
+                f"The Windows build failed for this attempt. Error output:\n\n"
+                f"```\n{win_log[-1500:]}\n```\n\n"
+                f"Fix the issues above and try again."
+            )
+            continue  # Loop back to coder
+
+        log.info("Windows build PASSED for attempt %d", attempt)
+
         # 7. Wait for server to build and post Gemini review
-        log.info("Waiting for server to build and Gemini review...")
+        log.info("Windows build OK. Waiting for server to build and Gemini review...")
 
         # Poll for new GEMINI_REVIEW comments
         wait_rounds = 30  # 30 * 30s = 15 min max wait
