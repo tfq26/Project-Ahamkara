@@ -45,9 +45,10 @@ target_link_libraries(ae_render
     PUBLIC
         ae_core
         ae_platform
+    PUBLIC
+        OpenGL::GL
     PRIVATE
         ae_animation
-        OpenGL::GL
         glfw
         $<$<PLATFORM_ID:Darwin>:${COREFOUNDATION_FRAMEWORK}>
         $<$<PLATFORM_ID:Darwin>:${CORETEXT_FRAMEWORK}>

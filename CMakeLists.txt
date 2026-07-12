@@ -11,6 +11,9 @@ set(CMAKE_CXX_STANDARD 20)
 
 if(WIN32)
     add_compile_definitions(NOMINMAX)
+    # Force all targets to use dynamic CRT (MD/MDd) to avoid RuntimeLibrary
+    # mismatches with FetchContent dependencies like JoltPhysics.
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
