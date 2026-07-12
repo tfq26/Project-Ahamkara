@@ -68,8 +68,11 @@ public:
         window_ = glfw_window;
         glfwMakeContextCurrent(window_);
 
-        // Load all GL function pointers via glad
+#ifdef _WIN32
+        // Load all GL function pointers via glad (Windows: opengl32.lib
+        // only exports GL 1.1, modern functions need runtime resolution).
         gladLoadGL(reinterpret_cast<GLADloadfunc>(glfwGetProcAddress));
+#endif
 
         return true;
     }
