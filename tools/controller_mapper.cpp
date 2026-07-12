@@ -4,7 +4,15 @@
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+// Need GL/gl.h (not just glcorearb.h) for legacy immediate-mode functions
+// used by this tool. On macOS use gl_platform.h, on Windows include both.
+#if defined(__APPLE__)
 #include "ae/render/gl_platform.h"
+#elif defined(_WIN32)
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
+#include <GL/glext.h>
+#endif
 
 #include "../engine/render/src/gl_compat.h"
 
