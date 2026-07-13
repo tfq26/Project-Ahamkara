@@ -1,7 +1,9 @@
 # CI workflow
 #
 # Builds all CMake presets (debug, release, debug-headless) and runs tests
-# for presets that support them.  Runs on Ubuntu 24.04 and macOS 14.
+# for presets that support them. Runs on Ubuntu 24.04 and macOS 14.
+# Agent branches auto-merge only when they explicitly opt in through the
+# agent/automerge/** namespace; ordinary agent branches are PR-only.
 
 name: CI
 
@@ -10,7 +12,7 @@ on:
     branches:
       - main
       - develop
-      - "agent/**"
+      - "agent/automerge/**"
   pull_request:
     branches: [main, develop]
 
@@ -97,9 +99,9 @@ jobs:
   auto-merge:
     needs: build-and-test
     if: |
-      success() && (
-        startsWith(github.ref_name, 'agent/')
-      )
+      success() &&
+      github.event_name == 'push' &&
+      startsWith(github.ref_name, 'agent/automerge/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
