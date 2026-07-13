@@ -1,21 +1,11 @@
 #include "ae/platform/window.h"
 #include "ae/render/font_atlas.h"
-#include "ahamkara/client/controller_bindings.h"
-
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-// Need GL/gl.h (not just glcorearb.h) for legacy immediate-mode functions
-// used by this tool. On macOS use gl_platform.h, on Windows include both.
-#if defined(__APPLE__)
 #include "ae/render/gl_platform.h"
-#elif defined(_WIN32)
-#define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
-#include <GL/glext.h>
-#endif
+#include "ahamkara/client/controller_bindings.h"
 
 #include "../engine/render/src/gl_compat.h"
 
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <sstream>
@@ -112,22 +102,28 @@ std::string format_code(ae::GamepadInputCode code) {
     return buffer;
 }
 
-void draw_quad(float x, float y, float w, float h) {
-    glVertex2f(x, y);
-    glVertex2f(x + w, y);
-    glVertex2f(x + w, y + h);
-    glVertex2f(x, y + h);
-}
+void draw_panel(unsigned int vertex_buffer,
+                float x, float y, float w, float h,
+                float r, float g, float b, float a) {
+    const float vertices[] = {
+        x,     y,     0.0F,
+        x + w, y,     0.0F,
+        x + w, y + h, 0.0F,
+        x,     y,     0.0F,
+        x + w, y + h, 0.0F,
+        x,     y + h, 0.0F,
+    };
 
-void draw_panel(float x, float y, float w, float h, float r, float g, float b, float a) {
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
     glColor4f(r, g, b, a);
-    glBegin(GL_QUADS);
-    draw_quad(x, y, w, h);
-    glEnd();
+    ae::gl_compat::draw_user_arrays(
+        vertex_buffer, 0, 0, 0, 0, GL_TRIANGLES, 0, 6);
 }
 
 void draw_text(ae::render::FontAtlas& atlas, float x, float y, float scale, std::string_view text, float r, float g, float b) {
-    glColor3f(r, g, b);
     atlas.draw_text(x, y, scale, text);
 }
 
@@ -143,6 +139,10 @@ int main() {
     std::unique_ptr<ae::PlatformWindow> window = ae::PlatformWindow::create(config);
     auto* native = static_cast<GLFWwindow*>(window->native_handle());
     glfwMakeContextCurrent(native);
+
+    ae::gl_compat::init();
+    unsigned int panel_vertex_buffer = 0;
+    glGenBuffers(1, &panel_vertex_buffer);
 
     ae::render::FontAtlas font_atlas;
     font_atlas.initialize_default();
@@ -231,8 +231,13 @@ int main() {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        draw_panel(24.0F, 24.0F, static_cast<float>(fb_w) - 48.0F, static_cast<float>(fb_h) - 48.0F, 0.03F, 0.05F, 0.08F, 0.95F);
-        draw_panel(24.0F, 24.0F, static_cast<float>(fb_w) - 48.0F, 52.0F, 0.10F, 0.18F, 0.30F, 1.0F);
+        draw_panel(panel_vertex_buffer, 24.0F, 24.0F,
+                   static_cast<float>(fb_w) - 48.0F,
+                   static_cast<float>(fb_h) - 48.0F,
+                   0.03F, 0.05F, 0.08F, 0.95F);
+        draw_panel(panel_vertex_buffer, 24.0F, 24.0F,
+                   static_cast<float>(fb_w) - 48.0F, 52.0F,
+                   0.10F, 0.18F, 0.30F, 1.0F);
 
         draw_text(font_atlas, 44.0F, 40.0F, 1.6F, "AHAMKARA CONTROLLER MAPPER", 0.98F, 0.99F, 1.0F);
 
@@ -251,7 +256,8 @@ int main() {
             if (i == last_modified_index && current_time - last_modified_time < 0.6) {
                 // Flash green feedback
                 float pulse = static_cast<float>(1.0 - (current_time - last_modified_time) / 0.6);
-                draw_panel(40.0F, row_y - 6.0F, static_cast<float>(fb_w) - 80.0F, 30.0F, 
+                draw_panel(panel_vertex_buffer, 40.0F, row_y - 6.0F,
+                           static_cast<float>(fb_w) - 80.0F, 30.0F,
                            0.08F * (1.0F - pulse) + 0.1F * pulse, 
                            0.18F * (1.0F - pulse) + 0.6F * pulse, 
                            0.30F * (1.0F - pulse) + 0.2F * pulse, 
@@ -260,11 +266,14 @@ int main() {
                 if (capture_mode) {
                     // Pulsing amber/orange to show active capture mode
                     float pulse = static_cast<float>(0.5 + 0.5 * std::sin(current_time * 10.0));
-                    draw_panel(40.0F, row_y - 6.0F, static_cast<float>(fb_w) - 80.0F, 30.0F, 
+                    draw_panel(panel_vertex_buffer, 40.0F, row_y - 6.0F,
+                               static_cast<float>(fb_w) - 80.0F, 30.0F,
                                0.35F, 0.18F + 0.05F * pulse, 0.05F, 0.9F);
                 } else {
                     // Standard selection highlight
-                    draw_panel(40.0F, row_y - 6.0F, static_cast<float>(fb_w) - 80.0F, 30.0F, 0.14F, 0.24F, 0.38F, 0.9F);
+                    draw_panel(panel_vertex_buffer, 40.0F, row_y - 6.0F,
+                               static_cast<float>(fb_w) - 80.0F, 30.0F,
+                               0.14F, 0.24F, 0.38F, 0.9F);
                 }
             }
 
@@ -320,5 +329,7 @@ int main() {
     }
 
     font_atlas.shutdown();
+    glDeleteBuffers(1, &panel_vertex_buffer);
+    ae::gl_compat::shutdown();
     return 0;
 }

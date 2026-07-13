@@ -443,3 +443,30 @@ target_compile_definitions(ahamkara_runtime_boundary_tests PRIVATE
     $<$<BOOL:${AHAMKARA_BUILD_SERVER}>:AHAMKARA_BUILD_SERVER=$<BOOL:${AHAMKARA_BUILD_SERVER}>>
 )
 add_test(NAME ahamkara_runtime_boundary_tests COMMAND ahamkara_runtime_boundary_tests)
+
+# CI regression coverage: these exercise the actual generated build/install
+# graph instead of matching target names in source text.
+if(TARGET ahamkara_controller_mapper)
+    add_test(
+        NAME ahamkara_controller_mapper_build_regression
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
+                --config $<CONFIG>
+                --target ahamkara_controller_mapper
+    )
+endif()
+
+if(TARGET ahamkara_server)
+    add_test(
+        NAME ahamkara_server_build_regression
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
+                --config $<CONFIG>
+                --target ahamkara_server
+    )
+endif()
+
+add_test(
+    NAME ahamkara_install_rules_smoke
+    COMMAND ${CMAKE_COMMAND} --install ${CMAKE_BINARY_DIR}
+            --config $<CONFIG>
+            --prefix ${CMAKE_BINARY_DIR}/test-install
+)

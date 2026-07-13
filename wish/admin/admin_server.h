@@ -2,6 +2,8 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#else
+#include <unistd.h>
 #endif
 
 #include "ae/core/types.h"

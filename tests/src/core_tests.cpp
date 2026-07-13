@@ -3,6 +3,7 @@
 #include "ae/core/log.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <chrono>
 #include <iostream>
@@ -51,6 +52,36 @@ void test_job_system_submit_after_single_child() {
     assert(child_done);
     js.shutdown();
     std::cout << "test_job_system_submit_after_single_child passed.\n";
+}
+
+void test_job_system_submit_after_running_parent() {
+    ae::JobSystem js;
+    js.init(2);
+
+    std::atomic<bool> parent_started {false};
+    std::atomic<bool> allow_parent_to_finish {false};
+    bool child_done = false;
+
+    auto parent = js.submit([&]() {
+        parent_started.store(true, std::memory_order_release);
+        while (!allow_parent_to_finish.load(std::memory_order_acquire)) {
+            std::this_thread::yield();
+        }
+    });
+
+    while (!parent_started.load(std::memory_order_acquire)) {
+        std::this_thread::yield();
+    }
+
+    auto child = js.submit_after(parent, [&]() {
+        child_done = true;
+    });
+    allow_parent_to_finish.store(true, std::memory_order_release);
+
+    js.wait(child);
+    assert(child_done);
+    js.shutdown();
+    std::cout << "test_job_system_submit_after_running_parent passed.\n";
 }
 
 void test_job_system_submit_after_multiple_children() {
@@ -471,6 +502,7 @@ int main() {
     std::cout << "--- JobSystem Tests ---\n";
     test_job_system_submit_and_wait();
     test_job_system_submit_after_single_child();
+    test_job_system_submit_after_running_parent();
     test_job_system_submit_after_multiple_children();
     test_job_system_submit_after_all();
     test_job_system_submit_after_all_single_parent();

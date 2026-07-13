@@ -170,7 +170,6 @@ bool JobSystem::execute_job(int job_idx) {
         auto& job = jobs_[static_cast<std::size_t>(job_idx)];
         job_fn = std::move(job->function);
         job->function = nullptr;
-        children = std::move(job->children);
     }
 
     if (job_fn) job_fn();
@@ -180,6 +179,7 @@ bool JobSystem::execute_job(int job_idx) {
         std::lock_guard<std::mutex> lock(jobs_mutex_);
         auto& job = jobs_[static_cast<std::size_t>(job_idx)];
         job->completed = true;
+        children = std::move(job->children);
 
         for (int child_idx : children) {
             auto& child_job = jobs_[static_cast<std::size_t>(child_idx)];
