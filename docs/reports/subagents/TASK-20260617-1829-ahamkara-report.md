@@ -4,7 +4,7 @@ status: reconstructed
 created: 2026-06-17
 worker: unknown
 worker_model: unknown
-task: TASK-20260617-1829-ahamkara.md
+task: TASK-20260617-1829-ahamkara
 subsystems: []
 ---
 
@@ -22,7 +22,7 @@ the queue drift scan can remain internally consistent.
 
 ## Files Changed
 
-- `docs/vault/queue-tasks/review-needed/review-primary-TASK-20260617-1829-ahamkara.md`
+- `TASK-20260617-1829-ahamkara` (retired local task record)
 
 ## Evidence
 

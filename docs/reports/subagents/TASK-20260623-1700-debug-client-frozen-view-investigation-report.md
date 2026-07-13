@@ -18,7 +18,7 @@ validation:
 ## Task
 
 Investigate the local debug client's frozen on-screen view and finish the gameplay/menu separation cleanup. Task:
-`docs/vault/queue-tasks/review-needed/TASK-20260623-1700-debug-client-frozen-view-investigation.md`.
+`TASK-20260623-1700-debug-client-frozen-view-investigation` (retired local task record).
 
 ## Status
 

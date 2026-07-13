@@ -3,7 +3,7 @@ type: review
 status: active
 created: 2026-06-15
 reviewer: codex
-task: ../../vault/queue-tasks/open/TASK-20260615-1200-client-frame-pipeline.md
+task: TASK-20260615-1200-client-frame-pipeline
 report: TASK-20260615-1200-client-frame-pipeline-report.md
 decision: revise
 subsystems:
@@ -16,7 +16,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260615-1200-client-frame-pipeline](../../vault/queue-tasks/open/TASK-20260615-1200-client-frame-pipeline.md)
+TASK-20260615-1200-client-frame-pipeline
 
 ## Report
 

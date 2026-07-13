@@ -5,7 +5,7 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/blocked/TASK-20260620-1415-blender-headless-level-generator.md
+task: TASK-20260620-1415-blender-headless-level-generator
 report: TASK-20260620-1415-blender-headless-level-generator-report.md
 decision: blocked
 escalation_tier: low
@@ -18,7 +18,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260620-1415-blender-headless-level-generator](../../vault/queue-tasks/blocked/TASK-20260620-1415-blender-headless-level-generator.md)
+TASK-20260620-1415-blender-headless-level-generator
 
 ## Report
 
@@ -37,7 +37,7 @@ documented Blender execution path still cannot be run in this environment.
 
 - `docs/reports/subagents/TASK-20260620-1415-blender-headless-level-generator-report.md`
 - `docs/reports/subagents/TASK-20260620-1415-blender-headless-level-generator-codex-review.md`
-- `docs/vault/queue-tasks/blocked/TASK-20260620-1415-blender-headless-level-generator.md`
+- `TASK-20260620-1415-blender-headless-level-generator` (retired local task record)
 - `which blender`
 - `brew info blender`
 - `brew install --cask blender`

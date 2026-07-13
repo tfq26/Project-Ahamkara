@@ -5,7 +5,7 @@ created: 2026-07-08
 reviewer: codex
 reviewer_role: primary
 reviewer_model:
-task: docs/vault/queue-tasks/review-needed/TASK-20260704-1000-weapon-runtime-foundation.md
+task: TASK-20260704-1000-weapon-runtime-foundation
 report: docs/reports/subagents/TASK-20260704-1000-weapon-runtime-foundation-report.md
 decision: verify
 escalation_tier: high
@@ -40,7 +40,7 @@ The scope stays inside the runtime seam. The report does not show any presentati
 
 ## Evidence Checked
 
-- `docs/vault/queue-tasks/review-needed/TASK-20260704-1000-weapon-runtime-foundation.md`
+- `TASK-20260704-1000-weapon-runtime-foundation` (retired local task record)
 - `docs/reports/subagents/TASK-20260704-1000-weapon-runtime-foundation-report.md`
 - Reported build/test results
 - The stated ownership boundaries for `Player`, `World`, and `WeaponModelCache`

@@ -71,5 +71,5 @@ git branch -d agent/codex/ui-pass
 
 ## Related
 
-- [OpenCode task queue](opencode-task-queue/SKILL.md)
-- [Supervisor loop](supervisor-loop/SKILL.md)
+- [GitHub issues](github-issues/SKILL.md)
+- [Subagent collaboration protocol](subagent-collaboration-protocol/SKILL.md)

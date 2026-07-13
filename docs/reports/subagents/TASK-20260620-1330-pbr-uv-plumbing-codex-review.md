@@ -5,7 +5,7 @@ created: 2026-06-20
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/completed/TASK-20260620-1330-pbr-uv-plumbing.md
+task: TASK-20260620-1330-pbr-uv-plumbing
 report: TASK-20260620-1330-pbr-uv-plumbing-report.md
 decision: complete
 escalation_tier: low
@@ -19,7 +19,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260620-1330-pbr-uv-plumbing](../../vault/queue-tasks/completed/TASK-20260620-1330-pbr-uv-plumbing.md)
+TASK-20260620-1330-pbr-uv-plumbing
 
 ## Report
 

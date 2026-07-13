@@ -5,7 +5,7 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/completed/TASK-20260615-1300-ui-screen-split-plan.md
+task: TASK-20260615-1300-ui-screen-split-plan
 report: TASK-20260615-1300-ui-screen-split-plan-report.md
 decision: complete
 escalation_tier: medium
@@ -19,7 +19,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260615-1300-ui-screen-split-plan](../../vault/queue-tasks/completed/TASK-20260615-1300-ui-screen-split-plan.md)
+TASK-20260615-1300-ui-screen-split-plan
 
 ## Report
 
@@ -38,7 +38,7 @@ first extraction slice that is safe to take next.
 ## Evidence Checked
 
 - `docs/reports/subagents/TASK-20260615-1300-ui-screen-split-plan-report.md`
-- `docs/vault/queue-tasks/review-needed/TASK-20260615-1300-ui-screen-split-plan.md`
+- `TASK-20260615-1300-ui-screen-split-plan` (retired local task record)
 - `docs/vault/skills/supervisor-loop/SKILL.md`
 - `docs/vault/skills/opencode-task-queue/SKILL.md`
 

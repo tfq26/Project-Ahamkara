@@ -5,7 +5,7 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/completed/TASK-20260615-1245-input-routing-cleanup.md
+task: TASK-20260615-1245-input-routing-cleanup
 report: TASK-20260615-1245-input-routing-cleanup-report.md
 decision: complete
 escalation_tier: medium
@@ -19,7 +19,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260615-1245-input-routing-cleanup](../../vault/queue-tasks/completed/TASK-20260615-1245-input-routing-cleanup.md)
+TASK-20260615-1245-input-routing-cleanup
 
 ## Report
 

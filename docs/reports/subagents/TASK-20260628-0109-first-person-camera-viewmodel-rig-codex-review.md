@@ -5,7 +5,7 @@ created: 2026-07-04
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/completed/TASK-20260628-0109-first-person-camera-viewmodel-rig.md
+task: TASK-20260628-0109-first-person-camera-viewmodel-rig
 report: TASK-20260628-0109-first-person-camera-viewmodel-rig-report.md
 decision: complete
 escalation_tier: medium
@@ -21,7 +21,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260628-0109-first-person-camera-viewmodel-rig](../../vault/queue-tasks/completed/TASK-20260628-0109-first-person-camera-viewmodel-rig.md)
+TASK-20260628-0109-first-person-camera-viewmodel-rig
 
 ## Report
 

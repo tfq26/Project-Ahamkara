@@ -5,7 +5,7 @@ created: 2026-07-08
 reviewer: codex
 reviewer_role: primary
 reviewer_model:
-task: docs/vault/queue-tasks/review-needed/TASK-20260704-1920-viewmodel-arm-hand-ik.md
+task: TASK-20260704-1920-viewmodel-arm-hand-ik
 report: docs/reports/subagents/TASK-20260704-1920-viewmodel-arm-hand-ik-report.md
 decision: verify
 escalation_tier: medium

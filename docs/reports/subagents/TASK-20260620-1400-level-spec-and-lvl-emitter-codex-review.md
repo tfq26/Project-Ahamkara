@@ -5,7 +5,7 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/review-needed/TASK-20260620-1400-level-spec-and-lvl-emitter.md
+task: TASK-20260620-1400-level-spec-and-lvl-emitter
 report: TASK-20260620-1400-level-spec-and-lvl-emitter-report.md
 decision: verify
 escalation_tier: low
@@ -19,7 +19,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260620-1400-level-spec-and-lvl-emitter](../../vault/queue-tasks/review-needed/TASK-20260620-1400-level-spec-and-lvl-emitter.md)
+TASK-20260620-1400-level-spec-and-lvl-emitter
 
 ## Report
 
@@ -47,7 +47,7 @@ confirmed yet.
 - `./scripts/run-tests.sh --preset debug`
 - task and report contents
 - `docs/reports/subagents/TASK-20260620-1200-level-driven-world-meshes-report.md`
-- `docs/vault/queue-tasks/review-needed/TASK-20260620-1400-level-spec-and-lvl-emitter.md`
+- `TASK-20260620-1400-level-spec-and-lvl-emitter` (retired local task record)
 
 ## Findings
 
