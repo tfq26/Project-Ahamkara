@@ -1,4 +1,6 @@
 /build/
+/.venv-lint/
+/.ruff_cache/
 /assets/compiled/
 .DS_Store
 /ahamkara_perf_*.csv

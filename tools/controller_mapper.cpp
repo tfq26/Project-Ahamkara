@@ -106,12 +106,24 @@ void draw_panel(unsigned int vertex_buffer,
                 float x, float y, float w, float h,
                 float r, float g, float b, float a) {
     const float vertices[] = {
-        x,     y,     0.0F,
-        x + w, y,     0.0F,
-        x + w, y + h, 0.0F,
-        x,     y,     0.0F,
-        x + w, y + h, 0.0F,
-        x,     y + h, 0.0F,
+        x,
+        y,
+        0.0F,
+        x + w,
+        y,
+        0.0F,
+        x + w,
+        y + h,
+        0.0F,
+        x,
+        y,
+        0.0F,
+        x + w,
+        y + h,
+        0.0F,
+        x,
+        y + h,
+        0.0F,
     };
 
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
@@ -258,9 +270,9 @@ int main() {
                 float pulse = static_cast<float>(1.0 - (current_time - last_modified_time) / 0.6);
                 draw_panel(panel_vertex_buffer, 40.0F, row_y - 6.0F,
                            static_cast<float>(fb_w) - 80.0F, 30.0F,
-                           0.08F * (1.0F - pulse) + 0.1F * pulse, 
-                           0.18F * (1.0F - pulse) + 0.6F * pulse, 
-                           0.30F * (1.0F - pulse) + 0.2F * pulse, 
+                           0.08F * (1.0F - pulse) + 0.1F * pulse,
+                           0.18F * (1.0F - pulse) + 0.6F * pulse,
+                           0.30F * (1.0F - pulse) + 0.2F * pulse,
                            0.9F);
             } else if (i == selected_index) {
                 if (capture_mode) {

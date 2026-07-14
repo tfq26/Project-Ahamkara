@@ -17,3 +17,12 @@ Lint: {{LINT_CMD}} [ex: "cargo clippy && npx tsc --noEmit"]
 ## More context
 Read [docs/AGENTS.md](docs/AGENTS.md) — tiered context loader (load only what each task needs). Source of truth.
 For code placement, conventions, testing rules, glossary: see the Tier 2 tables inside `docs/AGENTS.md`.
+
+## Agent quality gate
+
+- Configure before C++ analysis: `cmake --preset debug`.
+- Lint the complete branch diff: `./scripts/lint.sh --base-ref origin/main --compile-db build/debug`.
+- Apply safe formatter fixes: `./scripts/lint.sh --base-ref origin/main --compile-db build/debug --fix`.
+- Run the headless validation suite: `cmake --preset debug-headless && cmake --build --preset debug-headless && ctest --test-dir build/debug-headless --output-on-failure`.
+- Read `build/lint/summary.md` first; machine-readable results are in `build/lint/summary.json` and the per-tool reports beside it.
+- Do not broaden lint exclusions or weaken checks to make a ticket pass. Record genuine legacy debt in a specific GitHub issue.

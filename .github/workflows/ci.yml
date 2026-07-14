@@ -24,8 +24,56 @@ env:
   CMAKE_BUILD_PARALLEL_LEVEL: 4
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install configure dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            cmake ninja-build libglfw3-dev libgl1-mesa-dev
+
+      - name: Generate compilation database
+        run: cmake --preset debug
+
+      - name: Run change-aware lint gate
+        env:
+          EVENT_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          base_ref="${EVENT_BASE_REF}"
+          if [[ -z "${base_ref}" || "${base_ref}" =~ ^0+$ ]]; then
+            base_ref=$(git rev-parse HEAD^)
+          fi
+          ./scripts/lint.sh \
+            --base-ref "${base_ref}" \
+            --committed-only \
+            --compile-db build/debug
+
+      - name: Publish lint summary
+        if: always()
+        run: |
+          if [[ -f build/lint/summary.md ]]; then
+            cat build/lint/summary.md >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahamkara-lint-report
+          path: build/lint/
+          if-no-files-found: warn
+
   build-and-test:
     name: ${{ matrix.preset }} (${{ matrix.os }})
+    needs: lint
     strategy:
       fail-fast: false
       matrix:
@@ -123,7 +171,7 @@ jobs:
             BRANCH="${{ github.ref_name }}"
             ISSUE_NUM=$(echo "$BRANCH" | grep -oE '[0-9]+' | head -1)
             if [ -n "$ISSUE_NUM" ]; then
-              gh issue comment "$ISSUE_NUM" --body "✅ Auto-merged into `develop`. Next stop: `main` via release PR." 2>/dev/null || true
+              gh issue comment "$ISSUE_NUM" --body "✅ Auto-merged into \`develop\`. Next stop: \`main\` via release PR." 2>/dev/null || true
             fi
           else
             echo "Merge conflict — manual intervention needed"

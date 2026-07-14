@@ -40,7 +40,13 @@ void JobSystem::shutdown() {
     }
 
     log_info_cat(AE_LOG_CATEGORY, "JobSystem shutting down (" + std::to_string(workers_.size()) + " worker thread(s))");
-    running_ = false;
+    {
+        // The condition-variable predicate reads running_ while holding
+        // jobs_mutex_. Mutate it under the same mutex so a worker cannot
+        // miss the shutdown notification between checking and waiting.
+        std::lock_guard<std::mutex> lock(jobs_mutex_);
+        running_ = false;
+    }
     jobs_cv_.notify_all();
 
     for (auto& w : workers_) {
@@ -174,7 +180,6 @@ bool JobSystem::execute_job(int job_idx) {
 
     if (job_fn) job_fn();
 
-    bool has_dependents = false;
     {
         std::lock_guard<std::mutex> lock(jobs_mutex_);
         auto& job = jobs_[static_cast<std::size_t>(job_idx)];
@@ -186,12 +191,13 @@ bool JobSystem::execute_job(int job_idx) {
             int parents = child_job->unfinished_parents.fetch_sub(1, std::memory_order_acq_rel);
             if (parents == 1) {
                 ready_jobs_.push_back(child_idx);
-                has_dependents = true;
             }
         }
-    }
 
-    jobs_remaining_.fetch_sub(1, std::memory_order_release);
+        // wait_all() observes this value in a condition-variable predicate.
+        // Keep the state transition under jobs_mutex_ to prevent a lost wake.
+        jobs_remaining_.fetch_sub(1, std::memory_order_release);
+    }
 
     jobs_cv_.notify_all();
 

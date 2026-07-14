@@ -33,6 +33,27 @@ void test_job_system_submit_and_wait() {
     std::cout << "test_job_system_submit_and_wait passed.\n";
 }
 
+void test_job_system_repeated_lifecycle() {
+    constexpr int kIterations = 100;
+    for (int iteration = 0; iteration < kIterations; ++iteration) {
+        ae::JobSystem js;
+        js.init(2);
+
+        std::atomic<int> completed {0};
+        for (int job = 0; job < 4; ++job) {
+            [[maybe_unused]] auto handle = js.submit([&completed]() {
+                completed.fetch_add(1, std::memory_order_relaxed);
+            });
+        }
+
+        js.wait_all();
+        assert(completed.load(std::memory_order_relaxed) == 4);
+        js.shutdown();
+    }
+
+    std::cout << "test_job_system_repeated_lifecycle passed.\n";
+}
+
 void test_job_system_submit_after_single_child() {
     ae::JobSystem js;
     js.init(2);
@@ -89,7 +110,7 @@ void test_job_system_submit_after_multiple_children() {
     js.init(2);
 
     bool parent_done = false;
-    int child_count = 0;
+    std::atomic<int> child_count {0};
 
     auto parent = js.submit([&]() {
         parent_done = true;
@@ -98,13 +119,13 @@ void test_job_system_submit_after_multiple_children() {
     for (int i = 0; i < 3; ++i) {
         [[maybe_unused]] auto h = js.submit_after(parent, [&]() {
             assert(parent_done);
-            ++child_count;
+            child_count.fetch_add(1, std::memory_order_relaxed);
         });
     }
 
     js.wait_all();
     assert(parent_done);
-    assert(child_count == 3);
+    assert(child_count.load(std::memory_order_relaxed) == 3);
     js.shutdown();
     std::cout << "test_job_system_submit_after_multiple_children passed.\n";
 }
@@ -501,6 +522,7 @@ int main() {
 
     std::cout << "--- JobSystem Tests ---\n";
     test_job_system_submit_and_wait();
+    test_job_system_repeated_lifecycle();
     test_job_system_submit_after_single_child();
     test_job_system_submit_after_running_parent();
     test_job_system_submit_after_multiple_children();

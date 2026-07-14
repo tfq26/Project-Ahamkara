@@ -1,0 +1,20 @@
+---
+Checks: >
+  -*,
+  clang-analyzer-*,
+  bugprone-assert-side-effect,
+  bugprone-dangling-handle,
+  bugprone-infinite-loop,
+  bugprone-macro-parentheses,
+  bugprone-narrowing-conversions,
+  bugprone-sizeof-expression,
+  bugprone-suspicious-memory-comparison,
+  bugprone-use-after-move,
+  performance-for-range-copy,
+  performance-inefficient-algorithm,
+  performance-inefficient-string-concatenation,
+  performance-unnecessary-copy-initialization
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*/(engine|client|game|server|wish|tools|samples|tests)/'
+SystemHeaders: false
+FormatStyle: file
