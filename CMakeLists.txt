@@ -130,6 +130,14 @@ if(NOT AHAMKARA_ENGINE_ONLY)
     add_subdirectory(engine/physics)
 endif()
 
+# ae_skeleton and ae_animation are headless (no GLFW/OpenGL deps); they must
+# be built before game/ which depends on animation headers transitively.
+# Excluded from engine-only packages since game code is outside the engine boundary.
+if(NOT AHAMKARA_ENGINE_ONLY)
+    add_subdirectory(engine/skeleton)
+    add_subdirectory(engine/animation)
+endif()
+
 # Product modules live outside the pure Ahamkara engine package.
 if(AHAMKARA_BUILD_WISH)
     add_subdirectory(wish)
@@ -145,8 +153,6 @@ if(AHAMKARA_BUILD_CLIENT)
     find_package(OpenGL REQUIRED)
     find_package(glfw3 REQUIRED)
     add_subdirectory(engine/platform)
-    add_subdirectory(engine/skeleton)
-    add_subdirectory(engine/animation)
     add_subdirectory(engine/render)
     add_subdirectory(engine/ui)
     add_subdirectory(engine/input)

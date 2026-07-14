@@ -46,6 +46,7 @@ target_link_libraries(ahamkara_game
         wish_engine
     PRIVATE
         ae_physics
+        ae_animation
 )
 
 # ae_render is only built in GUI (non-headless) configs.  ahamkara_game compiles
@@ -53,9 +54,4 @@ target_link_libraries(ahamkara_game
 # so link the render library only when the target exists (keeps headless linking).
 if(TARGET ae_render)
     target_link_libraries(ahamkara_game PRIVATE ae_render)
-endif()
-
-# ae_animation is only built in GUI configs (depends on ae_render).
-if(TARGET ae_animation)
-    target_link_libraries(ahamkara_game PRIVATE ae_animation)
 endif()

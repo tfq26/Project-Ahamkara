@@ -1,6 +1,7 @@
 #include "ae/core/log.h"
 #include "ae/animation/animation_driver.h"
 
+#include <algorithm>
 #include <cmath>
 
 
