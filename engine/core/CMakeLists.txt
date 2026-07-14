@@ -17,9 +17,14 @@ target_compile_features(ae_core PUBLIC cxx_std_20)
 
 target_include_directories(ae_core
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
 )
+
+# glm is required to compile public math headers in-tree, but must not be
+# re-exported by the installed package (consumers supply their own math stack
+# or use non-math core APIs).
 target_link_libraries(ae_core
     PUBLIC
-        glm
+        $<BUILD_INTERFACE:glm>
 )

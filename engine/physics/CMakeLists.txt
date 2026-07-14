@@ -6,7 +6,8 @@ target_compile_features(ae_physics PUBLIC cxx_std_20)
 
 target_include_directories(ae_physics
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
 )
 
 target_link_libraries(ae_physics
