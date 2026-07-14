@@ -1,107 +1,93 @@
 #include "ae/animation/clip_player.h"
 
 #include "ae/core/log.h"
-#include "ae/render/compiled_mesh.h"
-#include "ae/render/skeletal_animation.h"
 
 #include <algorithm>
 #include <cmath>
 #include <string>
 
-#define AE_LOG_CATEGORY "Animation"
-
 namespace ae::animation {
 
-bool AnimationClipPlayer::load(const std::string& path) {
-    ae::render::CompiledMeshLoader loader;
-    ae::render::GltfModel model;
-    if (!loader.load(path, model)) {
-        ae::log_warning_cat(AE_LOG_CATEGORY, "Failed to load animation model: " + path + " — " + loader.last_error());
-        return false;
+namespace {
+float clip_duration_seconds(const ae::skeleton::AnimationClipData& clip) {
+    float duration = 0.0F;
+    for (const auto& sampler : clip.samplers) {
+        if (!sampler.input_times.empty()) {
+            duration = std::max(duration, sampler.input_times.back());
+        }
     }
+    return duration;
+}
+} // namespace
 
-    model_ = std::move(model);
-    joint_count_ = 0;
-
-    // Determine joint count from the primary skin
-    if (!model_.skins.empty()) {
-        const auto& skin = model_.skins[0];
-        joint_count_ = static_cast<int>(skin.joints.size());
-        joint_matrices_.resize(static_cast<std::size_t>(joint_count_));
-        for (auto& m : joint_matrices_) m = ae::render::Mat4::identity();
-    }
-
-    ae::log_info_cat(AE_LOG_CATEGORY, "Loaded animation model: " + path + " (" +
-                      std::to_string(model_.meshes.size()) + " meshes, " +
-                      std::to_string(model_.skins.size()) + " skins, " +
-                      std::to_string(model_.animations.size()) + " animations, " +
-                      std::to_string(joint_count_) + " joints)");
-
-    for (const auto& anim : model_.animations) {
-        ae::log_debug_cat(AE_LOG_CATEGORY, "  clip: " + anim.name + " (" +
-                          std::to_string(anim.channels.size()) + " channels, " +
-                          std::to_string(anim.samplers.size()) + " samplers)");
-    }
-
-    return true;
+bool AnimationClipPlayer::set_data(ae::skeleton::Skin skin,
+                                   std::vector<ae::skeleton::AnimationClipData> clips) {
+    stop();
+    skin_ = std::move(skin);
+    clips_ = std::move(clips);
+    joint_count_ = static_cast<int>(skin_.joints.size());
+    joint_matrices_.assign(static_cast<size_t>(std::max(joint_count_, 0)),
+                           ae::skeleton::Mat4::identity());
+    ae::log_info_cat("animation",
+                     "Clip player data set: joints=" + std::to_string(joint_count_) +
+                         " clips=" + std::to_string(clips_.size()));
+    return joint_count_ > 0;
 }
 
 void AnimationClipPlayer::play(std::string_view name, bool loop) {
     active_animation_ = nullptr;
-    current_clip_name_ = {};
-    current_time_ = 0.0f;
-    duration_ = 0.0f;
+    current_clip_name_.clear();
+    current_time_ = 0.0F;
+    duration_ = 0.0F;
+    loop_ = loop;
+    paused_ = false;
 
-    if (model_.skins.empty()) return;
-
-    for (const auto& anim : model_.animations) {
-        if (anim.name == name) {
-            active_animation_ = &anim;
-            current_clip_name_ = anim.name;
-
-            // Compute animation duration from the longest sampler
-            for (const auto& sampler : anim.samplers) {
-                if (!sampler.input_times.empty()) {
-                    float last = sampler.input_times.back();
-                    if (last > duration_) duration_ = last;
-                }
-            }
-            break;
+    for (const auto& clip : clips_) {
+        if (clip.name == name) {
+            active_animation_ = &clip;
+            current_clip_name_ = clip.name;
+            duration_ = clip_duration_seconds(clip);
+            ae::log_info_cat("animation",
+                             "Playing clip \"" + current_clip_name_ + "\" duration=" +
+                                 std::to_string(duration_) + " loop=" + (loop_ ? "1" : "0"));
+            return;
         }
     }
-
-    if (active_animation_ && loop && duration_ > 0.0f) {
-        // Looping is handled in tick()
-    }
-
-    (void)loop; // loop is always true for now
-    paused_ = false;
+    ae::log_warning_cat("animation", "Clip not found: " + std::string(name));
 }
 
 void AnimationClipPlayer::stop() {
     active_animation_ = nullptr;
-    current_clip_name_ = {};
-    current_time_ = 0.0f;
+    current_clip_name_.clear();
+    current_time_ = 0.0F;
+    duration_ = 0.0F;
+    paused_ = false;
 }
 
 void AnimationClipPlayer::pause(bool p) {
     paused_ = p;
 }
 
-const ae::render::Mat4* AnimationClipPlayer::tick(float dt) {
-    if (!active_animation_ || model_.skins.empty() || joint_count_ <= 0) return nullptr;
-    if (paused_) return joint_matrices_.data();
-
-    const auto& skin = model_.skins[0];
-    current_time_ += dt;
-
-    // Loop if we've passed the duration
-    if (duration_ > 0.0f && current_time_ >= duration_) {
-        current_time_ = std::fmod(current_time_, duration_);
+const ae::skeleton::Mat4* AnimationClipPlayer::tick(float dt) {
+    if (active_animation_ == nullptr || joint_count_ <= 0) {
+        return nullptr;
+    }
+    if (!paused_ && dt > 0.0F) {
+        current_time_ += dt;
+        if (duration_ > 0.0F) {
+            if (loop_) {
+                current_time_ = std::fmod(current_time_, duration_);
+                if (current_time_ < 0.0F) {
+                    current_time_ += duration_;
+                }
+            } else if (current_time_ > duration_) {
+                current_time_ = duration_;
+            }
+        }
     }
 
-    ae::render::evaluate_animation(*active_animation_, skin, current_time_, joint_matrices_);
+    ae::skeleton::evaluate_animation(*active_animation_, skin_, current_time_, joint_matrices_);
     return joint_matrices_.data();
 }
 
-}  // namespace ae::animation
+} // namespace ae::animation

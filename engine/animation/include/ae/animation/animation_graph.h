@@ -29,8 +29,8 @@ public:
     // --- Asset registration ---
 
     /// Register an animation clip. The `source` pointer must remain valid
-    /// for the lifetime of the graph (typically points into a GltfModel).
-    void register_clip(const std::string& name, const render::GltfAnimation* source,
+    /// for the lifetime of the graph (owned by caller).
+    void register_clip(const std::string& name, const skeleton::AnimationClipData* source,
                        float duration, bool looping = true);
 
     /// Get a registered clip by name.
@@ -39,7 +39,7 @@ public:
     // --- Skinning setup ---
 
     /// Set the skin to use for skeletal evaluation.
-    void set_skin(const render::GltfSkin* skin);
+    void set_skin(const skeleton::Skin* skin);
 
     /// Set the parent indices for global transform computation.
     void set_parent_indices(const std::vector<int>& parent_indices);
@@ -57,25 +57,25 @@ public:
     /// @param out_matrices Output: one Mat4 per joint for GPU skinning.
     void evaluate(const std::vector<StateMachine::ActiveClip>& active_clips,
                   float dt,
-                  std::vector<render::Mat4>& out_matrices);
+                  std::vector<skeleton::Mat4>& out_matrices);
 
     /// Evaluate a single clip directly (no blending).
     void evaluate_single(const std::string& clip_name, float dt,
-                         std::vector<render::Mat4>& out_matrices);
+                         std::vector<skeleton::Mat4>& out_matrices);
 
     // --- Additives & IK ---
 
     /// Add an additive pose on top of the base pose.
     /// The additive transforms are joint-local offsets.
     void apply_additive(const std::vector<JointTransform>& additive_offsets,
-                        std::vector<render::Mat4>& in_out_matrices,
+                        std::vector<skeleton::Mat4>& in_out_matrices,
                         const std::vector<int>& parent_indices);
 
     // --- Procedural ---
 
     /// Apply a procedural idle animation (breathing/sway) as a fallback.
-    void evaluate_procedural(render::ProceduralAnimState& state, float dt,
-                             std::vector<render::Mat4>& out_matrices);
+    void evaluate_procedural(skeleton::ProceduralAnimState& state, float dt,
+                             std::vector<skeleton::Mat4>& out_matrices);
 
 private:
     /// Get or create a ClipInstance for the given clip name.
@@ -88,7 +88,7 @@ private:
 
     std::unordered_map<std::string, AnimationClip> clips_;
     std::unordered_map<std::string, ClipInstance> instances_;
-    const render::GltfSkin* skin_ {nullptr};
+    const skeleton::Skin* skin_ {nullptr};
     std::vector<int> parent_indices_;
 };
 

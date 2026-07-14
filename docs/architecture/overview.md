@@ -140,3 +140,26 @@ monorepo. Extracting directories first would preserve hidden includes and make
 three repositories fail independently. The required sequence and exit gates
 are documented in [repository-split.md](repository-split.md); work status stays
 in [GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues).
+
+
+## Render / Animation Dependency
+
+As of the render/animation cycle break, pose ownership is one-way:
+
+```
+ae_core
+   |
+   v
+ae_skeleton          # Mat4, Skin, ClipData, evaluate_*, PosePalette
+   |
+   +--------------> ae_animation   # graphs, IK, clip player (headless)
+   |                     |
+   |                     | (private link from render composition only)
+   v                     v
+ae_render  -------- uses pose palette / clip player for skinning presentation
+```
+
+Rules:
+- `ae_animation` must not link OpenGL, GLFW, or `ae_render`.
+- `ae_render` may depend on `ae_skeleton` (public pose contract) and may privately use `ae_animation` for presentation helpers such as weapon clip playback.
+- Shared skeleton/pose types live only in `ae_skeleton`.

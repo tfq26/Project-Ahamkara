@@ -13,3 +13,6 @@ logs/
 .kronn/tmp/
 .kronn/
 .worktrees/
+
+build-issue55/
+build-#55/

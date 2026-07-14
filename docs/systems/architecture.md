@@ -38,7 +38,7 @@ These are transition facts, not endorsed final boundaries. See
 
 ## Known boundary defects
 
-- `ae_render` and `ae_animation` form a target cycle.
+- `ae_render` and `ae_animation` previously formed a target cycle (resolved via ae_skeleton).
   [src: file: engine/render/CMakeLists.txt:47-55]
   [src: file: engine/animation/CMakeLists.txt:21-24]
 - Install rules name graphical, game, and Wish targets in the core library set

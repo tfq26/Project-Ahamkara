@@ -478,3 +478,14 @@ add_test(
             --config $<CONFIG>
             --prefix ${CMAKE_BINARY_DIR}/test-install
 )
+
+add_executable(ahamkara_animation_headless_tests
+    src/animation_headless_tests.cpp
+)
+target_link_libraries(ahamkara_animation_headless_tests
+    PRIVATE
+        ae_animation
+        ae_skeleton
+        ae_core
+)
+add_test(NAME ahamkara_animation_headless_tests COMMAND ahamkara_animation_headless_tests)

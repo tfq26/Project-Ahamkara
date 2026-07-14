@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ae/render/skeletal_animation.h"
+#include "ae/skeleton/types.h"
 
 #include <cstdint>
 #include <functional>
@@ -19,7 +19,7 @@ struct JointTransform {
     float sx {1.0F}, sy {1.0F}, sz {1.0F};        // scale
 
     /// Convert to column-major Mat4 (T * R * S)
-    render::Mat4 to_mat4() const;
+    skeleton::Mat4 to_mat4() const;
 
     /// Blend two transforms with factor t in [0,1]
     static JointTransform blend(const JointTransform& a, const JointTransform& b, float t);
@@ -33,7 +33,7 @@ struct JointTransform {
 
 struct AnimationPose {
     std::vector<JointTransform> local_transforms;  // per-joint local transforms
-    std::vector<render::Mat4> global_matrices;      // computed global (world) matrices
+    std::vector<skeleton::Mat4> global_matrices;      // computed global (world) matrices
 
     /// Compute global matrices from local transforms using the given parent indices.
     /// Joints must be in topological order (parents before children).
@@ -46,7 +46,7 @@ struct AnimationPose {
 
 struct AnimationClip {
     std::string name;
-    const render::GltfAnimation* source {nullptr};  // points into GltfModel
+    const skeleton::AnimationClipData* source {nullptr};  // owned by caller
     float duration_seconds {0.0F};                   // total clip length
     bool looping {true};
 };

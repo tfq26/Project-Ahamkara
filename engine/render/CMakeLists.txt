@@ -21,7 +21,6 @@ add_library(ae_render STATIC
     src/temporal_aa.cpp
     src/render_backend_opengl.cpp
     src/shadow_pass.cpp
-    src/skeletal_animation.cpp
     src/platform/mac_text_rasterizer.cpp
     src/text_rasterizer.cpp
     src/weapon_model_cache.cpp
@@ -48,6 +47,7 @@ target_link_libraries(ae_render
     PUBLIC
         ae_core
         ae_platform
+        ae_skeleton
         OpenGL::GL
     PRIVATE
         ae_animation

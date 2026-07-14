@@ -1,8 +1,6 @@
 #pragma once
 
-#include "ae/render/compiled_mesh.h"
-#include "ae/render/gltf_loader.h"
-#include "ae/render/skeletal_animation.h"
+#include "ae/skeleton/types.h"
 
 #include <string>
 #include <string_view>
@@ -10,15 +8,16 @@
 
 namespace ae::animation {
 
-/// Simple animation clip player.  Loads a compiled .aemesh (which contains
-/// mesh + skeleton + animation data), then plays named clips on demand.
-/// Outputs joint matrices suitable for the GPU skinning pipeline.
+/// Headless animation clip player.
+/// Owns neutral skeleton clip/skin data and evaluates poses without a graphics
+/// context or ae_render dependency.
 class AnimationClipPlayer {
 public:
     AnimationClipPlayer() = default;
 
-    /// Load a compiled mesh (must contain skin + animation data).
-    bool load(const std::string& path);
+    /// Install neutral skeleton data (skin + clips). Replaces any previous data.
+    bool set_data(ae::skeleton::Skin skin,
+                  std::vector<ae::skeleton::AnimationClipData> clips);
 
     /// Start playing a named animation clip.
     void play(std::string_view name, bool loop = true);
@@ -33,7 +32,7 @@ public:
     /// Advance time and evaluate the current clip. Call once per frame.
     /// Returns joint matrices as Mat4 array (size = joint_count).
     /// Returns nullptr if no clip is active or no data loaded.
-    [[nodiscard]] const ae::render::Mat4* tick(float dt);
+    [[nodiscard]] const ae::skeleton::Mat4* tick(float dt);
 
     /// Number of joints in the loaded skeleton.
     [[nodiscard]] int joint_count() const { return joint_count_; }
@@ -47,15 +46,19 @@ public:
     /// Is a clip currently playing?
     [[nodiscard]] bool is_playing() const { return active_animation_ != nullptr; }
 
-private:
-    ae::render::GltfModel model_;
-    std::vector<ae::render::Mat4> joint_matrices_;
+    [[nodiscard]] bool has_data() const { return joint_count_ > 0 && !clips_.empty(); }
 
-    const ae::render::GltfAnimation* active_animation_{nullptr};
+private:
+    ae::skeleton::Skin skin_{};
+    std::vector<ae::skeleton::AnimationClipData> clips_{};
+    std::vector<ae::skeleton::Mat4> joint_matrices_;
+
+    const ae::skeleton::AnimationClipData* active_animation_{nullptr};
     std::string current_clip_name_;
     float current_time_{0.0f};
     float duration_{0.0f};
     bool paused_{false};
+    bool loop_{true};
     int joint_count_{0};
 };
 

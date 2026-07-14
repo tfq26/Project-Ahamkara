@@ -1,8 +1,29 @@
 #include "ae/render/weapon_model_cache.h"
+#include "ae/render/skeletal_animation.h"
 
 #include "ae/core/log.h"
 
 namespace ae::render {
+
+namespace {
+
+ae::skeleton::Skin make_skin(const GltfModel& model) {
+    if (model.skins.empty()) {
+        return {};
+    }
+    return to_skeleton_skin(model.skins.front());
+}
+
+std::vector<ae::skeleton::AnimationClipData> make_clips(const GltfModel& model) {
+    std::vector<ae::skeleton::AnimationClipData> clips;
+    clips.reserve(model.animations.size());
+    for (const auto& animation : model.animations) {
+        clips.push_back(to_skeleton_clip(animation));
+    }
+    return clips;
+}
+
+} // namespace
 
 WeaponModelCache::~WeaponModelCache() {
     clear();
@@ -42,10 +63,10 @@ const GpuModel* WeaponModelCache::get_gpu_model(const std::string& path) {
         }
         entry->cpu_loaded = true;
 
-        // Also try to load animation data
+        // Convert render glTF skin/clip data into neutral skeleton data for evaluation.
         if (!entry->cpu_model.animations.empty() && !entry->cpu_model.skins.empty()) {
             entry->anim_player = std::make_unique<ae::animation::AnimationClipPlayer>();
-            if (entry->anim_player->load(path)) {
+            if (entry->anim_player->set_data(make_skin(entry->cpu_model), make_clips(entry->cpu_model))) {
                 entry->anim_player->play("idle", true);
             }
         }
@@ -79,7 +100,7 @@ bool WeaponModelCache::play_animation(const std::string& path, std::string_view 
 void WeaponModelCache::tick(float dt) {
     for (auto& [path, entry] : entries_) {
         if (entry && entry->anim_player) {
-            entry->anim_player->tick(dt);
+            (void)entry->anim_player->tick(dt);
         }
     }
 }
