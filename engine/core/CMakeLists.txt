@@ -3,6 +3,9 @@ add_library(ae_core STATIC
     src/console.cpp
     src/crash_handler.cpp
     src/diagnostics.cpp
+    src/error_report.cpp
+    src/error_registry.cpp
+    src/error_types.cpp
     src/file_watcher.cpp
     src/frame_allocator.cpp
     src/frame_pacer.cpp

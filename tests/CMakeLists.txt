@@ -501,3 +501,13 @@ add_test(
         -DCONSUMER_SRC=${CMAKE_SOURCE_DIR}/tests/out_of_tree_consumer
         -P ${CMAKE_SOURCE_DIR}/cmake/OutOfTreeConsumerTest.cmake
 )
+
+
+add_executable(ahamkara_error_identity_tests
+    src/error_identity_tests.cpp
+)
+target_link_libraries(ahamkara_error_identity_tests
+    PRIVATE
+        ae_core
+)
+add_test(NAME ahamkara_error_identity_tests COMMAND ahamkara_error_identity_tests)

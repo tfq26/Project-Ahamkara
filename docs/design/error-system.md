@@ -1,6 +1,6 @@
 # Extensible error identity and handling
 
-Status: Proposed, not implemented
+Status: Foundation implemented in ae_core (AE-* catalog + Result/report APIs); product adapters still pending
 
 Implementation is sequenced through
 [Ahamkara foundation #62](https://github.com/tfq26/Project-Ahamkara/issues/62),
