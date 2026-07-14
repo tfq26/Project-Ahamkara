@@ -1,51 +1,51 @@
-# Ahamkara Docs
+# Ahamkara documentation
 
-This directory is organized so humans and agents can find the right kind of
-context quickly.
+This directory is the durable knowledge base for the current transitional
+monorepo and the planned Ahamkara, Flashback, and Wish repository split.
 
-## Start Here
+## Work tracking
 
-- [Project README](../README.md) - Top-level project overview and quick start.
-- [Agent handoff](guides/agent-handoff.md) - First-read guide for coding agents.
-- [Build guide](guides/building.md) - Configure, build, test, and run commands.
-- [Vault](vault/README.md) - Obsidian-compatible project memory and repo map.
-- [Feature task workflow](vault/workflows/feature-task-workflow.md) - Workflow
-  for larger or multi-agent changes.
-- [OpenCode task queue](vault/workflows/opencode-task-queue.md) - Queue
-  Codex-planned work for OpenCode without copy/paste.
+Mutable work belongs in [GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues).
+The canonical architecture/backlog tracker during the split is
+[#61](https://github.com/tfq26/Project-Ahamkara/issues/61).
 
-## Folders
+Do not create local issue cards, queue-task files, status dashboards, or copies
+of GitHub issue bodies under `docs/`. Documentation may link to an issue for
+execution status, but it should explain durable architecture, operation, or
+rationale independently of that issue.
 
-- [guides](guides/README.md) - Operational workflows: building, running,
-  remote agents, handoffs.
-- [systems](systems/README.md) - Canonical subsystem and architecture
-  documentation.
-- [wish](wish/README.md) - Wish engine protocol, runtime, local run, and
-  integration notes.
-- [roadmap](roadmap/roadmap.md) - Consolidated roadmap (FPS north star, engine
-  foundations, 7/10 milestone, streamlining).
-- [autonomous scale roadmap](roadmap/autonomous-scale-roadmap.md) - Phase and
-  task-budget expansion for frontier-agent execution.
-- [reports](reports/README.md) - Historical subagent and investigation reports.
-- [vault](vault/README.md) - Shared Markdown/Obsidian vault for agent memory.
+## Start here
 
-## Canonical System Docs
+1. [Architecture overview](architecture/overview.md) — current composition,
+   target boundaries, and dependency direction.
+2. [Three-repository destination](architecture/repository-split.md) — what
+   belongs in Ahamkara, Flashback, and Wish.
+3. [Repository map](repo-map.md) — what each current folder owns.
+4. [Build and test guide](guides/building.md) — supported commands.
+5. [Maintenance guide](guides/maintenance.md) — how to diagnose, repair, and
+   validate changes.
+6. [Error-system proposal](design/error-system.md) — stable error identities,
+   propagation, recovery, telemetry, and extension rules.
+7. [Error-code operations](operations/error-codes.md) — initial code catalog
+   and support workflow.
 
-- [Architecture](systems/architecture.md)
-- [Networking](systems/networking.md)
-- [Asset pipeline](systems/asset_pipeline.md)
-- [Audio architecture](systems/audio_architecture.md)
-- [Client config](systems/client_config.md)
-- [Renderer backend](systems/renderer_backend.md)
+## Documentation layout
 
-## Roadmaps And History
+| Area | Purpose |
+|---|---|
+| [`architecture/`](architecture/README.md) | System-wide boundaries, dependency direction, and migrations |
+| [`design/`](design/README.md) | Proposed or accepted designs that have not become simple subsystem facts |
+| [`systems/`](systems/README.md) | Current implementation truth for individual subsystems |
+| [`guides/`](guides/README.md) | Build, maintenance, operation, and contributor workflows |
+| [`operations/`](operations/debug-operations.md) | Troubleshooting, diagnostics, error codes, and runbooks |
+| [`wish/`](wish/README.md) | Transitional Wish implementation notes until Wish is extracted |
+| [`roadmap/`](roadmap/roadmap.md) | Strategic direction only; executable work stays in GitHub Issues |
+| [`reports/`](reports/README.md) | Historical investigations and implementation evidence |
+| [`vault/`](vault/README.md) | Lightweight project memory, decisions, and agent orientation |
 
-- [Roadmap (consolidated)](roadmap/roadmap.md)
-- [Subagent master summary](reports/subagents/master_summary.md)
-- [Known good commands](vault/memory/known-good-commands.md)
-- [Known traps](vault/memory/known-traps.md)
+## Source-of-truth order
 
-## Rule Of Thumb
-
-Use `systems/` for current subsystem truth, `guides/` for how to work,
-`vault/` for live project memory, and `reports/` for historical context.
+For behavior, trust source code, tests, and build configuration before prose.
+For intentional boundaries, trust accepted architecture and decision docs. For
+priority and completion state, trust GitHub Issues. Historical reports explain
+what was observed at a point in time and are not current specifications.

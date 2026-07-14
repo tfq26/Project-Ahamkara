@@ -5,7 +5,7 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/review-needed/TASK-20260620-1415-blender-headless-level-generator.md
+task: TASK-20260620-1415-blender-headless-level-generator
 report: TASK-20260620-1415-blender-headless-level-generator-report.md
 decision: complete
 escalation_tier: low
@@ -18,7 +18,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260620-1415-blender-headless-level-generator](../../vault/queue-tasks/completed/TASK-20260620-1415-blender-headless-level-generator.md)
+TASK-20260620-1415-blender-headless-level-generator
 
 ## Report
 

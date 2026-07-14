@@ -1,47 +1,59 @@
-# Coding rules (AI contract)
-
-> **TEMPLATE FILE.** Sections marked `{{...}}` must be filled by the AI audit.
-> If you see unfilled `{{...}}`, say `NOT_FOUND` — **never invent tool names, conventions, or commands**.
-
-> Glossary: [glossary](glossary.md).
+# Coding rules
 
 ## Global
 
-- Prefer smallest diffs. Avoid drive-by refactors.
-- Follow existing naming in adjacent code. Avoid generic names (`Helper`, `Utils`).
-- **Every change must include tests** — see [testing-quality](testing-quality.md).
-- **Comment sparingly — explain *why*, never *what*.** A comment earns its place only if it adds what the code can't say: a non-obvious rationale, a real gotcha, or a ticket ref for a *surprising* decision. Do NOT narrate what the code does, restate the line above, or leave "this is now loaded from X — see Y" pointers the code/ticket already makes obvious. Match the file's existing comment density; a clear name beats a paragraph.
+- Prefer the smallest owner-correct change; avoid drive-by refactors.
+- Every code change includes a test or an explicit explanation of why the
+  behavior cannot be automated.
+- Never edit generated output or the generated facts block in root
+  `AGENTS.md`. [src: file: AGENTS.md:5-15]
+- Do not create a second issue tracker under `docs/`; use
+  [GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues).
+- Public engine code cannot include Flashback or Wish private/product types.
+- Logs are observations; recoverable failures must be returned or handled, not
+  converted into log-only control flow.
 
-## {{LANGUAGE_1}} [ex: "Rust", "TypeScript", "Python"]
+## C++
 
-### Tools
+The project requires C++20 with compiler extensions disabled.
+[src: file: CMakeLists.txt:8-19]
 
-<!-- Fill: linter, formatter, type checker with config file and run command -->
-{{TOOLS_1}}
+- Match the namespace and naming style in the owning module. Engine code uses
+  `ae` or a nested `ae::<subsystem>` namespace; product code is transitional
+  until the repository split.
+- Put public module headers under `engine/<module>/include` and implementation
+  under `engine/<module>/src`; publish only the include directory through the
+  target. [src: file: engine/core/CMakeLists.txt:17-21]
+- Express dependencies in the owning CMake target. Do not add repository-root
+  include paths to bypass a missing public contract.
+- Use categorized logging and guard expensive debug/trace message construction
+  with `log_enabled`. [src: file: engine/core/include/ae/core/log.h:37-79]
+- Keep native backend types behind private implementation boundaries unless the
+  module's public contract explicitly owns them.
+- Use fixed-width serialized types and explicit protocol versions for wire and
+  asset formats.
 
-### Conventions
+## Shell and CMake
 
-<!-- Fill: 3-5 project-specific conventions (naming, patterns, imports, etc.) -->
-{{CONVENTIONS_1}}
+- Shell scripts use fail-fast behavior and resolve paths relative to the script
+  or repository root, as the setup/test wrappers do.
+  [src: file: scripts/setup-dev.sh:1-5]
+  [src: file: scripts/run-tests.sh:1-5]
+- Add configurable product variants through explicit CMake options/presets;
+  never assume a client-only target exists in a headless build.
+- Install only targets that were actually built and validate installed packages
+  with an out-of-tree consumer.
 
-### Common mistakes to avoid
+## Errors and diagnostics
 
-<!-- Fill: 2-3 project-specific pitfalls that cause bugs or build failures -->
-{{MISTAKES_1}}
+The stable error model is proposed in
+[`design/error-system.md`](design/error-system.md). Until it is implemented,
+new failure paths should still separate safe user messages, developer detail,
+native codes, and recovery ownership so they can migrate without semantic
+loss.
 
-## {{LANGUAGE_2}} [ex: "TypeScript", "Go", "Shell"]
+## Tooling status
 
-### Tools
-
-<!-- Fill: linter, formatter, type checker -->
-{{TOOLS_2}}
-
-### Conventions
-
-<!-- Fill: 3-5 project-specific conventions -->
-{{CONVENTIONS_2}}
-
-### Common mistakes to avoid
-
-<!-- Fill: 2-3 project-specific pitfalls -->
-{{MISTAKES_2}}
+A canonical repository-wide formatter/linter command is **NOT_FOUND**. Do not
+claim formatting or lint validation unless a concrete tool/config is added and
+the command is documented in [`testing-quality.md`](testing-quality.md).

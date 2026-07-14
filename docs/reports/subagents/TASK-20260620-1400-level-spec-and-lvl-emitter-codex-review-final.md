@@ -5,7 +5,7 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/blocked/TASK-20260620-1400-level-spec-and-lvl-emitter.md
+task: TASK-20260620-1400-level-spec-and-lvl-emitter
 report: TASK-20260620-1400-level-spec-and-lvl-emitter-report.md
 decision: blocked
 escalation_tier: low
@@ -19,7 +19,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260620-1400-level-spec-and-lvl-emitter](../../vault/queue-tasks/blocked/TASK-20260620-1400-level-spec-and-lvl-emitter.md)
+TASK-20260620-1400-level-spec-and-lvl-emitter
 
 ## Report
 
@@ -39,8 +39,8 @@ be completed in this environment.
 
 - `docs/reports/subagents/TASK-20260620-1400-level-spec-and-lvl-emitter-report.md`
 - `docs/reports/subagents/TASK-20260620-1400-level-spec-and-lvl-emitter-codex-review.md`
-- `docs/vault/queue-tasks/blocked/TASK-20260620-1400-level-spec-and-lvl-emitter.md`
-- `docs/vault/queue-tasks/open/TASK-20260620-1520-runtime-confirm-prototype-levels.md`
+- `TASK-20260620-1400-level-spec-and-lvl-emitter` (retired local task record)
+- `TASK-20260620-1520-runtime-confirm-prototype-levels` (retired local task record)
 - `which blender`
 - `echo $DISPLAY`
 

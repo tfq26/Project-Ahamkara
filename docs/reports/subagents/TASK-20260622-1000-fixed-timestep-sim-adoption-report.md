@@ -18,7 +18,7 @@ validation:
 
 Adopt the engine `FixedTimestepAccumulator` for the local simulation + expose
 interpolation alpha to the render path (roadmap Phase 0). Task:
-`docs/vault/queue-tasks/claimed/TASK-20260622-1000-fixed-timestep-sim-adoption.md`.
+`TASK-20260622-1000-fixed-timestep-sim-adoption` (retired local task record).
 
 ## Status
 

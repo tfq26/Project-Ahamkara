@@ -19,7 +19,7 @@ validation:
 
 ## Task
 
-Add LOD chains, mesh-based draw-call batching, and sorting improvements to the level render path so large worlds remain performant. Task: `docs/vault/queue-tasks/open/TASK-20260704-1420-lod-batching.md`.
+Add LOD chains, mesh-based draw-call batching, and sorting improvements to the level render path so large worlds remain performant. Task: `TASK-20260704-1420-lod-batching` (retired local task record).
 
 ## Status
 

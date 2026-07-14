@@ -213,6 +213,11 @@ add_test(
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/agent-runner/tests/test_agent_runner.py
 )
 
+add_test(
+    NAME lint_runner_python_tests
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/lint/tests/test_lint_runner.py
+)
+
 add_executable(ahamkara_nakama_bridge_tests
     src/nakama_bridge_tests.cpp
 )
@@ -336,7 +341,10 @@ add_executable(ahamkara_encounter_scripting_tests
 
 target_compile_features(ahamkara_encounter_scripting_tests PRIVATE cxx_std_20)
 target_include_directories(ahamkara_encounter_scripting_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../game/include)
-target_include_directories(ahamkara_encounter_scripting_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include)
+target_include_directories(
+    ahamkara_encounter_scripting_tests
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+)
 target_link_libraries(ahamkara_encounter_scripting_tests PRIVATE ahamkara_game)
 
 add_test(NAME ahamkara_encounter_scripting_tests COMMAND ahamkara_encounter_scripting_tests)
@@ -443,3 +451,30 @@ target_compile_definitions(ahamkara_runtime_boundary_tests PRIVATE
     $<$<BOOL:${AHAMKARA_BUILD_SERVER}>:AHAMKARA_BUILD_SERVER=$<BOOL:${AHAMKARA_BUILD_SERVER}>>
 )
 add_test(NAME ahamkara_runtime_boundary_tests COMMAND ahamkara_runtime_boundary_tests)
+
+# CI regression coverage: these exercise the actual generated build/install
+# graph instead of matching target names in source text.
+if(TARGET ahamkara_controller_mapper)
+    add_test(
+        NAME ahamkara_controller_mapper_build_regression
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
+                --config $<CONFIG>
+                --target ahamkara_controller_mapper
+    )
+endif()
+
+if(TARGET ahamkara_server)
+    add_test(
+        NAME ahamkara_server_build_regression
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
+                --config $<CONFIG>
+                --target ahamkara_server
+    )
+endif()
+
+add_test(
+    NAME ahamkara_install_rules_smoke
+    COMMAND ${CMAKE_COMMAND} --install ${CMAKE_BINARY_DIR}
+            --config $<CONFIG>
+            --prefix ${CMAKE_BINARY_DIR}/test-install
+)

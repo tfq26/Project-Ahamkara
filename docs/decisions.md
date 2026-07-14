@@ -1,28 +1,16 @@
-# Architecture decisions (why, not what)
+# Architecture decisions
 
-> **TEMPLATE FILE.** Filled during audit Step 10 (final review + decisions). Do not invent decisions — they must come from code analysis or user confirmation.
+This file records durable decisions. It is not a work tracker; implementation
+status belongs in [GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues).
 
-This file captures **intentional choices** — patterns that look unusual but are deliberate. It prevents agents from "fixing" things that aren't broken.
+| Date | Decision | Consequence | Source |
+|---|---|---|---|
+| 2026-07-13 | Ahamkara, Flashback, and Wish will become completely separate repositories and projects. | Ahamkara and Wish cannot depend on Flashback; Flashback consumes versioned packages and owns integration adapters. | [src: user:taufeeqali:2026-07-13: explicit three-repository direction] |
+| 2026-07-13 | GitHub Issues is the only source of truth for task state, priority, dependencies, and acceptance criteria. | Local queue-task files and task dashboards are removed from docs. | [src: user:taufeeqali:2026-07-13: requested removal of documentation issues after GitHub migration] |
+| 2026-07-13 | Documentation is organized around architecture, design, repository structure, subsystem truth, maintenance, operations, and historical evidence. | Durable docs must remain useful after an issue closes; reports remain historical. | [src: user:taufeeqali:2026-07-13: requested documentation purpose and structure] |
+| 2026-06-20 | Level layout/semantics are authored as a canonical JSON spec; Blender owns geometric detail and generation is one-way. | Spec-to-level and spec-to-Blender paths may coexist without round-tripping Blender edits into the spec. | [src: file: docs/vault/memory/decision-log.md:26-46] |
+| 2026-06-25 | Keep the OpenGL core profile and migrate legacy drawing through compatibility/backend helpers. | Do not restore fixed-function client state as a shortcut. | [src: file: docs/vault/memory/decision-log.md:89-102] |
 
-It is the *positive* counterpart to `inconsistencies-tech-debt.md`: decisions the team made on purpose, NOT problems to fix.
-
-## How to fill (audit Step 10)
-
-- **Target 3-8 real decisions** observed in code + briefing. Quality > quantity — a list of 2 strong decisions is fine; 15 fluff items is worse than 3 strong ones.
-- **Every row must cite a source**: `file:line`, `briefing.md`, or `user` (if confirmed during Phase 2 validation). Use `inferred from <evidence>` only when no single source is canonical.
-- **Remove unused rows entirely** — if the project has only one real decision, delete the `{{DECISION_2}}` placeholder row instead of padding.
-
-## Examples (good shape — adapt to the actual repo)
-
-| Decision | Why chosen | What NOT to do | Source |
-|----------|-----------|---------------|--------|
-| Single Mutex on SQLite | Single-writer model fits our access pattern; multi-writer would need WAL + busy_timeout tuning | Don't add a connection pool | `src/db/conn.rs:42` |
-| No ORM | Pure SQL is faster for our 12-table schema; ORM dependency cost exceeds the win | Don't introduce diesel/sea-orm | `src/db/queries.rs` + user |
-
-## Decisions
-
-<!-- Fill during audit. Each row should be traceable to code evidence or user confirmation. -->
-| Decision | Why chosen | What NOT to do | Source |
-|----------|-----------|---------------|--------|
-| {{DECISION_1}} | {{REASON}} | {{ANTI_PATTERN}} | {{FILE_OR_USER}} |
-| {{DECISION_2}} | {{REASON}} | {{ANTI_PATTERN}} | {{FILE_OR_USER}} |
+The extensible error-code model is still a proposal and therefore lives in
+[`design/error-system.md`](design/error-system.md), not this accepted-decision
+table.

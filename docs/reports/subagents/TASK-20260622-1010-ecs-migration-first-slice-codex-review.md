@@ -5,7 +5,7 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/open/TASK-20260622-1010-ecs-migration-first-slice.md
+task: TASK-20260622-1010-ecs-migration-first-slice
 report: TASK-20260622-1010-ecs-migration-first-slice-report.md
 decision: revise
 escalation_tier: low
@@ -18,7 +18,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260622-1010-ecs-migration-first-slice](../../vault/queue-tasks/open/TASK-20260622-1010-ecs-migration-first-slice.md)
+TASK-20260622-1010-ecs-migration-first-slice
 
 ## Report
 

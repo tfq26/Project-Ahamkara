@@ -36,8 +36,8 @@ target_link_libraries(ahamkara_client_lib
         ae_ui
         ae_audio
         ae_input
-        ae_animation
         ahamkara_game
+        ae_animation
         miniaudio_lib
 )
 

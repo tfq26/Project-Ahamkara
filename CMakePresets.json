@@ -39,6 +39,20 @@
         "AHAMKARA_BUILD_CLIENT": "OFF",
         "AHAMKARA_BUILD_SAMPLES": "OFF"
       }
+    },
+    {
+      "name": "package",
+      "displayName": "Package",
+      "description": "Debug configuration used to produce the distributable package",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/build/package"
+    },
+    {
+      "name": "package-debug-headless",
+      "displayName": "Package Debug Headless",
+      "description": "Headless debug configuration used to validate server packaging",
+      "inherits": "debug-headless",
+      "binaryDir": "${sourceDir}/build/package-debug-headless"
     }
   ],
   "buildPresets": [
@@ -56,12 +70,12 @@
     },
     {
       "name": "package",
-      "configurePreset": "debug",
+      "configurePreset": "package",
       "description": "Build for packaging (debug configuration)"
     },
     {
       "name": "package-debug-headless",
-      "configurePreset": "debug-headless",
+      "configurePreset": "package-debug-headless",
       "description": "Build for packaging (debug-headless configuration)"
     }
   ],
@@ -72,7 +86,7 @@
       "description": "Package the debug build into a TGZ/ZIP archive",
       "generators": ["TGZ", "ZIP"],
       "configurations": ["Debug"],
-      "configurePreset": "debug"
+      "configurePreset": "package"
     },
     {
       "name": "package-debug-headless",
@@ -80,7 +94,7 @@
       "description": "Package the debug-headless build into a TGZ/ZIP archive",
       "generators": ["TGZ", "ZIP"],
       "configurations": ["Debug"],
-      "configurePreset": "debug-headless"
+      "configurePreset": "package-debug-headless"
     }
   ]
 }

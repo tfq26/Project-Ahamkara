@@ -18,7 +18,7 @@ validation:
 
 Clarify the distinction between rendering and presentation so renderer APIs do
 not keep implying that `render()` may also swap buffers. Task:
-`docs/vault/queue-tasks/claimed/TASK-20260615-1215-render-present-semantics.md`.
+`TASK-20260615-1215-render-present-semantics` (retired local task record).
 
 ## Status
 

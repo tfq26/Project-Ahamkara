@@ -9,28 +9,30 @@
 # ---------------------------------------------------------------------------
 # Engine static libraries
 # ---------------------------------------------------------------------------
-# These targets are always available.
+# These targets are available in every supported configuration.
 set(_AHAMKARA_CORE_LIBS
     ae_core
     ae_collision
     ae_physics
     ae_network
     ae_runtime
-    ae_animation
-    ae_audio
-    ae_input
-    ae_ui
     ahamkara_game
     wish_engine
 )
 
-# ae_render and ae_platform are only built when the client is enabled.
-if(TARGET ae_render)
-    list(APPEND _AHAMKARA_CORE_LIBS ae_render)
-endif()
-if(TARGET ae_platform)
-    list(APPEND _AHAMKARA_CORE_LIBS ae_platform)
-endif()
+# Client libraries only exist when AHAMKARA_BUILD_CLIENT is enabled. Keep the
+# install manifest aligned with the targets actually created by the preset.
+foreach(_AHAMKARA_CLIENT_LIB
+        ae_animation
+        ae_audio
+        ae_input
+        ae_ui
+        ae_render
+        ae_platform)
+    if(TARGET ${_AHAMKARA_CLIENT_LIB})
+        list(APPEND _AHAMKARA_CORE_LIBS ${_AHAMKARA_CLIENT_LIB})
+    endif()
+endforeach()
 
 install(
     TARGETS ${_AHAMKARA_CORE_LIBS}
@@ -38,6 +40,9 @@ install(
     ARCHIVE    DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME    DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+unset(_AHAMKARA_CLIENT_LIB)
+unset(_AHAMKARA_CORE_LIBS)
 
 # ---------------------------------------------------------------------------
 # Public headers  (engine modules)

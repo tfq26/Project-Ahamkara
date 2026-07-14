@@ -47,8 +47,8 @@ keeps the fast path and the rich path from diverging and enables a
 describe -> spec -> generate -> import -> load loop.
 
 Implication: `planets` are deferred and treated as scaled-up streamed maps;
-build the map pipeline first. See the engine roadmap and the authoring tasks in
-`docs/vault/queue-tasks/`.
+build the map pipeline first. Strategic direction stays in the roadmap and
+implementation work stays in GitHub Issues.
 
 ## 2026-06-20 - Defer HDR / Render-Target Foundation
 
@@ -64,20 +64,20 @@ Revisit when a trigger fires:
 - bloom / SSAO / TAA is wanted (each needs an offscreen HDR target), OR
 - many dynamic lights or strong emissive surfaces are added.
 
-## 2026-06-28 - Keep HDR Out Of The Active Queue
+## 2026-06-28 - Keep HDR Deferred
 
 Decision: Keep HDR / render-target foundation in the roadmap and decision log,
-but remove `TASK-20260620-1345-render-target-hdr-foundation` from the active
-task queue.
+but do not treat it as current implementation work until a documented trigger
+fires.
 
-Rationale: The roadmap already tracks HDR as the last fidelity slice. Leaving
-it in the queue causes repeated churn with no near-term execution path, so it
-should only come back when one of the HDR triggers in the prior decision log
+Rationale: The roadmap already tracks HDR as a late fidelity slice. Treating it
+as current work causes repeated churn with no near-term execution path, so it
+should return only when one of the HDR triggers in the prior decision log
 entry fires.
 
 Implication: HDR stays discoverable in the roadmap and memory notes, but
-agents should not claim it from `docs/vault/queue-tasks/open/` or treat it as a
-live work item until explicitly re-queued.
+agents should not create or claim implementation work until a trigger is
+confirmed in GitHub Issues.
 
 ## 2026-06-20 - Function Before Fidelity (Engine Prioritization)
 
@@ -124,3 +124,27 @@ directly keeps the runtime behavior aligned with the GLSL program.
 Implication: Any future renderer cleanup should update the shader uniforms or
 backend abstractions directly; legacy fixed-function lighting calls should be
 treated as dead code in core-profile files.
+
+## 2026-07-13 - Separate Ahamkara, Flashback, And Wish Repositories
+
+Decision: Ahamkara, Flashback, and Wish will become completely independent
+repositories and projects.
+
+Rationale: Ahamkara is the reusable engine, Flashback is the game, and Wish is
+the backend/session platform. Independent repositories make dependency
+direction, packaging, versioning, and ownership enforceable.
+
+Implication: Ahamkara and Wish do not depend on Flashback or each other.
+Flashback consumes versioned releases and owns integration adapters. See
+[repository split](../../architecture/repository-split.md).
+
+## 2026-07-13 - GitHub Issues Own Work State
+
+Decision: GitHub Issues is the only source of truth for priority, state,
+dependencies, and acceptance criteria.
+
+Rationale: The file-backed queue duplicated issue state and made documentation
+stale.
+
+Implication: `docs/` contains durable architecture, designs, structure,
+maintenance, operations, memory, and historical reports—not a second backlog.

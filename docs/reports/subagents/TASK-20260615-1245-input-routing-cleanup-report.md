@@ -18,7 +18,7 @@ validation:
 
 Reduce overlap in input routing so important menu controls (notably ESC/pause)
 aren't double-consumed and the routing is clearer. Task:
-`docs/vault/queue-tasks/claimed/TASK-20260615-1245-input-routing-cleanup.md`.
+`TASK-20260615-1245-input-routing-cleanup` (retired local task record).
 
 ## Status
 

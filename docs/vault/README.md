@@ -1,62 +1,38 @@
-# Ahamkara Vault
+# Ahamkara vault
 
-This folder is a shared Markdown vault for Ahamkara. It is meant to be opened
-directly in Obsidian and read directly by coding agents from the repo.
+This folder is a lightweight, repo-local Markdown/Obsidian memory layer. It
+helps humans and agents orient themselves without replacing source code, tests,
+canonical docs, or GitHub Issues.
 
-The vault is not a replacement for source code, tests, build files, or the main
-documentation in `docs/`. It is a navigation and memory layer: repo maps,
-handoffs, decision notes, feature briefs, and durable context that helps agents
-join the project quickly.
-
-## Open In Obsidian
-
-1. Open Obsidian.
-2. Choose **Open folder as vault**.
-3. Select this folder: `docs/vault`.
-
-Obsidian settings that are safe to share live in `.obsidian/`. Machine-local
-workspace state is ignored by `.gitignore`.
-
-## Agent Entry Point
-
-Start here:
+## Start path
 
 - [[00-start-here]]
 - [[01-repo-map]]
 - [[02-agent-memory]]
 - [[03-feature-development]]
 - [[05-agent-skills]]
-- [[06-frontmatter-conventions]]
-- [[workflows/opencode-task-queue]]
+- [[memory/current-state]]
+- [[memory/decision-log]]
 
-## Main Areas
+## What belongs here
 
-- `memory/` - Current state, open questions, decisions, and handoffs.
-- `features/` - Feature briefs and planning notes.
-- `systems/` - System-level maps that explain how repo areas fit together.
-- `workflows/` - Project-specific workflow profiles and task flow notes.
-- `queue-tasks/` - File-backed OpenCode task queue with broken-down task plans.
-- `templates/` - Copyable note templates for agents and humans.
-- `skills/` - Project-local copies of agent coordination skills.
+- short repo/system maps that point to canonical docs;
+- durable decisions and open questions;
+- concise handoffs and feature/design context;
+- project-local agent skills and workflow guidance.
 
-## Workflow Notes
+## What does not belong here
 
-- [[workflows/feature-task-workflow]]
-- [[workflows/opencode-task-queue]]
-- [[workflows/codex-review-workflow]]
-- [[workflows/review-escalation-policy]]
-- [[workflows/model-routing]]
-- [[workflows/project-model-allowlist-policy]]
-- [[workflows/cross-project-langgraph-workbench]]
-- [[workflows/queue-state-invariants]]
-- [[workflows/revision-escalation-policy]]
-- [[workflows/local-secrets-workflow]]
-- [[workflows/ahamkara-reporting-profile]]
-- [[skills/lean-implementation]]
-- [[memory/known-good-commands]]
-- [[memory/known-traps]]
+- local issue cards or copies of GitHub issue bodies;
+- queue states, progress dashboards, or backlog counts;
+- secrets, credentials, generated logs, or machine-specific paths;
+- duplicated current subsystem specifications.
 
-## Principle
+Work priority, state, dependencies, and acceptance criteria live in
+[GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues). Historical
+implementation evidence lives in [`../reports/`](../reports/README.md).
 
-If a note says what the code does, link to the file or canonical doc. If a note
-says why the project is moving in a direction, keep the reasoning here.
+## Obsidian
+
+Open `docs/vault/` as the vault. Shared Markdown remains usable in GitHub and a
+terminal; Obsidian is optional.
