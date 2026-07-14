@@ -157,17 +157,28 @@ void print_player_state(const ahamkara::game::ReplicatedPlayerState& player_stat
 
 const char* key_code_name(ae::KeyCode key) {
     switch (key) {
-        case ae::KeyCode::W:           return "W";
-        case ae::KeyCode::A:           return "A";
-        case ae::KeyCode::S:           return "S";
-        case ae::KeyCode::D:           return "D";
-        case ae::KeyCode::LeftShift:   return "LShift";
-        case ae::KeyCode::RightShift:  return "RShift";
-        case ae::KeyCode::Space:       return "Space";
-        case ae::KeyCode::LeftControl:  return "LCtrl";
-        case ae::KeyCode::RightControl: return "RCtrl";
-        case ae::KeyCode::Escape:      return "Escape";
-        default:                       return nullptr;
+    case ae::KeyCode::W:
+        return "W";
+    case ae::KeyCode::A:
+        return "A";
+    case ae::KeyCode::S:
+        return "S";
+    case ae::KeyCode::D:
+        return "D";
+    case ae::KeyCode::LeftShift:
+        return "LShift";
+    case ae::KeyCode::RightShift:
+        return "RShift";
+    case ae::KeyCode::Space:
+        return "Space";
+    case ae::KeyCode::LeftControl:
+        return "LCtrl";
+    case ae::KeyCode::RightControl:
+        return "RCtrl";
+    case ae::KeyCode::Escape:
+        return "Escape";
+    default:
+        return nullptr;
     }
 }
 
@@ -188,16 +199,16 @@ void log_state_comparison(
     ae::u32 snap_tick,
     const ahamkara::game::ReplicatedPlayerState* predicted,
     float interp_delay,
-    ae::u32 tick)
-{
-    if (tick % 60 != 0) return;  // Log every 60 ticks (1 second).
+    ae::u32 tick) {
+    if (tick % 60 != 0)
+        return; // Log every 60 ticks (1 second).
 
     std::ostringstream msg;
     msg << "[Client] tick=" << tick
         << " interp_delay=" << interp_delay << "s"
         << " | interp_pos=(" << interpolated.position.x << ", " << interpolated.position.z << ")"
         << " | auth_pos=(" << authoritative.position.x << ", "
-                           << authoritative.position.z << ")"
+        << authoritative.position.z << ")"
         << " | auth_tick=" << snap_tick;
 
     if (predicted) {
@@ -208,7 +219,7 @@ void log_state_comparison(
     ae::log_info(msg.str());
 }
 
-}  // namespace
+} // namespace
 
 // ── Client entry points ──────────────────────────────────────────────────────
 
@@ -232,7 +243,7 @@ int run_sandbox_client(const char* level_path) {
             }
         } else {
             ae::log_warning("Sandbox: failed to load level " + std::string(level_path) +
-                           " (" + loader.last_error() + "); using defaults.");
+                            " (" + loader.last_error() + "); using defaults.");
         }
     }
 
@@ -396,10 +407,12 @@ int run_network_client(const std::string& server_ip, int argc, char** argv) {
     }
     if (nakama_token.empty()) {
         const char* env_token = std::getenv("NAKAMA_TOKEN");
-        if (env_token) nakama_token = env_token;
+        if (env_token)
+            nakama_token = env_token;
     }
     if (nakama_token.empty()) {
-        std::ifstream token_file(std::string(std::getenv("HOME") ? std::getenv("HOME") : ".") + "/nakama_token.txt");
+        const char* home_dir = std::getenv("HOME");
+        std::ifstream token_file(std::string(home_dir ? home_dir : ".") + "/nakama_token.txt");
         if (token_file.is_open()) {
             std::getline(token_file, nakama_token);
         }
@@ -411,7 +424,7 @@ int run_network_client(const std::string& server_ip, int argc, char** argv) {
     }
 
     auto previous_frame = std::chrono::steady_clock::now();
-    float interpolation_delay = 1.0F / kTickRate;  // Starts at 1 tick; tuned by interpolator.
+    float interpolation_delay = 1.0F / kTickRate; // Starts at 1 tick; tuned by interpolator.
 
     while (application.is_running()) {
         const float frame_dt = ae::compute_frame_dt(previous_frame);
@@ -423,8 +436,7 @@ int run_network_client(const std::string& server_ip, int argc, char** argv) {
 
         if (!connected) {
             envelope.sequence++;
-            if (!ahamkara::game::serialize_client_hello_packet(envelope, hello_packet, hello_buffer)
-                || !sim.send_to(server_address, hello_buffer.data(), hello_buffer.size())) {
+            if (!ahamkara::game::serialize_client_hello_packet(envelope, hello_packet, hello_buffer) || !sim.send_to(server_address, hello_buffer.data(), hello_buffer.size())) {
                 ae::log_warning("Client failed to send handshake hello.");
             }
 
@@ -493,8 +505,7 @@ int run_network_client(const std::string& server_ip, int argc, char** argv) {
         prediction.apply_input(input_command);
 
         envelope.sequence++;
-        if (!ahamkara::game::serialize_player_input_packet(envelope, input_command, input_buffer)
-            || !sim.send_to(server_address, input_buffer.data(), input_buffer.size())) {
+        if (!ahamkara::game::serialize_player_input_packet(envelope, input_command, input_buffer) || !sim.send_to(server_address, input_buffer.data(), input_buffer.size())) {
             ae::log_warning("Client failed to send input command.");
         }
 
@@ -519,9 +530,7 @@ int run_network_client(const std::string& server_ip, int argc, char** argv) {
             {
                 ahamkara::game::detail::ByteReader reader(
                     std::span<const std::byte>(snapshot_buffer.data(), static_cast<ae::usize>(received)));
-                if (ahamkara::game::detail::read_header(reader, ahamkara::game::PacketType::ServerSnapshot)
-                    && ahamkara::game::detail::read_envelope(reader, in_envelope)
-                    && ahamkara::game::read_snapshot_delta(reader, delta)) {
+                if (ahamkara::game::detail::read_header(reader, ahamkara::game::PacketType::ServerSnapshot) && ahamkara::game::detail::read_envelope(reader, in_envelope) && ahamkara::game::read_snapshot_delta(reader, delta)) {
                     // Apply delta to interpolated state
                     static ahamkara::game::ReplicatedPlayerState client_player;
                     ahamkara::game::apply_player_delta(client_player, delta);
@@ -655,23 +664,25 @@ int run_windowed_client(const ahamkara::client::ClientConfig& client_config) {
 
         float delta_seconds = ae::compute_frame_dt(previous_frame);
         if (delta_seconds > 0.05F) {
-            delta_seconds = 0.05F;   // Clamp to avoid huge steps after pause.
+            delta_seconds = 0.05F; // Clamp to avoid huge steps after pause.
         }
 
         ahamkara::game::PlayerInputCommand cmd {};
         cmd.client_time = static_cast<float>(ae::now_seconds());
 
-        if (window->is_key_down(ae::KeyCode::W)) cmd.move_axis.y += 1.0F;
-        if (window->is_key_down(ae::KeyCode::S)) cmd.move_axis.y -= 1.0F;
-        if (window->is_key_down(ae::KeyCode::A)) cmd.move_axis.x -= 1.0F;
-        if (window->is_key_down(ae::KeyCode::D)) cmd.move_axis.x += 1.0F;
+        if (window->is_key_down(ae::KeyCode::W))
+            cmd.move_axis.y += 1.0F;
+        if (window->is_key_down(ae::KeyCode::S))
+            cmd.move_axis.y -= 1.0F;
+        if (window->is_key_down(ae::KeyCode::A))
+            cmd.move_axis.x -= 1.0F;
+        if (window->is_key_down(ae::KeyCode::D))
+            cmd.move_axis.x += 1.0F;
 
-        const bool sprint = window->is_key_down(ae::KeyCode::LeftShift)
-                         || window->is_key_down(ae::KeyCode::RightShift);
-        cmd.sprint_held  = sprint;
+        const bool sprint = window->is_key_down(ae::KeyCode::LeftShift) || window->is_key_down(ae::KeyCode::RightShift);
+        cmd.sprint_held = sprint;
         cmd.jump_pressed = window->is_key_pressed(ae::KeyCode::Space);
-        cmd.crouch_held  = window->is_key_down(ae::KeyCode::LeftControl)
-                        || window->is_key_down(ae::KeyCode::RightControl);
+        cmd.crouch_held = window->is_key_down(ae::KeyCode::LeftControl) || window->is_key_down(ae::KeyCode::RightControl);
 
         const auto mouse = window->mouse_state();
         cmd.look_delta.x = mouse.delta_x * client_config.mouse_sensitivity;
