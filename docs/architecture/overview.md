@@ -184,3 +184,15 @@ target_link_libraries(app PRIVATE Ahamkara::Core Ahamkara::Runtime Ahamkara::Net
 ```
 
 This mode excludes Wish/Flashback/client/server/samples and does not fetch Jolt.
+
+
+## GameModule runtime contract
+
+Ahamkara hosts product games through `ae::IGameModule`:
+
+- `initialize(host)` / `tick(frame)` / `shutdown()`
+- versioned by `GameModuleApiVersion` (`major` must match)
+- `ae::Application` owns host lifecycle and optional module binding
+- Graphical and headless hosts share the same contract; presentation systems remain outside the module interface
+
+This keeps Flashback product types out of the engine while allowing deterministic headless lifecycle tests.

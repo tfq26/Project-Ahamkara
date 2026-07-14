@@ -513,7 +513,7 @@ int main(int argc, char** argv) {
     }
 
     ae::Application application(ae::RuntimeMode::Client);
-    application.start();
+    (void)application.start();
 
     const ae::SimulatorConfig sim_config = ae::build_sim_config(argc, argv);
     const ae::NetAddress server_address {options.server_ip, options.server_port};

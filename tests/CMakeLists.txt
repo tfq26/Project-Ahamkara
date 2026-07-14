@@ -511,3 +511,14 @@ target_link_libraries(ahamkara_error_identity_tests
         ae_core
 )
 add_test(NAME ahamkara_error_identity_tests COMMAND ahamkara_error_identity_tests)
+
+
+add_executable(ahamkara_game_module_host_tests
+    src/game_module_host_tests.cpp
+)
+target_link_libraries(ahamkara_game_module_host_tests
+    PRIVATE
+        ae_runtime
+        ae_core
+)
+add_test(NAME ahamkara_game_module_host_tests COMMAND ahamkara_game_module_host_tests)

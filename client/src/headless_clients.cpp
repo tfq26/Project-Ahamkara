@@ -214,7 +214,7 @@ void log_state_comparison(
 
 int run_sandbox_client(const char* level_path) {
     ae::Application application(ae::RuntimeMode::Client);
-    application.start();
+    (void)application.start();
 
     ahamkara::game::World world;
     ae::u32 sequence = 0;
@@ -314,7 +314,7 @@ int run_sandbox_client(const char* level_path) {
 
 int run_playtest_client(const char* level_path, const ahamkara::client::PlaytestScenario& scenario) {
     ae::Application application(ae::RuntimeMode::Tests);
-    application.start();
+    (void)application.start();
 
     ahamkara::client::PlaytestScenario resolved = scenario;
     if (resolved.level_path.empty() && level_path != nullptr && level_path[0] != '\0') {
@@ -329,7 +329,7 @@ int run_playtest_client(const char* level_path, const ahamkara::client::Playtest
 
 int run_network_client(const std::string& server_ip, int argc, char** argv) {
     ae::Application application(ae::RuntimeMode::Client);
-    application.start();
+    (void)application.start();
 
     ae::UdpSocket socket;
     if (!socket.open(0)) {
@@ -636,7 +636,7 @@ int run_windowed_client(const ahamkara::client::ClientConfig& client_config) {
     }
 
     ae::Application application(ae::RuntimeMode::Client);
-    application.start();
+    (void)application.start();
 
     ahamkara::game::World world;
     auto previous_frame = std::chrono::steady_clock::now();

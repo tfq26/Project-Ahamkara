@@ -14,7 +14,7 @@ int main() {
     (void)estimated;
 
     ae::Application app(ae::RuntimeMode::Tests);
-    app.start();
+    (void)app.start();
     app.shutdown();
 
     std::cout << "ahamkara_consumer: ok\n";

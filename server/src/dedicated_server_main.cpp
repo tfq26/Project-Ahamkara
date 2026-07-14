@@ -59,7 +59,7 @@ struct PeerState {
 
 int main(int argc, char** argv) {
     ae::Application application(ae::RuntimeMode::DedicatedServer);
-    application.start();
+    (void)application.start();
 
     const wish::admin::ServerConfig server_config = wish::admin::load_server_config(argc, argv);
 
