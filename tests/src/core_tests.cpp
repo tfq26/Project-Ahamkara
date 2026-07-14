@@ -354,7 +354,7 @@ void test_frame_allocator_basic_alloc() {
 }
 
 void test_frame_allocator_alignment() {
-    ae::FrameAllocator alloc(1024, 1);  // single slot
+    ae::FrameAllocator alloc(1024, 1); // single slot
     alloc.end_frame();
 
     void* p1 = alloc.allocate(1, 1);
@@ -376,6 +376,19 @@ void test_frame_allocator_alignment() {
     assert((reinterpret_cast<std::uintptr_t>(p4) & 0x7F) == 0);
 
     std::cout << "test_frame_allocator_alignment passed.\n";
+}
+
+void test_frame_allocator_alignment_across_slots() {
+    ae::FrameAllocator alloc(771, 3); // 3 slots whose starts are not all 128-byte aligned
+
+    for (int slot = 0; slot < alloc.num_slots(); ++slot) {
+        alloc.end_frame();
+        void* ptr = alloc.allocate(64, 128);
+        assert(ptr != nullptr);
+        assert((reinterpret_cast<std::uintptr_t>(ptr) & 0x7F) == 0);
+    }
+
+    std::cout << "test_frame_allocator_alignment_across_slots passed.\n";
 }
 
 void test_frame_allocator_oom() {
@@ -539,6 +552,7 @@ int main() {
     std::cout << "\n--- FrameAllocator Tests ---\n";
     test_frame_allocator_basic_alloc();
     test_frame_allocator_alignment();
+    test_frame_allocator_alignment_across_slots();
     test_frame_allocator_oom();
     test_frame_allocator_array_and_object();
     test_frame_allocator_reset_all();
