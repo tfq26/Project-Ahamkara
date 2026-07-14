@@ -146,11 +146,11 @@ float WeaponAnimationController::horizontal_speed(const ahamkara::game::Vec3& ve
     return std::sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
 }
 
-static ae::render::Mat4 make_axis_angle_rotation(float x, float y, float z, float degrees) {
+static ae::skeleton::Mat4 make_axis_angle_rotation(float x, float y, float z, float degrees) {
     const float radians = degrees * (kPi / 180.0F);
     const float half = radians * 0.5F;
     const float s = std::sin(half);
-    return ae::render::Mat4::rotation_quat(x * s, y * s, z * s, std::cos(half));
+    return ae::skeleton::Mat4::rotation_quat(x * s, y * s, z * s, std::cos(half));
 }
 
 void WeaponAnimationController::tick(float dt,
@@ -214,7 +214,7 @@ void WeaponAnimationController::update_weapon(float dt,
     }
 
     // ── Evaluate each animation layer ─────────────────────────
-    ae::render::Mat4 sway_offset, bob_offset, recoil_offset;
+    ae::skeleton::Mat4 sway_offset, bob_offset, recoil_offset;
     ae::animation::evaluate_sway_layer(
         anim_state_, profile.anim_config, dt,
         input.look_delta.x, input.look_delta.y,
@@ -226,7 +226,7 @@ void WeaponAnimationController::update_weapon(float dt,
         anim_state_, profile.anim_config, dt, recoil_offset);
 
     // ── Compose layers: sway * bob * recoil ──────────────────
-    ae::render::Mat4 local = ae::render::Mat4::identity();
+    ae::skeleton::Mat4 local = ae::skeleton::Mat4::identity();
     local = local * sway_offset;
     local = local * bob_offset;
     local = local * recoil_offset;
@@ -234,7 +234,7 @@ void WeaponAnimationController::update_weapon(float dt,
     // ── ADS position (bring weapon closer) ────────────────────
     float ads_z = anim_state_.ads_blend * (-0.15F);
     float ads_y = anim_state_.ads_blend * (-0.02F);
-    local = local * ae::render::Mat4::translation(0.0F, ads_y, ads_z);
+    local = local * ae::skeleton::Mat4::translation(0.0F, ads_y, ads_z);
 
     // --- Reload (phase-driven animation) ---
     // Phase timing:
@@ -314,8 +314,8 @@ void WeaponAnimationController::update_weapon(float dt,
         }
 
         // Apply position offset and tilt rotation
-        ae::render::Mat4 reload_pose = ae::render::Mat4::identity();
-        reload_pose = reload_pose * ae::render::Mat4::translation(
+        ae::skeleton::Mat4 reload_pose = ae::skeleton::Mat4::identity();
+        reload_pose = reload_pose * ae::skeleton::Mat4::translation(
             rd.offset_right * tilt_weight,
             rd.offset_up * tilt_weight,
             rd.offset_forward * tilt_weight);
@@ -362,21 +362,21 @@ void WeaponAnimationController::update_weapon(float dt,
             melee_phase_ = 3;
         }
 
-        ae::render::Mat4 melee_pose = ae::render::Mat4::identity();
+        ae::skeleton::Mat4 melee_pose = ae::skeleton::Mat4::identity();
         if (melee_phase_ == 1) {
             const float p = t / 0.3F;
-            melee_pose = melee_pose * ae::render::Mat4::translation(-0.01F * p, 0.0F, -0.08F * p);
+            melee_pose = melee_pose * ae::skeleton::Mat4::translation(-0.01F * p, 0.0F, -0.08F * p);
             melee_pose = melee_pose * make_axis_angle_rotation(0.0F, 0.0F, 1.0F, -15.0F * p);
             melee_pose = melee_pose * make_axis_angle_rotation(1.0F, 0.0F, 0.0F, -10.0F * p);
         } else if (melee_phase_ == 2) {
             const float p = (t - 0.3F) / 0.4F;
-            melee_pose = melee_pose * ae::render::Mat4::translation(-0.01F + 0.06F * p, 0.0F, -0.08F + 0.15F * p);
+            melee_pose = melee_pose * ae::skeleton::Mat4::translation(-0.01F + 0.06F * p, 0.0F, -0.08F + 0.15F * p);
             melee_pose = melee_pose * make_axis_angle_rotation(0.0F, 0.0F, 1.0F, -15.0F + 25.0F * p);
             melee_pose = melee_pose * make_axis_angle_rotation(1.0F, 0.0F, 0.0F, -10.0F + 15.0F * p);
         } else if (melee_phase_ == 3) {
             const float p = (t - 0.7F) / 0.3F;
             const float ease = 1.0F - p;
-            melee_pose = melee_pose * ae::render::Mat4::translation(0.05F * ease, 0.0F, 0.07F * ease);
+            melee_pose = melee_pose * ae::skeleton::Mat4::translation(0.05F * ease, 0.0F, 0.07F * ease);
             melee_pose = melee_pose * make_axis_angle_rotation(0.0F, 0.0F, 1.0F, 10.0F * ease);
             melee_pose = melee_pose * make_axis_angle_rotation(1.0F, 0.0F, 0.0F, 5.0F * ease);
         }
