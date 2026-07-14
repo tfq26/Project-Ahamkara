@@ -23,7 +23,8 @@ struct DebugBox {
     float blue {0.36F};
 };
 
-struct DebugScene {
+n // NOLINTNEXTLINE(clang-analyzer-optin.performance.Padding)
+    struct DebugScene {
     Vec3 player_position {};
     float player_height {0.65F};
     float player_yaw {0.0F};
@@ -61,7 +62,7 @@ struct DebugScene {
     double gpu_time_depth_ms {0.0};
     double gpu_time_map_ms {0.0};
     double gpu_time_ui_ms {0.0};
-    double gpu_time_entities_ms {0.0};  // placeholder — not separately measured
+    double gpu_time_entities_ms {0.0}; // placeholder — not separately measured
     float player_health {100.0F};
     float player_max_health {100.0F};
     float ammo_current {24.0F};
@@ -72,10 +73,22 @@ struct DebugScene {
     const GpuModel* weapon_model {nullptr};
     bool weapon_animation_override {false};
     float weapon_animation_transform[16] {
-        1.0F, 0.0F, 0.0F, 0.0F,
-        0.0F, 1.0F, 0.0F, 0.0F,
-        0.0F, 0.0F, 1.0F, 0.0F,
-        0.0F, 0.0F, 0.0F, 1.0F,
+        1.0F,
+        0.0F,
+        0.0F,
+        0.0F,
+        0.0F,
+        1.0F,
+        0.0F,
+        0.0F,
+        0.0F,
+        0.0F,
+        1.0F,
+        0.0F,
+        0.0F,
+        0.0F,
+        0.0F,
+        1.0F,
     };
     // GPU skinning joint matrices for the current viewmodel.
     // Flat array of 8 * 16 = 128 floats (column-major 4x4 each).
@@ -87,14 +100,14 @@ struct DebugScene {
     bool always_day {false};
     bool menu_visible {false};
     int menu_tab {0};
-    unsigned int controller_buttons {0};  // bitmask of pressed buttons
+    unsigned int controller_buttons {0}; // bitmask of pressed buttons
     int projectile_count {0};
     Vec3 projectile_positions[64] {};
     bool projectile_hit[64] {};
-    float hud_brightness {1.0F};  // day/night factor for HUD alpha
-    float gamma {1.0F};           // user brightness adjustment
-    float match_time {0.0F};      // match timer
-    ae::u8 match_phase {0};       // MatchPhase enum
+    float hud_brightness {1.0F}; // day/night factor for HUD alpha
+    float gamma {1.0F};          // user brightness adjustment
+    float match_time {0.0F};     // match timer
+    ae::u8 match_phase {0};      // MatchPhase enum
     ae::u32 team_score_red {0};
     ae::u32 team_score_blue {0};
 
@@ -106,14 +119,14 @@ struct DebugScene {
     float hitmarker_time {0.0F};
     bool hitmarker_is_critical {false};
     float muzzle_flash_time {0.0F};
-    
+
     // Floating damage numbers
     int hit_number_count {0};
     Vec3 hit_number_positions[16] {};
     float hit_number_values[16] {};
     bool hit_number_is_critical[16] {};
     float hit_number_lifetimes[16] {};
-    
+
     // Target dummies
     int dummy_count {0};
     Vec3 dummy_positions[16] {};
@@ -182,24 +195,24 @@ struct DebugScene {
     Vec3 arm_hand_pos {};
 
     // --- Frame pacing and memory budget fields (populated by client pipeline) ---
-    double frame_budget_ms {16.7};                 // target budget
-    double frame_p1_low_ms {0.0};                  // 1% low frame time
-    double frame_rolling_avg_ms {0.0};             // rolling average frame time
-    double frame_budget_compliance {1.0};           // fraction within budget [0,1]
-    bool frame_pacing_healthy {true};              // smooth avg < budget
-    bool frame_regression {false};                 // regression detected
-    std::uint8_t rss_pressure {0};                 // 0=Ok, 1=Warning, 2=Critical
-    double rss_bytes {0.0};                        // current RSS
-    double rss_peak_bytes {0.0};                   // peak RSS
-    double rss_soft_budget {0.0};                  // RSS soft budget
-    double rss_hard_budget {0.0};                  // RSS hard budget
-    std::uint8_t frame_alloc_pressure {0};          // 0=Ok, 1=Warning, 2=Critical
-    double frame_alloc_peak_bytes {0.0};           // frame allocator peak
-    double frame_alloc_capacity_bytes {0.0};       // frame allocator capacity
+    double frame_budget_ms {16.7};           // target budget
+    double frame_p1_low_ms {0.0};            // 1% low frame time
+    double frame_rolling_avg_ms {0.0};       // rolling average frame time
+    double frame_budget_compliance {1.0};    // fraction within budget [0,1]
+    bool frame_pacing_healthy {true};        // smooth avg < budget
+    bool frame_regression {false};           // regression detected
+    std::uint8_t rss_pressure {0};           // 0=Ok, 1=Warning, 2=Critical
+    double rss_bytes {0.0};                  // current RSS
+    double rss_peak_bytes {0.0};             // peak RSS
+    double rss_soft_budget {0.0};            // RSS soft budget
+    double rss_hard_budget {0.0};            // RSS hard budget
+    std::uint8_t frame_alloc_pressure {0};   // 0=Ok, 1=Warning, 2=Critical
+    double frame_alloc_peak_bytes {0.0};     // frame allocator peak
+    double frame_alloc_capacity_bytes {0.0}; // frame allocator capacity
 };
 
 class DebugRenderer {
-public:
+  public:
     DebugRenderer();
     ~DebugRenderer();
 
@@ -241,12 +254,12 @@ public:
     // passes (e.g. the PBR level pass) draw aligned with the debug world.
     [[nodiscard]] const float* view_matrix() const;
     [[nodiscard]] const float* projection_matrix() const;
-    [[nodiscard]] const float* camera_position() const;  // 3 floats
+    [[nodiscard]] const float* camera_position() const; // 3 floats
 
     struct Impl;
 
-private:
+  private:
     std::unique_ptr<Impl> impl_;
 };
 
-}  // namespace ae::render
+} // namespace ae::render
