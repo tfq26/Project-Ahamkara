@@ -163,3 +163,24 @@ Rules:
 - `ae_animation` must not link OpenGL, GLFW, or `ae_render`.
 - `ae_render` may depend on `ae_skeleton` (public pose contract) and may privately use `ae_animation` for presentation helpers such as weapon clip playback.
 - Shared skeleton/pose types live only in `ae_skeleton`.
+
+## Engine-only package mode
+
+Pure engine package builds can be configured with:
+
+```bash
+cmake -S . -B build-engine-only -G Ninja \
+  -DAHAMKARA_ENGINE_ONLY=ON \
+  -DAHAMKARA_BUILD_TESTS=OFF
+cmake --build build-engine-only --target ae_core ae_network ae_runtime
+cmake --install build-engine-only --prefix ./build-engine-only/install --component Ahamkara
+```
+
+Out-of-tree consumers then use:
+
+```cmake
+find_package(Ahamkara CONFIG REQUIRED)
+target_link_libraries(app PRIVATE Ahamkara::Core Ahamkara::Runtime Ahamkara::Network)
+```
+
+This mode excludes Wish/Flashback/client/server/samples and does not fetch Jolt.

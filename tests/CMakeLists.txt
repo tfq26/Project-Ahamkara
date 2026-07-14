@@ -489,3 +489,15 @@ target_link_libraries(ahamkara_animation_headless_tests
         ae_core
 )
 add_test(NAME ahamkara_animation_headless_tests COMMAND ahamkara_animation_headless_tests)
+
+
+# Out-of-tree package consumer smoke (engine package boundary).
+# Builds a tiny external project against an installed Ahamkara package prefix.
+add_test(
+    NAME ahamkara_out_of_tree_package_consumer
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -DBINARY_DIR=${CMAKE_BINARY_DIR}
+        -DCONSUMER_SRC=${CMAKE_SOURCE_DIR}/tests/out_of_tree_consumer
+        -P ${CMAKE_SOURCE_DIR}/cmake/OutOfTreeConsumerTest.cmake
+)
