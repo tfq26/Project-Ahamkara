@@ -22,6 +22,10 @@ class LintRunnerTests(unittest.TestCase):
     def test_normalize_path_preserves_hidden_directories(self) -> None:
         self.assertEqual(lint_runner.normalize_path("./.github/workflows/ci.yml"), ".github/workflows/ci.yml")
 
+    def test_cmake_format_dsl_is_not_treated_as_python(self) -> None:
+        self.assertFalse(lint_runner.is_python(".cmake-format.py"))
+        self.assertTrue(lint_runner.is_python("tools/lint/run.py"))
+
     def test_first_party_cpp_excludes_vendored_sources(self) -> None:
         self.assertTrue(lint_runner.is_first_party_cpp("engine/core/src/job_system.cpp"))
         self.assertFalse(lint_runner.is_first_party_cpp("engine/ui/imgui.cpp"))

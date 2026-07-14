@@ -115,6 +115,11 @@ def is_workflow(path: str) -> bool:
     return normalized.startswith(".github/workflows/") and Path(normalized).suffix.lower() in {".yaml", ".yml"}
 
 
+def is_python(path: str) -> bool:
+    normalized = normalize_path(path)
+    return Path(normalized).suffix.lower() == ".py" and normalized != ".cmake-format.py"
+
+
 def existing_repo_paths(paths: Iterable[str]) -> list[str]:
     selected: set[str] = set()
     for raw_path in paths:
@@ -395,7 +400,7 @@ def run_clang_tidy(paths: Sequence[str], report_dir: Path, compile_db: Path) -> 
 
 
 def run_ruff(paths: Sequence[str], report_dir: Path, fix: bool) -> list[CheckResult]:
-    python_paths = [path for path in paths if Path(path).suffix.lower() == ".py"]
+    python_paths = [path for path in paths if is_python(path)]
     if not python_paths:
         return [
             skipped("ruff-check", "ruff.json", "no selected Python files"),

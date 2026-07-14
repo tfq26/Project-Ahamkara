@@ -304,7 +304,7 @@ int main() {
             }
 
             draw_text(font_atlas, 56.0F, row_y, 1.2F, entries[i].name, text_r, text_g, text_b);
-            
+
             float val_r = 0.80F;
             float val_g = 0.84F;
             float val_b = 0.88F;
@@ -313,7 +313,7 @@ int main() {
             } else if (i == last_modified_index && current_time - last_modified_time < 0.6) {
                 val_r = 0.4F; val_g = 1.0F; val_b = 0.5F;
             }
-            
+
             draw_text(font_atlas, 360.0F, row_y, 1.2F, format_code(*entries[i].code), val_r, val_g, val_b);
             row_y += 34.0F;
         }
