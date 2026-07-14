@@ -23,8 +23,8 @@ struct DebugBox {
     float blue {0.36F};
 };
 
-n // NOLINTNEXTLINE(clang-analyzer-optin.performance.Padding)
-    struct DebugScene {
+// NOLINTNEXTLINE(clang-analyzer-optin.performance.Padding)
+struct DebugScene {
     Vec3 player_position {};
     float player_height {0.65F};
     float player_yaw {0.0F};
