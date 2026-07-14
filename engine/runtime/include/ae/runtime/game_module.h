@@ -33,11 +33,13 @@ struct GameModuleFrameContext {
 };
 
 class IGameModule {
-public:
+  public:
     virtual ~IGameModule() = default;
 
     [[nodiscard]] virtual std::string_view name() const = 0;
-    [[nodiscard]] virtual GameModuleApiVersion api_version() const { return kGameModuleApiVersion; }
+    [[nodiscard]] virtual GameModuleApiVersion api_version() const {
+        return kGameModuleApiVersion;
+    }
     virtual Result<void> initialize(const GameModuleHostServices& host) = 0;
     virtual Result<void> tick(const GameModuleFrameContext& frame) = 0;
     virtual void shutdown() = 0;

@@ -18,11 +18,16 @@ Error make_runtime_error(std::string_view detail) {
 
 const char* to_string(RuntimeMode mode) {
     switch (mode) {
-    case RuntimeMode::Client: return "Client";
-    case RuntimeMode::DedicatedServer: return "DedicatedServer";
-    case RuntimeMode::Editor: return "Editor";
-    case RuntimeMode::AssetCooker: return "AssetCooker";
-    case RuntimeMode::Tests: return "Tests";
+    case RuntimeMode::Client:
+        return "Client";
+    case RuntimeMode::DedicatedServer:
+        return "DedicatedServer";
+    case RuntimeMode::Editor:
+        return "Editor";
+    case RuntimeMode::AssetCooker:
+        return "AssetCooker";
+    case RuntimeMode::Tests:
+        return "Tests";
     }
     return "Unknown";
 }

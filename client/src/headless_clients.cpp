@@ -685,7 +685,7 @@ int run_windowed_client(const ahamkara::client::ClientConfig& client_config) {
                << " | [Input] move=(" << cmd.move_axis.x << ", " << cmd.move_axis.y << ")"
                << " look=(" << cmd.look_delta.x << ", " << cmd.look_delta.y << ")"
                << " sprint=" << cmd.sprint_held;
-        
+
         ae::log_info(status.str());
     }
     application.shutdown();

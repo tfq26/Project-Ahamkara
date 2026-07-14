@@ -9,14 +9,21 @@
 #include <vector>
 
 static int g_failures = 0;
-#define EXPECT_TRUE(cond) \
-    do { if (!(cond)) { std::cerr << "FAIL " << __LINE__ << " " << #cond << "\n"; ++g_failures; } } while (0)
+#define EXPECT_TRUE(cond)                                             \
+    do {                                                              \
+        if (!(cond)) {                                                \
+            std::cerr << "FAIL " << __LINE__ << " " << #cond << "\n"; \
+            ++g_failures;                                             \
+        }                                                             \
+    } while (0)
 
 namespace {
 
 class TestGameModule final : public ae::IGameModule {
-public:
-    std::string_view name() const override { return "test_module"; }
+  public:
+    std::string_view name() const override {
+        return "test_module";
+    }
 
     ae::Result<void> initialize(const ae::GameModuleHostServices& host) override {
         initialized = true;
@@ -46,12 +53,16 @@ public:
 };
 
 class FailingInitModule final : public ae::IGameModule {
-public:
-    std::string_view name() const override { return "failing_init"; }
+  public:
+    std::string_view name() const override {
+        return "failing_init";
+    }
     ae::Result<void> initialize(const ae::GameModuleHostServices&) override {
         return ae::Error(ae::ae_cfg_0001()).with_context("detail", "init_failed");
     }
-    ae::Result<void> tick(const ae::GameModuleFrameContext&) override { return {}; }
+    ae::Result<void> tick(const ae::GameModuleFrameContext&) override {
+        return {};
+    }
     void shutdown() override {}
 };
 

@@ -10,7 +10,7 @@
 namespace ae {
 
 class Application {
-public:
+  public:
     explicit Application(RuntimeMode mode);
     ~Application();
 
@@ -23,18 +23,26 @@ public:
     Result<void> tick(float dt_seconds);
     void shutdown();
 
-    [[nodiscard]] bool is_running() const { return running_; }
-    [[nodiscard]] RuntimeMode mode() const { return runtime_mode_; }
-    [[nodiscard]] IGameModule* game_module() const { return game_module_.get(); }
-    [[nodiscard]] std::uint64_t frame_index() const { return frame_index_; }
+    [[nodiscard]] bool is_running() const {
+        return running_;
+    }
+    [[nodiscard]] RuntimeMode mode() const {
+        return runtime_mode_;
+    }
+    [[nodiscard]] IGameModule* game_module() const {
+        return game_module_.get();
+    }
+    [[nodiscard]] std::uint64_t frame_index() const {
+        return frame_index_;
+    }
 
-private:
+  private:
     RuntimeMode runtime_mode_;
     bool running_ {false};
     bool module_initialized_ {false};
     std::uint64_t frame_index_ {0};
     double time_seconds_ {0.0};
-    std::unique_ptr<IGameModule> game_module_{};
+    std::unique_ptr<IGameModule> game_module_ {};
 };
 
 } // namespace ae
