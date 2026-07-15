@@ -519,3 +519,4 @@ target_link_libraries(ahamkara_game_module_host_tests
         ae_core
 )
 add_test(NAME ahamkara_game_module_host_tests COMMAND ahamkara_game_module_host_tests)
+

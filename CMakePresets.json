@@ -53,6 +53,22 @@
       "description": "Headless debug configuration used to validate server packaging",
       "inherits": "debug-headless",
       "binaryDir": "${sourceDir}/build/package-debug-headless"
+    },
+    {
+      "name": "wish-standalone",
+      "displayName": "Wish Standalone",
+      "description": "Debug build of only engine core + Wish, no game/client/server/samples",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/wish-standalone",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "AHAMKARA_BUILD_GAME": "OFF",
+        "AHAMKARA_BUILD_CLIENT": "OFF",
+        "AHAMKARA_BUILD_SERVER": "OFF",
+        "AHAMKARA_BUILD_SAMPLES": "OFF",
+        "AHAMKARA_BUILD_TESTS": "OFF"
+      }
     }
   ],
   "buildPresets": [
@@ -77,6 +93,10 @@
       "name": "package-debug-headless",
       "configurePreset": "package-debug-headless",
       "description": "Build for packaging (debug-headless configuration)"
+    },
+    {
+      "name": "wish-standalone",
+      "configurePreset": "wish-standalone"
     }
   ],
   "packagePresets": [
