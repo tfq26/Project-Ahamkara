@@ -142,6 +142,12 @@ endif()
 if(AHAMKARA_BUILD_WISH)
     add_subdirectory(wish)
 endif()
+
+# Wish consumer fixture — proves Wish builds, links, and runs without Ahamkara or Flashback.
+if(AHAMKARA_BUILD_WISH AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/wish_consumer/CMakeLists.txt")
+    enable_testing()
+    add_subdirectory(tests/wish_consumer)
+endif()
 if(AHAMKARA_BUILD_GAME)
     if(NOT AHAMKARA_BUILD_WISH)
         message(FATAL_ERROR "AHAMKARA_BUILD_GAME requires AHAMKARA_BUILD_WISH (game links wish_engine).")
@@ -175,7 +181,7 @@ if(AHAMKARA_BUILD_TESTS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists
     add_subdirectory(tests)
 endif()
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/wish-test-client/CMakeLists.txt")
+if(AHAMKARA_BUILD_GAME AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/wish-test-client/CMakeLists.txt")
     add_subdirectory(tools/wish-test-client)
 endif()
 
