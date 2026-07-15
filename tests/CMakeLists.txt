@@ -519,3 +519,14 @@ target_link_libraries(ahamkara_game_module_host_tests
         ae_core
 )
 add_test(NAME ahamkara_game_module_host_tests COMMAND ahamkara_game_module_host_tests)
+
+add_executable(ahamkara_wish_error_tests
+    src/wish_error_tests.cpp
+)
+target_compile_features(ahamkara_wish_error_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_wish_error_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_wish_error_tests
+    PRIVATE
+        wish_engine
+)
+add_test(NAME ahamkara_wish_error_tests COMMAND ahamkara_wish_error_tests)
