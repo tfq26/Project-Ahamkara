@@ -34,18 +34,22 @@ class FlashbackGameModule final : public ae::IGameModule {
         shut_down_ = true;
     }
 
-    [[nodiscard]] bool initialized() const { return initialized_; }
-    [[nodiscard]] bool shut_down() const { return shut_down_; }
+    [[nodiscard]] bool initialized() const {
+        return initialized_;
+    }
+    [[nodiscard]] bool shut_down() const {
+        return shut_down_;
+    }
 
   private:
     bool initialized_ {false};
     bool shut_down_ {false};
 };
 
-}  // namespace
+} // namespace
 
 std::unique_ptr<ae::IGameModule> create_flashback_game_module() {
     return std::make_unique<FlashbackGameModule>();
 }
 
-}  // namespace flashback
+} // namespace flashback

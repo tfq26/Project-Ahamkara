@@ -9,19 +9,19 @@ namespace wish {
 /// Wish error domains (4-character uppercase codes used in WS-* format).
 /// Domains match the second segment of the stable code string, e.g. WS-AUT-1001.
 struct WishDomain {
-    static constexpr const char* kAuth = "AUT";       // Authentication & admission
-    static constexpr const char* kSession = "SES";    // Session & activity lifecycle
-    static constexpr const char* kCapacity = "CAP";   // Capacity & rate limiting
-    static constexpr const char* kProtocol = "PRO";   // Protocol & versioning
-    static constexpr const char* kBackend = "BAK";    // Backend availability
-    static constexpr const char* kInternal = "INT";   // Internal/system
+    static constexpr const char* kAuth = "AUT";     // Authentication & admission
+    static constexpr const char* kSession = "SES";  // Session & activity lifecycle
+    static constexpr const char* kCapacity = "CAP"; // Capacity & rate limiting
+    static constexpr const char* kProtocol = "PRO"; // Protocol & versioning
+    static constexpr const char* kBackend = "BAK";  // Backend availability
+    static constexpr const char* kInternal = "INT"; // Internal/system
 };
 
 /// Stable numeric error codes for the Wish platform.
 /// Each code has exactly one meaning, owner, message key, and recovery policy.
 enum class WishErrorCode : std::uint32_t {
     // --- Authentication (AUT) ---
-    kAuthRejected = 1001,        // Authentication rejected
+    kAuthRejected = 1001,             // Authentication rejected
     kSessionAdmissionRejected = 1002, // Session admission rejected
 
     // --- Session & Activity (SES) ---
@@ -29,18 +29,18 @@ enum class WishErrorCode : std::uint32_t {
     kActivityUnavailable = 2002, // Activity unavailable
 
     // --- Capacity (CAP) ---
-    kCapacityExceeded = 3001,    // Capacity / rate limit exceeded
+    kCapacityExceeded = 3001, // Capacity / rate limit exceeded
 
     // --- Protocol (PRO) ---
-    kProtocolError = 4001,       // General protocol error
+    kProtocolError = 4001,           // General protocol error
     kProtocolVersionMismatch = 4002, // Protocol version mismatch
 
     // --- Backend (BAK) ---
-    kBackendUnavailable = 5001,  // Backend service unavailable
-    kBackendTimeout = 5002,      // Backend request timeout
+    kBackendUnavailable = 5001, // Backend service unavailable
+    kBackendTimeout = 5002,     // Backend request timeout
 
     // --- Internal (INT) ---
-    kInternalError = 9001,       // Internal/system error
+    kInternalError = 9001, // Internal/system error
 
     // Sentinel
     kCount,

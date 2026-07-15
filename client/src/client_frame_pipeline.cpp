@@ -540,7 +540,8 @@ void ClientFramePipeline::stage_render_ui() {
     // Update dynamic menu variables
     if (menu_initialized_) {
         menu_system_.set_variable("build_date", __DATE__ " " __TIME__);
-        menu_system_.set_variable("fps", static_cast<int>(frontend_state_.displayed_metrics.fps));
+        const int fps_int = static_cast<int>(frontend_state_.displayed_metrics.fps);
+        menu_system_.set_variable("fps", static_cast<float>(fps_int));
     }
 
     // Render menus (main, pause, settings, map select, loading)

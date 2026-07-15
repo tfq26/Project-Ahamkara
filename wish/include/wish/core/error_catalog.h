@@ -20,11 +20,11 @@ enum class RecoveryPolicy : std::uint8_t {
 
 /// Catalog entry for a single Wish error code.
 struct ErrorCatalogEntry {
-    WishErrorCode code;
     const char* domain;
     const char* message_key;
     const char* title;
     const char* owner;
+    WishErrorCode code;
     RecoveryPolicy recovery;
     bool user_visible;
 };
@@ -32,7 +32,7 @@ struct ErrorCatalogEntry {
 /// Immutable catalog of Wish error descriptors.
 /// Provides lookup by WishErrorCode with human-readable metadata.
 class ErrorCatalog {
-public:
+  public:
     /// Returns the singleton catalog instance.
     static const ErrorCatalog& instance();
 
@@ -44,9 +44,11 @@ public:
     [[nodiscard]] const ErrorCatalogEntry* find(std::uint32_t code_value) const;
 
     /// Returns the total number of registered entries.
-    [[nodiscard]] std::size_t size() const { return entry_count(); }
+    [[nodiscard]] std::size_t size() const {
+        return entry_count();
+    }
 
-private:
+  private:
     ErrorCatalog() = default;
     static const ErrorCatalogEntry kEntries_[];
     [[nodiscard]] static std::size_t entry_count();

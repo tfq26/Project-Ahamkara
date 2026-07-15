@@ -9,21 +9,21 @@
 
 static int g_failures = 0;
 
-#define EXPECT_TRUE(cond) \
-    do { \
-        if (!(cond)) { \
+#define EXPECT_TRUE(cond)                                                                \
+    do {                                                                                 \
+        if (!(cond)) {                                                                   \
             std::cerr << "FAIL " << __FILE__ << ":" << __LINE__ << " " << #cond << "\n"; \
-            ++g_failures; \
-        } \
+            ++g_failures;                                                                \
+        }                                                                                \
     } while (0)
 
-#define EXPECT_EQ(a, b) \
-    do { \
-        if ((a) != (b)) { \
+#define EXPECT_EQ(a, b)                                                                      \
+    do {                                                                                     \
+        if ((a) != (b)) {                                                                    \
             std::cerr << "FAIL " << __FILE__ << ":" << __LINE__ << " " << #a << " == " << #b \
-                      << " (" << (a) << " != " << (b) << ")\n"; \
-            ++g_failures; \
-        } \
+                      << " (" << (a) << " != " << (b) << ")\n";                              \
+            ++g_failures;                                                                    \
+        }                                                                                    \
     } while (0)
 
 namespace {
@@ -50,6 +50,7 @@ void test_wish_code_domain() {
     EXPECT_TRUE(std::strcmp(wish::wish_code_domain(wish::WishErrorCode::kBackendUnavailable), "BAK") == 0);
     EXPECT_TRUE(std::strcmp(wish::wish_code_domain(wish::WishErrorCode::kInternalError), "INT") == 0);
     // Unknown code returns nullptr
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     EXPECT_TRUE(wish::wish_code_domain(static_cast<wish::WishErrorCode>(9999)) == nullptr);
 }
 
@@ -68,6 +69,7 @@ void test_format_wish_code() {
     EXPECT_TRUE(std::strcmp(buffer, "WS-BAK-5002") == 0);
 
     // Unknown code -> empty string
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     wish::format_wish_code(static_cast<wish::WishErrorCode>(9999), buffer, sizeof(buffer));
     EXPECT_EQ(buffer[0], '\0');
 
@@ -201,7 +203,9 @@ void test_catalog_lookup() {
     EXPECT_TRUE(catalog.find(wish::WishErrorCode::kInternalError) != nullptr);
 
     // Unknown code returns nullptr
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     EXPECT_TRUE(catalog.find(static_cast<wish::WishErrorCode>(0)) == nullptr);
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     EXPECT_TRUE(catalog.find(static_cast<wish::WishErrorCode>(9999)) == nullptr);
 }
 

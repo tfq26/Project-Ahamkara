@@ -14,4 +14,4 @@ namespace flashback {
 /// gameplay.
 [[nodiscard]] std::unique_ptr<ae::IGameModule> create_flashback_game_module();
 
-}  // namespace flashback
+} // namespace flashback

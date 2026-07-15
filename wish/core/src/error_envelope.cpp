@@ -102,7 +102,7 @@ std::string serialize_envelope(const ErrorEnvelope& envelope) {
 std::optional<ErrorEnvelope> deserialize_envelope(std::string_view data) {
     ErrorEnvelope envelope;
 
-    std::istringstream stream{std::string(data)};
+    std::istringstream stream {std::string(data)};
     std::string line;
     bool has_version = false;
     bool has_code = false;

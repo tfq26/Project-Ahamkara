@@ -8,97 +8,97 @@ namespace wish {
 const ErrorCatalogEntry ErrorCatalog::kEntries_[] = {
     // --- Authentication ---
     {
-        WishErrorCode::kAuthRejected,
         WishDomain::kAuth,
         "errors.auth.rejected",
         "Authentication rejected",
         "wish/auth",
+        WishErrorCode::kAuthRejected,
         RecoveryPolicy::RetryNow,
         true,
     },
     {
-        WishErrorCode::kSessionAdmissionRejected,
         WishDomain::kAuth,
         "errors.auth.admission_rejected",
         "Session admission rejected",
         "wish/session",
+        WishErrorCode::kSessionAdmissionRejected,
         RecoveryPolicy::RetryNow,
         true,
     },
     // --- Session & Activity ---
     {
-        WishErrorCode::kSessionExpired,
         WishDomain::kSession,
         "errors.session.expired",
         "Session expired",
         "wish/session",
+        WishErrorCode::kSessionExpired,
         RecoveryPolicy::Reconnect,
         true,
     },
     {
-        WishErrorCode::kActivityUnavailable,
         WishDomain::kSession,
         "errors.session.activity_unavailable",
         "Activity unavailable",
         "wish/session",
+        WishErrorCode::kActivityUnavailable,
         RecoveryPolicy::RetryNow,
         true,
     },
     // --- Capacity ---
     {
-        WishErrorCode::kCapacityExceeded,
         WishDomain::kCapacity,
         "errors.capacity.exceeded",
         "Capacity exceeded",
         "wish/admin",
+        WishErrorCode::kCapacityExceeded,
         RecoveryPolicy::RetryBackoff,
         true,
     },
     // --- Protocol ---
     {
-        WishErrorCode::kProtocolError,
         WishDomain::kProtocol,
         "errors.protocol.error",
         "Protocol error",
         "wish/net",
+        WishErrorCode::kProtocolError,
         RecoveryPolicy::Reconnect,
         true,
     },
     {
-        WishErrorCode::kProtocolVersionMismatch,
         WishDomain::kProtocol,
         "errors.protocol.version_mismatch",
         "Protocol version mismatch",
         "wish/net",
+        WishErrorCode::kProtocolVersionMismatch,
         RecoveryPolicy::RestartSession,
         true,
     },
     // --- Backend ---
     {
-        WishErrorCode::kBackendUnavailable,
         WishDomain::kBackend,
         "errors.backend.unavailable",
         "Backend unavailable",
         "wish/integrations",
+        WishErrorCode::kBackendUnavailable,
         RecoveryPolicy::RetryBackoff,
         true,
     },
     {
-        WishErrorCode::kBackendTimeout,
         WishDomain::kBackend,
         "errors.backend.timeout",
         "Backend timeout",
         "wish/integrations",
+        WishErrorCode::kBackendTimeout,
         RecoveryPolicy::RetryNow,
         true,
     },
     // --- Internal ---
     {
-        WishErrorCode::kInternalError,
         WishDomain::kInternal,
         "errors.internal.error",
         "Internal system error",
         "wish/core",
+        WishErrorCode::kInternalError,
         RecoveryPolicy::ContactSupport,
         true,
     },
@@ -143,14 +143,14 @@ WishErrorCode map_native_to_wish_code(std::string_view native_domain, std::int64
     // Nakama backend errors
     if (native_domain == "nakama") {
         switch (native_code) {
-        case 1:   // Unknown connection error
-        case 2:   // Transport error
+        case 1: // Unknown connection error
+        case 2: // Transport error
             return WishErrorCode::kBackendUnavailable;
-        case 3:   // Authentication error
+        case 3: // Authentication error
             return WishErrorCode::kAuthRejected;
-        case 4:   // Session error
+        case 4: // Session error
             return WishErrorCode::kSessionExpired;
-        case 5:   // Capacity exceeded
+        case 5: // Capacity exceeded
             return WishErrorCode::kCapacityExceeded;
         default:
             return WishErrorCode::kBackendUnavailable;
@@ -159,13 +159,13 @@ WishErrorCode map_native_to_wish_code(std::string_view native_domain, std::int64
 
     if (native_domain == "nakama_grpc") {
         switch (native_code) {
-        case 14:  // UNAVAILABLE
+        case 14: // UNAVAILABLE
             return WishErrorCode::kBackendUnavailable;
-        case 4:   // DEADLINE_EXCEEDED
+        case 4: // DEADLINE_EXCEEDED
             return WishErrorCode::kBackendTimeout;
-        case 16:  // UNAUTHENTICATED
+        case 16: // UNAUTHENTICATED
             return WishErrorCode::kAuthRejected;
-        case 10:  // ABORTED
+        case 10: // ABORTED
             return WishErrorCode::kCapacityExceeded;
         default:
             return WishErrorCode::kBackendUnavailable;
@@ -175,9 +175,9 @@ WishErrorCode map_native_to_wish_code(std::string_view native_domain, std::int64
     // System/network errors
     if (native_domain == "system") {
         switch (native_code) {
-        case 60:  // ETIMEDOUT
-        case 61:  // ECONNREFUSED
-        case 54:  // ECONNRESET
+        case 60: // ETIMEDOUT
+        case 61: // ECONNREFUSED
+        case 54: // ECONNRESET
             return WishErrorCode::kBackendUnavailable;
         default:
             return WishErrorCode::kBackendUnavailable;
