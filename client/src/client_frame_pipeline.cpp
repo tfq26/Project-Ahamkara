@@ -271,7 +271,7 @@ void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
         ae::log_info_cat("Client", inspector_.visible() ? "Inspector opened." : "Inspector closed.");
     }
 
-    const std::string base_title = "Flashback";
+    const std::string base_title = client_config_.app_name;
     if (window_title_.empty()) {
         window_title_ = build_debug_window_title(base_title, frontend_state_.camera_mode,
             frontend_state_.metrics_visible, frontend_state_.displayed_metrics);

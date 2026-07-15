@@ -39,6 +39,9 @@ struct ClientConfig {
     // --- Audio ---------------------------------------------------------------
     AudioConfig audio {};
 
+    // --- Identity ------------------------------------------------------------
+    std::string app_name {"Ahamkara"};
+
     /// Populate fields from the key=value config file at `path`.
     /// Unknown keys are ignored. Invalid values fall back to defaults.
     /// Returns false when the file cannot be opened (treated as "use defaults").
