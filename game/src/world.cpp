@@ -64,7 +64,7 @@ World::World(const WorldDefinition& definition) {
     ae::collision::CharacterDef char_def;
     {
         const auto& p = player_.state().position;
-        char_def.position = ae::Vec3{p.x, p.y, p.z};
+        char_def.position = ae::Vec3 {p.x, p.y, p.z};
     }
     char_def.capsule_radius = standing_radius;
     char_def.capsule_half_height = standing_half_height;
@@ -214,7 +214,7 @@ void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
 
     const bool on_ground = is_on_ground();
     const ae::Vec3 ae_vel = jolt_->character->get_linear_velocity();
-    const Vec3 current_vel{ae_vel.x, ae_vel.y, ae_vel.z};
+    const Vec3 current_vel {ae_vel.x, ae_vel.y, ae_vel.z};
 
     movement_controller_.begin_frame(
         player_.state(),
@@ -238,8 +238,6 @@ void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
             bool allowed = jolt_->character->set_shape(kStandHalfHeight, kStandRadius);
             if (allowed) {
                 jolt_->is_crouched = false;
-            } else {
-                want_crouch = true;
             }
         } else if (want_crouch && !jolt_->is_crouched) {
             jolt_->character->set_shape(kCrouchHalfHeight, kCrouchRadius);
@@ -248,13 +246,13 @@ void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
     }
 
     const Vec3& desired_velocity = movement_controller_.desired_velocity();
-    jolt_->character->set_linear_velocity(ae::Vec3{desired_velocity.x, desired_velocity.y, desired_velocity.z});
+    jolt_->character->set_linear_velocity(ae::Vec3 {desired_velocity.x, desired_velocity.y, desired_velocity.z});
 
     jolt_->character->extended_update(
         delta_seconds,
-        ae::Vec3{0.0F, -cfg_gravity(), 0.0F},
-        0.4F,   // walk_stairs_step_up
-        0.35F   // stick_to_floor_step_down
+        ae::Vec3 {0.0F, -cfg_gravity(), 0.0F},
+        0.4F, // walk_stairs_step_up
+        0.35F // stick_to_floor_step_down
     );
 
     // Sync player state back from KCC
@@ -274,7 +272,7 @@ void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
             Vec3 vel_slide = player_.state().velocity;
             apply_slope_physics(vel_slide, ground_normal, delta_seconds, kDefaultCfg);
             player_.state().velocity = vel_slide;
-            jolt_->character->set_linear_velocity(ae::Vec3{vel_slide.x, vel_slide.y, vel_slide.z});
+            jolt_->character->set_linear_velocity(ae::Vec3 {vel_slide.x, vel_slide.y, vel_slide.z});
         }
     }
 
@@ -284,14 +282,14 @@ void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
         if (player_.state().velocity.y < 0.0F) {
             player_.state().velocity.y = 0.0F;
         }
-        jolt_->character->set_position(ae::Vec3{player_.state().position.x, 0.0F, player_.state().position.z});
+        jolt_->character->set_position(ae::Vec3 {player_.state().position.x, 0.0F, player_.state().position.z});
     }
 
     // Fall-death reset
     if (player_.state().position.y < -20.0F) {
         player_.state().position = { -12.0F, 2.0F, 0.0F };
         player_.state().velocity = {};
-        jolt_->character->set_position(ae::Vec3{player_.state().position.x, player_.state().position.y, player_.state().position.z});
+        jolt_->character->set_position(ae::Vec3 {player_.state().position.x, player_.state().position.y, player_.state().position.z});
         jolt_->character->set_linear_velocity({});
     }
 
@@ -345,8 +343,8 @@ void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
 void World::set_player_state(const ReplicatedPlayerState& state) {
     player_.set_state(state);
     if (jolt_ && jolt_->character) {
-        jolt_->character->set_position(ae::Vec3{state.position.x, state.position.y, state.position.z});
-        jolt_->character->set_linear_velocity(ae::Vec3{state.velocity.x, state.velocity.y, state.velocity.z});
+        jolt_->character->set_position(ae::Vec3 {state.position.x, state.position.y, state.position.z});
+        jolt_->character->set_linear_velocity(ae::Vec3 {state.velocity.x, state.velocity.y, state.velocity.z});
         jolt_->character->refresh_contacts();
     }
     movement_controller_.finish_frame(player_.state(), PlayerInputCommand {}, 0.0F, is_on_ground(), colliders_, collider_count_, jolt_ ? jolt_->character.get() : nullptr);
@@ -742,7 +740,7 @@ void World::respawn_player() {
     player_.reset_weapon_runtime(0, 150);
 
     if (jolt_ && jolt_->character) {
-        jolt_->character->set_position(ae::Vec3{player_.state().position.x, player_.state().position.y, player_.state().position.z});
+        jolt_->character->set_position(ae::Vec3 {player_.state().position.x, player_.state().position.y, player_.state().position.z});
         jolt_->character->set_linear_velocity({});
     }
 }
@@ -786,7 +784,7 @@ void World::restart_match() {
     reset_player_to_spawn();
     player_.reset_weapon_runtime(0, 150);
     if (jolt_ && jolt_->character) {
-        jolt_->character->set_position(ae::Vec3{player_.state().position.x, player_.state().position.y, player_.state().position.z});
+        jolt_->character->set_position(ae::Vec3 {player_.state().position.x, player_.state().position.y, player_.state().position.z});
         jolt_->character->set_linear_velocity({});
     }
 
