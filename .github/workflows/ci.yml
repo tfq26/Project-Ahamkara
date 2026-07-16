@@ -15,6 +15,50 @@ env:
   CMAKE_BUILD_PARALLEL_LEVEL: 4
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate documentation links
+        run: python3 scripts/check-docs-links.sh --ci
+
+      - name: Generate compilation database
+        run: cmake --preset debug
+
+      - name: Run change-aware lint gate
+        env:
+          EVENT_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          base_ref="${EVENT_BASE_REF}"
+          if [[ -z "${base_ref}" || "${base_ref}" =~ ^0+$ ]]; then
+            base_ref=$(git rev-parse HEAD^)
+          fi
+          ./scripts/lint.sh \
+            --base-ref "${base_ref}" \
+            --committed-only \
+            --compile-db build/debug
+
+      - name: Publish lint summary
+        if: always()
+        run: |
+          if [[ -f build/lint/summary.md ]]; then
+            cat build/lint/summary.md >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahamkara-lint-report
+          path: build/lint/
+          if-no-files-found: warn
+
   build-and-test:
     name: ${{ matrix.preset }} (${{ matrix.os }})
     strategy:
