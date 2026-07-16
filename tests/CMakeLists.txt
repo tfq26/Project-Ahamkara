@@ -478,3 +478,44 @@ add_test(
             --config $<CONFIG>
             --prefix ${CMAKE_BINARY_DIR}/test-install
 )
+
+add_executable(ahamkara_animation_headless_tests
+    src/animation_headless_tests.cpp
+)
+target_link_libraries(ahamkara_animation_headless_tests
+    PRIVATE
+        ae_animation
+        ae_skeleton
+        ae_core
+)
+add_test(NAME ahamkara_animation_headless_tests COMMAND ahamkara_animation_headless_tests)
+
+# Out-of-tree package consumer smoke (engine package boundary).
+# Builds a tiny external project against an installed Ahamkara package prefix.
+add_test(
+    NAME ahamkara_out_of_tree_package_consumer
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -DBINARY_DIR=${CMAKE_BINARY_DIR}
+        -DCONSUMER_SRC=${CMAKE_SOURCE_DIR}/tests/out_of_tree_consumer
+        -P ${CMAKE_SOURCE_DIR}/cmake/OutOfTreeConsumerTest.cmake
+)
+
+add_executable(ahamkara_error_identity_tests
+    src/error_identity_tests.cpp
+)
+target_link_libraries(ahamkara_error_identity_tests
+    PRIVATE
+        ae_core
+)
+add_test(NAME ahamkara_error_identity_tests COMMAND ahamkara_error_identity_tests)
+
+add_executable(ahamkara_game_module_host_tests
+    src/game_module_host_tests.cpp
+)
+target_link_libraries(ahamkara_game_module_host_tests
+    PRIVATE
+        ae_runtime
+        ae_core
+)
+add_test(NAME ahamkara_game_module_host_tests COMMAND ahamkara_game_module_host_tests)

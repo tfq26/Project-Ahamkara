@@ -21,7 +21,7 @@ Make compiled levels drive textured world geometry through the existing (but
 previously dead) `ae::render::PbrRenderer`: load `LevelAsset::mesh_instances`,
 upload GPU meshes + materials/textures, and submit them each frame, wired into
 the client frame pipeline. Task:
-`docs/vault/queue-tasks/claimed/TASK-20260620-1200-level-driven-world-meshes.md`.
+`TASK-20260620-1200-level-driven-world-meshes` (retired local task record).
 
 ## Status
 

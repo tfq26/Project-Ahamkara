@@ -27,7 +27,7 @@ void test_application_lifecycle() {
     assert(!application.is_running());
     assert(application.mode() == ae::RuntimeMode::Tests);
 
-    application.start();
+    (void)application.start();
     assert(application.is_running());
 
     application.shutdown();

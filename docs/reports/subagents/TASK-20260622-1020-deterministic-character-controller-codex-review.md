@@ -5,7 +5,7 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/completed/TASK-20260622-1020-deterministic-character-controller.md
+task: TASK-20260622-1020-deterministic-character-controller
 report: TASK-20260622-1020-deterministic-character-controller-impl-report.md
 decision: complete
 escalation_tier: low
@@ -19,7 +19,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260622-1020-deterministic-character-controller](../../vault/queue-tasks/completed/TASK-20260622-1020-deterministic-character-controller.md)
+TASK-20260622-1020-deterministic-character-controller
 
 ## Report
 

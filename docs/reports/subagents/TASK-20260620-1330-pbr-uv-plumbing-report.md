@@ -20,7 +20,7 @@ validation:
 Plumb texture coordinates (UVs) end to end — glTF import -> `.aemesh` ->
 `GpuMesh` -> PBR shaders — so material albedo/ORM textures sample at real UVs
 instead of `vec2(0)`. Task:
-`docs/vault/queue-tasks/claimed/TASK-20260620-1330-pbr-uv-plumbing.md`.
+`TASK-20260620-1330-pbr-uv-plumbing` (retired local task record).
 
 ## Status
 

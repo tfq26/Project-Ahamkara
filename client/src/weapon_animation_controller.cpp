@@ -17,7 +17,7 @@ inline float smoothstep(float edge0, float edge1, float x) {
     return t * t * (3.0F - 2.0F * t);
 }
 
-}  // namespace
+} // namespace
 
 WeaponAnimationController::WeaponAnimationController() {
     // Register weapon profiles
@@ -146,16 +146,16 @@ float WeaponAnimationController::horizontal_speed(const ahamkara::game::Vec3& ve
     return std::sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
 }
 
-static ae::render::Mat4 make_axis_angle_rotation(float x, float y, float z, float degrees) {
+static ae::skeleton::Mat4 make_axis_angle_rotation(float x, float y, float z, float degrees) {
     const float radians = degrees * (kPi / 180.0F);
     const float half = radians * 0.5F;
     const float s = std::sin(half);
-    return ae::render::Mat4::rotation_quat(x * s, y * s, z * s, std::cos(half));
+    return ae::skeleton::Mat4::rotation_quat(x * s, y * s, z * s, std::cos(half));
 }
 
 void WeaponAnimationController::tick(float dt,
-                                      const ClientSimulationSnapshot& snapshot,
-                                      const ahamkara::game::PlayerInputCommand& input) {
+                                     const ClientSimulationSnapshot& snapshot,
+                                     const ahamkara::game::PlayerInputCommand& input) {
     const int weapon_index = snapshot.weapon_index;
     if (weapon_index != active_weapon_index_) {
         active_weapon_index_ = weapon_index;
@@ -177,7 +177,8 @@ void WeaponAnimationController::tick(float dt,
 }
 
 bool WeaponAnimationController::trigger_melee() {
-    if (melee_active_) return false;
+    if (melee_active_)
+        return false;
     melee_active_ = true;
     melee_timer_ = melee_duration_;
     melee_phase_ = 1;
@@ -185,7 +186,8 @@ bool WeaponAnimationController::trigger_melee() {
 }
 
 float WeaponAnimationController::melee_normalized() const {
-    if (melee_duration_ <= 0.0F) return 0.0F;
+    if (melee_duration_ <= 0.0F)
+        return 0.0F;
     return std::clamp(1.0F - (melee_timer_ / melee_duration_), 0.0F, 1.0F);
 }
 
@@ -194,8 +196,8 @@ void WeaponAnimationController::notify_fired() {
 }
 
 void WeaponAnimationController::update_weapon(float dt,
-                                               const ClientSimulationSnapshot& snapshot,
-                                               const ahamkara::game::PlayerInputCommand& input) {
+                                              const ClientSimulationSnapshot& snapshot,
+                                              const ahamkara::game::PlayerInputCommand& input) {
     const auto& profile = profiles_[active_weapon_index_];
     const float speed = horizontal_speed(snapshot.player_state.velocity);
     const bool is_moving = speed > 0.1F;
@@ -214,7 +216,7 @@ void WeaponAnimationController::update_weapon(float dt,
     }
 
     // ── Evaluate each animation layer ─────────────────────────
-    ae::render::Mat4 sway_offset, bob_offset, recoil_offset;
+    ae::skeleton::Mat4 sway_offset, bob_offset, recoil_offset;
     ae::animation::evaluate_sway_layer(
         anim_state_, profile.anim_config, dt,
         input.look_delta.x, input.look_delta.y,
@@ -226,7 +228,7 @@ void WeaponAnimationController::update_weapon(float dt,
         anim_state_, profile.anim_config, dt, recoil_offset);
 
     // ── Compose layers: sway * bob * recoil ──────────────────
-    ae::render::Mat4 local = ae::render::Mat4::identity();
+    ae::skeleton::Mat4 local = ae::skeleton::Mat4::identity();
     local = local * sway_offset;
     local = local * bob_offset;
     local = local * recoil_offset;
@@ -234,7 +236,7 @@ void WeaponAnimationController::update_weapon(float dt,
     // ── ADS position (bring weapon closer) ────────────────────
     float ads_z = anim_state_.ads_blend * (-0.15F);
     float ads_y = anim_state_.ads_blend * (-0.02F);
-    local = local * ae::render::Mat4::translation(0.0F, ads_y, ads_z);
+    local = local * ae::skeleton::Mat4::translation(0.0F, ads_y, ads_z);
 
     // --- Reload (phase-driven animation) ---
     // Phase timing:
@@ -242,10 +244,7 @@ void WeaponAnimationController::update_weapon(float dt,
     //   RemoveMag:    hand holds magazine, weapon tilts to expose magwell
     //   InsertMag:    hand inserts new magazine, weapon returns from tilt
     //   ReturnToGrip: hand moves back from magazine to grip
-    if (!reload_active_
-        && input.reload_pressed
-        && snapshot.ammo_current < snapshot.ammo_max
-        && snapshot.reserve_ammo > 0) {
+    if (!reload_active_ && input.reload_pressed && snapshot.ammo_current < snapshot.ammo_max && snapshot.reserve_ammo > 0) {
         reload_active_ = true;
         reload_timer_ = profile.reload_duration;
         reload_phase_ = ReloadPhase::GrabMag;
@@ -314,17 +313,17 @@ void WeaponAnimationController::update_weapon(float dt,
         }
 
         // Apply position offset and tilt rotation
-        ae::render::Mat4 reload_pose = ae::render::Mat4::identity();
-        reload_pose = reload_pose * ae::render::Mat4::translation(
-            rd.offset_right * tilt_weight,
-            rd.offset_up * tilt_weight,
-            rd.offset_forward * tilt_weight);
+        ae::skeleton::Mat4 reload_pose = ae::skeleton::Mat4::identity();
+        reload_pose = reload_pose * ae::skeleton::Mat4::translation(
+                                        rd.offset_right * tilt_weight,
+                                        rd.offset_up * tilt_weight,
+                                        rd.offset_forward * tilt_weight);
         reload_pose = reload_pose * make_axis_angle_rotation(1.0F, 0.0F, 0.0F,
-            rd.tilt_pitch_deg * tilt_weight);
+                                                             rd.tilt_pitch_deg * tilt_weight);
         reload_pose = reload_pose * make_axis_angle_rotation(0.0F, 1.0F, 0.0F,
-            rd.tilt_yaw_deg * tilt_weight);
+                                                             rd.tilt_yaw_deg * tilt_weight);
         reload_pose = reload_pose * make_axis_angle_rotation(0.0F, 0.0F, 1.0F,
-            rd.tilt_roll_deg * tilt_weight);
+                                                             rd.tilt_roll_deg * tilt_weight);
 
         local = local * reload_pose;
 
@@ -362,21 +361,21 @@ void WeaponAnimationController::update_weapon(float dt,
             melee_phase_ = 3;
         }
 
-        ae::render::Mat4 melee_pose = ae::render::Mat4::identity();
+        ae::skeleton::Mat4 melee_pose = ae::skeleton::Mat4::identity();
         if (melee_phase_ == 1) {
             const float p = t / 0.3F;
-            melee_pose = melee_pose * ae::render::Mat4::translation(-0.01F * p, 0.0F, -0.08F * p);
+            melee_pose = melee_pose * ae::skeleton::Mat4::translation(-0.01F * p, 0.0F, -0.08F * p);
             melee_pose = melee_pose * make_axis_angle_rotation(0.0F, 0.0F, 1.0F, -15.0F * p);
             melee_pose = melee_pose * make_axis_angle_rotation(1.0F, 0.0F, 0.0F, -10.0F * p);
         } else if (melee_phase_ == 2) {
             const float p = (t - 0.3F) / 0.4F;
-            melee_pose = melee_pose * ae::render::Mat4::translation(-0.01F + 0.06F * p, 0.0F, -0.08F + 0.15F * p);
+            melee_pose = melee_pose * ae::skeleton::Mat4::translation(-0.01F + 0.06F * p, 0.0F, -0.08F + 0.15F * p);
             melee_pose = melee_pose * make_axis_angle_rotation(0.0F, 0.0F, 1.0F, -15.0F + 25.0F * p);
             melee_pose = melee_pose * make_axis_angle_rotation(1.0F, 0.0F, 0.0F, -10.0F + 15.0F * p);
         } else if (melee_phase_ == 3) {
             const float p = (t - 0.7F) / 0.3F;
             const float ease = 1.0F - p;
-            melee_pose = melee_pose * ae::render::Mat4::translation(0.05F * ease, 0.0F, 0.07F * ease);
+            melee_pose = melee_pose * ae::skeleton::Mat4::translation(0.05F * ease, 0.0F, 0.07F * ease);
             melee_pose = melee_pose * make_axis_angle_rotation(0.0F, 0.0F, 1.0F, 10.0F * ease);
             melee_pose = melee_pose * make_axis_angle_rotation(1.0F, 0.0F, 0.0F, 5.0F * ease);
         }
@@ -392,4 +391,4 @@ void WeaponAnimationController::update_weapon(float dt,
     transform_ = local.m;
 }
 
-}  // namespace ahamkara::client
+} // namespace ahamkara::client

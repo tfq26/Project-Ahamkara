@@ -5,7 +5,7 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/completed/TASK-20260620-1200-level-driven-world-meshes.md
+task: TASK-20260620-1200-level-driven-world-meshes
 report: TASK-20260620-1200-level-driven-world-meshes-report.md
 decision: complete
 escalation_tier: low
@@ -19,7 +19,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260620-1200-level-driven-world-meshes](../../vault/queue-tasks/completed/TASK-20260620-1200-level-driven-world-meshes.md)
+TASK-20260620-1200-level-driven-world-meshes
 
 ## Report
 

@@ -8,7 +8,8 @@ target_compile_features(ae_collision PUBLIC cxx_std_20)
 
 target_include_directories(ae_collision
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
 )
 
 target_link_libraries(ae_collision

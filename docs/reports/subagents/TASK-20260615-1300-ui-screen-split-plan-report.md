@@ -17,7 +17,7 @@ validation: []
 
 Plan a safe first code slice for splitting the ImGui/menu code by screen and
 separating UI rendering from UI actions, without taking on the whole UI rewrite.
-Task: `docs/vault/queue-tasks/claimed/TASK-20260615-1300-ui-screen-split-plan.md`.
+Task: `TASK-20260615-1300-ui-screen-split-plan` (retired local task record).
 
 ## Status
 

@@ -22,7 +22,7 @@ validation:
 Define a canonical JSON level spec + a `spec -> .lvl` emitter (Path A) and ship
 prototype levels compiled to `.aelevel`, including a mesh instance so the
 level-mesh render path can be runtime-confirmed. Task:
-`docs/vault/queue-tasks/claimed/TASK-20260620-1400-level-spec-and-lvl-emitter.md`.
+`TASK-20260620-1400-level-spec-and-lvl-emitter` (retired local task record).
 
 ## Status
 

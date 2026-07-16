@@ -20,6 +20,6 @@ target_include_directories(ae_animation
 
 target_link_libraries(ae_animation
     PUBLIC
-        ae_render
+        ae_skeleton
         ae_core
 )

@@ -5,7 +5,7 @@ created: 2026-06-28
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/completed/TASK-20260623-1613-deep-logging-client.md
+task: TASK-20260623-1613-deep-logging-client
 report: TASK-20260623-1613-deep-logging-client-report.md
 decision: complete
 escalation_tier: low
@@ -18,7 +18,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260623-1613-deep-logging-client](../../vault/queue-tasks/completed/TASK-20260623-1613-deep-logging-client.md)
+TASK-20260623-1613-deep-logging-client
 
 ## Report
 

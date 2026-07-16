@@ -5,7 +5,7 @@ created: 2026-06-28
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/completed/TASK-20260623-1610-deep-logging-input.md
+task: TASK-20260623-1610-deep-logging-input
 report: TASK-20260623-1610-deep-logging-input-report.md
 decision: complete
 escalation_tier: low
@@ -18,7 +18,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260623-1610-deep-logging-input](../../vault/queue-tasks/completed/TASK-20260623-1610-deep-logging-input.md)
+TASK-20260623-1610-deep-logging-input
 
 ## Report
 

@@ -25,7 +25,7 @@ void IKSolver::set_target(int chain_index, const IKTarget& target) {
 IKSolveResult IKSolver::solve_two_bone(
     const IKChain& chain,
     const IKTarget& target,
-    const render::Mat4& /* root_global_world */) {
+    const skeleton::Mat4& /* root_global_world */) {
     IKSolveResult result;
     result.converged = false;
 

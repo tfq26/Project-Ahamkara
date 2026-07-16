@@ -1,47 +1,33 @@
-# Feature Development
+# Feature development
 
-Status: Seed
+Status: Active
 
-Use this note as the agent-friendly feature workflow. It complements the main
-repo workflow docs and keeps feature intent discoverable in Markdown.
+## Before implementation
 
-## Before Changing Code
+1. Read [[00-start-here]] and the relevant canonical architecture/system docs.
+2. Inspect current source, tests, and target definitions.
+3. Search [GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues) for
+   an existing canonical issue.
+4. Create or refine the GitHub issue when work needs priority, dependencies,
+   acceptance criteria, or execution status.
+5. Create a vault feature brief only when durable design context would remain
+   useful after the issue closes.
 
-1. Read [[00-start-here]] and [[01-repo-map]].
-2. Check [[memory/current-state]] and [[memory/open-questions]].
-3. Read the canonical docs for the subsystem being changed.
-4. Inspect existing source and tests before designing new abstractions.
+## During implementation
 
-## Feature Briefs
+- Keep one branch/worktree responsible for one scoped issue.
+- Link the issue to architecture/design context instead of copying that context
+  into the issue body repeatedly.
+- Add tests with code changes and record commands actually run.
+- Update a design doc when the mechanism changes; update a system doc when
+  current behavior changes.
 
-Create a feature brief in `features/` for work that spans multiple files,
-multiple agents, or multiple sessions. Start from [[templates/feature-brief]].
-For the full flow, use [[workflows/feature-task-workflow]].
+## After implementation
 
-If OpenCode should implement the next slice, queue a task with
-[[workflows/opencode-task-queue]] and [[templates/opencode-queued-task]].
+- Update the GitHub issue/PR with validation and outcome.
+- Add a report only at a meaningful investigation or handoff boundary.
+- Append durable decisions to [[memory/decision-log]].
+- Update [[memory/current-state]] only for repo-wide direction or structure,
+  not every completed issue.
 
-Good feature briefs capture:
-
-- goal
-- non-goals
-- affected systems
-- implementation sketch
-- tests or verification path
-- open risks
-
-## During Implementation
-
-- Keep one branch/workspace responsible for one active line of work.
-- Prefer small changes that can be reviewed independently.
-- Update the feature brief if the implementation direction changes.
-- Link to relevant source files, tests, and docs instead of copying large
-  details into the vault.
-
-## After Implementation
-
-- Add a short handoff note if another agent may continue the work.
-- Append meaningful decisions to [[memory/decision-log]].
-- Update [[memory/current-state]] if the repo-wide state changed.
-- Write a formal report with [[workflows/ahamkara-reporting-profile]] when a
-  meaningful reporting boundary is reached.
+See [[workflows/feature-task-workflow]] for the full handoff standard.

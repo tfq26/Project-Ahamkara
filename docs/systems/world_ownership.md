@@ -1,7 +1,11 @@
 # World Ownership Boundary
 
-Documenting the ownership split for `ahamkara::game::World`.  This is a
-canonical reference for what belongs where, updated with every refactor pass.
+Status: Current Flashback gameplay boundary inside the transitional monorepo
+
+This document describes the current ownership split around
+`ahamkara::game::World`. It is a Flashback game design document, not a generic
+Ahamkara engine contract. When the repositories split, this file moves with
+Flashback. See [the repository split](../architecture/repository-split.md).
 
 ## What World Owns (match orchestration)
 
@@ -9,55 +13,64 @@ World is the simulation coordinator.  It owns:
 
 | Concern | Examples | Why here |
 |---------|----------|----------|
-| Physics | Jolt physics system, colliders, movement sim state | Shared across all entities, lifecycle tied to world |
+| Physics | Jolt game bridge and colliders | Shared across simulated entities; lifecycle tied to the world |
 | ECS | `entt::registry` | Authoritative data store |
 | Simulation timing | tick counter, fixed-step accumulator, history buffer | Orchestration concern |
 | Match lifecycle | match time, phase, score, kills, deaths, match-over flag | Rules engine |
 | NPC state | target dummies, projectile state | World-entity management |
 | Respawn | respawn orchestration (timing, spawn points) | Match rule |
-| Network | replication/forwarding, snapshot building | Session concern |
+
+`World::advance_sim()` advances the authoritative simulation while
+`World::apply_input()` consumes player input; `tick()` is the convenience path
+used by local and prediction callers. [src: file:
+game/include/ahamkara/game/world.h:59-78]
+
+The EnTT registry is authoritative for projectiles; the vector exposed to
+presentation is a per-tick projection. [src: file:
+game/include/ahamkara/game/world.h:84-90] [src: file:
+game/include/ahamkara/game/world.h:209-213]
 
 ## What Player owns (player-local state)
 
-`ahamkara::game::Player` owns everything single-player-identity:
+`ahamkara::game::Player` owns the replicated player snapshot, loadout, armor,
+weapon runtime, and ability runtime. `World` delegates weapon and ability
+operations to it. [src: file: game/include/ahamkara/game/player.h:66-76]
+[src: file: game/include/ahamkara/game/player.h:84-136]
 
-| Owned by Player | Currently in World? |
-|-----------------|---------------------|
-| `ReplicatedPlayerState` (position, velocity, health) | **Moved** |
-| `Loadout` (weapon slots) | **Moved** |
-| `WeaponRuntime` (ammo, reload, cooldown) | **Moved** |
-| `ArmorConfig` | **Moved** |
-| `fire_recoil_index_` | Still in World — move to Player or WeaponRuntime |
-| `reload_key_was_down_` | Still in World — input edge detection |
-| `weapon_switch_queued_` / `queued_weapon_slot_` | Still in World — deferred switch state |
-| `slide_timer_seconds_`, `crouch_active_` | Still in World — player-local movement |
-| `respawn_timer_` | Still in World — player lifecycle |
-| `damage_feedback_timer_` | Still in World — player-local feedback |
+Some player-local state still remains in `World`: recoil index, reload edge
+detection, deferred weapon switching, and respawn timing. This is a boundary
+fact, not a task list. [src: file: game/include/ahamkara/game/world.h:221-240]
+[src: file: game/include/ahamkara/game/world.h:272-277]
 
 ## What the Movement Controller owns
 
-Future `PlayerMovementController` owns:
+`PlayerMovementController` owns:
 
 - Locomotion state (walk/sprint/crouch/slide/jump)
 - Jump buffer, coyote time, mantle detection
-- Ladder/ledge handling
+- Mantle, ladder, and ledge handling
 - Camera anchor derivation (position/yaw/pitch from player state)
 
-Currently most of this is in World.  Task TASK-20260628-0106 extracts it.
+It currently stores its own movement simulation/debug state, desired velocity,
+slide timer, crouch state, and camera anchor. [src: file:
+game/include/ahamkara/game/player_movement_controller.h:17-80]
 
 ## What the Client Presentation Layer owns
 
 The client layer owns all visual/audio presentation:
 
-| Owned by client | Currently in World? |
+| Presentation concern still stored in `World` | Current representation |
 |-----------------|---------------------|
-| Damage numbers (floating text) | Still in World — move to client-side `WorldPresentation` |
-| Particles (muzzle flash, impacts) | Still in World |
-| Decals (bullet holes) | Still in World |
-| Hitmarker state (duration, critical flag) | Still in World |
-| Muzzle flash timer | Still in World |
-| Audio player reference | Still in World |
-| `is_client_` flag | Still in World — rename to `is_prediction_` to clarify its role |
+| Damage numbers | Fixed array and count |
+| Particles | Fixed array and count |
+| Decals | Fixed array and count |
+| Hitmarker and muzzle flash | Timers and critical flag |
+| Audio playback | `IAudioPlayer*` plus a per-tick event queue |
+| Execution role | `is_client_` and `is_server_` booleans |
+
+These members demonstrate that presentation and execution-policy state has not
+yet been fully separated from simulation. [src: file:
+game/include/ahamkara/game/world.h:237-262]
 
 ## What the Weapon Presentation Layer owns
 
@@ -69,7 +82,9 @@ The client layer owns all visual/audio presentation:
 - Joint matrices for GPU skinning
 - Per-weapon orientation transforms (`WeaponViewmodelTransform`)
 
-This was extracted from `weapon_registry.h` in TASK-20260628-0107.
+The client-owned type holds the render cache and exposes animation playback and
+GPU skinning matrices. [src: file:
+client/include/ahamkara/client/weapon_presentation.h:9-34]
 
 ## Anti-Patterns — What Must NOT Go Into World
 
@@ -83,14 +98,6 @@ This was extracted from `weapon_registry.h` in TASK-20260628-0107.
 | Per-weapon mesh paths or transforms | `WeaponViewmodelPresentation` |
 | HUD state or menu state | `ClientFramePipeline` |
 
-## Migration Status
-
-| Phase | What moved | Status |
-|-------|-----------|--------|
-| Phase 4 | `player_` aggregate | Complete |
-| TASK-20260628-0107 | Viewmodel transforms, mesh paths | Complete |
-| TASK-20260628-0106 | Movement/camera controller | Planned |
-| Future | Presentation arrays (particles, decals, etc.) | Planned |
-| Future | Remaining player-local fields | Planned |
-
-See `docs/reports/subagents/` for per-task reports with exact file changes.
+Do not add migration status or implementation checklists here. Mutable repair
+work belongs in [GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues);
+this document changes only when the implemented ownership boundary changes.

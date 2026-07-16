@@ -5,7 +5,7 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/completed/TASK-20260622-1330-milestone-review-ai-nav-and-movement.md
+task: TASK-20260622-1330-milestone-review-ai-nav-and-movement
 report: TASK-20260622-1330-milestone-review-ai-nav-and-movement-report.md
 decision: complete
 escalation_tier: low
@@ -18,7 +18,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260622-1330-milestone-review-ai-nav-and-movement](../../vault/queue-tasks/completed/TASK-20260622-1330-milestone-review-ai-nav-and-movement.md)
+TASK-20260622-1330-milestone-review-ai-nav-and-movement
 
 ## Report
 

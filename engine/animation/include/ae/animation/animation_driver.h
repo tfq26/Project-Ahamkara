@@ -136,8 +136,8 @@ public:
               StateMachine& sm,
               AnimationGraph& graph,
               WeaponAnimState& weapon_state,
-              render::Mat4& out_weapon_transform,
-              std::vector<render::Mat4>& out_pose);
+              skeleton::Mat4& out_weapon_transform,
+              std::vector<skeleton::Mat4>& out_pose);
 
     /// Compute aim offset additive transforms for third-person.
     void compute_aim_offset(const AnimGameplayInput& input,

@@ -61,7 +61,7 @@ int run_local_client(
 
     // ── Application + renderer ──────────────────────────────────────────
     ae::Application application(ae::RuntimeMode::Client);
-    application.start();
+    (void)application.start();
 
     ae::render::DebugRenderer renderer;
     if (!renderer.initialize(*window)) {

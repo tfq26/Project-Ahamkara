@@ -71,11 +71,11 @@ public:
     [[nodiscard]] static IKSolveResult solve_two_bone(
         const IKChain& chain,
         const IKTarget& target,
-        const render::Mat4& root_global_world);
+        const skeleton::Mat4& root_global_world);
 
     // --- Future API surface ---
     //
-    // void solve_all(const std::vector<render::Mat4>& global_matrices,
+    // void solve_all(const std::vector<skeleton::Mat4>& global_matrices,
     //                std::vector<JointTransform>& out_corrections);
     //
     // Foot placement:

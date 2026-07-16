@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ae/animation/clip_player.h"
+#include "ae/render/skeletal_animation.h"
 #include "ae/render/compiled_mesh.h"
 #include "ae/render/render_backend.h"
 

@@ -10,7 +10,7 @@
 namespace ae::animation {
 
 void AnimationGraph::register_clip(const std::string& name,
-                                    const render::GltfAnimation* source,
+                                    const skeleton::AnimationClipData* source,
                                     float duration, bool looping) {
     AnimationClip clip;
     clip.name = name;
@@ -28,7 +28,7 @@ const AnimationClip* AnimationGraph::get_clip(const std::string& name) const {
     return nullptr;
 }
 
-void AnimationGraph::set_skin(const render::GltfSkin* skin) {
+void AnimationGraph::set_skin(const skeleton::Skin* skin) {
     skin_ = skin;
 }
 
@@ -38,7 +38,7 @@ void AnimationGraph::set_parent_indices(const std::vector<int>& parent_indices) 
 
 void AnimationGraph::evaluate(const std::vector<StateMachine::ActiveClip>& active_clips,
                                float dt,
-                               std::vector<render::Mat4>& out_matrices) {
+                               std::vector<skeleton::Mat4>& out_matrices) {
     if (!skin_) {
         // No skin registered — fall back to procedural
         // (caller should provide a procedural state externally)
@@ -57,7 +57,7 @@ void AnimationGraph::evaluate(const std::vector<StateMachine::ActiveClip>& activ
     if (active_clips.empty()) {
         // No active clips — output identity
         for (std::size_t j = 0; j < joint_count; ++j) {
-            out_matrices[j] = render::Mat4::identity();
+            out_matrices[j] = skeleton::Mat4::identity();
         }
         return;
     }
@@ -71,11 +71,11 @@ void AnimationGraph::evaluate(const std::vector<StateMachine::ActiveClip>& activ
         auto* clip = get_clip(ac.clip_name);
         if (clip && clip->source) {
             float time = ac.normalized_time * clip->duration_seconds;
-            render::evaluate_animation(*clip->source, *skin_, time, out_matrices);
+            skeleton::evaluate_animation(*clip->source, *skin_, time, out_matrices);
         } else {
             // Unknown clip — fall back to identity
             for (std::size_t j = 0; j < joint_count; ++j) {
-                out_matrices[j] = render::Mat4::identity();
+                out_matrices[j] = skeleton::Mat4::identity();
             }
         }
         return;
@@ -84,7 +84,7 @@ void AnimationGraph::evaluate(const std::vector<StateMachine::ActiveClip>& activ
     // Case 2: multiple clips — evaluate each and blend
     // Collect poses for each clip
     struct ClipPose {
-        std::vector<render::Mat4> matrices;
+        std::vector<skeleton::Mat4> matrices;
         float weight;
     };
     std::vector<ClipPose> poses;
@@ -98,13 +98,13 @@ void AnimationGraph::evaluate(const std::vector<StateMachine::ActiveClip>& activ
         cp.weight = ac.weight;
         cp.matrices.resize(joint_count);
         float time = ac.normalized_time * clip->duration_seconds;
-        render::evaluate_animation(*clip->source, *skin_, time, cp.matrices);
+        skeleton::evaluate_animation(*clip->source, *skin_, time, cp.matrices);
         poses.push_back(std::move(cp));
     }
 
     if (poses.empty()) {
         for (std::size_t j = 0; j < joint_count; ++j) {
-            out_matrices[j] = render::Mat4::identity();
+            out_matrices[j] = skeleton::Mat4::identity();
         }
         return;
     }
@@ -154,7 +154,7 @@ void AnimationGraph::evaluate(const std::vector<StateMachine::ActiveClip>& activ
 }
 
 void AnimationGraph::evaluate_single(const std::string& clip_name, float dt,
-                                      std::vector<render::Mat4>& out_matrices) {
+                                      std::vector<skeleton::Mat4>& out_matrices) {
     std::vector<StateMachine::ActiveClip> clips;
     StateMachine::ActiveClip ac;
     ac.clip_name = clip_name;
@@ -171,14 +171,14 @@ void AnimationGraph::evaluate_single(const std::string& clip_name, float dt,
 }
 
 void AnimationGraph::apply_additive(const std::vector<JointTransform>& additive_offsets,
-                                     std::vector<render::Mat4>& in_out_matrices,
+                                     std::vector<skeleton::Mat4>& in_out_matrices,
                                      const std::vector<int>& parent_indices) {
     const std::size_t count = std::min(additive_offsets.size(), in_out_matrices.size());
     if (count == 0) return;
 
     // Convert additive transforms to additive matrices and compose
     for (std::size_t j = 0; j < count; ++j) {
-        render::Mat4 additive = additive_offsets[j].to_mat4();
+        skeleton::Mat4 additive = additive_offsets[j].to_mat4();
         // Apply additive: result = base * additive (in local space)
         in_out_matrices[j] = in_out_matrices[j] * additive;
     }
@@ -196,9 +196,9 @@ void AnimationGraph::apply_additive(const std::vector<JointTransform>& additive_
     }
 }
 
-void AnimationGraph::evaluate_procedural(render::ProceduralAnimState& state, float dt,
-                                          std::vector<render::Mat4>& out_matrices) {
-    render::evaluate_procedural_animation(state, dt, out_matrices);
+void AnimationGraph::evaluate_procedural(skeleton::ProceduralAnimState& state, float dt,
+                                          std::vector<skeleton::Mat4>& out_matrices) {
+    skeleton::evaluate_procedural_animation(state, dt, out_matrices);
 }
 
 ClipInstance& AnimationGraph::get_or_create_instance(const std::string& clip_name) {
@@ -224,7 +224,7 @@ void AnimationGraph::evaluate_clip_to_pose(const std::string& clip_name,
     }
 
     float time = normalized_time * clip->duration_seconds;
-    render::evaluate_animation(*clip->source, *skin_, time, out_pose.global_matrices);
+    skeleton::evaluate_animation(*clip->source, *skin_, time, out_pose.global_matrices);
 }
 
 }  // namespace ae::animation

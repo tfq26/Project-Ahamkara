@@ -1,47 +1,32 @@
-# Start Here
+# Start here
 
 Status: Active
 
-This vault gives humans and agents a fast path into Ahamkara without pretending
-to replace code review. Use it to understand the project shape, current memory,
-and likely next steps before opening implementation files.
+## Project direction
 
-## What This Repo Is
+The current checkout is a transitional monorepo containing Ahamkara engine,
+Flashback game/client/server code, and Wish backend/session code. The accepted
+destination is three independent repositories and projects.
+[src: user:taufeeqali:2026-07-13: explicit three-repository direction]
 
-Ahamkara is a custom C++20 game engine and multiplayer tech demo. The current
-center of gravity is engine foundation work: authoritative server simulation,
-client/runtime loops, rendering, collision, animation, asset tooling, and
-agent-friendly development workflows.
+Read:
 
-Canonical entry points outside the vault:
+1. [Architecture overview](../architecture/overview.md)
+2. [Repository split](../architecture/repository-split.md)
+3. [Repository map](../repo-map.md)
+4. [Build guide](../guides/building.md)
+5. [Maintenance guide](../guides/maintenance.md)
+6. [Current state](memory/current-state.md)
 
-- [Project README](../../README.md)
-- [Build instructions](../guides/building.md)
-- [Architecture overview](../systems/architecture.md)
-- [Remote agent workflow](../guides/remote-agent-workflow.md)
-- [Agent handoff](../guides/agent-handoff.md)
+## Work and design
 
-## How Agents Should Use This Vault
+- Search or update
+  [GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues) for mutable
+  work state.
+- Put system-wide boundaries in `docs/architecture/`.
+- Put proposed mechanisms in `docs/design/` with an explicit status.
+- Put current subsystem truth in `docs/systems/`.
+- Put meaningful decisions in [[memory/decision-log]].
+- Use reports only for historical evidence and handoff context.
 
-1. Read [[01-repo-map]] for the repo layout.
-2. Read [[memory/current-state]] for the latest durable project memory.
-3. Check [[memory/open-questions]] before making architecture assumptions.
-4. For new feature work, create a brief from [[templates/feature-brief]].
-5. For meaningful decisions, append an entry to [[memory/decision-log]].
-6. For implementation discipline, check [[skills/lean-implementation]].
-
-## What Belongs Here
-
-- Repo maps and system orientation.
-- Agent handoff summaries.
-- Open questions and design constraints.
-- Feature planning notes.
-- Decision records and rationale.
-
-## What Does Not Belong Here
-
-- Secrets or credentials.
-- Large generated logs.
-- Duplicated code-level documentation.
-- Claims about current behavior that have not been checked against source,
-  tests, or canonical docs.
+Do not recreate the retired file-backed task queue.

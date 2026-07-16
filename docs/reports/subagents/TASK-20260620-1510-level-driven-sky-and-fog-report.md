@@ -19,7 +19,7 @@ validation:
 
 Drive sky/clear color, ambient, and fog from the loaded `LevelAsset` instead of
 the hardcoded renderer palette. Task:
-`docs/vault/queue-tasks/claimed/TASK-20260620-1510-level-driven-sky-and-fog.md`.
+`TASK-20260620-1510-level-driven-sky-and-fog` (retired local task record).
 
 ## Status
 

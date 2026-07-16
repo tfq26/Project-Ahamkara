@@ -1,5 +1,5 @@
 <!-- kronn:doc-version="1.0" -->
-<!-- kronn:spec="https://github.com/DocRoms/Kronn/blob/main/docs/conventions/agents-md-format-v1.md" local="docs/conventions/agents-md-format-v1.md" -->
+<!-- kronn:spec="https://github.com/DocRoms/Kronn/blob/main/docs/conventions/agents-md-format-v1.md" -->
 <!-- This file follows the Kronn AGENTS.md convention v1. Sections marked
 curated="ai" carry [src: …] provenance per assertion. Any agent — with
 or without Kronn — can read the spec at the URL above to understand the
@@ -22,7 +22,7 @@ You may NEVER state a non-trivial technical fact (file paths, function / API / c
 
 Attach a structured citation to every non-trivial assertion:
 
-- `[src: file: <path>:<line>]` — e.g. `[src: file: backend/src/lib.rs:440]`
+- `[src: file: <path>:<line>]` — for a path and line that exist in this repository
 - `[src: file: <path>:<start-end>]` — line range
 - `[src: url: <url>]` — external doc
 - `[src: user:<identifier>:<date>: <ref>]` — human confirmation (stable handle preferred over email; privacy by default)
@@ -30,7 +30,7 @@ Attach a structured citation to every non-trivial assertion:
 
 A citation pointing to a file/line that does not exist, or escaping the project root, is **rejected as fabricated**. A code comment is NOT authoritative — treat it as a hint to verify, never as the fact itself.
 
-Full spec: [`docs/conventions/agents-md-format-v1.md`](conventions/agents-md-format-v1.md). **Honest by design**: `verified` means the citation *exists*, not that the claim is *true*.
+Full spec: [Kronn AGENTS.md convention v1](https://github.com/DocRoms/Kronn/blob/main/docs/conventions/agents-md-format-v1.md). **Honest by design**: `verified` means the citation *exists*, not that the claim is *true*.
 <!-- kronn:section:end -->
 
 ---
@@ -42,10 +42,15 @@ These instructions apply to every file under `docs/`.
 
 Keep documentation organized by purpose:
 
+- `architecture/` - System-wide boundaries, dependency direction, and
+  repository migrations.
+- `design/` - Proposed or accepted designs with explicit status and rollout
+  criteria.
 - `guides/` - How to build, run, test, and operate the project.
 - `systems/` - Current subsystem and architecture documentation.
+- `operations/` - Troubleshooting, diagnostics, error catalogs, and runbooks.
 - `wish/` - Wish engine protocol, runtime, and integration notes.
-- `roadmap/` - Planning documents and future work.
+- `roadmap/` - Strategic direction only; not executable task tracking.
 - `reports/` - Historical reports, investigations, and subagent outputs.
 - `vault/` - Obsidian-compatible agent memory. Follow `docs/vault/AGENTS.md`
   for files in that subtree.
@@ -68,3 +73,14 @@ When adding or changing docs for agents:
 - Keep the first-read path clear.
 - Mark uncertain or stale information explicitly.
 - Point to source files, tests, and canonical docs for verification.
+
+## Work Tracking
+
+- GitHub Issues is the only source of truth for work state, priority,
+  dependencies, and acceptance criteria.
+- Do not create queue-task files, local issue mirrors, status dashboards, or
+  task checklists in `docs/`.
+- Durable docs may reference a GitHub issue, but must remain useful after the
+  issue closes.
+- Reports may preserve historical task identifiers as evidence; they are not
+  active work records.

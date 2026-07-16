@@ -1,79 +1,82 @@
 #pragma once
 
+/**
+ * @file skeletal_animation.h
+ * @brief Compatibility facade over ae::skeleton pose evaluation.
+ *
+ * Pose math and clip evaluation live in ae_skeleton. This header keeps existing
+ * ae::render call sites compiling while the renderer depends one-way on
+ * skeleton (never the reverse).
+ */
+
+#include "ae/skeleton/types.h"
 #include "ae/render/gltf_loader.h"
-#include <array>
-#include <cmath>
+
 #include <vector>
 
 namespace ae::render {
 
-/**
- * @brief 4x4 column-major matrix stored as 16 floats.
- *
- * Element at column c, row r is at index m[c*4 + r].
- * Column-major is the native layout for OpenGL and glTF.
- */
-struct Mat4 {
-    std::array<float, 16> m{}; // m[col*4 + row]
+using Mat4 = ae::skeleton::Mat4;
+using ProceduralAnimState = ae::skeleton::ProceduralAnimState;
 
-    Mat4();
+inline void quat_slerp(const float* a, const float* b, float t, float* out) {
+    ae::skeleton::quat_slerp(a, b, t, out);
+}
 
-    static Mat4 identity();
-    static Mat4 translation(float x, float y, float z);
-    static Mat4 rotation_quat(float x, float y, float z, float w);
-    static Mat4 scale(float sx, float sy, float sz);
+inline ae::skeleton::Skin to_skeleton_skin(const GltfSkin& skin) {
+    ae::skeleton::Skin out;
+    out.joints.reserve(skin.joints.size());
+    for (const auto& joint : skin.joints) {
+        ae::skeleton::Joint j;
+        j.name = joint.name;
+        j.node_index = joint.node_index;
+        j.parent_index = joint.parent_index;
+        j.inverse_bind_matrix = ae::skeleton::Mat4::identity();
+        if (joint.inverse_bind_matrix.size() >= 16U) {
+            for (int e = 0; e < 16; ++e) {
+                j.inverse_bind_matrix.m[static_cast<size_t>(e)] = joint.inverse_bind_matrix[static_cast<size_t>(e)];
+            }
+        }
+        out.joints.push_back(std::move(j));
+    }
+    return out;
+}
 
-    Mat4 operator*(const Mat4& other) const;
-};
+inline ae::skeleton::AnimationClipData to_skeleton_clip(const GltfAnimation& animation) {
+    ae::skeleton::AnimationClipData out;
+    out.name = animation.name;
+    out.channels.reserve(animation.channels.size());
+    for (const auto& channel : animation.channels) {
+        ae::skeleton::AnimationChannel c;
+        c.node_index = channel.node_index;
+        c.path = channel.path;
+        c.sampler_index = channel.sampler_index;
+        out.channels.push_back(std::move(c));
+    }
+    out.samplers.reserve(animation.samplers.size());
+    for (const auto& sampler : animation.samplers) {
+        ae::skeleton::AnimationSampler s;
+        s.input_times = sampler.input_times;
+        s.output_values = sampler.output_values;
+        s.interpolation = sampler.interpolation;
+        out.samplers.push_back(std::move(s));
+    }
+    return out;
+}
 
-/**
- * @brief Standard quaternion spherical linear interpolation.
- *
- * @param a  Source quaternion (4 floats: x, y, z, w).
- * @param b  Destination quaternion (4 floats: x, y, z, w).
- * @param t  Interpolation factor in [0, 1].
- * @param out Result quaternion (4 floats: x, y, z, w).
- */
-void quat_slerp(const float* a, const float* b, float t, float* out);
+inline void evaluate_animation(const GltfAnimation& animation,
+                               const GltfSkin& skin,
+                               float time,
+                               std::vector<Mat4>& out_joint_matrices) {
+    const auto clip = to_skeleton_clip(animation);
+    const auto sk = to_skeleton_skin(skin);
+    ae::skeleton::evaluate_animation(clip, sk, time, out_joint_matrices);
+}
 
-/**
- * @brief Evaluate a glTF animation at a given time, producing joint matrices.
- *
- * The resulting matrices transform vertices from bind pose to animated pose
- * in model space: skinned_vertex = sum over joints of (weight * joint_matrix * bind_vertex).
- *
- * @param anim            The animation data (channels + samplers).
- * @param skin            The skin data (joint hierarchy + inverse bind matrices).
- * @param time            Animation time in seconds (wraps/clamps within keyframe range).
- * @param out_joint_matrices  Output: one Mat4 per joint, in joint index order.
- */
-void evaluate_animation(
-    const GltfAnimation& anim,
-    const GltfSkin& skin,
-    float time,
-    std::vector<Mat4>& out_joint_matrices);
-
-/**
- * @brief State for the procedural idle animation.
- */
-struct ProceduralAnimState {
-    float time = 0.0F;
-};
-
-/**
- * @brief Evaluate a simple procedural idle breathing/sway animation.
- *
- * Generates joint matrices for a 7-joint humanoid skeleton:
- *   [0] root (identity), [1] hips, [2] spine, [3] head,
- *   [4] left_arm, [5] right_arm, [6] left_leg, [7] right_leg
- *
- * @param state             Animation state (advance time with dt).
- * @param dt                Delta time in seconds since last evaluation.
- * @param out_joint_matrices  Output: 8 Mat4 matrices (root + 7 joints).
- */
-void evaluate_procedural_animation(
-    ProceduralAnimState& state,
-    float dt,
-    std::vector<Mat4>& out_joint_matrices);
+inline void evaluate_procedural_animation(ProceduralAnimState& state,
+                                          float dt,
+                                          std::vector<Mat4>& out_joint_matrices) {
+    ae::skeleton::evaluate_procedural_animation(state, dt, out_joint_matrices);
+}
 
 } // namespace ae::render

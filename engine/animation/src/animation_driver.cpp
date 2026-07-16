@@ -1,6 +1,7 @@
 #include "ae/core/log.h"
 #include "ae/animation/animation_driver.h"
 
+#include <algorithm>
 #include <cmath>
 
 
@@ -82,8 +83,8 @@ void AnimationDriver::tick(const AnimGameplayInput& input, float dt,
                             StateMachine& sm,
                             AnimationGraph& graph,
                             WeaponAnimState& weapon_state,
-                            render::Mat4& out_weapon_transform,
-                            std::vector<render::Mat4>& out_pose) {
+                            skeleton::Mat4& out_weapon_transform,
+                            std::vector<skeleton::Mat4>& out_pose) {
     // ── Locomotion triggers ────────────────────────────────────────
 
     // Movement state changes
@@ -156,7 +157,7 @@ void AnimationDriver::tick(const AnimGameplayInput& input, float dt,
     // Apply recoil to weapon transform
     if (recoil_offset.qx != 0.0F || recoil_offset.qy != 0.0F ||
         recoil_offset.qz != 0.0F || recoil_offset.qw != 1.0F) {
-        render::Mat4 recoil_mat = recoil_offset.to_mat4();
+        skeleton::Mat4 recoil_mat = recoil_offset.to_mat4();
         out_weapon_transform = recoil_mat * out_weapon_transform;
     }
 

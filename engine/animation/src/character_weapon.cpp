@@ -14,7 +14,7 @@ void CharacterAnimInstance::set_skeleton(int joint_count,
     parent_indices_ = parent_indices;
     last_pose_.resize(static_cast<std::size_t>(joint_count));
     for (auto& m : last_pose_) {
-        m = render::Mat4::identity();
+        m = skeleton::Mat4::identity();
     }
 }
 
@@ -29,7 +29,7 @@ void CharacterAnimInstance::set_aim_offset_config(const AimOffsetConfig& config)
 }
 
 void CharacterAnimInstance::tick(float dt,
-                                  std::vector<render::Mat4>& out_matrices) {
+                                  std::vector<skeleton::Mat4>& out_matrices) {
     // Tick both state machines
     locomotion_sm_.tick(dt);
     upper_body_sm_.tick(dt);
@@ -85,7 +85,7 @@ void evaluate_sway_layer(WeaponAnimState& state,
                           const WeaponAnimConfig& config,
                           float dt, float look_delta_x, float look_delta_y,
                           float ads_blend,
-                          render::Mat4& out_offset) {
+                          skeleton::Mat4& out_offset) {
     // Effective amplitude includes ADS reduction
     float effective_amp = config.sway_amplitude *
                           (1.0F + ads_blend * (config.ads_sway_multiplier - 1.0F));
@@ -109,9 +109,9 @@ void evaluate_sway_layer(WeaponAnimState& state,
                    std::cos(state.sway_phase * 1.3F) * effective_amp * 0.5F;
 
     // Compose offset: translation + subtle rotation
-    out_offset = render::Mat4::identity();
+    out_offset = skeleton::Mat4::identity();
     out_offset = out_offset *
-                 render::Mat4::translation(sway_x, sway_y, 0.0F);
+                 skeleton::Mat4::translation(sway_x, sway_y, 0.0F);
 
     float sway_rot_x = sway_y * 0.5F;
     float sway_rot_y = sway_x * 0.5F;
@@ -121,7 +121,7 @@ void evaluate_sway_layer(WeaponAnimState& state,
         float s = std::sin(half_angle);
         float inv_mag = 1.0F / sqrt_mag;
         out_offset = out_offset *
-                     render::Mat4::rotation_quat(
+                     skeleton::Mat4::rotation_quat(
                          sway_rot_x * inv_mag * s,
                          sway_rot_y * inv_mag * s,
                          0.0F,
@@ -132,8 +132,8 @@ void evaluate_sway_layer(WeaponAnimState& state,
 void evaluate_bob_layer(WeaponAnimState& state,
                          const WeaponAnimConfig& config,
                          float dt, float player_speed, bool is_moving,
-                         render::Mat4& out_offset) {
-    out_offset = render::Mat4::identity();
+                         skeleton::Mat4& out_offset) {
+    out_offset = skeleton::Mat4::identity();
 
     if (!is_moving || player_speed < kLayerEpsilon) {
         return;
@@ -155,13 +155,13 @@ void evaluate_bob_layer(WeaponAnimState& state,
                       config.bob_amplitude_horizontal * speed_factor;
 
     out_offset = out_offset *
-                 render::Mat4::translation(bob_horiz, bob_vert, 0.0F);
+                 skeleton::Mat4::translation(bob_horiz, bob_vert, 0.0F);
 
     // Subtle roll from horizontal bob
     float bob_roll = bob_horiz * 0.3F;
     float half_roll = bob_roll * 0.5F;
     out_offset = out_offset *
-                 render::Mat4::rotation_quat(0.0F, 0.0F,
+                 skeleton::Mat4::rotation_quat(0.0F, 0.0F,
                                               std::sin(half_roll),
                                               std::cos(half_roll));
 }
@@ -173,8 +173,8 @@ void fire_weapon_kick(WeaponAnimState& state) {
 void evaluate_recoil_kick_layer(WeaponAnimState& state,
                                  const WeaponAnimConfig& config,
                                  float dt,
-                                 render::Mat4& out_offset) {
-    out_offset = render::Mat4::identity();
+                                 skeleton::Mat4& out_offset) {
+    out_offset = skeleton::Mat4::identity();
 
     if (state.fire_anim_time > 0.0F) {
         state.fire_anim_time -= dt;
@@ -186,7 +186,7 @@ void evaluate_recoil_kick_layer(WeaponAnimState& state,
                      : 0.0F;
 
     if (std::abs(kick) > kLayerEpsilon) {
-        out_offset = render::Mat4::translation(0.0F, -kick, 0.0F);
+        out_offset = skeleton::Mat4::translation(0.0F, -kick, 0.0F);
     }
 }
 
@@ -199,7 +199,7 @@ void evaluate_weapon_animation(WeaponAnimState& state,
                                 float dt, float player_speed,
                                 float look_delta_x, float look_delta_y,
                                 bool is_moving, bool is_ads, bool fire_pressed,
-                                render::Mat4& out_transform) {
+                                skeleton::Mat4& out_transform) {
     // ── ADS blend ─────────────────────────────────────────────
     float ads_target = is_ads ? 1.0F : 0.0F;
     float ads_speed = (config.ads_transition_time > 0.0F)
@@ -217,7 +217,7 @@ void evaluate_weapon_animation(WeaponAnimState& state,
     }
 
     // ── Evaluate each layer ───────────────────────────────────
-    render::Mat4 sway_offset, bob_offset, recoil_offset;
+    skeleton::Mat4 sway_offset, bob_offset, recoil_offset;
     evaluate_sway_layer(state, config, dt, look_delta_x, look_delta_y,
                          state.ads_blend, sway_offset);
     evaluate_bob_layer(state, config, dt, player_speed, is_moving,
@@ -225,7 +225,7 @@ void evaluate_weapon_animation(WeaponAnimState& state,
     evaluate_recoil_kick_layer(state, config, dt, recoil_offset);
 
     // ── Compose layers: sway * bob * recoil ──────────────────
-    out_transform = render::Mat4::identity();
+    out_transform = skeleton::Mat4::identity();
     out_transform = out_transform * sway_offset;
     out_transform = out_transform * bob_offset;
     out_transform = out_transform * recoil_offset;
@@ -234,7 +234,7 @@ void evaluate_weapon_animation(WeaponAnimState& state,
     float ads_z = state.ads_blend * (-0.15F);
     float ads_y = state.ads_blend * (-0.02F);
     out_transform = out_transform *
-                    render::Mat4::translation(0.0F, ads_y, ads_z);
+                    skeleton::Mat4::translation(0.0F, ads_y, ads_z);
 }
 
 }  // namespace ae::animation

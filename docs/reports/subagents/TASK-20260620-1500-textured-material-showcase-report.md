@@ -22,7 +22,7 @@ validation:
 
 Prove the PBR texture path end to end with authored content: a UV-mapped mesh +
 textured material referenced from a level. Task:
-`docs/vault/queue-tasks/claimed/TASK-20260620-1500-textured-material-showcase.md`.
+`TASK-20260620-1500-textured-material-showcase` (retired local task record).
 
 ## Status
 

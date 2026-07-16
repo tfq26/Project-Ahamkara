@@ -5,7 +5,7 @@ created: 2026-07-08
 reviewer: codex
 reviewer_role: primary
 reviewer_model:
-task: docs/vault/queue-tasks/review-needed/TASK-20260704-1420-lod-batching.md
+task: TASK-20260704-1420-lod-batching
 report: docs/reports/subagents/20260708-1420-lod-batching-report.md
 decision: verify
 escalation_tier: low
