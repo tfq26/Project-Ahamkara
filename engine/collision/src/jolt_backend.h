@@ -126,12 +126,19 @@ public:
 // ============================================================
 class CollisionWorld::Impl {
 public:
-    JPH::TempAllocatorImpl temp_allocator;
     JPH::JobSystemThreadPool job_system;
-    BPLayerInterfaceImpl bp_layer_interface;
+    JPH::PhysicsSystem physics_system;
     ObjectVsBPLayerFilterImpl ob_bp_filter;
     ObjectLayerPairFilterImpl ob_ob_filter;
-    JPH::PhysicsSystem physics_system;
+    JPH::TempAllocatorImpl temp_allocator;
+    BPLayerInterfaceImpl bp_layer_interface;
+
+    // Controlled accessor for character controller / bridge code.
+    // Not part of the public CollisionWorld API — intended for
+    // engine-internal consumers (character.cpp, world_jolt_bridge.cpp).
+    [[nodiscard]] JPH::PhysicsSystem* physics() { return &physics_system; }
+    [[nodiscard]] const JPH::PhysicsSystem* physics() const { return &physics_system; }
+    [[nodiscard]] JPH::TempAllocator* temp_allocator_ptr() { return &temp_allocator; }
 
     std::unordered_map<BodyHandle, InternalBody> bodies;
     BodyHandle next_handle {1};

@@ -4,10 +4,12 @@
 #include "ahamkara/game/world.h"
 
 #include <Jolt/Jolt.h>
-#include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/Physics/Body/BodyID.h>
 
 #include <entt/entt.hpp>
 #include <vector>
+
+namespace ae::collision { class CollisionWorld; }
 
 namespace ahamkara::game {
 
@@ -28,7 +30,7 @@ void tick_dummies(
     float delta_seconds);
 
 void sync_dummies_to_jolt(
-    JPH::PhysicsSystem& physics_system,
+    ae::collision::CollisionWorld& collision_world,
     std::vector<JPH::BodyID>& dummy_bodies,
     const entt::registry& registry);
 

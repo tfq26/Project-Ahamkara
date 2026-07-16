@@ -36,6 +36,8 @@ target_include_directories(ahamkara_game
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../engine/render/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../engine/animation/include
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/collision/src
 )
 
 target_link_libraries(ahamkara_game
@@ -45,6 +47,7 @@ target_link_libraries(ahamkara_game
         EnTT
         wish_engine
     PRIVATE
+        ae_collision
         ae_physics
         ae_animation
 )

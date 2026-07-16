@@ -1,6 +1,8 @@
 #include "world_dummy_sim.h"
 #include "world_jolt_bridge.h"
 
+#include "jolt_backend.h"
+
 #include "ahamkara/game/movement.h"
 #include "ae/core/math.h"
 
@@ -191,11 +193,11 @@ void tick_dummy_ai(
 }
 
 void sync_dummies_to_jolt(
-    JPH::PhysicsSystem& physics_system,
+    ae::collision::CollisionWorld& collision_world,
     std::vector<JPH::BodyID>& dummy_bodies,
     const entt::registry& registry) {
 
-    auto& bi = physics_system.GetBodyInterface();
+    auto& bi = collision_world.impl()->physics()->GetBodyInterface();
     auto view = registry.view<TargetDummyComponent>();
     int dummy_count = 0;
     for (auto entity : view) {
@@ -215,7 +217,7 @@ void sync_dummies_to_jolt(
             JPH::RVec3(0.0f, 0.0f, 0.0f),
             JPH::Quat::sIdentity(),
             JPH::EMotionType::Kinematic,
-            Layers::MOVING
+            ae::collision::jolt_helpers::kJoltLayerNpc
         );
 
         JPH::BodyID body_id = bi.CreateAndAddBody(body_settings, JPH::EActivation::Activate);
