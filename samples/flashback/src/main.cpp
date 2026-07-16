@@ -44,6 +44,7 @@ int main(int argc, char** argv) {
     // Defaults are fine for a demo; the real client loads these from config
     // files, but Flashback just showcases the engine running a level.
     ahamkara::client::ClientConfig client_config {};
+    client_config.app_name = "Flashback";
     ahamkara::client::ControllerBindings controller_bindings {};
     const auto autoplay_scenario = autoplay
         ? ahamkara::client::make_default_autoplay_scenario(level_path)

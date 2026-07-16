@@ -271,7 +271,7 @@ void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
         ae::log_info_cat("Client", inspector_.visible() ? "Inspector opened." : "Inspector closed.");
     }
 
-    const std::string base_title = "Flashback";
+    const std::string base_title = client_config_.app_name;
     if (window_title_.empty()) {
         window_title_ = build_debug_window_title(base_title, frontend_state_.camera_mode,
             frontend_state_.metrics_visible, frontend_state_.displayed_metrics);
@@ -540,7 +540,8 @@ void ClientFramePipeline::stage_render_ui() {
     // Update dynamic menu variables
     if (menu_initialized_) {
         menu_system_.set_variable("build_date", __DATE__ " " __TIME__);
-        menu_system_.set_variable("fps", static_cast<int>(frontend_state_.displayed_metrics.fps));
+        const int fps_int = static_cast<int>(frontend_state_.displayed_metrics.fps);
+        menu_system_.set_variable("fps", static_cast<float>(fps_int));
     }
 
     // Render menus (main, pause, settings, map select, loading)

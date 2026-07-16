@@ -3,7 +3,6 @@
 #include "ae/core/types.h"
 #include "ae/network/sequence_tracker.h"
 #include "ae/network/udp_socket.h"
-#include "ahamkara/game/net_types.h"
 
 #include <algorithm>
 #include <chrono>
@@ -76,13 +75,13 @@ public:
     ClientSession& record_input(
         const ae::NetAddress& address,
         const ae::PacketEnvelope& envelope,
-        const ahamkara::game::PlayerInputCommand& command,
+        ae::u32 command_sequence,
         time_point now) {
         ClientSession& client = touch_client(address, now);
         client.sequence_tracker.process_incoming(envelope);
         client.connection_state = ClientConnectionState::Connected;
         client.last_seen = now;
-        client.last_received_input_sequence = command.sequence;
+        client.last_received_input_sequence = command_sequence;
         client.has_received_input = true;
         return client;
     }

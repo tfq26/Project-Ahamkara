@@ -32,18 +32,14 @@ void test_input_processing_and_timeout_cleanup() {
 
     ae::PacketEnvelope envelope_a {};
     envelope_a.sequence = 11;
-    ahamkara::game::PlayerInputCommand command_a {};
-    command_a.sequence = 41;
 
     ae::PacketEnvelope envelope_b {};
     envelope_b.sequence = 12;
-    ahamkara::game::PlayerInputCommand command_b {};
-    command_b.sequence = 42;
 
-    auto& session_a = runtime.record_input(client_a, envelope_a, command_a, base_time);
-    runtime.mark_input_processed(session_a, command_a.sequence);
-    auto& session_b = runtime.record_input(client_b, envelope_b, command_b, base_time + std::chrono::milliseconds(600));
-    runtime.mark_input_processed(session_b, command_b.sequence);
+    auto& session_a = runtime.record_input(client_a, envelope_a, 41, base_time);
+    runtime.mark_input_processed(session_a, 41);
+    auto& session_b = runtime.record_input(client_b, envelope_b, 42, base_time + std::chrono::milliseconds(600));
+    runtime.mark_input_processed(session_b, 42);
 
     assert(runtime.connected_client_count() == 2);
     assert(session_a.connection_state == wish::session::ClientConnectionState::Connected);
