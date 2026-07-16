@@ -15,6 +15,6 @@ Checks: >
   performance-inefficient-string-concatenation,
   performance-unnecessary-copy-initialization
 WarningsAsErrors: '*'
-HeaderFilterRegex: '.*/(engine|client|game|server|wish|tools|samples|tests)/'
+HeaderFilterRegex: '.*/(engine|client|game|server|wish|tools|samples|tests)/(?!.*(imgui|imgui_internal)\.h).*'
 SystemHeaders: false
 FormatStyle: file
