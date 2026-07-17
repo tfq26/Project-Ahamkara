@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ae/core/log.h"
-#include "ae/core/types.h"
+#include "wish/types.h"
+#include "wish/log.h"
 
 #include <cstdlib>
 #include <limits>
@@ -11,8 +11,8 @@
 namespace wish::admin {
 
 struct ServerConfig {
-    ae::u16 port {7777};
-    ae::u16 admin_port {7778};
+    wish::u16 port {7777};
+    wish::u16 admin_port {7778};
     float tick_rate {60.0F};
     int max_players {8};
     float disconnect_timeout_seconds {10.0F};
@@ -31,13 +31,13 @@ inline std::string_view cli_value(const char* arg, std::string_view key) {
     return {};
 }
 
-inline bool parse_u16(std::string_view text, ae::u16& out) {
+inline bool parse_u16(std::string_view text, wish::u16& out) {
     try {
         const unsigned long parsed = std::stoul(std::string(text));
-        if (parsed == 0 || parsed > std::numeric_limits<ae::u16>::max()) {
+        if (parsed == 0 || parsed > std::numeric_limits<wish::u16>::max()) {
             return false;
         }
-        out = static_cast<ae::u16>(parsed);
+        out = static_cast<wish::u16>(parsed);
         return true;
     } catch (...) {
         return false;
@@ -62,13 +62,13 @@ inline bool parse_float(std::string_view text, float& out) {
     }
 }
 
-inline void apply_env_u16(const char* name, ae::u16& value) {
+inline void apply_env_u16(const char* name, wish::u16& value) {
     if (const char* raw = std::getenv(name)) {
-        ae::u16 parsed {};
+        wish::u16 parsed {};
         if (parse_u16(raw, parsed)) {
             value = parsed;
         } else {
-            ae::log_warning(std::string("Ignoring invalid value for ") + name + ".");
+            wish::log_warning(std::string("Ignoring invalid value for ") + name + ".");
         }
     }
 }
@@ -79,7 +79,7 @@ inline void apply_env_int(const char* name, int& value) {
         if (parse_int(raw, parsed)) {
             value = parsed;
         } else {
-            ae::log_warning(std::string("Ignoring invalid value for ") + name + ".");
+            wish::log_warning(std::string("Ignoring invalid value for ") + name + ".");
         }
     }
 }
@@ -90,19 +90,19 @@ inline void apply_env_float(const char* name, float& value) {
         if (parse_float(raw, parsed)) {
             value = parsed;
         } else {
-            ae::log_warning(std::string("Ignoring invalid value for ") + name + ".");
+            wish::log_warning(std::string("Ignoring invalid value for ") + name + ".");
         }
     }
 }
 
-inline void apply_cli_u16(const char* arg, std::string_view key, ae::u16& value) {
+inline void apply_cli_u16(const char* arg, std::string_view key, wish::u16& value) {
     const std::string_view raw = cli_value(arg, key);
     if (!raw.empty()) {
-        ae::u16 parsed {};
+        wish::u16 parsed {};
         if (parse_u16(raw, parsed)) {
             value = parsed;
         } else {
-            ae::log_warning(std::string("Ignoring invalid CLI value for --") + std::string(key) + ".");
+            wish::log_warning(std::string("Ignoring invalid CLI value for --") + std::string(key) + ".");
         }
     }
 }
@@ -114,7 +114,7 @@ inline void apply_cli_int(const char* arg, std::string_view key, int& value) {
         if (parse_int(raw, parsed)) {
             value = parsed;
         } else {
-            ae::log_warning(std::string("Ignoring invalid CLI value for --") + std::string(key) + ".");
+            wish::log_warning(std::string("Ignoring invalid CLI value for --") + std::string(key) + ".");
         }
     }
 }
@@ -126,7 +126,7 @@ inline void apply_cli_float(const char* arg, std::string_view key, float& value)
         if (parse_float(raw, parsed)) {
             value = parsed;
         } else {
-            ae::log_warning(std::string("Ignoring invalid CLI value for --") + std::string(key) + ".");
+            wish::log_warning(std::string("Ignoring invalid CLI value for --") + std::string(key) + ".");
         }
     }
 }
@@ -159,22 +159,22 @@ inline ServerConfig load_server_config(int argc, char** argv) {
     }
 
     if (config.tick_rate <= 0.0F) {
-        ae::log_warning("Ignoring invalid server tick rate; using 60 Hz.");
+        wish::log_warning("Ignoring invalid server tick rate; using 60 Hz.");
         config.tick_rate = 60.0F;
     }
 
     if (config.max_players <= 0) {
-        ae::log_warning("Ignoring invalid max player count; using 8.");
+        wish::log_warning("Ignoring invalid max player count; using 8.");
         config.max_players = 8;
     }
 
     if (config.disconnect_timeout_seconds <= 0.0F) {
-        ae::log_warning("Ignoring invalid disconnect timeout; using 10 seconds.");
+        wish::log_warning("Ignoring invalid disconnect timeout; using 10 seconds.");
         config.disconnect_timeout_seconds = 10.0F;
     }
 
     if (config.match_duration_seconds < 0.0F) {
-        ae::log_warning("Ignoring invalid match duration; using 600 seconds.");
+        wish::log_warning("Ignoring invalid match duration; using 600 seconds.");
         config.match_duration_seconds = 600.0F;
     }
 

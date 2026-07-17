@@ -1,9 +1,7 @@
 #pragma once
 
-#include "ae/core/log.h"
-#include "ae/core/types.h"
-#include "ae/network/packet_envelope.h"
-#include "ae/network/udp_socket.h"
+#include "wish/types.h"
+#include "wish/log.h"
 #include "wish/core/activity.h"
 #include "wish/session/session_model.h"
 
@@ -40,7 +38,7 @@ public:
 
     /// Route an incoming packet from `from` address.
     /// Returns true if the packet was consumed.
-    bool route_packet(const ae::NetAddress& from,
+    bool route_packet(const wish::NetAddress& from,
                       std::span<const std::byte> data,
                       time_point now);
 
@@ -61,12 +59,11 @@ public:
             if (!entry.instance || !entry.running) continue;
             entry.instance->for_each_connected_snapshot(
                 +[](void* ctx, session::SessionId sid,
-                    const std::byte* data, ae::usize len) {
+                    const std::byte* data, wish::usize len) {
                     auto* f = static_cast<std::remove_reference_t<Fn>*>(ctx);
                     (*f)(sid, data, len);
                 },
-                &fn
-            );
+                &fn);
         }
     }
 
@@ -76,13 +73,13 @@ public:
         session::SessionId session_id {0};
     };
 
-    RoutingInfo* find_routing(const ae::NetAddress& address) {
+    RoutingInfo* find_routing(const wish::NetAddress& address) {
         auto it = routing_.find(address_key(address));
         if (it == routing_.end()) return nullptr;
         return &it->second;
     }
 
-    const RoutingInfo* find_routing(const ae::NetAddress& address) const {
+    const RoutingInfo* find_routing(const wish::NetAddress& address) const {
         auto it = routing_.find(address_key(address));
         if (it == routing_.end()) return nullptr;
         return &it->second;
@@ -111,14 +108,14 @@ public:
         return nullptr;
     }
 
-    ae::u32 running_count() const {
-        ae::u32 n = 0;
+    wish::u32 running_count() const {
+        wish::u32 n = 0;
         for (auto& e : entries_) { if (e.running) ++n; }
         return n;
     }
 
-    ae::u32 total_player_count() const {
-        ae::u32 n = 0;
+    wish::u32 total_player_count() const {
+        wish::u32 n = 0;
         for (auto& e : entries_) {
             if (e.instance && e.running) n += e.instance->player_count();
         }
@@ -134,7 +131,7 @@ private:
         bool running {false};
     };
 
-    static std::string address_key(const ae::NetAddress& addr) {
+    static std::string address_key(const wish::NetAddress& addr) {
         return addr.ip + ":" + std::to_string(addr.port);
     }
 

@@ -1,4 +1,5 @@
 #include "wish/core/activity_manager.h"
+#include "wish/log.h"
 
 namespace wish::core {
 
@@ -6,13 +7,12 @@ ActivityId ActivityManager::start_activity(ActivityId template_id,
                                             std::unique_ptr<IActivityBase> instance) {
     const ActivityConfig* tmpl = get_template(template_id);
     if (!tmpl) {
-        ae::log_warning("ActivityManager: unknown template id " + std::to_string(template_id));
+        wish::log_warning("ActivityManager: unknown template id " + std::to_string(template_id));
         return 0;
     }
 
     if (!instance->initialize(*tmpl)) {
-        ae::log_warning("ActivityManager: failed to initialize activity from template "
-                        + std::string(tmpl->name));
+        wish::log_warning("ActivityManager: failed to initialize activity from template " + std::string(tmpl->name));
         return 0;
     }
 
@@ -21,8 +21,7 @@ ActivityId ActivityManager::start_activity(ActivityId template_id,
     entry.running = true;
     entries_.push_back(std::move(entry));
 
-    ae::log_info("ActivityManager: started activity '" + std::string(tmpl->name)
-                 + "' (id=" + std::to_string(tmpl->id) + ")");
+    wish::log_info("ActivityManager: started activity '" + std::string(tmpl->name) + "' (id=" + std::to_string(tmpl->id) + ")");
     return tmpl->id;
 }
 
@@ -30,15 +29,15 @@ ActivityId ActivityManager::start_activity(std::string_view name,
                                             std::unique_ptr<IActivityBase> instance) {
     const ActivityConfig* tmpl = get_template(name);
     if (!tmpl) {
-        ae::log_warning("ActivityManager: unknown template name '" + std::string(name) + "'");
+        wish::log_warning("ActivityManager: unknown template name '" + std::string(name) + "'");
         return 0;
     }
     return start_activity(tmpl->id, std::move(instance));
 }
 
-bool ActivityManager::route_packet(const ae::NetAddress& from,
-                                    std::span<const std::byte> data,
-                                    time_point now) {
+bool ActivityManager::route_packet(const wish::NetAddress& from,
+                                   std::span<const std::byte> data,
+                                   time_point now) {
     RoutingInfo* routing = find_routing(from);
     if (!routing) return false;
 
