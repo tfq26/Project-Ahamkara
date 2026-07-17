@@ -67,6 +67,45 @@ void ClientPredictionManager::reconcile(const ServerSnapshot& snapshot) {
     }
 }
 
+ServerSnapshot ClientPredictionManager::capture_prediction_state() const {
+    ServerSnapshot snap;
+    snap.server_tick = prediction_tick_;
+    snap.last_processed_input = last_ack_;
+    snap.local_player = world_->get_player_state();
+
+    // Dummies
+    const int dc = world_->get_dummy_count();
+    snap.dummy_count = static_cast<ae::u8>(std::min(dc, 4));
+    for (ae::u8 i = 0; i < snap.dummy_count; ++i) {
+        snap.dummies[i] = world_->get_dummies()[i];
+    }
+
+    // Projectiles
+    const int pc = world_->get_projectile_count();
+    snap.projectile_count = static_cast<ae::u8>(std::min(pc, 8));
+    for (ae::u8 i = 0; i < snap.projectile_count; ++i) {
+        snap.projectiles[i] = world_->get_projectiles()[i];
+    }
+
+    // Match state
+    snap.match_time = world_->get_match_time();
+    snap.match_phase = world_->get_match_phase();
+    snap.team_score_red = world_->get_team_score_red();
+    snap.team_score_blue = world_->get_team_score_blue();
+
+    return snap;
+}
+
+void ClientPredictionManager::replay_buffered_inputs(World& target, ae::u32 last_ack) const {
+    const float step = fixed_step_seconds_;
+    for (const auto& pending : pending_inputs_) {
+        if (pending.sequence > last_ack) {
+            target.advance_sim(step);
+            target.apply_input(step, pending);
+        }
+    }
+}
+
 void ClientPredictionManager::reset() {
     world_ = std::make_unique<World>();
     world_->set_is_client(false);
