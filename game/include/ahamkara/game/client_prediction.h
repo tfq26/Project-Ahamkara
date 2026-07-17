@@ -54,8 +54,25 @@ public:
     /// Uses the manager's internal fixed step for replay.
     void reconcile(const ServerSnapshot& snapshot);
 
+    /// Capture the full prediction state as a ServerSnapshot for
+    /// comparison with authoritative snapshots or debugging.
+    /// Populates player state, dummies, projectiles, and match state
+    /// from the current prediction world.
+    [[nodiscard]] ServerSnapshot capture_prediction_state() const;
+
+    /// Replay the buffered inputs (those with sequence > last_ack)
+    /// deterministically on the given target world.  The target world
+    /// should already be set to the authoritative state before calling.
+    /// Uses this manager's fixed step for replay.
+    void replay_buffered_inputs(World& target, ae::u32 last_ack) const;
+
     /// Read-only access to the prediction world for state comparison.
     [[nodiscard]] const World& world() const { return *world_; }
+
+    /// Mutable access to the prediction world (for tests and inspection).
+    [[nodiscard]] World& prediction_world() {
+        return *world_;
+    }
 
     /// Number of unacknowledged inputs waiting for server confirmation.
     [[nodiscard]] int pending_count() const { return static_cast<int>(pending_inputs_.size()); }
