@@ -530,3 +530,25 @@ target_link_libraries(ahamkara_wish_error_tests
         wish_engine
 )
 add_test(NAME ahamkara_wish_error_tests COMMAND ahamkara_wish_error_tests)
+
+add_executable(ahamkara_connection_lifecycle_tests
+    src/connection_lifecycle_tests.cpp
+)
+target_compile_features(ahamkara_connection_lifecycle_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_connection_lifecycle_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_connection_lifecycle_tests
+    PRIVATE
+        ae_network
+)
+add_test(NAME ahamkara_connection_lifecycle_tests COMMAND ahamkara_connection_lifecycle_tests)
+
+add_executable(ahamkara_jitter_buffer_tests
+    src/jitter_buffer_tests.cpp
+)
+target_compile_features(ahamkara_jitter_buffer_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_jitter_buffer_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_jitter_buffer_tests
+    PRIVATE
+        ae_network
+)
+add_test(NAME ahamkara_jitter_buffer_tests COMMAND ahamkara_jitter_buffer_tests)

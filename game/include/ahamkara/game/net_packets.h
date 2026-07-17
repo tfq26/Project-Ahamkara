@@ -19,7 +19,9 @@ enum class PacketType : ae::u16 {
     ServerSnapshot = 2,
     ClientHello = 3,
     ServerWelcome = 4,
-    ServerReject = 5
+    ServerReject = 5,
+    Heartbeat = 6,
+    ClientReconnect = 7
 };
 
 enum class HandshakeRejectReason : ae::u8 {
@@ -50,6 +52,16 @@ struct ServerWelcomePacket {
 struct ServerRejectPacket {
     ae::u16 protocol_version {kProtocolVersion};
     HandshakeRejectReason reason {HandshakeRejectReason::VersionMismatch};
+};
+
+struct HeartbeatPacket {
+    ae::u32 server_tick {0};
+    ae::u32 connected_players {0};
+};
+
+struct ClientReconnectPacket {
+    ae::u64 session_id {0};
+    ae::u16 protocol_version {kProtocolVersion};
 };
 
 [[nodiscard]] constexpr bool is_supported_protocol_version(const ae::u16 version) {
@@ -374,6 +386,26 @@ inline bool read_envelope(ByteReader& reader, PacketEnvelope& envelope) {
         && reader.read(envelope.ack_bitfield);
 }
 
+inline bool write_heartbeat(ByteWriter& writer, const HeartbeatPacket& packet) {
+    return writer.write(packet.server_tick)
+        && writer.write(packet.connected_players);
+}
+
+inline bool read_heartbeat(ByteReader& reader, HeartbeatPacket& packet) {
+    return reader.read(packet.server_tick)
+        && reader.read(packet.connected_players);
+}
+
+inline bool write_client_reconnect(ByteWriter& writer, const ClientReconnectPacket& packet) {
+    return writer.write(packet.session_id)
+        && writer.write(packet.protocol_version);
+}
+
+inline bool read_client_reconnect(ByteReader& reader, ClientReconnectPacket& packet) {
+    return reader.read(packet.session_id)
+        && reader.read(packet.protocol_version);
+}
+
 }  // namespace detail
 
 // Wire size constants (at ahamkara::game scope, not detail)
@@ -609,5 +641,72 @@ using ServerSnapshotPacketBuffer = std::array<std::byte, server_snapshot_packet_
 using ClientHelloPacketBuffer = std::array<std::byte, client_hello_packet_size()>;
 using ServerWelcomePacketBuffer = std::array<std::byte, server_welcome_packet_size()>;
 using ServerRejectPacketBuffer = std::array<std::byte, server_reject_packet_size()>;
+
+constexpr ae::usize heartbeat_packet_size() {
+    return sizeof(ae::u32)    // magic
+        + sizeof(ae::u16)     // version
+        + sizeof(ae::u16)     // type
+        + kEnvelopeWireSize   // envelope
+        + sizeof(ae::u32)     // server_tick
+        + sizeof(ae::u32);    // connected_players
+}
+
+inline bool serialize_heartbeat_packet(
+    const PacketEnvelope& envelope,
+    const HeartbeatPacket& packet,
+    std::span<std::byte, heartbeat_packet_size()> buffer) {
+    detail::ByteWriter writer(buffer);
+    return detail::write_header(writer, PacketType::Heartbeat)
+        && detail::write_envelope(writer, envelope)
+        && detail::write_heartbeat(writer, packet)
+        && writer.bytes_written() == buffer.size();
+}
+
+inline bool deserialize_heartbeat_packet(
+    std::span<const std::byte> buffer,
+    PacketEnvelope& envelope,
+    HeartbeatPacket& packet) {
+    if (buffer.size() != heartbeat_packet_size()) return false;
+    detail::ByteReader reader(buffer);
+    return detail::read_header(reader, PacketType::Heartbeat)
+        && detail::read_envelope(reader, envelope)
+        && detail::read_heartbeat(reader, packet)
+        && reader.is_complete();
+}
+
+constexpr ae::usize client_reconnect_packet_size() {
+    return sizeof(ae::u32)    // magic
+        + sizeof(ae::u16)     // version
+        + sizeof(ae::u16)     // type
+        + kEnvelopeWireSize   // envelope
+        + sizeof(ae::u64)     // session_id
+        + sizeof(ae::u16);    // protocol_version
+}
+
+inline bool serialize_client_reconnect_packet(
+    const PacketEnvelope& envelope,
+    const ClientReconnectPacket& packet,
+    std::span<std::byte, client_reconnect_packet_size()> buffer) {
+    detail::ByteWriter writer(buffer);
+    return detail::write_header(writer, PacketType::ClientReconnect)
+        && detail::write_envelope(writer, envelope)
+        && detail::write_client_reconnect(writer, packet)
+        && writer.bytes_written() == buffer.size();
+}
+
+inline bool deserialize_client_reconnect_packet(
+    std::span<const std::byte> buffer,
+    PacketEnvelope& envelope,
+    ClientReconnectPacket& packet) {
+    if (buffer.size() != client_reconnect_packet_size()) return false;
+    detail::ByteReader reader(buffer);
+    return detail::read_header(reader, PacketType::ClientReconnect)
+        && detail::read_envelope(reader, envelope)
+        && detail::read_client_reconnect(reader, packet)
+        && reader.is_complete();
+}
+
+using HeartbeatPacketBuffer = std::array<std::byte, heartbeat_packet_size()>;
+using ClientReconnectPacketBuffer = std::array<std::byte, client_reconnect_packet_size()>;
 
 }  // namespace ahamkara::game

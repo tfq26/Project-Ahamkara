@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ae/core/types.h"
+#include "ae/network/jitter_buffer.h"
 
 #include <algorithm>
 #include <array>
@@ -148,22 +149,16 @@ public:
 
     /**
      * @brief Suggested interpolation delay based on snapshot arrival
-     *        jitter.  Uses 2× measured gap or 3× tick interval, whichever
-     *        is larger.
+     *        jitter.  Delegates to the internal JitterBuffer for
+     *        EWMA-based adaptive delay calculation.
      */
     [[nodiscard]] float suggest_delay_seconds(float tick_rate_hz) const {
-        if (count_ < 2) {
-            return 1.0F / tick_rate_hz;
-        }
-
-        const auto& a = entries_[wrap_nearest(newest_, 1)];
-        const auto& b = entries_[wrap_nearest(newest_, 0)];
-        const double gap = std::abs(b.arrival_time - a.arrival_time);
-        const double tick_interval = 1.0 / static_cast<double>(tick_rate_hz);
-
-        // Baseline: 3 tick intervals.  Add jitter buffer.
-        return static_cast<float>(tick_interval * 3.0 + gap);
+        return jitter_buffer_.suggest_delay(tick_rate_hz);
     }
+
+    /// Access the underlying JitterBuffer for configuration.
+    [[nodiscard]] JitterBuffer& jitter_buffer() { return jitter_buffer_; }
+    [[nodiscard]] const JitterBuffer& jitter_buffer() const { return jitter_buffer_; }
 
     /** Discard all buffered snapshots. */
     void reset() {
@@ -209,9 +204,20 @@ private:
         out.shield            = a.shield + (b.shield - a.shield) * t;
     }
 
+    /// Push a snapshot and feed its arrival interval into the jitter buffer.
+    void push_with_jitter(const Snapshot& snapshot, double arrival_time) {
+        if (count_ > 0) {
+            const auto& prev = entries_[newest_];
+            const float interval = static_cast<float>(arrival_time - prev.arrival_time);
+            jitter_buffer_.record(interval);
+        }
+        push(snapshot, arrival_time);
+    }
+
     std::array<Slot, Capacity> entries_ {};
     usize newest_ {0};
     usize count_  {0};
+    mutable JitterBuffer jitter_buffer_ {};
 };
 
 }  // namespace ae
