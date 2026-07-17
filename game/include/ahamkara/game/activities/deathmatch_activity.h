@@ -7,6 +7,7 @@
 #include "ahamkara/game/gameplay_types.h"
 #include "ahamkara/game/net_packets.h"
 #include "ahamkara/game/net_types.h"
+#include "ahamkara/game/rewind.h"
 #include "ahamkara/game/world.h"
 #include "wish/core/activity.h"
 #include "wish/core/session_services.h"
@@ -48,14 +49,6 @@ struct DeathmatchSnapshot {
     RemotePlayerSnapshot remote_players[4] {};
 };
 
-/// Result of a lag-compensated hit validation.
-struct HitValidationResult {
-    bool hit {false};
-    int hit_dummy_idx {-1};
-    Vec3 hit_position {};
-    float damage {0};
-    bool is_headshot {false};
-};
 /// Serialize a deathmatch snapshot payload into a ByteWriter.
 inline bool write_deathmatch_snapshot(detail::ByteWriter& writer, const DeathmatchSnapshot& snap) {
     if (!writer.write(snap.server_tick)
@@ -102,6 +95,7 @@ struct PlayerSlot {
     bool connected {false};
     std::chrono::steady_clock::time_point last_seen {};
     ae::u32 client_tick {0};
+    ServerClockTracker clock_tracker {};
 
     /// Index into World::players_ — which player this slot controls.
     ae::u32 player_index {0};
@@ -148,12 +142,13 @@ public:
     void simulate_input(wish::session::SessionId sid, float delta_seconds,
                         const PlayerInputCommand& cmd);
 
-    /// Lag-compensated hit validation.  Queries the server history buffer
-    /// at the client's perceived tick and runs ray-vs-dummy hit detection
-    /// against the historical dummy positions from that tick.
-    [[nodiscard]] HitValidationResult validate_hit(
+    /// Lag-compensated hit validation via RewindValidation + ServerClockTracker.
+    /// Converts client tick through the per-player clock tracker, validates the
+    /// rewind window, queries history, and returns a non-mutating hit result.
+    [[nodiscard]] HitResult validate_hit(
         wish::session::SessionId firing_player,
         ae::u32 client_tick,
+        float client_rtt,
         const Vec3& origin,
         const Vec3& forward,
         float base_damage,
@@ -194,6 +189,7 @@ private:
     GameModeRules game_rules_;
     DeathmatchState dm_state_;
     ae::ServerHistoryBuffer<HistoricalState, 1024> history_buffer_;
+    RewindValidation rewind_validation_;
 
     std::deque<PlayerSlot> slots_;
     wish::session::SessionId next_session_id_ {1};
