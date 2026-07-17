@@ -530,3 +530,18 @@ target_link_libraries(ahamkara_wish_error_tests
         wish_engine
 )
 add_test(NAME ahamkara_wish_error_tests COMMAND ahamkara_wish_error_tests)
+
+add_executable(ahamkara_rewind_tests
+    src/rewind_tests.cpp
+)
+target_compile_features(ahamkara_rewind_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_rewind_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+        ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+)
+target_link_libraries(ahamkara_rewind_tests
+    PRIVATE
+        ahamkara_game
+)
+add_test(NAME ahamkara_rewind_tests COMMAND ahamkara_rewind_tests)

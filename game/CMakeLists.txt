@@ -23,6 +23,7 @@ add_library(ahamkara_game STATIC
     src/encounter_scripting.cpp
     ../engine/render/src/compiled_level.cpp
     src/animation_adapter.cpp
+    src/rewind.cpp
 )
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/gameplay_types.cpp")
