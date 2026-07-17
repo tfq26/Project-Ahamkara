@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage GitHub Issues"
+  short_description: "Coordinate issue work from intake through closure"
+  default_prompt: "Use $manage-github-issues to triage this repository backlog and identify the next safe agent task."
