@@ -55,6 +55,14 @@ public:
     [[nodiscard]] const Mat4* current_joint_matrices(const std::string& path) const;
     [[nodiscard]] int current_joint_count(const std::string& path) const;
 
+    /// Read-only query: returns true if `path` is already cached (no I/O, no
+    /// GPU upload, no side effects).  Safe to call from any layer — including
+    /// runtime-adjacent code that needs to know whether a weapon model is
+    /// resident without triggering a load.
+    [[nodiscard]] bool has_cached(const std::string& path) const {
+        return entries_.find(path) != entries_.end() && entries_.at(path) != nullptr;
+    }
+
     [[nodiscard]] std::size_t cached_model_count() const { return entries_.size(); }
 
 private:

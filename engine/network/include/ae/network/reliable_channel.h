@@ -25,11 +25,21 @@ namespace ae {
  * is a separate integration step.
  */
 class ReliableChannel {
-public:
+  public:
     struct InFlight {
         std::vector<u8> payload;
         double last_send_time {0.0};
         u32 send_count {1};
+    };
+
+    struct Stats {
+        u64 packets_sent {0};
+        u64 packets_acked {0};
+        u64 packets_retransmitted {0};
+
+        void reset() {
+            *this = Stats {};
+        }
     };
 
     /// Register a reliable packet as in-flight (caller already allocated `seq`).
@@ -41,17 +51,20 @@ public:
         f.last_send_time = now;
         f.send_count = 1;
         in_flight_[sequence] = std::move(f);
+        ++stats_.packets_sent;
     }
 
     /// Consume the peer's ACK state, removing acknowledged packets. `ack_bitfield`
     /// bit `i` acks `ack_sequence - 1 - i` (matches SequenceTracker encoding).
     void on_ack(u16 ack_sequence, u32 ack_bitfield) {
+        auto count_before = in_flight_.size();
         in_flight_.erase(ack_sequence);
         for (u32 i = 0; i < 32; ++i) {
             if ((ack_bitfield & (1u << i)) != 0u) {
                 in_flight_.erase(static_cast<u16>(ack_sequence - 1u - i));
             }
         }
+        stats_.packets_acked += (count_before - in_flight_.size());
     }
 
     /// Sequences still unacked whose last send is older than `timeout`. Their
@@ -64,6 +77,7 @@ public:
                 due.push_back(entry.first);
                 entry.second.last_send_time = now;
                 ++entry.second.send_count;
+                ++stats_.packets_retransmitted;
             }
         }
         return due;
@@ -81,11 +95,25 @@ public:
         return (it == in_flight_.end()) ? 0u : it->second.send_count;
     }
 
-    [[nodiscard]] std::size_t pending_count() const { return in_flight_.size(); }
-    void clear() { in_flight_.clear(); }
+    [[nodiscard]] std::size_t pending_count() const {
+        return in_flight_.size();
+    }
 
-private:
+    [[nodiscard]] const Stats& stats() const {
+        return stats_;
+    }
+    void reset_stats() {
+        stats_.reset();
+    }
+
+    void clear() {
+        in_flight_.clear();
+        stats_.reset();
+    }
+
+  private:
     std::map<u16, InFlight> in_flight_;
+    Stats stats_ {};
 };
 
-}  // namespace ae
+} // namespace ae

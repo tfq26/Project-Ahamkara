@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ae/core/frame_profiler.h"
 #include "ae/core/types.h"
 #include "ae/runtime/metrics.h"
 #include "ae/render/compiled_level.h"
@@ -76,6 +77,9 @@ struct DebugSceneBuildInputs {
     const ae::RuntimeMetricsSnapshot* displayed_metrics {nullptr};
     float alpha {1.0F};
     const ae::render::LevelAsset* level_asset {nullptr};
+
+    // Per-section CPU profiling data
+    const ae::FrameProfileSnapshot* profile_snapshot {nullptr};
 
     // Frame pacing and memory budget data
     double frame_budget_ms {16.7};

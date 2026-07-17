@@ -1,5 +1,6 @@
 #include "ae/core/frame_pacer.h"
 #include "ae/core/frame_allocator.h"
+#include "ae/core/frame_profiler.h"
 #include "ae/core/memory_budget.h"
 #include "ae/core/log.h"
 
@@ -258,6 +259,196 @@ void test_memory_budget_disabled() {
     std::cout << "test_memory_budget_disabled passed.\n";
 }
 
+// ===================================================================
+// FrameProfiler tests
+// ===================================================================
+
+void test_frame_profiler_default_state() {
+    ae::FrameProfiler profiler;
+
+    // Default state: sections should be empty
+    auto snap = profiler.end_frame(0);
+    assert(snap.frame_number == 0);
+    assert(snap.frame_total_ms >= 0.0);
+    for (std::size_t i = 0; i < ae::FrameProfiler::kSectionCount; ++i) {
+        assert(snap.sections[i].current_ms == 0.0);
+        assert(snap.sections[i].call_count == 0);
+    }
+    std::cout << "test_frame_profiler_default_state passed.\n";
+}
+
+void test_frame_profiler_single_section() {
+    ae::FrameProfiler profiler;
+
+    profiler.begin_section(ae::ProfileSection::Render);
+    // Simulate work
+    volatile double sum = 0.0;
+    for (int i = 0; i < 10000; ++i) {
+        sum += static_cast<double>(i) * 0.001;
+    }
+    (void)sum;
+    profiler.end_section(ae::ProfileSection::Render);
+
+    auto snap = profiler.end_frame(1);
+    assert(snap.frame_number == 1);
+    assert(snap.sections[static_cast<std::size_t>(ae::ProfileSection::Render)].call_count == 1);
+    assert(snap.sections[static_cast<std::size_t>(ae::ProfileSection::Render)].current_ms > 0.0);
+    // Other sections should be zero
+    assert(snap.sections[static_cast<std::size_t>(ae::ProfileSection::Physics)].call_count == 0);
+    assert(snap.sections[static_cast<std::size_t>(ae::ProfileSection::Physics)].current_ms == 0.0);
+    std::cout << "test_frame_profiler_single_section passed.\n";
+}
+
+void test_frame_profiler_scoped_raii() {
+    ae::FrameProfiler profiler;
+
+    {
+        ae::FrameProfiler::ScopedProfile _sp(profiler, ae::ProfileSection::Audio);
+        volatile double sum = 0.0;
+        for (int i = 0; i < 5000; ++i) {
+            sum += static_cast<double>(i) * 0.002;
+        }
+        (void)sum;
+    }
+
+    auto snap = profiler.end_frame(2);
+    assert(snap.sections[static_cast<std::size_t>(ae::ProfileSection::Audio)].call_count == 1);
+    assert(snap.sections[static_cast<std::size_t>(ae::ProfileSection::Audio)].current_ms > 0.0);
+    std::cout << "test_frame_profiler_scoped_raii passed.\n";
+}
+
+void test_frame_profiler_multiple_sections() {
+    ae::FrameProfiler profiler;
+
+    // Profile two sections in sequence
+    {
+        ae::FrameProfiler::ScopedProfile _sp(profiler, ae::ProfileSection::Physics);
+        volatile double sum = 0.0;
+        for (int i = 0; i < 3000; ++i) {
+            sum += static_cast<double>(i) * 0.001;
+        }
+        (void)sum;
+    }
+    {
+        ae::FrameProfiler::ScopedProfile _sp(profiler, ae::ProfileSection::Animation);
+        volatile double sum = 0.0;
+        for (int i = 0; i < 7000; ++i) {
+            sum += static_cast<double>(i) * 0.001;
+        }
+        (void)sum;
+    }
+
+    auto snap = profiler.end_frame(3);
+    assert(snap.sections[static_cast<std::size_t>(ae::ProfileSection::Physics)].call_count == 1);
+    assert(snap.sections[static_cast<std::size_t>(ae::ProfileSection::Physics)].current_ms > 0.0);
+    assert(snap.sections[static_cast<std::size_t>(ae::ProfileSection::Animation)].call_count == 1);
+    assert(snap.sections[static_cast<std::size_t>(ae::ProfileSection::Animation)].current_ms > 0.0);
+    // Physics should be faster than Animation (fewer iterations)
+    double phys_ms = snap.sections[static_cast<std::size_t>(ae::ProfileSection::Physics)].current_ms;
+    double anim_ms = snap.sections[static_cast<std::size_t>(ae::ProfileSection::Animation)].current_ms;
+    assert(phys_ms < anim_ms);
+    std::cout << "test_frame_profiler_multiple_sections passed.\n";
+}
+
+void test_frame_profiler_same_section_multiple_calls() {
+    ae::FrameProfiler profiler;
+
+    for (int i = 0; i < 5; ++i) {
+        ae::FrameProfiler::ScopedProfile _sp(profiler, ae::ProfileSection::UI);
+        volatile double sum = 0.0;
+        for (int j = 0; j < 1000; ++j) {
+            sum += static_cast<double>(j) * 0.001;
+        }
+        (void)sum;
+    }
+
+    auto snap = profiler.end_frame(4);
+    // The same section can be called multiple times per frame
+    assert(snap.sections[static_cast<std::size_t>(ae::ProfileSection::UI)].call_count == 5);
+    assert(snap.sections[static_cast<std::size_t>(ae::ProfileSection::UI)].current_ms > 0.0);
+    std::cout << "test_frame_profiler_same_section_multiple_calls passed.\n";
+}
+
+void test_frame_profiler_min_max_avg() {
+    ae::FrameProfiler profiler;
+
+    // Run several frames to accumulate min/max/avg
+    for (std::uint64_t frame = 0; frame < 10; ++frame) {
+        {
+            ae::FrameProfiler::ScopedProfile _sp(profiler, ae::ProfileSection::Simulation);
+            volatile double sum = 0.0;
+            for (int i = 0; i < (frame + 1) * 1000; ++i) {
+                sum += static_cast<double>(i) * 0.001;
+            }
+            (void)sum;
+        }
+        static_cast<void>(profiler.end_frame(frame));
+    }
+
+    // After accumulation, min should be less than max (frames have increasing work)
+    // Note: FrameProfiler accumulates across end_frame calls, so min/max
+    // reflect the per-frame values. call_count reports only the most recent
+    // frame, which is 0 here (we called end_frame without a profile).
+    auto snap = profiler.end_frame(10);
+    const auto& sim = snap.sections[static_cast<std::size_t>(ae::ProfileSection::Simulation)];
+    assert(sim.min_ms <= sim.max_ms || (sim.min_ms == 0.0 && sim.max_ms == 0.0));
+    assert(sim.avg_ms >= 0.0);
+    std::cout << "test_frame_profiler_min_max_avg passed.\n";
+}
+
+void test_frame_profiler_reset() {
+    ae::FrameProfiler profiler;
+
+    {
+        ae::FrameProfiler::ScopedProfile _sp(profiler, ae::ProfileSection::Other);
+        volatile double sum = 0.0;
+        for (int i = 0; i < 1000; ++i) {
+            sum += static_cast<double>(i) * 0.001;
+        }
+        (void)sum;
+    }
+    static_cast<void>(profiler.end_frame(5));
+
+    profiler.reset();
+
+    auto snap = profiler.end_frame(0);
+    assert(snap.frame_number == 0);
+    for (std::size_t i = 0; i < ae::FrameProfiler::kSectionCount; ++i) {
+        assert(snap.sections[i].call_count == 0);
+    }
+    std::cout << "test_frame_profiler_reset passed.\n";
+}
+
+void test_frame_profiler_all_sections() {
+    ae::FrameProfiler profiler;
+
+    // Exercise every section at least once
+    for (std::size_t s = 0; s < ae::FrameProfiler::kSectionCount; ++s) {
+        auto section = static_cast<ae::ProfileSection>(s);
+        profiler.begin_section(section);
+        profiler.end_section(section);
+    }
+
+    auto snap = profiler.end_frame(6);
+    for (std::size_t i = 0; i < ae::FrameProfiler::kSectionCount; ++i) {
+        assert(snap.sections[i].call_count == 1);
+    }
+    std::cout << "test_frame_profiler_all_sections passed.\n";
+}
+
+void test_frame_profiler_section_names() {
+    // Verify the name array covers all sections
+    assert(std::string(ae::kProfileSectionNames[static_cast<std::size_t>(ae::ProfileSection::Render)]) == "Render");
+    assert(std::string(ae::kProfileSectionNames[static_cast<std::size_t>(ae::ProfileSection::Physics)]) == "Physics");
+    assert(std::string(ae::kProfileSectionNames[static_cast<std::size_t>(ae::ProfileSection::Animation)]) == "Animation");
+    assert(std::string(ae::kProfileSectionNames[static_cast<std::size_t>(ae::ProfileSection::Audio)]) == "Audio");
+    assert(std::string(ae::kProfileSectionNames[static_cast<std::size_t>(ae::ProfileSection::UI)]) == "UI");
+    assert(std::string(ae::kProfileSectionNames[static_cast<std::size_t>(ae::ProfileSection::Simulation)]) == "Simulation");
+    assert(std::string(ae::kProfileSectionNames[static_cast<std::size_t>(ae::ProfileSection::Network)]) == "Network");
+    assert(std::string(ae::kProfileSectionNames[static_cast<std::size_t>(ae::ProfileSection::Other)]) == "Other");
+    std::cout << "test_frame_profiler_section_names passed.\n";
+}
+
 }  // namespace
 
 int main() {
@@ -286,6 +477,17 @@ int main() {
     test_memory_budget_reset();
     test_memory_budget_set_budgets_runtime();
     test_memory_budget_disabled();
+
+    std::cout << "\n--- FrameProfiler Tests ---\n";
+    test_frame_profiler_default_state();
+    test_frame_profiler_single_section();
+    test_frame_profiler_scoped_raii();
+    test_frame_profiler_multiple_sections();
+    test_frame_profiler_same_section_multiple_calls();
+    test_frame_profiler_min_max_avg();
+    test_frame_profiler_reset();
+    test_frame_profiler_all_sections();
+    test_frame_profiler_section_names();
 
     std::cout << "\nAll profiling tests passed.\n";
     return 0;

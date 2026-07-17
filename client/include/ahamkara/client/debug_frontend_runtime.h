@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ae/core/frame_pacer.h"
+#include "ae/core/frame_profiler.h"
 #include "ae/core/memory_budget.h"
 #include "ae/runtime/metrics.h"
 #include "ae/runtime/performance_logger.h"
@@ -27,6 +28,8 @@ struct DebugFrontendState {
     ae::RuntimeMetricsCollector metrics_collector {};
     ae::RuntimeMetricsSnapshot displayed_metrics {};
     ae::FramePacer frame_pacer {16.7, 2.0};
+    ae::FrameProfiler frame_profiler {};
+    ae::FrameProfileSnapshot last_profile_snapshot {};
     ae::MemoryBudgetTracker budget_tracker {};
     std::unique_ptr<ae::PerformanceLogger> perf_logger;
     uint64_t frame_count {0};

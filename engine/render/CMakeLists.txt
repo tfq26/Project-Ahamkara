@@ -10,6 +10,7 @@ add_library(ae_render STATIC
     src/debug_renderer_metrics.cpp
     src/font_atlas.cpp
     src/frustum.cpp
+    src/gpu_profiler.cpp
     src/gl_compat.cpp
     src/gltf_loader.cpp
     src/humanoid_mesh.cpp
