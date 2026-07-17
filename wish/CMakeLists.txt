@@ -5,6 +5,8 @@ add_library(wish_engine STATIC
     core/src/activity_loader.cpp
     core/src/error_envelope.cpp
     core/src/error_catalog.cpp
+    core/src/log.cpp
+    core/src/sequence_tracker.cpp
     net/src/transport_config.cpp
     session/src/session_model.cpp
     replication/src/replication_frame.cpp
@@ -19,12 +21,6 @@ target_include_directories(wish_engine
         ${CMAKE_CURRENT_SOURCE_DIR}/include
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/..
-)
-
-target_link_libraries(wish_engine
-    PUBLIC
-        ae_core
-        ae_network
 )
 
 if(WIN32)

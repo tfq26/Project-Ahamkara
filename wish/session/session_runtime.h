@@ -1,8 +1,6 @@
 #pragma once
 
-#include "ae/core/types.h"
-#include "ae/network/sequence_tracker.h"
-#include "ae/network/udp_socket.h"
+#include "wish/types.h"
 
 #include <algorithm>
 #include <chrono>
@@ -12,21 +10,21 @@
 
 namespace wish::session {
 
-enum class ClientConnectionState : ae::u8 {
+enum class ClientConnectionState : wish::u8 {
     PendingAdmission,
     Connected,
     TimedOut
 };
 
 struct ClientSession {
-    ae::NetAddress address {};
+    wish::NetAddress address {};
     std::string identity {};
     ClientConnectionState connection_state {ClientConnectionState::PendingAdmission};
     std::chrono::steady_clock::time_point last_seen {};
-    ae::u32 last_processed_input_sequence {0};
-    ae::u32 last_received_input_sequence {0};
+    wish::u32 last_processed_input_sequence {0};
+    wish::u32 last_received_input_sequence {0};
     bool has_received_input {false};
-    ae::SequenceTracker sequence_tracker {};
+    wish::SequenceTracker sequence_tracker {};
 };
 
 class SessionRuntime {
@@ -38,21 +36,21 @@ public:
         : disconnect_timeout_(disconnect_timeout) {
     }
 
-    [[nodiscard]] ClientSession* find_client(const ae::NetAddress& address) {
+    [[nodiscard]] ClientSession* find_client(const wish::NetAddress& address) {
         const auto it = std::find_if(clients_.begin(), clients_.end(), [&](const ClientSession& client) {
             return same_address(client.address, address);
         });
         return it == clients_.end() ? nullptr : &(*it);
     }
 
-    [[nodiscard]] const ClientSession* find_client(const ae::NetAddress& address) const {
+    [[nodiscard]] const ClientSession* find_client(const wish::NetAddress& address) const {
         const auto it = std::find_if(clients_.begin(), clients_.end(), [&](const ClientSession& client) {
             return same_address(client.address, address);
         });
         return it == clients_.end() ? nullptr : &(*it);
     }
 
-    ClientSession& touch_client(const ae::NetAddress& address, time_point now) {
+    ClientSession& touch_client(const wish::NetAddress& address, time_point now) {
         if (auto* client = find_client(address)) {
             client->address = address;
             client->identity = build_identity(address);
@@ -73,9 +71,9 @@ public:
     }
 
     ClientSession& record_input(
-        const ae::NetAddress& address,
-        const ae::PacketEnvelope& envelope,
-        ae::u32 command_sequence,
+        const wish::NetAddress& address,
+        const wish::PacketEnvelope& envelope,
+        wish::u32 command_sequence,
         time_point now) {
         ClientSession& client = touch_client(address, now);
         client.sequence_tracker.process_incoming(envelope);
@@ -86,7 +84,7 @@ public:
         return client;
     }
 
-    void mark_input_processed(ClientSession& client, ae::u32 sequence) {
+    void mark_input_processed(ClientSession& client, wish::u32 sequence) {
         client.last_processed_input_sequence = sequence;
     }
 
@@ -148,13 +146,13 @@ public:
     }
 
 private:
-    static bool same_address(const ae::NetAddress& lhs, const ae::NetAddress& rhs) {
-        return lhs.port == rhs.port && lhs.ip == rhs.ip;
-    }
+  static bool same_address(const wish::NetAddress& lhs, const wish::NetAddress& rhs) {
+      return lhs.port == rhs.port && lhs.ip == rhs.ip;
+  }
 
-    static std::string build_identity(const ae::NetAddress& address) {
-        return address.ip + ":" + std::to_string(address.port);
-    }
+  static std::string build_identity(const wish::NetAddress& address) {
+      return address.ip + ":" + std::to_string(address.port);
+  }
 
     std::deque<ClientSession> clients_;
     clock::duration disconnect_timeout_;

@@ -6,7 +6,7 @@
 #include <unistd.h>
 #endif
 
-#include "ae/core/types.h"
+#include "wish/types.h"
 
 #include <chrono>
 #include <functional>
@@ -25,10 +25,10 @@ struct PlayerStatus {
 
 struct ServerStatus {
     std::string game_name {"Wish Engine"};
-    ae::u16 game_port {0};
-    ae::u16 admin_port {0};
+    wish::u16 game_port {0};
+    wish::u16 admin_port {0};
     float tick_rate {0.0F};
-    ae::u32 server_tick {0};
+    wish::u32 server_tick {0};
     int max_players {0};
     float disconnect_timeout_seconds {0.0F};
     float match_duration_seconds {0.0F};
@@ -50,7 +50,7 @@ public:
     HttpAdminServer& operator=(HttpAdminServer&&) = delete;
     ~HttpAdminServer();
 
-    bool start(ae::u16 port, StatusProvider provider);
+    bool start(wish::u16 port, StatusProvider provider);
     void stop();
 
     [[nodiscard]] bool is_running() const;
@@ -85,7 +85,7 @@ private:
     static std::string parse_path(std::string_view request_line);
     static std::string parse_method(std::string_view request_line);
 
-    ae::u16 port_ {0};
+    wish::u16 port_ {0};
     SocketHandle listen_fd_ {socket_invalid()};
 
     static SocketHandle socket_invalid() {

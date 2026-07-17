@@ -1,4 +1,5 @@
 #include "wish/core/activity_loader.h"
+#include "wish/log.h"
 
 #include <algorithm>
 #include <cctype>
@@ -80,7 +81,7 @@ ActivityCategory parse_category(std::string_view cat) {
 bool ActivityLoader::parse_one(std::string_view json, ActivityConfig& cfg) {
     std::string_view name = extract_string(json, "name");
     if (name.empty()) {
-        ae::log_warning("ActivityLoader: missing 'name' field in activity config.");
+        wish::log_warning("ActivityLoader: missing 'name' field in activity config.");
         return false;
     }
 
@@ -88,22 +89,21 @@ bool ActivityLoader::parse_one(std::string_view json, ActivityConfig& cfg) {
     cfg.id          = static_cast<ActivityId>(extract_int(json, "id", 0));
     cfg.name        = name;
     cfg.category    = parse_category(extract_string(json, "category"));
-    cfg.max_players = static_cast<ae::u32>(extract_int(json, "max_players", 8));
+    cfg.max_players = static_cast<wish::u32>(extract_int(json, "max_players", 8));
     cfg.tick_rate   = extract_float(json, "tick_rate", 60.0F);
     cfg.map_path    = extract_string(json, "map");
 
     if (cfg.id == 0) {
-        ae::log_warning("ActivityLoader: activity '" + std::string(cfg.name)
-                        + "' has id=0, skipping.");
+        wish::log_warning("ActivityLoader: activity '" + std::string(cfg.name) + "' has id=0, skipping.");
         return false;
     }
 
     return true;
 }
 
-ae::u32 ActivityLoader::parse_many(std::string_view json,
-                                    std::vector<ActivityConfig>& out_configs) {
-    ae::u32 count = 0;
+wish::u32 ActivityLoader::parse_many(std::string_view json,
+                                     std::vector<ActivityConfig>& out_configs) {
+    wish::u32 count = 0;
 
     // Find individual objects in the array
     auto pos = json.find('{');
@@ -124,14 +124,14 @@ ae::u32 ActivityLoader::parse_many(std::string_view json,
     return count;
 }
 
-ae::u32 ActivityLoader::load_directory(std::string_view path,
-                                        std::vector<ActivityConfig>& out_configs) {
+wish::u32 ActivityLoader::load_directory(std::string_view path,
+                                         std::vector<ActivityConfig>& out_configs) {
     // For now this is a placeholder — real implementation would use
     // std::filesystem::directory_iterator (C++17) to scan *.json files.
     // The server can call this at startup to auto-discover activity configs.
     (void)path;
     (void)out_configs;
-    ae::log_info("ActivityLoader::load_directory is a stub — use register_template() programmatically.");
+    wish::log_info("ActivityLoader::load_directory is a stub — use register_template() programmatically.");
     return 0;
 }
 
