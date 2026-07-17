@@ -184,7 +184,7 @@ def jupiter_notify(title, message, priority="info"):
 
 
 def gh(*args, capture_output=True, check=True, **kwargs):
-    cmd = ["gh", "--repo", REPO] + list(args)
+    cmd = ["gh", "--repo", REPO, *list(args)]
     return subprocess.run(cmd, capture_output=capture_output, text=True, check=check, **kwargs)
 
 
@@ -237,15 +237,20 @@ def extract_bash_commands(text):
         if not block:
             continue
         # Filter out blocks that are only comment/explanation lines
-        lines = [l for l in block.split("\n") if l.strip()]
+        lines = [line for line in block.split("\n") if line.strip()]
         has_real_command = False
         for line in lines:
             stripped = line.strip()
             if stripped.startswith("sudo"):
                 continue  # Skip sudo entirely
-            if not stripped.startswith("//") and not stripped.startswith("/*") and not stripped.startswith("*"):
-                if stripped and stripped != "#":
-                    has_real_command = True
+            if (
+                not stripped.startswith("//")
+                and not stripped.startswith("/*")
+                and not stripped.startswith("*")
+                and stripped
+                and stripped != "#"
+            ):
+                has_real_command = True
         if has_real_command:
             # Filter out leading comment lines but keep heredoc content
             scripts.append(block)
@@ -492,7 +497,6 @@ def process_issue(issue):
 
     # Step 4: Implementation loop
     build_log = ""
-    test_log = ""
     implementation_log = []
     success = False
 
@@ -587,7 +591,6 @@ def process_issue(issue):
 
         # Step 6: Test
         test_ok, test_msg = test_project(worktree)
-        test_log = test_msg
         print(f"  [TEST] {'OK' if test_ok else 'FAIL'}", flush=True)
 
         if not test_ok:

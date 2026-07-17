@@ -146,7 +146,7 @@ def main():
             "title": title,
             "body": (issue.get("body") or "")[:2000],
             "detected_at": datetime.now(UTC).isoformat(),
-            "labels": [l.get("name", "") for l in (issue.get("labels") or [])],
+            "labels": [label.get("name", "") for label in (issue.get("labels") or [])],
             "html_url": issue.get("html_url", ""),
         }
 

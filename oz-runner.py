@@ -220,10 +220,10 @@ def extract_bash_commands(text: str) -> list[str]:
     for block in blocks:
         lines = block.strip().splitlines()
         # Filter out comment-only blocks and sudo lines
-        clean = [l for l in lines if not l.strip().startswith("#")]
+        clean = [line for line in lines if not line.strip().startswith("#")]
         if not clean:
             continue
-        if any(l.strip().startswith("sudo") for l in clean):
+        if any(line.strip().startswith("sudo") for line in clean):
             log.warning("Skipping block with sudo commands")
             continue
         result.append("\n".join(clean))
@@ -312,11 +312,11 @@ def ensure_worktree(issue_num: int, branch: str) -> Path:
         return worktree_path
 
     # Fetch latest and create worktree
-    ok, out, err = run_cmd("git fetch origin", str(AHAMKARA_CLONE))
+    ok, _out, err = run_cmd("git fetch origin", str(AHAMKARA_CLONE))
     if not ok:
         log.warning("git fetch failed: %s", err[:200])
 
-    ok, out, err = run_cmd(
+    ok, _out, err = run_cmd(
         f"git worktree add {worktree_path} -b {branch} origin/main",
         str(AHAMKARA_CLONE),
         timeout=30,
@@ -325,7 +325,7 @@ def ensure_worktree(issue_num: int, branch: str) -> Path:
         log.info("Created worktree at %s (branch %s)", worktree_path, branch)
     else:
         # Maybe branch already exists remotely — try with that
-        ok2, out2, err2 = run_cmd(
+        ok2, _out2, err2 = run_cmd(
             f"git worktree add {worktree_path} {branch}",
             str(AHAMKARA_CLONE),
             timeout=30,
@@ -483,7 +483,7 @@ def process_issue(issue: dict) -> None:
         all_ok = True
         for i, script in enumerate(commands):
             log.info("  Running block %d/%d (%d lines)...", i + 1, len(commands), len(script.splitlines()))
-            ok, out, err = run_cmd(script, str(worktree), timeout=120)
+            ok, _out, err = run_cmd(script, str(worktree), timeout=120)
             if not ok:
                 log.warning("  Block %d failed: %s", i + 1, err[:200])
                 all_ok = False
@@ -492,9 +492,9 @@ def process_issue(issue: dict) -> None:
             log.warning("Some commands failed, but continuing to push anyway")
 
         # 5. Commit and push
-        ok, out, err = run_cmd("git add -A", str(worktree))
+        ok, _out, err = run_cmd("git add -A", str(worktree))
         # Check for changes
-        ok2, out2, err2 = run_cmd("git diff --cached --quiet", str(worktree))
+        ok2, _out2, _err2 = run_cmd("git diff --cached --quiet", str(worktree))
         if ok2:
             log.info("No changes to commit")
             comment_on_issue(num, f"⚠️ Attempt {attempt}: No code changes were generated.")
@@ -502,11 +502,11 @@ def process_issue(issue: dict) -> None:
             continue
 
         commit_msg = f"[Task #{num}] {title}\n\nCo-Authored-By: Oz <oz-agent@warp.dev>"
-        ok3, out3, err3 = run_cmd(f"git commit -m '{commit_msg}'", str(worktree))
+        ok3, _out3, err3 = run_cmd(f"git commit -m '{commit_msg}'", str(worktree))
         if not ok3:
             log.warning("Commit failed: %s", err3[:200])
 
-        ok4, out4, err4 = run_cmd(f"git push -u origin {branch}", str(worktree), timeout=60)
+        ok4, _out4, err4 = run_cmd(f"git push -u origin {branch}", str(worktree), timeout=60)
         if not ok4:
             log.warning("Push failed: %s", err4[:300])
             comment_on_issue(num, f"❌ Push failed: {err4[:200]}")

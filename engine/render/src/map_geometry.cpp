@@ -143,19 +143,19 @@ struct CellBuilder {
             glGenBuffers(1, &cell.vbo_positions);
             glBindBuffer(GL_ARRAY_BUFFER, cell.vbo_positions);
             glBufferData(GL_ARRAY_BUFFER,
-                         tri_positions.size() * sizeof(float),
+                         static_cast<GLsizeiptr>(tri_positions.size() * sizeof(float)),
                          tri_positions.data(), GL_STATIC_DRAW);
 
             glGenBuffers(1, &cell.vbo_normals);
             glBindBuffer(GL_ARRAY_BUFFER, cell.vbo_normals);
             glBufferData(GL_ARRAY_BUFFER,
-                         tri_normals.size() * sizeof(float),
+                         static_cast<GLsizeiptr>(tri_normals.size() * sizeof(float)),
                          tri_normals.data(), GL_STATIC_DRAW);
 
             glGenBuffers(1, &cell.vbo_colors);
             glBindBuffer(GL_ARRAY_BUFFER, cell.vbo_colors);
             glBufferData(GL_ARRAY_BUFFER,
-                         tri_colors.size() * sizeof(float),
+                         static_cast<GLsizeiptr>(tri_colors.size() * sizeof(float)),
                          tri_colors.data(), GL_STATIC_DRAW);
         }
 
@@ -415,10 +415,10 @@ void MapGeometry::build() {
         for (int cx = 0; cx < kGridSize; ++cx) {
             int idx = cz * kGridSize + cx;
             auto& b = builders[static_cast<std::size_t>(idx)];
-            b.cell_min_x = world_min_x + cx * cell_w;
-            b.cell_max_x = world_min_x + (cx + 1) * cell_w;
-            b.cell_min_z = world_min_z + cz * cell_h;
-            b.cell_max_z = world_min_z + (cz + 1) * cell_h;
+            b.cell_min_x = world_min_x + static_cast<float>(cx) * cell_w;
+            b.cell_max_x = world_min_x + static_cast<float>(cx + 1) * cell_w;
+            b.cell_min_z = world_min_z + static_cast<float>(cz) * cell_h;
+            b.cell_max_z = world_min_z + static_cast<float>(cz + 1) * cell_h;
         }
     }
 
@@ -468,19 +468,19 @@ void MapGeometry::build() {
             glGenBuffers(1, &cell.vbo_positions);
             glBindBuffer(GL_ARRAY_BUFFER, cell.vbo_positions);
             glBufferData(GL_ARRAY_BUFFER,
-                         all_positions.size() * sizeof(float),
+                         static_cast<GLsizeiptr>(all_positions.size() * sizeof(float)),
                          all_positions.data(), GL_STATIC_DRAW);
 
             glGenBuffers(1, &cell.vbo_normals);
             glBindBuffer(GL_ARRAY_BUFFER, cell.vbo_normals);
             glBufferData(GL_ARRAY_BUFFER,
-                         all_normals.size() * sizeof(float),
+                         static_cast<GLsizeiptr>(all_normals.size() * sizeof(float)),
                          all_normals.data(), GL_STATIC_DRAW);
 
             glGenBuffers(1, &cell.vbo_colors);
             glBindBuffer(GL_ARRAY_BUFFER, cell.vbo_colors);
             glBufferData(GL_ARRAY_BUFFER,
-                         all_colors.size() * sizeof(float),
+                         static_cast<GLsizeiptr>(all_colors.size() * sizeof(float)),
                          all_colors.data(), GL_STATIC_DRAW);
         }
 

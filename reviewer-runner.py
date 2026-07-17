@@ -367,12 +367,12 @@ def review_with_gemini(issue: dict, build_log: str, test_log: str) -> str | None
 # ---------------------------------------------------------------------------
 def checkout_branch(branch: str) -> bool:
     """Fetch and checkout a remote branch in the local clone."""
-    ok, out, err = run_cmd(f"git fetch origin {branch}:{branch}", str(AHAMKARA_CLONE))
+    ok, _out, err = run_cmd(f"git fetch origin {branch}:{branch}", str(AHAMKARA_CLONE))
     if not ok:
         log.warning("Failed to fetch branch %s: %s", branch, err[:200])
         return False
 
-    ok, out, err = run_cmd(f"git checkout {branch}", str(AHAMKARA_CLONE))
+    ok, _out, err = run_cmd(f"git checkout {branch}", str(AHAMKARA_CLONE))
     if not ok:
         log.warning("Failed to checkout branch %s: %s", branch, err[:200])
         return False
@@ -417,7 +417,7 @@ def process_issue(issue: dict) -> None:
         log.info("Attempt %d/%d", attempt, MAX_ATTEMPTS)
 
         # 1. Fetch the branch from origin
-        ok, out, err = run_cmd(f"git fetch origin {branch}:{branch}", str(AHAMKARA_CLONE))
+        ok, _out, err = run_cmd(f"git fetch origin {branch}:{branch}", str(AHAMKARA_CLONE))
         if not ok:
             msg = f"Failed to fetch branch `{branch}`. Is the local agent done pushing?"
             log.warning(msg)
@@ -425,7 +425,7 @@ def process_issue(issue: dict) -> None:
             return
 
         # 2. Checkout the branch
-        ok, out, err = run_cmd(f"git checkout {branch}", str(AHAMKARA_CLONE))
+        ok, _out, err = run_cmd(f"git checkout {branch}", str(AHAMKARA_CLONE))
         if not ok:
             log.warning("Failed to checkout %s: %s", branch, err[:200])
             return
