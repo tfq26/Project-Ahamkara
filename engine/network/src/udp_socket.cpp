@@ -13,20 +13,20 @@
 #include <ws2tcpip.h>
 
 namespace {
-    // One-time WSAStartup initialization.
-    // WSAStartup must be called before any Winsock function.
-    class WsaGuard {
-    public:
-        WsaGuard() {
-            WSADATA wsa_data{};
-            [[maybe_unused]] auto rc = ::WSAStartup(MAKEWORD(2, 2), &wsa_data);
-        }
-        ~WsaGuard() {
-            ::WSACleanup();
-        }
-    };
-    const WsaGuard g_wsa{};
-}  // namespace
+// One-time WSAStartup initialization.
+// WSAStartup must be called before any Winsock function.
+class WsaGuard {
+  public:
+    WsaGuard() {
+        WSADATA wsa_data {};
+        [[maybe_unused]] auto rc = ::WSAStartup(MAKEWORD(2, 2), &wsa_data);
+    }
+    ~WsaGuard() {
+        ::WSACleanup();
+    }
+};
+const WsaGuard g_wsa {};
+} // namespace
 #else
 #include <arpa/inet.h>
 #include <fcntl.h>

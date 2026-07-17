@@ -6,6 +6,7 @@
 #include <unistd.h>
 #endif
 
+#include "wish/admin/heartbeat_service.h"
 #include "wish/admin/metrics_collector.h"
 #include "wish/types.h"
 
@@ -52,7 +53,7 @@ public:
     HttpAdminServer& operator=(HttpAdminServer&&) = delete;
     ~HttpAdminServer();
 
-    bool start(wish::u16 port, StatusProvider provider, MetricsProvider metrics_provider = {});
+    bool start(wish::u16 port, StatusProvider provider, HeartbeatService& heartbeat_service, MetricsProvider metrics_provider = {});
     void stop();
 
     [[nodiscard]] bool is_running() const;
@@ -86,6 +87,8 @@ public:
     static std::string status_code_text(int status_code);
     static std::string parse_path(std::string_view request_line);
     static std::string parse_method(std::string_view request_line);
+    static std::string parse_body(std::string_view request);
+    std::string render_servers() const;
 
     wish::u16 port_ {0};
     SocketHandle listen_fd_ {socket_invalid()};
@@ -106,6 +109,7 @@ public:
 #endif
     }
     StatusProvider status_provider_ {};
+    HeartbeatService* heartbeat_service_ {nullptr};
     MetricsProvider metrics_provider_ {};
     std::thread thread_ {};
     bool running_ {false};

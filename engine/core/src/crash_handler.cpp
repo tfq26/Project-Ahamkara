@@ -190,7 +190,7 @@ std::vector<StackFrame> capture_stack_trace(int skip_frames) {
     return frames;
 }
 
-#else  // _WIN32
+#else // _WIN32
 
 // ===================================================================
 // Windows stubs — crash_handler uses POSIX-only APIs (sigaction,
@@ -220,7 +220,7 @@ std::vector<StackFrame> capture_stack_trace(int /*skip_frames*/) {
     return {};
 }
 
-#endif  // _WIN32
+#endif // _WIN32
 
 const char* signal_name(int signum) {
     switch (signum) {

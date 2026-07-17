@@ -88,7 +88,7 @@ public:
     // Spine aim:
     //   void aim_spine(const Vec3& aim_direction, float max_angle);
 
-private:
+  private:
     std::vector<IKChain> chains_;
     std::vector<IKTarget> targets_;
 };

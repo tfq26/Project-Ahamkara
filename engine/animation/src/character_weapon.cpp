@@ -29,7 +29,7 @@ void CharacterAnimInstance::set_aim_offset_config(const AimOffsetConfig& config)
 }
 
 void CharacterAnimInstance::tick(float dt,
-                                  std::vector<skeleton::Mat4>& out_matrices) {
+                                 std::vector<skeleton::Mat4>& out_matrices) {
     // Tick both state machines
     locomotion_sm_.tick(dt);
     upper_body_sm_.tick(dt);
@@ -82,10 +82,10 @@ constexpr float kLayerEpsilon = 0.0001F;
 // ============================================================
 
 void evaluate_sway_layer(WeaponAnimState& state,
-                          const WeaponAnimConfig& config,
-                          float dt, float look_delta_x, float look_delta_y,
-                          float ads_blend,
-                          skeleton::Mat4& out_offset) {
+                         const WeaponAnimConfig& config,
+                         float dt, float look_delta_x, float look_delta_y,
+                         float ads_blend,
+                         skeleton::Mat4& out_offset) {
     // Effective amplitude includes ADS reduction
     float effective_amp = config.sway_amplitude *
                           (1.0F + ads_blend * (config.ads_sway_multiplier - 1.0F));
@@ -130,9 +130,9 @@ void evaluate_sway_layer(WeaponAnimState& state,
 }
 
 void evaluate_bob_layer(WeaponAnimState& state,
-                         const WeaponAnimConfig& config,
-                         float dt, float player_speed, bool is_moving,
-                         skeleton::Mat4& out_offset) {
+                        const WeaponAnimConfig& config,
+                        float dt, float player_speed, bool is_moving,
+                        skeleton::Mat4& out_offset) {
     out_offset = skeleton::Mat4::identity();
 
     if (!is_moving || player_speed < kLayerEpsilon) {
@@ -162,8 +162,8 @@ void evaluate_bob_layer(WeaponAnimState& state,
     float half_roll = bob_roll * 0.5F;
     out_offset = out_offset *
                  skeleton::Mat4::rotation_quat(0.0F, 0.0F,
-                                              std::sin(half_roll),
-                                              std::cos(half_roll));
+                                               std::sin(half_roll),
+                                               std::cos(half_roll));
 }
 
 void fire_weapon_kick(WeaponAnimState& state) {
@@ -171,9 +171,9 @@ void fire_weapon_kick(WeaponAnimState& state) {
 }
 
 void evaluate_recoil_kick_layer(WeaponAnimState& state,
-                                 const WeaponAnimConfig& config,
-                                 float dt,
-                                 skeleton::Mat4& out_offset) {
+                                const WeaponAnimConfig& config,
+                                float dt,
+                                skeleton::Mat4& out_offset) {
     out_offset = skeleton::Mat4::identity();
 
     if (state.fire_anim_time > 0.0F) {
@@ -195,11 +195,11 @@ void evaluate_recoil_kick_layer(WeaponAnimState& state,
 // ============================================================
 
 void evaluate_weapon_animation(WeaponAnimState& state,
-                                const WeaponAnimConfig& config,
-                                float dt, float player_speed,
-                                float look_delta_x, float look_delta_y,
-                                bool is_moving, bool is_ads, bool fire_pressed,
-                                skeleton::Mat4& out_transform) {
+                               const WeaponAnimConfig& config,
+                               float dt, float player_speed,
+                               float look_delta_x, float look_delta_y,
+                               bool is_moving, bool is_ads, bool fire_pressed,
+                               skeleton::Mat4& out_transform) {
     // ── ADS blend ─────────────────────────────────────────────
     float ads_target = is_ads ? 1.0F : 0.0F;
     float ads_speed = (config.ads_transition_time > 0.0F)

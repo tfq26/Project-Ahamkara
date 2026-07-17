@@ -20,10 +20,10 @@ import shlex
 import subprocess
 import sys
 import traceback
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from urllib.request import Request, urlopen
 from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 
 # ── Config ───────────────────────────────────────────────────────────────────
 REPO = "tfq26/Project-Ahamkara"
@@ -58,7 +58,9 @@ if not DEEPSEEK_API_KEY:
     print("FATAL: DEEPSEEK_API_KEY not set", flush=True)
     sys.exit(1)
 
-GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+GEMINI_API_URL = (
+    f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -67,11 +69,13 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 def deepseek_call(messages, temperature=0):
     """Call DeepSeek via OpenAI-compatible API. Returns response text or None."""
-    payload = json.dumps({
-        "model": DEEPSEEK_MODEL,
-        "messages": messages,
-        "temperature": temperature,
-    }).encode()
+    payload = json.dumps(
+        {
+            "model": DEEPSEEK_MODEL,
+            "messages": messages,
+            "temperature": temperature,
+        }
+    ).encode()
     req = Request(
         DEEPSEEK_URL,
         data=payload,
@@ -141,7 +145,8 @@ def api_post(path, data):
     body = json.dumps(data).encode()
     req = Request(
         f"https://api.github.com/repos/{REPO}/{path}",
-        data=body, headers={**_gh_headers(), "Content-Type": "application/json"},
+        data=body,
+        headers={**_gh_headers(), "Content-Type": "application/json"},
         method="POST",
     )
     with urlopen(req) as resp:
@@ -152,7 +157,8 @@ def api_patch(path, data):
     body = json.dumps(data).encode()
     req = Request(
         f"https://api.github.com/repos/{REPO}/{path}",
-        data=body, headers={**_gh_headers(), "Content-Type": "application/json"},
+        data=body,
+        headers={**_gh_headers(), "Content-Type": "application/json"},
         method="PATCH",
     )
     with urlopen(req) as resp:
@@ -161,10 +167,14 @@ def api_patch(path, data):
 
 def jupiter_notify(title, message, priority="info"):
     try:
-        body = json.dumps({
-            "title": title, "message": message[:1800],
-            "priority": priority, "channel_id": JUPITER_CHANNEL,
-        }).encode()
+        body = json.dumps(
+            {
+                "title": title,
+                "message": message[:1800],
+                "priority": priority,
+                "channel_id": JUPITER_CHANNEL,
+            }
+        ).encode()
         req = Request(JUPITER_URL, data=body, headers={"Content-Type": "application/json"})
         with urlopen(req, timeout=10) as resp:
             return json.loads(resp.read())
@@ -174,7 +184,7 @@ def jupiter_notify(title, message, priority="info"):
 
 
 def gh(*args, capture_output=True, check=True, **kwargs):
-    cmd = ["gh", "--repo", REPO] + list(args)
+    cmd = ["gh", "--repo", REPO, *list(args)]
     return subprocess.run(cmd, capture_output=capture_output, text=True, check=check, **kwargs)
 
 
@@ -202,8 +212,13 @@ def run_cmd(cmd, cwd=None, timeout=120, env=None):
     cwd = str(cwd) if cwd else str(AHAMKARA_CLONE)
     try:
         result = subprocess.run(
-            cmd, shell=True, cwd=cwd, capture_output=True, text=True,
-            timeout=timeout, env={**os.environ, **(env or {})},
+            cmd,
+            shell=True,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env={**os.environ, **(env or {})},
         )
         return result.returncode == 0, result.stdout.strip(), result.stderr.strip()
     except subprocess.TimeoutExpired:
@@ -216,21 +231,26 @@ def extract_bash_commands(text):
     """Extract ```bash blocks and return each as a single shell script.
     This preserves heredocs and multi-line commands."""
     scripts = []
-    blocks = re.findall(r'```bash\s*\n(.*?)```', text, re.DOTALL)
+    blocks = re.findall(r"```bash\s*\n(.*?)```", text, re.DOTALL)
     for block in blocks:
         block = block.strip()
         if not block:
             continue
         # Filter out blocks that are only comment/explanation lines
-        lines = [l for l in block.split("\n") if l.strip()]
+        lines = [line for line in block.split("\n") if line.strip()]
         has_real_command = False
         for line in lines:
             stripped = line.strip()
             if stripped.startswith("sudo"):
                 continue  # Skip sudo entirely
-            if not stripped.startswith("//") and not stripped.startswith("/*") and not stripped.startswith("*"):
-                if stripped and stripped != "#":
-                    has_real_command = True
+            if (
+                not stripped.startswith("//")
+                and not stripped.startswith("/*")
+                and not stripped.startswith("*")
+                and stripped
+                and stripped != "#"
+            ):
+                has_real_command = True
         if has_real_command:
             # Filter out leading comment lines but keep heredoc content
             scripts.append(block)
@@ -271,9 +291,9 @@ def get_project_context():
 def build_coder_prompt(issue, project_context):
     return f"""You are an expert C++20 game engine developer implementing a task on the Ahamkara project.
 
-## Issue #{issue['number']}: {issue['title']}
+## Issue #{issue["number"]}: {issue["title"]}
 
-{issue['body']}
+{issue["body"]}
 
 ## Project Context
 
@@ -339,9 +359,9 @@ Every line inside ```bash must be a valid shell command. No // comments, no pseu
 def build_reviewer_prompt(issue, coder_output, build_log, test_log):
     return f"""You are a code reviewer for the Ahamkara C++20 game engine project.
 
-## Issue #{issue['number']}: {issue['title']}
+## Issue #{issue["number"]}: {issue["title"]}
 
-{issue['body']}
+{issue["body"]}
 
 ## Changes Proposed by the Coder
 
@@ -378,10 +398,12 @@ All fixes should be code changes, not system configuration changes.
 def ensure_worktree(issue_num, branch_name):
     worktree_path = WORKTREE_BASE / f"ahamkara-issue-{issue_num}"
     if worktree_path.exists():
-        print(f"  [INFO] Worktree exists, resetting...", flush=True)
+        print("  [INFO] Worktree exists, resetting...", flush=True)
         run_cmd("git fetch origin", cwd=worktree_path, timeout=30)
         run_cmd("git reset --hard origin/main", cwd=worktree_path, timeout=30)
-        run_cmd(f"git checkout -b {branch_name} 2>/dev/null || git checkout {branch_name}", cwd=worktree_path, timeout=15)
+        run_cmd(
+            f"git checkout -b {branch_name} 2>/dev/null || git checkout {branch_name}", cwd=worktree_path, timeout=15
+        )
     else:
         ok, _, err = run_cmd(f"git worktree add {worktree_path} origin/main", cwd=AHAMKARA_CLONE, timeout=30)
         if not ok:
@@ -434,7 +456,7 @@ def test_project(worktree_path):
 
 
 def generate_branch_name(issue):
-    slug = re.sub(r'[^a-z0-9]+', '-', issue["title"].lower()).strip('-')[:60]
+    slug = re.sub(r"[^a-z0-9]+", "-", issue["title"].lower()).strip("-")[:60]
     return f"task/issue-{issue['number']}-{slug}"
 
 
@@ -445,14 +467,16 @@ def process_issue(issue):
     num = issue["number"]
     title = issue["title"]
     branch = generate_branch_name(issue)
-    print(f"\n{'='*60}", flush=True)
+    print(f"\n{'=' * 60}", flush=True)
     print(f"Processing issue #{num}: {title}", flush=True)
     print(f"Branch: {branch}", flush=True)
     print(f"Coder: DeepSeek ({DEEPSEEK_MODEL})", flush=True)
     print(f"Reviewer: Gemini ({GEMINI_MODEL})", flush=True)
 
     # Step 1: Comment + Notify
-    comment_on_issue(num, f"🤖 Agent Runner starting work on this issue.\nBranch: `{branch}`\nCoder: DeepSeek\nReviewer: Gemini")
+    comment_on_issue(
+        num, f"🤖 Agent Runner starting work on this issue.\nBranch: `{branch}`\nCoder: DeepSeek\nReviewer: Gemini"
+    )
     jupiter_notify(
         f"🎯 Starting Issue #{num}",
         f"Agent Runner starting:\n**{title}**\nBranch: `{branch}`\nCoder: DeepSeek\nReviewer: Gemini",
@@ -473,7 +497,6 @@ def process_issue(issue):
 
     # Step 4: Implementation loop
     build_log = ""
-    test_log = ""
     implementation_log = []
     success = False
 
@@ -483,13 +506,19 @@ def process_issue(issue):
         # ── CODER: DeepSeek generates implementation ──
         if attempt == 1:
             ds_messages = [
-                {"role": "system", "content": "You are an expert C++20 game engine developer. Generate ONLY valid bash shell commands to implement the task. Every line in your ```bash block must be executable by /bin/sh."},
+                {
+                    "role": "system",
+                    "content": "You are an expert C++20 game engine developer. Generate ONLY valid bash shell commands to implement the task. Every line in your ```bash block must be executable by /bin/sh.",
+                },
                 {"role": "user", "content": coder_prompt},
             ]
         else:
             fix_prompt = build_fix_prompt(implementation_log[-1])
             ds_messages = [
-                {"role": "system", "content": "You are an expert C++20 game engine developer. Fix the errors by generating corrected bash commands. Only output valid shell commands."},
+                {
+                    "role": "system",
+                    "content": "You are an expert C++20 game engine developer. Fix the errors by generating corrected bash commands. Only output valid shell commands.",
+                },
                 {"role": "user", "content": fix_prompt},
             ]
 
@@ -515,7 +544,7 @@ def process_issue(issue):
         all_ok = True
         for i, script in enumerate(scripts):
             preview = script[:100].replace("\n", " ").strip()
-            print(f"  [EXEC] Script {i+1}: {preview}...", flush=True)
+            print(f"  [EXEC] Script {i + 1}: {preview}...", flush=True)
             # Write script to temp file and execute it
             script_path = LOG_DIR / f"script-{num}-attempt-{attempt}-{i}.sh"
             script_path.write_text(script)
@@ -527,7 +556,7 @@ def process_issue(issue):
                 err_snip = err[-400:] if err else out[-400:]
                 print(f"    [FAIL] {err_snip[:150]}", flush=True)
                 all_ok = False
-                implementation_log.append(f"Script {i+1} failed:\n{err_snip}")
+                implementation_log.append(f"Script {i + 1} failed:\n{err_snip}")
                 break
 
         if not all_ok:
@@ -545,7 +574,9 @@ def process_issue(issue):
             print("  [REVIEW] Gemini analyzing build failure...", flush=True)
             review_prompt = build_reviewer_prompt(
                 {"number": num, "title": title, "body": issue.get("body", "")},
-                response, build_msg, "",
+                response,
+                build_msg,
+                "",
             )
             review = gemini_call(review_prompt)
             if review:
@@ -560,7 +591,6 @@ def process_issue(issue):
 
         # Step 6: Test
         test_ok, test_msg = test_project(worktree)
-        test_log = test_msg
         print(f"  [TEST] {'OK' if test_ok else 'FAIL'}", flush=True)
 
         if not test_ok:
@@ -570,7 +600,9 @@ def process_issue(issue):
             print("  [REVIEW] Gemini analyzing test failure...", flush=True)
             review_prompt = build_reviewer_prompt(
                 {"number": num, "title": title, "body": issue.get("body", "")},
-                response, build_log, test_msg,
+                response,
+                build_log,
+                test_msg,
             )
             review = gemini_call(review_prompt)
             if review:
@@ -611,7 +643,8 @@ def process_issue(issue):
     run_cmd("git add -A", cwd=worktree, timeout=30)
     ok, _, err = run_cmd(
         f'git diff --cached --quiet || git commit -m "Implement {title}\n\nIssue: #{num}\n\nCo-Authored-By: Oz <oz-agent@warp.dev>"',
-        cwd=worktree, timeout=30,
+        cwd=worktree,
+        timeout=30,
     )
     has_changes = True
     if not ok and "nothing to commit" in err.lower():
@@ -639,9 +672,16 @@ def process_issue(issue):
             if existing_data:
                 pr_url = existing_data[0].get("url", "")
         if not pr_url:
-            result = gh("pr", "create", "--title", f"[Task #{num}] {title}",
-                        "--body", f"## Summary\n\nImplements issue #{num}: **{title}**\n\n---\n_🤖 Ahamkara Agent Runner_",
-                        capture_output=True, check=False)
+            result = gh(
+                "pr",
+                "create",
+                "--title",
+                f"[Task #{num}] {title}",
+                "--body",
+                f"## Summary\n\nImplements issue #{num}: **{title}**\n\n---\n_🤖 Ahamkara Agent Runner_",
+                capture_output=True,
+                check=False,
+            )
             pr_url = result.stdout.strip() if result.returncode == 0 else ""
 
         # Close issue
@@ -669,7 +709,7 @@ def main():
         print(f"FATAL: Ahamkara clone not found at {AHAMKARA_CLONE}", flush=True)
         sys.exit(1)
 
-    print(f"[{datetime.now(timezone.utc).isoformat()}] Agent Runner starting", flush=True)
+    print(f"[{datetime.now(UTC).isoformat()}] Agent Runner starting", flush=True)
     print(f"  Repo: {REPO}", flush=True)
     print(f"  Clone: {AHAMKARA_CLONE}", flush=True)
     print(f"  Coder: DeepSeek ({DEEPSEEK_MODEL})", flush=True)
@@ -712,10 +752,10 @@ def main():
         except Exception as e:
             print(f"ERROR issue #{issue['number']}: {e}", flush=True)
             traceback.print_exc()
-            jupiter_notify(f"❌ Issue #{issue['number']} Error", f"Unexpected error", priority="critical")
+            jupiter_notify(f"❌ Issue #{issue['number']} Error", "Unexpected error", priority="critical")
             continue
 
-    print(f"\n[{datetime.now(timezone.utc).isoformat()}] Agent Runner finished", flush=True)
+    print(f"\n[{datetime.now(UTC).isoformat()}] Agent Runner finished", flush=True)
 
 
 if __name__ == "__main__":

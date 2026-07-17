@@ -179,17 +179,17 @@ struct alignas(8) CompressedAnimState {
     // Byte 4-5: aim_yaw (10 bits) | aim_pitch high 6 bits
     // Byte 6: aim_pitch low 8 bits
     // Byte 7: flags (4 bits) | padding (4 bits)
-    std::uint8_t state_id_: 6;         // AnimMovementState enum
-    std::uint8_t blend_param_hi: 2;    // blend_param bits 8-9
+    std::uint8_t state_id_ : 6;      // AnimMovementState enum
+    std::uint8_t blend_param_hi : 2; // blend_param bits 8-9
     std::uint8_t blend_param_lo;
     std::uint8_t clip_time_;
-    std::uint8_t crossfade_weight_: 7; // quantized 0..127 → 0..1
-    std::uint8_t is_transitioning_: 1;
-    std::uint16_t aim_yaw_: 10;        // quantized radians (-π..π)
-    std::uint16_t aim_pitch_hi: 6;     // aim_pitch bits 8-9
+    std::uint8_t crossfade_weight_ : 7; // quantized 0..127 → 0..1
+    std::uint8_t is_transitioning_ : 1;
+    std::uint16_t aim_yaw_ : 10;    // quantized radians (-π..π)
+    std::uint16_t aim_pitch_hi : 6; // aim_pitch bits 8-9
     std::uint8_t aim_pitch_lo;
-    std::uint8_t flags_: 4;            // is_ads, is_firing, is_on_ground, etc.
-    std::uint8_t : 4;                  // padding
+    std::uint8_t flags_ : 4; // is_ads, is_firing, is_on_ground, etc.
+    std::uint8_t : 4;        // padding
 };
 static_assert(sizeof(CompressedAnimState) == 8, "CompressedAnimState must be 8 bytes");
 

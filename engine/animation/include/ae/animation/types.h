@@ -33,7 +33,7 @@ struct JointTransform {
 
 struct AnimationPose {
     std::vector<JointTransform> local_transforms;  // per-joint local transforms
-    std::vector<skeleton::Mat4> global_matrices;      // computed global (world) matrices
+    std::vector<skeleton::Mat4> global_matrices;   // computed global (world) matrices
 
     /// Compute global matrices from local transforms using the given parent indices.
     /// Joints must be in topological order (parents before children).
@@ -46,7 +46,7 @@ struct AnimationPose {
 
 struct AnimationClip {
     std::string name;
-    const skeleton::AnimationClipData* source {nullptr};  // owned by caller
+    const skeleton::AnimationClipData* source {nullptr}; // owned by caller
     float duration_seconds {0.0F};                   // total clip length
     bool looping {true};
 };

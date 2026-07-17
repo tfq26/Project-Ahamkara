@@ -77,7 +77,7 @@ public:
     void evaluate_procedural(skeleton::ProceduralAnimState& state, float dt,
                              std::vector<skeleton::Mat4>& out_matrices);
 
-private:
+  private:
     /// Get or create a ClipInstance for the given clip name.
     ClipInstance& get_or_create_instance(const std::string& clip_name);
 

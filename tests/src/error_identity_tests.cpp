@@ -9,12 +9,12 @@
 
 static int g_failures = 0;
 
-#define EXPECT_TRUE(cond) \
-    do { \
-        if (!(cond)) { \
+#define EXPECT_TRUE(cond)                                                                \
+    do {                                                                                 \
+        if (!(cond)) {                                                                   \
             std::cerr << "FAIL " << __FILE__ << ":" << __LINE__ << " " << #cond << "\n"; \
-            ++g_failures; \
-        } \
+            ++g_failures;                                                                \
+        }                                                                                \
     } while (0)
 
 int main() {
@@ -61,8 +61,8 @@ int main() {
     // Report once per incident, player banner stable
     ae::Error net_err(ae::ae_net_0001());
     net_err.with_context("token", "Bearer super-secret")
-           .with_context("peer_ip", "10.0.0.8")
-           .with_native("errno", 111);
+        .with_context("peer_ip", "10.0.0.8")
+        .with_native("errno", 111);
     auto first = ae::report_error(net_err);
     auto second = ae::report_error(net_err);
     EXPECT_TRUE(first.reported);

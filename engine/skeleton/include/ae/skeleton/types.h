@@ -14,7 +14,7 @@ namespace ae::skeleton {
  * math/pose contract without depending on each other.
  */
 struct Mat4 {
-    std::array<float, 16> m{};
+    std::array<float, 16> m {};
 
     Mat4();
     static Mat4 identity();
@@ -29,7 +29,7 @@ struct Mat4 {
  */
 struct Joint {
     std::string name;
-    int node_index {-1};   // original graph node index (optional)
+    int node_index {-1}; // original graph node index (optional)
     int parent_index {-1};
     Mat4 inverse_bind_matrix;
 };
