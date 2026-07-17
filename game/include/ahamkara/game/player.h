@@ -84,6 +84,39 @@ public:
     [[nodiscard]] const ReplicatedPlayerState& state() const { return state_; }
     [[nodiscard]] ReplicatedPlayerState& state() { return state_; }
 
+    /// Player identity — assigned on admission.
+    void set_player_id(ae::u32 id) {
+        state_.player_id = id;
+    }
+    [[nodiscard]] ae::u32 player_id() const {
+        return state_.player_id;
+    }
+
+    void set_network_object_id(ae::u32 id) {
+        state_.network_object_id = id;
+    }
+    [[nodiscard]] ae::u32 network_object_id() const {
+        return state_.network_object_id;
+    }
+
+    /// Per-player score tracking (moved from World for multi-player support).
+    [[nodiscard]] ae::u32 kills() const {
+        return kills_;
+    }
+    [[nodiscard]] ae::u32 deaths() const {
+        return deaths_;
+    }
+    void add_kill() {
+        ++kills_;
+    }
+    void add_death() {
+        ++deaths_;
+    }
+    void reset_score() {
+        kills_ = 0;
+        deaths_ = 0;
+    }
+
     [[nodiscard]] const Loadout& loadout() const { return loadout_; }
     [[nodiscard]] Loadout& loadout() { return loadout_; }
 
@@ -134,6 +167,8 @@ private:
     ArmorConfig armor_config_ {};
     WeaponRuntime weapon_runtime_ {};
     AbilityState ability_state_ {};
+    ae::u32 kills_ {0};
+    ae::u32 deaths_ {0};
 };
 
 }  // namespace ahamkara::game

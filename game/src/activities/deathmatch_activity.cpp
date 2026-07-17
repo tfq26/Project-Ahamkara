@@ -61,16 +61,31 @@ bool DeathmatchActivity::admit_player(const wish::core::SessionAdmissionRequest&
 
     PlayerSlot slot {};
     slot.session_id.value = next_session_id_.value++;
+    slot.player_index = world_.add_player();
+    slot.network_object_id = world_.players()[slot.player_index].network_object_id();
     slot.connected = true;
     slot.last_seen = std::chrono::steady_clock::now();
+
+    Player* player = world_.get_player(slot.player_index);
+    if (player) {
+        player->set_player_id(slot.session_id.value);
+    }
+
     slots_.push_back(std::move(slot));
     return true;
 }
 
 void DeathmatchActivity::remove_player(wish::session::SessionId sid) {
-    slots_.erase(std::remove_if(slots_.begin(), slots_.end(),
-        [sid](const PlayerSlot& s) { return s.session_id.value == sid.value; }),
-        slots_.end());
+    auto it = std::remove_if(slots_.begin(), slots_.end(),
+                             [this, sid](PlayerSlot& s) {
+                                 if (s.session_id.value != sid.value)
+                                     return false;
+                                 world_.remove_player(s.player_index);
+                                 s.has_pending_input = false;
+                                 s.connected = false;
+                                 return true;
+                             });
+    slots_.erase(it, slots_.end());
 }
 
 ae::u32 DeathmatchActivity::player_count() const {
@@ -89,7 +104,7 @@ void DeathmatchActivity::tick(float dt) {
     for (auto& slot : slots_) {
         if (!slot.connected) continue;
         if (!slot.has_pending_input) continue;
-        world_.apply_input(dt, slot.pending_input);
+        world_.apply_input(slot.player_index, dt, slot.pending_input);
         slot.last_processed_input_sequence = slot.pending_input.sequence;
         slot.has_pending_input = false;
     }
@@ -117,8 +132,8 @@ void DeathmatchActivity::simulate_input(wish::session::SessionId sid,
     slot->pending_input = cmd;
     slot->has_pending_input = true;
 
-    // Also apply anti-cheat checks immediately (they're stateless).
-    apply_anti_cheat(cmd);
+    // Also apply anti-cheat checks immediately.
+    apply_anti_cheat(*slot, cmd);
 }
 
 PlayerSlot* DeathmatchActivity::first_slot() {
@@ -130,15 +145,34 @@ void DeathmatchActivity::for_each_connected_snapshot(
     void (*fn)(void* ctx, wish::session::SessionId sid,
                const std::byte* data, ae::usize len),
     void* ctx) {
-    // Build the base snapshot state once
-    PlayerSlot dummy_slot {};
-    PlayerSlot& base_slot = slots_.empty() ? dummy_slot : slots_.front();
-    build_snapshot_for_slot(base_slot);
-
     for (auto& slot : slots_) {
         if (!slot.connected) continue;
 
-        current_snapshot_.last_processed_input = slot.last_processed_input_sequence;
+        // Build the snapshot specifically for this recipient.
+        build_snapshot_for_slot(slot);
+
+        // Populate remote players from other connected slots.
+        current_snapshot_.remote_player_count = 0;
+        for (const auto& other : slots_) {
+            if (!other.connected)
+                continue;
+            if (&other == &slot)
+                continue; // don't list self
+            if (current_snapshot_.remote_player_count >= 4)
+                break;
+
+            const Player* other_player = world_.get_player(other.player_index);
+            if (!other_player)
+                continue;
+
+            auto& rp = current_snapshot_.remote_players[current_snapshot_.remote_player_count++];
+            rp.player_id = other_player->player_id();
+            rp.network_object_id = other_player->network_object_id();
+            rp.position = other_player->state().position;
+            rp.yaw = other_player->state().yaw;
+            rp.health = other_player->state().health;
+        }
+
         snapshot_buffer_.fill(std::byte{0});
         detail::ByteWriter writer(std::span<std::byte>(snapshot_buffer_.data(), snapshot_buffer_.size()));
 
@@ -156,7 +190,7 @@ void DeathmatchActivity::for_each_connected_snapshot(
         writer.write(env.ack_sequence);
         writer.write(env.ack_bitfield);
 
-        // Delta-compressed player state portion
+        // Delta-compressed player state (recipient's local player)
         SnapshotDelta delta = compute_player_delta(
             current_snapshot_.local_player, slot.last_sent_player_state);
         if (!write_snapshot_delta(writer, delta)) continue;
@@ -171,7 +205,7 @@ void DeathmatchActivity::for_each_connected_snapshot(
                 || !writer.write(p.lifetime_seconds)
                 || !writer.write_bool(p.alive)
                 || !writer.write(p.client_tick))
-                continue; // NOLINT (intentional early-exit on serialization failure)
+                continue;
         }
 
         // Dummies
@@ -194,9 +228,14 @@ void DeathmatchActivity::for_each_connected_snapshot(
             || !writer.write(current_snapshot_.individual_score))
             continue;
 
-        // Remote players (none mapped yet — reserved for future use)
-        const ae::u8 zero_remote = 0;
-        if (!writer.write(zero_remote)) continue;
+        // Remote players (other connected players visible to this recipient)
+        if (!writer.write(current_snapshot_.remote_player_count))
+            continue;
+        for (ae::u8 ri = 0; ri < current_snapshot_.remote_player_count; ++ri) {
+            const auto& rp = current_snapshot_.remote_players[ri];
+            if (!writer.write(rp.player_id) || !writer.write(rp.network_object_id) || !write_vec3(writer, rp.position) || !writer.write(rp.yaw) || !writer.write(rp.health))
+                continue;
+        }
 
         fn(ctx, slot.session_id, snapshot_buffer_.data(), writer.bytes_written());
     }
@@ -252,7 +291,7 @@ PlayerSlot* DeathmatchActivity::find_slot_by_address(const ae::NetAddress& addr)
 void DeathmatchActivity::build_snapshot_for_slot(PlayerSlot& slot) {
     current_snapshot_ = {};
     current_snapshot_.server_tick = server_tick_;
-    current_snapshot_.local_player = world_.get_player_state();
+    current_snapshot_.local_player = world_.get_player_state(slot.player_index);
     current_snapshot_.last_processed_input = slot.last_processed_input_sequence;
 
     const auto* world_projectiles = world_.get_projectiles();
@@ -284,6 +323,11 @@ void DeathmatchActivity::build_snapshot_for_slot(PlayerSlot& slot) {
     HistoricalState hist {};
     hist.tick = current_snapshot_.server_tick;
     hist.player_position = current_snapshot_.local_player.position;
+    for (ae::u32 pi = 0; pi < world_.players().size() && pi < HistoricalState::kMaxPlayerPositions; ++pi) {
+        const auto& p = world_.players()[pi];
+        hist.player_positions[pi] = p.state().position;
+        hist.player_alive[pi] = p.is_alive();
+    }
     for (int d = 0; d < World::kMaxDummies; ++d) {
         const auto& dummies = world_.get_dummies();
         hist.dummy_positions[d] = dummies[d].position;
@@ -292,19 +336,22 @@ void DeathmatchActivity::build_snapshot_for_slot(PlayerSlot& slot) {
     history_buffer_.record(current_snapshot_.server_tick, hist);
 }
 
-void DeathmatchActivity::apply_anti_cheat(const PlayerInputCommand& cmd) {
-    const auto& current_pos = world_.get_player_state().position;
-    float dx = current_pos.x - prev_player_position_.x;
-    float dy = current_pos.y - prev_player_position_.y;
-    float dz = current_pos.z - prev_player_position_.z;
+void DeathmatchActivity::apply_anti_cheat(PlayerSlot& slot, const PlayerInputCommand& cmd) {
+    const Player* player = world_.get_player(slot.player_index);
+    if (!player)
+        return;
+
+    const auto& current_pos = player->state().position;
+    float dx = current_pos.x - slot.prev_position.x;
+    float dy = current_pos.y - slot.prev_position.y;
+    float dz = current_pos.z - slot.prev_position.z;
     float dist = std::sqrt(dx * dx + dy * dy + dz * dz);
     constexpr float kMaxDistPerTick = 0.25F;
 
     if (dist > kMaxDistPerTick && server_tick_ > 10) {
-        ae::log_warning("Possible speed hack: moved " + std::to_string(dist)
-                        + " units in one tick (max " + std::to_string(kMaxDistPerTick) + ")");
+        ae::log_warning("Player " + std::to_string(player->player_id()) + " possible speed hack: moved " + std::to_string(dist) + " units in one tick (max " + std::to_string(kMaxDistPerTick) + ")");
     }
-    prev_player_position_ = current_pos;
+    slot.prev_position = current_pos;
 }
 
 // ---------------------------------------------------------------------------
