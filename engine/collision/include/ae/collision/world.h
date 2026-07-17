@@ -7,7 +7,10 @@
 #include <memory>
 #include <vector>
 
-namespace ae::collision { class CharacterController; struct CharacterDef; }
+namespace ae::collision {
+class CharacterController;
+struct CharacterDef;
+} // namespace ae::collision
 
 namespace ae::collision {
 

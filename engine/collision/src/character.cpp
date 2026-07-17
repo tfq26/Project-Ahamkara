@@ -1,5 +1,5 @@
 #include "ae/collision/character.h"
-#include "jolt_backend.h"  // Internal: gives us CollisionWorld::Impl, jolt_helpers, helpers
+#include "jolt_backend.h" // Internal: gives us CollisionWorld::Impl, jolt_helpers, helpers
 
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
@@ -14,7 +14,7 @@ namespace ae::collision {
 // ============================================================
 
 class CharacterController::Impl {
-public:
+  public:
     CollisionWorld* world_;
     JPH::CharacterVirtual* character_ {nullptr};
 
@@ -30,8 +30,7 @@ public:
 
     Impl(CollisionWorld& world, const CharacterDef& def)
         : world_(&world),
-          def_(def)
-    {
+          def_(def) {
         auto* phys = world_->impl()->physics();
 
         // Build the standing capsule shape (centered above origin).
@@ -103,8 +102,7 @@ void CharacterController::extended_update(
     float delta_seconds,
     const Vec3& gravity,
     float walk_stairs_step_up,
-    float stick_to_floor_step_down)
-{
+    float stick_to_floor_step_down) {
     auto& phys = impl_->physics();
 
     JPH::CharacterVirtual::ExtendedUpdateSettings update_settings;
@@ -146,7 +144,8 @@ bool CharacterController::set_shape(float half_height, float radius) {
     float offset_y = half_height + radius;
     JPH::RotatedTranslatedShapeSettings rts(JPH::Vec3(0.0F, offset_y, 0.0F), JPH::Quat::sIdentity(), inner);
     JPH::ShapeSettings::ShapeResult result = rts.Create();
-    if (!result.IsValid()) return false;
+    if (!result.IsValid())
+        return false;
     JPH::RefConst<JPH::Shape> new_shape = result.Get();
     bool allowed = impl_->character_->SetShape(
         new_shape,
@@ -183,4 +182,4 @@ void CharacterController::set_jolt_contact_listener(void* jolt_listener) {
         static_cast<JPH::CharacterContactListener*>(jolt_listener));
 }
 
-}  // namespace ae::collision
+} // namespace ae::collision

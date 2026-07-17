@@ -14,9 +14,9 @@ namespace ahamkara::game {
 // ============================================================
 
 JoltWorldImpl::JoltWorldImpl(World* world)
-    : collision_world()          // engine-owned world (initializes Jolt once)
-    , contact_listener(world, &collision_world)
-{
+    : collision_world() // engine-owned world (initializes Jolt once)
+      ,
+      contact_listener(world, &collision_world) {
     // Character is created by world.cpp after this constructor runs.
     // All Jolt initialization is handled by CollisionWorld::Impl.
 }
@@ -121,7 +121,7 @@ void rebuild_jolt_colliders(
             JPH::RVec3(cx, cy, cz),
             JPH::Quat::sIdentity(),
             JPH::EMotionType::Static,
-            ae::collision::jolt_helpers::kJoltLayerStatic   // unified: uses engine layer defs
+            ae::collision::jolt_helpers::kJoltLayerStatic // unified: uses engine layer defs
         );
         body_settings.mUserData = static_cast<JPH::uint64>(i);
 
@@ -144,7 +144,7 @@ void rebuild_jolt_colliders(
             JPH::RVec3(d.position.x, d.position.y, d.position.z),
             JPH::Quat::sIdentity(),
             JPH::EMotionType::Kinematic,
-            ae::collision::jolt_helpers::kJoltLayerNpc       // unified: uses engine layer defs
+            ae::collision::jolt_helpers::kJoltLayerNpc // unified: uses engine layer defs
         );
 
         JPH::BodyID body_id = bi.CreateAndAddBody(body_settings, JPH::EActivation::Activate);

@@ -547,7 +547,7 @@ void World::spawn_muzzle_particles(const Vec3& position, const Vec3& forward) {
         if (particle_count_ >= kMaxParticles) break;
         auto& p = particles_[particle_count_++];
         p.position = position;
-        float speed = 2.0F + static_cast<float>(std::rand() % 100) / 100.0F * 3.0F;
+        float speed = 2.0F + static_cast<float>(std::rand() % 100) / 100.0F * 3.0F; // NOLINT(clang-analyzer-security.insecureAPI.rand)
         p.velocity = {
             forward.x * speed + (static_cast<float>(std::rand() % 100) / 100.0F - 0.5F) * 0.5F,
             forward.y * speed + (static_cast<float>(std::rand() % 100) / 100.0F - 0.5F) * 0.5F,
@@ -566,7 +566,7 @@ void World::spawn_impact_particles(const Vec3& position, const Vec3& normal) {
         if (particle_count_ >= kMaxParticles) break;
         auto& p = particles_[particle_count_++];
         p.position = position;
-        float speed = 1.0F + static_cast<float>(std::rand() % 100) / 100.0F * 2.0F;
+        float speed = 1.0F + static_cast<float>(std::rand() % 100) / 100.0F * 2.0F; // NOLINT(clang-analyzer-security.insecureAPI.rand)
         p.velocity = {
             normal.x * speed + (static_cast<float>(std::rand() % 100) / 100.0F - 0.5F) * 1.0F,
             normal.y * speed + (static_cast<float>(std::rand() % 100) / 100.0F - 0.5F) * 1.0F,
@@ -799,7 +799,7 @@ void World::restart_match() {
         d.position = d.start_position;
         d.last_hit_timer = 0.0F;
         d.respawn_timer = 0.0F;
-        comp.fire_timer = 1.0F + (static_cast<float>(std::rand() % 100) / 100.0F) * 2.0F;
+        comp.fire_timer = 1.0F + (static_cast<float>(std::rand() % 100) / 100.0F) * 2.0F; // NOLINT(clang-analyzer-security.insecureAPI.rand)
         comp.burst_timer = 0.0F;
         comp.burst_count = 0;
     }

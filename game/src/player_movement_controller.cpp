@@ -221,8 +221,8 @@ void PlayerMovementController::resolve_mantle(
         player_state.velocity.y = 0.0F;
 
         if (character) {
-            character->set_position(ae::Vec3{player_state.position.x, player_state.position.y, player_state.position.z});
-            character->set_linear_velocity(ae::Vec3{player_state.velocity.x, player_state.velocity.y, player_state.velocity.z});
+            character->set_position(ae::Vec3 {player_state.position.x, player_state.position.y, player_state.position.z});
+            character->set_linear_velocity(ae::Vec3 {player_state.velocity.x, player_state.velocity.y, player_state.velocity.z});
         }
         return;
     }
@@ -240,7 +240,7 @@ void PlayerMovementController::resolve_ladder_and_ledge(
     }
     if (movement_sim_state_.on_ladder && character) {
         ae::Vec3 vel = character->get_linear_velocity();
-        character->set_linear_velocity(ae::Vec3{vel.x, input.move_axis.y * 4.0F, vel.z});
+        character->set_linear_velocity(ae::Vec3 {vel.x, input.move_axis.y * 4.0F, vel.z});
     }
 }
 

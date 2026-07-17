@@ -30,13 +30,14 @@ class AhamkaraCharacterContactListener : public JPH::CharacterContactListener {
 private:
     World* world_;
     ae::collision::CollisionWorld* collision_world_;
-public:
+
+  public:
     AhamkaraCharacterContactListener(World* world, ae::collision::CollisionWorld* cw)
         : world_(world), collision_world_(cw) {}
 
     bool OnContactValidate(const JPH::CharacterVirtual* inCharacter,
-                          const JPH::BodyID& inBodyID2,
-                          const JPH::SubShapeID& inSubShapeID2) override;
+                           const JPH::BodyID& inBodyID2,
+                           const JPH::SubShapeID& inSubShapeID2) override;
 };
 
 // --- JoltWorldImpl (GamePhysics) ------------------------------------------------
@@ -51,7 +52,7 @@ struct JoltWorldImpl {
     // Cached shapes for crouch/stand transitions (opaque handles)
     JPH::RefConst<JPH::Shape> standing_shape;
     JPH::RefConst<JPH::Shape> crouching_shape;
-    bool is_crouched {false};   // Tracks last set shape
+    bool is_crouched {false}; // Tracks last set shape
 
     // Bridge body storage — raw Jolt BodyIDs managed by game code.
     // Will be migrated to CollisionWorld::BodyHandle in a later phase.

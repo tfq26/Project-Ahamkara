@@ -18,7 +18,7 @@ class CollisionWorld;
 struct CharacterDef {
     Vec3 position {};
     float capsule_radius {0.22F};
-    float capsule_half_height {0.3F};   // (standing_height - 2*radius) / 2
+    float capsule_half_height {0.3F}; // (standing_height - 2*radius) / 2
     float max_slope_angle_deg {50.0F};
     float mass {70.0F};
     float max_strength {100.0F};
@@ -33,7 +33,7 @@ struct CharacterDef {
 // ============================================================
 
 class CharacterContactListener {
-public:
+  public:
     virtual ~CharacterContactListener() = default;
     virtual bool on_contact_validate(u64 body_user_data) = 0;
 };
@@ -46,7 +46,7 @@ public:
 // ============================================================
 
 class CharacterController {
-public:
+  public:
     ~CharacterController();
 
     CharacterController(const CharacterController&) = delete;
@@ -106,13 +106,17 @@ public:
     // --- Internal ---
 
     class Impl;
-    [[nodiscard]] Impl* impl() { return impl_.get(); }
-    [[nodiscard]] const Impl* impl() const { return impl_.get(); }
+    [[nodiscard]] Impl* impl() {
+        return impl_.get();
+    }
+    [[nodiscard]] const Impl* impl() const {
+        return impl_.get();
+    }
 
-private:
+  private:
     friend class CollisionWorld;
     explicit CharacterController(CollisionWorld& world, const CharacterDef& def);
     std::unique_ptr<Impl> impl_;
 };
 
-}  // namespace ae::collision
+} // namespace ae::collision

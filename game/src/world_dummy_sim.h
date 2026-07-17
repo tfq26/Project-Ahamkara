@@ -9,7 +9,9 @@
 #include <entt/entt.hpp>
 #include <vector>
 
-namespace ae::collision { class CollisionWorld; }
+namespace ae::collision {
+class CollisionWorld;
+}
 
 namespace ahamkara::game {
 
