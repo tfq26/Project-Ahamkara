@@ -94,6 +94,10 @@ public:
     /// should write through this.
     [[nodiscard]] TargetDummyState* dummies_mut() { return dummies_; }
 
+    // --- Weapon data accessors (delegated to Player, read-only from World) ---
+    // Weapon runtime state lives in WeaponRuntime, owned by Player.  World
+    // never holds a mutable reference to weapon internals.
+
     [[nodiscard]] int get_ammo_current() const { return player_.get_ammo_current(); }
     [[nodiscard]] int get_ammo_max() const { return player_.get_ammo_max(); }
     [[nodiscard]] int get_reserve_ammo() const { return player_.get_reserve_ammo(); }

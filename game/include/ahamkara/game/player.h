@@ -71,6 +71,13 @@ struct AbilityState {
 /// animations, model cache) lives in ae::render and the client layer — not
 /// here.
 ///
+/// ## Weapon Ownership Chain
+///
+/// Player owns `weapon_runtime_` (a `WeaponRuntime`).  All weapon state
+/// (ammo, cooldowns, reload status) lives inside `WeaponRuntime`.  World
+/// accesses weapon state through read-only accessors on `Player` — it NEVER
+/// holds a mutable reference to `WeaponRuntime` or `WeaponState`.
+///
 /// Intentionally does not own buffs, debuffs, quests, or meta/progression
 /// stats.
 class Player {

@@ -193,6 +193,20 @@ target_link_libraries(ahamkara_core_tests
 
 add_test(NAME ahamkara_core_tests COMMAND ahamkara_core_tests)
 
+add_executable(ahamkara_weapon_runtime_tests
+    src/weapon_runtime_tests.cpp
+)
+
+target_compile_features(ahamkara_weapon_runtime_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_weapon_runtime_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../game/include)
+
+target_link_libraries(ahamkara_weapon_runtime_tests
+    PRIVATE
+        ahamkara_game
+)
+
+add_test(NAME ahamkara_weapon_runtime_tests COMMAND ahamkara_weapon_runtime_tests)
+
 add_executable(ahamkara_weapon_loader_tests
     src/weapon_loader_tests.cpp
 )
@@ -530,3 +544,25 @@ target_link_libraries(ahamkara_wish_error_tests
         wish_engine
 )
 add_test(NAME ahamkara_wish_error_tests COMMAND ahamkara_wish_error_tests)
+
+add_executable(ahamkara_connection_lifecycle_tests
+    src/connection_lifecycle_tests.cpp
+)
+target_compile_features(ahamkara_connection_lifecycle_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_connection_lifecycle_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_connection_lifecycle_tests
+    PRIVATE
+        ae_network
+)
+add_test(NAME ahamkara_connection_lifecycle_tests COMMAND ahamkara_connection_lifecycle_tests)
+
+add_executable(ahamkara_jitter_buffer_tests
+    src/jitter_buffer_tests.cpp
+)
+target_compile_features(ahamkara_jitter_buffer_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_jitter_buffer_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_jitter_buffer_tests
+    PRIVATE
+        ae_network
+)
+add_test(NAME ahamkara_jitter_buffer_tests COMMAND ahamkara_jitter_buffer_tests)
