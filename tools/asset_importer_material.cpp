@@ -1,9 +1,12 @@
 #include "asset_importer_material.h"
 #include "ae/render/compiled_material.h"
+#include "ae/core/log.h"
 
 #include <fstream>
 #include <iostream>
 #include <string>
+
+#define AE_LOG_CATEGORY "Tools"
 
 namespace asset_importer {
 
@@ -96,16 +99,16 @@ bool compile_material(const ImportEntry& entry) {
     ae::render::MaterialAsset material;
     std::string error;
     if (!load_material_source(entry.source, material, error)) {
-        std::cerr << "Material import failed for " << entry.source << ": " << error << '\n';
+        ae::log_error_cat(AE_LOG_CATEGORY, "Material import failed for " + entry.source.string() + ": " + error);
         return false;
     }
 
     if (!ae::render::save_compiled_material(entry.output.string(), material, error)) {
-        std::cerr << "Failed to compile " << entry.source << " -> " << entry.output << ": " << error << '\n';
+        ae::log_error_cat(AE_LOG_CATEGORY, "Failed to compile " + entry.source.string() + " -> " + entry.output.string() + ": " + error);
         return false;
     }
 
-    std::cout << "material " << entry.source << " -> " << entry.output << '\n';
+    ae::log_info_cat(AE_LOG_CATEGORY, "material " + entry.source.string() + " -> " + entry.output.string());
     return true;
 }
 

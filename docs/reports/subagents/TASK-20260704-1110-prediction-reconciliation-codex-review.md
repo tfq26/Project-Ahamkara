@@ -5,7 +5,7 @@ created: 2026-07-08
 reviewer: codex
 reviewer_role: primary
 reviewer_model:
-task: docs/vault/queue-tasks/review-needed/TASK-20260704-1110-prediction-reconciliation.md
+task: TASK-20260704-1110-prediction-reconciliation
 report: docs/reports/subagents/TASK-20260704-1110-prediction-reconciliation-report.md
 decision: verify
 escalation_tier: low

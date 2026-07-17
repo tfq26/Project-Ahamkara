@@ -4,13 +4,13 @@
 #include "ahamkara/game/worlds/debug_javelin4_world.h"
 #include "ae/core/math.h"
 
-#include "game_physics.h"
+#include "world_jolt_bridge.h"
 #include "world_dummy_sim.h"
 #include "world_projectile.h"
 #include "world_camera.h"
 
-#include <Jolt/Physics/Character/CharacterVirtual.h>
-#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include "ae/collision/character.h"
+
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 
@@ -33,9 +33,9 @@ constexpr float kPlayerCollisionRadius = 0.22F;
 World::World() : World(worlds::debug_javelin4()) {}
 
 World::World(const WorldDefinition& definition) {
-    initialize_jolt_once();
-
-    player_.reset();
+    players_.reserve(kMaxPlayers);
+    players_.emplace_back();
+    players_.back().reset();
     apply_world_definition(definition);
 
     jolt_ = std::make_unique<GamePhysics>(this);
@@ -62,22 +62,16 @@ World::World(const WorldDefinition& definition) {
     JPH::RotatedTranslatedShapeSettings crouching_settings(JPH::Vec3(0.0f, crouching_offset_y, 0.0f), JPH::Quat::sIdentity(), inner_crouching);
     jolt_->crouching_shape = crouching_settings.Create().Get();
 
-    // Initialize the kinematic character controller
-    JPH::CharacterVirtualSettings char_settings;
-    char_settings.mShape = jolt_->standing_shape;
-    char_settings.mMaxSlopeAngle = JPH::DegreesToRadians(50.0f);
-    char_settings.mMass = 70.0f;
-    char_settings.mMaxStrength = 100.0f;
-    char_settings.mPredictiveContactDistance = 0.1f;
-    char_settings.mCharacterPadding = 0.02f;
-
-    jolt_->character = new JPH::CharacterVirtual(
-        &char_settings,
-        JPH::RVec3(player_.state().position.x, player_.state().position.y, player_.state().position.z),
-        JPH::Quat::sIdentity(),
-        &jolt_->physics_system
-    );
-    jolt_->character->SetListener(&jolt_->contact_listener);
+    // Initialize the kinematic character controller via engine-owned world
+    ae::collision::CharacterDef char_def;
+    {
+        const auto& p = players_[0].state().position;
+        char_def.position = ae::Vec3 {p.x, p.y, p.z};
+    }
+    char_def.capsule_radius = standing_radius;
+    char_def.capsule_half_height = standing_half_height;
+    jolt_->character = jolt_->collision_world.create_character(char_def);
+    jolt_->character->set_jolt_contact_listener(&jolt_->contact_listener);
 
     for (int i = 0; i < dummy_count_; ++i) {
         auto entity = registry_.create();
@@ -90,7 +84,11 @@ World::World(const WorldDefinition& definition) {
     // Save initial historical state
     HistoricalState hist {};
     hist.tick = 0;
-    hist.player_position = player_.state().position;
+    hist.player_position = players_[0].state().position;
+    for (ae::u32 pi = 0; pi < players_.size() && pi < HistoricalState::kMaxPlayerPositions; ++pi) {
+        hist.player_positions[pi] = players_[pi].state().position;
+        hist.player_alive[pi] = players_[pi].is_alive();
+    }
     for (int i = 0; i < dummy_count_ && i < HistoricalState::kMaxDummies; ++i) {
         hist.dummy_positions[i] = dummies_[i].position;
         hist.dummy_alive[i] = dummies_[i].alive;
@@ -127,7 +125,7 @@ void World::apply_world_definition(const WorldDefinition& definition) {
 }
 
 void World::reset_player_to_spawn() {
-    player_.reset_to_spawn(player_spawn_);
+    players_[0].reset_to_spawn(player_spawn_);
     movement_controller_.reset_to_spawn(player_spawn_);
 }
 
@@ -137,7 +135,7 @@ void World::tick(float delta_seconds, const PlayerInputCommand& input) {
     while (time_remaining > 0.0001F) {
         float step_dt = std::min(time_remaining, kFixedStep);
         advance_sim(step_dt);
-        apply_input(step_dt, input);
+        apply_input(0, step_dt, input);
         time_remaining -= step_dt;
     }
 }
@@ -167,11 +165,11 @@ void World::advance_sim(float delta_seconds) {
         tick_dummies(registry_, delta_seconds);
     }
     if (jolt_) {
-        sync_dummies_to_jolt(jolt_->physics_system, jolt_->dummy_bodies, registry_);
+        sync_dummies_to_jolt(jolt_->collision_world, jolt_->dummy_bodies, registry_);
     }
 
-    if (!is_client_) {
-        tick_dummy_ai(registry_, delta_seconds, player_.state().position, owned_colliders_, *this);
+    if (!is_client_ && !players_.empty()) {
+        tick_dummy_ai(registry_, delta_seconds, players_[0].state().position, owned_colliders_, *this);
     }
 
     if (hitmarker_timer_ > 0.0F) {
@@ -201,7 +199,11 @@ void World::advance_sim(float delta_seconds) {
 
     HistoricalState hist {};
     hist.tick = current_tick_;
-    hist.player_position = player_.state().position;
+    hist.player_position = players_.empty() ? Vec3 {} : players_[0].state().position;
+    for (ae::u32 pi = 0; pi < players_.size() && pi < HistoricalState::kMaxPlayerPositions; ++pi) {
+        hist.player_positions[pi] = players_[pi].state().position;
+        hist.player_alive[pi] = players_[pi].is_alive();
+    }
     for (int idx = 0; idx < dummy_count_ && idx < HistoricalState::kMaxDummies; ++idx) {
         hist.dummy_positions[idx] = dummies_[idx].position;
         hist.dummy_alive[idx] = dummies_[idx].alive;
@@ -216,132 +218,118 @@ void World::advance_sim(float delta_seconds) {
     sync_projectiles_to_array();
 }
 
-void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
+void World::apply_input(ae::u32 player_index, float delta_seconds, const PlayerInputCommand& input) {
+    if (player_index >= players_.size())
+        return;
+    Player& player = players_[player_index];
+
     // If the player is dead, skip input processing (respawn is handled in advance_sim).
-    if (!is_player_alive()) return;
+    if (!player.is_alive())
+        return;
+
+    // Reposition the shared Jolt character to this player's current location.
+    if (jolt_ && jolt_->character) {
+        const auto& p = player.state().position;
+        jolt_->character->set_position(ae::Vec3 {p.x, p.y, p.z});
+    }
 
     const bool on_ground = is_on_ground();
-    const JPH::Vec3 current_vel = jolt_->character->GetLinearVelocity();
+    const ae::Vec3 ae_vel = jolt_->character->get_linear_velocity();
+    const Vec3 current_vel {ae_vel.x, ae_vel.y, ae_vel.z};
 
     movement_controller_.begin_frame(
-        player_.state(),
+        player.state(),
         input,
         delta_seconds,
         on_ground,
-        {
-            static_cast<float>(current_vel.GetX()),
-            static_cast<float>(current_vel.GetY()),
-            static_cast<float>(current_vel.GetZ())
-        },
+        current_vel,
         cfg_walk_speed(),
         cfg_sprint_speed(),
         cfg_jump_speed(),
         cfg_gravity());
 
     bool want_crouch = movement_controller_.crouch_active();
-    if (!want_crouch && jolt_->character->GetShape() == jolt_->crouching_shape) {
-        bool allowed = jolt_->character->SetShape(
-            jolt_->standing_shape,
-            1.5f,
-            jolt_->physics_system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-            jolt_->physics_system.GetDefaultLayerFilter(Layers::MOVING),
-            JPH::BodyFilter(),
-            JPH::ShapeFilter(),
-            jolt_->temp_allocator);
-        if (!allowed) {
-            want_crouch = true;
+    {
+        constexpr float kStandRadius = 0.22F;
+        constexpr float kStandHalfHeight = (kStandingVisualHeight - 2.0F * 0.22F) * 0.5F;
+        constexpr float kCrouchRadius = 0.15F;
+        constexpr float kCrouchHalfHeight = (kCrouchingVisualHeight - 2.0F * 0.15F) * 0.5F;
+
+        if (!want_crouch && jolt_->is_crouched) {
+            bool allowed = jolt_->character->set_shape(kStandHalfHeight, kStandRadius);
+            if (allowed) {
+                jolt_->is_crouched = false;
+            }
+        } else if (want_crouch && !jolt_->is_crouched) {
+            jolt_->character->set_shape(kCrouchHalfHeight, kCrouchRadius);
+            jolt_->is_crouched = true;
         }
-    } else if (want_crouch && jolt_->character->GetShape() == jolt_->standing_shape) {
-        jolt_->character->SetShape(
-            jolt_->crouching_shape,
-            1.5f,
-            jolt_->physics_system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-            jolt_->physics_system.GetDefaultLayerFilter(Layers::MOVING),
-            JPH::BodyFilter(),
-            JPH::ShapeFilter(),
-            jolt_->temp_allocator);
     }
 
     const Vec3& desired_velocity = movement_controller_.desired_velocity();
-    jolt_->character->SetLinearVelocity(JPH::Vec3(desired_velocity.x, desired_velocity.y, desired_velocity.z));
+    jolt_->character->set_linear_velocity(ae::Vec3 {desired_velocity.x, desired_velocity.y, desired_velocity.z});
 
-    JPH::CharacterVirtual::ExtendedUpdateSettings update_settings;
-    update_settings.mStickToFloorStepDown = JPH::Vec3(0.0f, -0.35f, 0.0f);
-    update_settings.mWalkStairsStepUp = JPH::Vec3(0.0f, 0.4f, 0.0f);
-
-    jolt_->character->ExtendedUpdate(
+    jolt_->character->extended_update(
         delta_seconds,
-        JPH::Vec3(0.0f, -cfg_gravity(), 0.0f),
-        update_settings,
-        jolt_->physics_system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-        jolt_->physics_system.GetDefaultLayerFilter(Layers::MOVING),
-        JPH::BodyFilter(),
-        JPH::ShapeFilter(),
-        jolt_->temp_allocator
+        ae::Vec3 {0.0F, -cfg_gravity(), 0.0F},
+        0.4F, // walk_stairs_step_up
+        0.35F // stick_to_floor_step_down
     );
 
     // Sync player state back from KCC
-    JPH::RVec3 pos = jolt_->character->GetPosition();
-    JPH::Vec3 vel = jolt_->character->GetLinearVelocity();
-    player_.state().position.x = static_cast<float>(pos.GetX());
-    player_.state().position.y = static_cast<float>(pos.GetY());
-    player_.state().position.z = static_cast<float>(pos.GetZ());
-    player_.state().velocity.x = static_cast<float>(vel.GetX());
-    player_.state().velocity.y = static_cast<float>(vel.GetY());
-    player_.state().velocity.z = static_cast<float>(vel.GetZ());
+    ae::Vec3 pos = jolt_->character->get_position();
+    ae::Vec3 vel = jolt_->character->get_linear_velocity();
+    player.state().position = {pos.x, pos.y, pos.z};
+    player.state().velocity = {vel.x, vel.y, vel.z};
 
     // --- Slope slide ---
     bool on_ground_after = is_on_ground();
-    if (on_ground_after && jolt_->character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround) {
-        JPH::Vec3 jolt_gn = jolt_->character->GetGroundNormal();
-        Vec3 ground_normal = {
-            static_cast<float>(jolt_gn.GetX()),
-            static_cast<float>(jolt_gn.GetY()),
-            static_cast<float>(jolt_gn.GetZ())
-        };
+    if (on_ground_after && jolt_->character->is_on_ground()) {
+        ae::Vec3 ae_gn = jolt_->character->get_ground_normal();
+        Vec3 ground_normal = {ae_gn.x, ae_gn.y, ae_gn.z};
         float slope_deg = compute_slope_angle(ground_normal);
         constexpr MovementConfig kDefaultCfg;
         if (slope_deg > kDefaultCfg.max_walkable_slope) {
-            Vec3 vel_slide = player_.state().velocity;
+            Vec3 vel_slide = player.state().velocity;
             apply_slope_physics(vel_slide, ground_normal, delta_seconds, kDefaultCfg);
-            player_.state().velocity = vel_slide;
-            jolt_->character->SetLinearVelocity(JPH::Vec3(vel_slide.x, vel_slide.y, vel_slide.z));
+            player.state().velocity = vel_slide;
+            jolt_->character->set_linear_velocity(ae::Vec3 {vel_slide.x, vel_slide.y, vel_slide.z});
         }
     }
 
     // Ground floor clamp
-    if (player_.state().position.y <= 0.0001F) {
-        player_.state().position.y = 0.0F;
-        if (player_.state().velocity.y < 0.0F) {
-            player_.state().velocity.y = 0.0F;
+    if (player.state().position.y <= 0.0001F) {
+        player.state().position.y = 0.0F;
+        if (player.state().velocity.y < 0.0F) {
+            player.state().velocity.y = 0.0F;
         }
-        jolt_->character->SetPosition(JPH::RVec3(player_.state().position.x, 0.0F, player_.state().position.z));
+        jolt_->character->set_position(ae::Vec3 {player.state().position.x, 0.0F, player.state().position.z});
     }
 
     // Fall-death reset
-    if (player_.state().position.y < -20.0F) {
-        player_.state().position = { -12.0F, 2.0F, 0.0F };
-        player_.state().velocity = {};
-        jolt_->character->SetPosition(JPH::RVec3(player_.state().position.x, player_.state().position.y, player_.state().position.z));
-        jolt_->character->SetLinearVelocity(JPH::Vec3(0, 0, 0));
+    if (player.state().position.y < -20.0F) {
+        player.state().position = {-12.0F, 2.0F, 0.0F};
+        player.state().velocity = {};
+        jolt_->character->set_position(ae::Vec3 {player.state().position.x, player.state().position.y, player.state().position.z});
+        jolt_->character->set_linear_velocity({});
     }
 
     movement_controller_.finish_frame(
-        player_.state(),
+        player.state(),
         input,
         delta_seconds,
         is_on_ground(),
         colliders_,
         collider_count_,
-        jolt_->character);
+        jolt_->character.get());
 
     if (input.reload_pressed) {
-        start_reload();
+        start_reload(player_index);
         ++reload_request_count_;
         queue_audio_event(AudioEvent{"reload", 1.0F, AudioCategory::Weapon});
     }
-    if (input.weapon_slot != static_cast<ae::u8>(player_.loadout().active_slot) && input.weapon_slot < static_cast<ae::u8>(WeaponSlot::Count)) {
-        switch_weapon(input.weapon_slot);
+    if (input.weapon_slot != static_cast<ae::u8>(player.loadout().active_slot) && input.weapon_slot < static_cast<ae::u8>(WeaponSlot::Count)) {
+        switch_weapon(input.weapon_slot, player_index);
     }
     if (input.ability_pressed) {
         ++ability_use_count_;
@@ -349,16 +337,16 @@ void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
     }
     process_interactions(input);
 
-    tick_weapon(delta_seconds, input.fire_held);
+    tick_weapon(delta_seconds, input.fire_held, player_index);
 
     // Tick ability cooldowns and energy regen
-    tick_abilities(delta_seconds);
+    tick_abilities(delta_seconds, player_index);
 
     // Handle ability input (E key / gamepad)
     if (input.ability_pressed) {
         // Try grenade first, then special
-        if (!use_grenade()) {
-            use_special();
+        if (!use_grenade(player_index)) {
+            use_special(player_index);
         }
     }
 
@@ -372,21 +360,16 @@ void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
     }
 }
 
-
 void World::set_player_state(const ReplicatedPlayerState& state) {
-    player_.set_state(state);
+    if (players_.empty())
+        return;
+    players_[0].set_state(state);
     if (jolt_ && jolt_->character) {
-        jolt_->character->SetPosition(JPH::RVec3(state.position.x, state.position.y, state.position.z));
-        jolt_->character->SetLinearVelocity(JPH::Vec3(state.velocity.x, state.velocity.y, state.velocity.z));
-        jolt_->character->RefreshContacts(
-            jolt_->physics_system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-            jolt_->physics_system.GetDefaultLayerFilter(Layers::MOVING),
-            JPH::BodyFilter(),
-            JPH::ShapeFilter(),
-            jolt_->temp_allocator
-        );
+        jolt_->character->set_position(ae::Vec3 {state.position.x, state.position.y, state.position.z});
+        jolt_->character->set_linear_velocity(ae::Vec3 {state.velocity.x, state.velocity.y, state.velocity.z});
+        jolt_->character->refresh_contacts();
     }
-    movement_controller_.finish_frame(player_.state(), PlayerInputCommand {}, 0.0F, is_on_ground(), colliders_, collider_count_, jolt_ ? jolt_->character : nullptr);
+    movement_controller_.finish_frame(players_[0].state(), PlayerInputCommand {}, 0.0F, is_on_ground(), colliders_, collider_count_, jolt_ ? jolt_->character.get() : nullptr);
 }
 
 float World::get_player_visual_height() const {
@@ -395,11 +378,11 @@ float World::get_player_visual_height() const {
 
 bool World::is_on_ground() const {
     if (jolt_ && jolt_->character) {
-        if (jolt_->character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround) {
+        if (jolt_->character->is_on_ground()) {
             return true;
         }
     }
-    if (collider_count_ == 0 && player_.state().position.y <= 0.05F) {
+    if (collider_count_ == 0 && players_[0].state().position.y <= 0.05F) {
         return true;
     }
     return false;
@@ -428,11 +411,11 @@ bool World::load_colliders_from_level(const ae::render::LevelAsset& level) {
     }
     if (!level.spawn_points.empty()) {
         const auto& sp = level.spawn_points[0];
-        player_.state().position = {sp.pos_x, sp.pos_y, sp.pos_z};
-        player_.state().yaw = sp.yaw;
-        movement_controller_.reset_to_spawn({player_.state().position, sp.yaw});
+        players_[0].state().position = {sp.pos_x, sp.pos_y, sp.pos_z};
+        players_[0].state().yaw = sp.yaw;
+        movement_controller_.reset_to_spawn({players_[0].state().position, sp.yaw});
         if (jolt_ && jolt_->character)
-            jolt_->character->SetPosition(JPH::RVec3(sp.pos_x, sp.pos_y, sp.pos_z));
+            jolt_->character->set_position({sp.pos_x, sp.pos_y, sp.pos_z});
     }
     owned_colliders_ = std::move(boxes);
     colliders_ = owned_colliders_.data();
@@ -442,30 +425,42 @@ bool World::load_colliders_from_level(const ae::render::LevelAsset& level) {
 }
 
 const WeaponDefinition& World::get_active_weapon_def() const {
-    return player_.get_active_weapon_def();
+    if (players_.empty()) {
+        static const WeaponDefinition kDefaultDef {};
+        return kDefaultDef;
+    }
+    return players_[0].get_active_weapon_def();
 }
 
-void World::switch_weapon(int slot) {
-    const int prev_slot = player_.loadout().active_slot;
-    player_.switch_weapon(slot);
-    if (player_.loadout().active_slot != prev_slot) {
+void World::switch_weapon(int slot, ae::u32 index) {
+    if (index >= players_.size())
+        return;
+    const int prev_slot = players_[index].loadout().active_slot;
+    players_[index].switch_weapon(slot);
+    if (players_[index].loadout().active_slot != prev_slot) {
         fire_recoil_index_ = 0;
     }
 }
 
-void World::start_reload() {
-    player_.start_reload();
+void World::start_reload(ae::u32 index) {
+    if (index >= players_.size())
+        return;
+    players_[index].start_reload();
 }
 
-bool World::consume_ammo() {
-    return player_.consume_ammo();
+bool World::consume_ammo(ae::u32 index) {
+    if (index >= players_.size())
+        return false;
+    return players_[index].consume_ammo();
 }
 
-void World::tick_weapon(float delta_seconds, bool fire_held) {
+void World::tick_weapon(float delta_seconds, bool fire_held, ae::u32 index) {
+    if (index >= players_.size())
+        return;
     (void)fire_held;
-    player_.tick_weapon(delta_seconds);
+    players_[index].tick_weapon(delta_seconds);
     if (weapon_switch_queued_) {
-        switch_weapon(queued_weapon_slot_);
+        switch_weapon(queued_weapon_slot_, index);
         weapon_switch_queued_ = false;
         queued_weapon_slot_ = -1;
     }
@@ -561,7 +556,7 @@ HistoricalState World::get_historical_state(ae::u32 target_tick) const {
     if (history_buffer_.empty()) {
         HistoricalState hist {};
         hist.tick = current_tick_;
-        hist.player_position = player_.state().position;
+        hist.player_position = players_[0].state().position;
         for (int i = 0; i < dummy_count_ && i < HistoricalState::kMaxDummies; ++i) {
             hist.dummy_positions[i] = dummies_[i].position;
             hist.dummy_alive[i] = dummies_[i].alive;
@@ -586,7 +581,7 @@ void World::spawn_muzzle_particles(const Vec3& position, const Vec3& forward) {
         if (particle_count_ >= kMaxParticles) break;
         auto& p = particles_[particle_count_++];
         p.position = position;
-        float speed = 2.0F + static_cast<float>(std::rand() % 100) / 100.0F * 3.0F;
+        float speed = 2.0F + static_cast<float>(std::rand() % 100) / 100.0F * 3.0F; // NOLINT(clang-analyzer-security.insecureAPI.rand)
         p.velocity = {
             forward.x * speed + (static_cast<float>(std::rand() % 100) / 100.0F - 0.5F) * 0.5F,
             forward.y * speed + (static_cast<float>(std::rand() % 100) / 100.0F - 0.5F) * 0.5F,
@@ -605,7 +600,7 @@ void World::spawn_impact_particles(const Vec3& position, const Vec3& normal) {
         if (particle_count_ >= kMaxParticles) break;
         auto& p = particles_[particle_count_++];
         p.position = position;
-        float speed = 1.0F + static_cast<float>(std::rand() % 100) / 100.0F * 2.0F;
+        float speed = 1.0F + static_cast<float>(std::rand() % 100) / 100.0F * 2.0F; // NOLINT(clang-analyzer-security.insecureAPI.rand)
         p.velocity = {
             normal.x * speed + (static_cast<float>(std::rand() % 100) / 100.0F - 0.5F) * 1.0F,
             normal.y * speed + (static_cast<float>(std::rand() % 100) / 100.0F - 0.5F) * 1.0F,
@@ -667,7 +662,7 @@ void World::process_interactions(const PlayerInputCommand& input) {
 
     ++interaction_attempt_count_;
 
-    const Vec3& player_pos = player_.state().position;
+    const Vec3& player_pos = players_[0].state().position;
     const float radius = 1.5F;
     const float radius_sq = radius * radius;
 
@@ -753,43 +748,47 @@ void World::update_decals(float delta_seconds) {
     decal_count_ = active;
 }
 
-void World::apply_damage_to_player(float damage, const Vec3& attacker_pos) {
-    if (!is_player_alive()) return;
+void World::apply_damage_to_player(ae::u32 player_index, float damage, const Vec3& attacker_pos) {
+    if (player_index >= players_.size())
+        return;
+    if (!players_[player_index].is_alive())
+        return;
 
-    const float actual_damage = player_.apply_damage(damage);
+    const float actual_damage = players_[player_index].apply_damage(damage);
 
     damage_feedback_timer_ = 0.3F;
 
     // Spawn damage number at player position
-    Vec3 num_pos = player_.state().position;
+    Vec3 num_pos = players_[player_index].state().position;
     num_pos.y += 1.8F;
     spawn_damage_number(num_pos, actual_damage, false);
 
     // Hit audio
     queue_audio_event(AudioEvent{"player_hit", 1.0f, AudioCategory::SFX});
 
-    if (!player_.is_alive()) {
-        player_deaths_++;
+    if (!players_[player_index].is_alive()) {
+        players_[player_index].add_death();
         respawn_timer_ = 3.0F;
     }
 }
 
-void World::respawn_player() {
-    reset_player_to_spawn();
-    player_.reset_weapon_runtime(0, 150);
+void World::respawn_player(ae::u32 index) {
+    if (index >= players_.size())
+        return;
+    players_[index].reset_to_spawn(player_spawn_);
+    players_[index].reset_weapon_runtime(0, 150);
+    movement_controller_.reset_to_spawn(player_spawn_);
 
     if (jolt_ && jolt_->character) {
-        jolt_->character->SetPosition(JPH::RVec3(
-            player_.state().position.x,
-            player_.state().position.y,
-            player_.state().position.z
-        ));
-        jolt_->character->SetLinearVelocity(JPH::Vec3(0, 0, 0));
+        jolt_->character->set_position(ae::Vec3 {players_[index].state().position.x, players_[index].state().position.y, players_[index].state().position.z});
+        jolt_->character->set_linear_velocity({});
     }
 }
 
 void World::on_dummy_killed(ae::u32 dummy_id, const Vec3& death_pos) {
-    player_kills_++;
+    if (!players_.empty()) {
+        players_[0].add_kill();
+    }
 
     Vec3 num_pos = death_pos;
     num_pos.y += 1.5F;
@@ -800,7 +799,8 @@ void World::on_dummy_killed(ae::u32 dummy_id, const Vec3& death_pos) {
     for (int i = 0; i < dummy_count_; ++i) {
         if (dummies_[i].alive) alive_count++;
     }
-    if (alive_count == 0 && player_kills_ >= 3) {
+    const ae::u32 total_kills = players_.empty() ? 0 : players_[0].kills();
+    if (alive_count == 0 && total_kills >= 3) {
         match_over_ = true;
     }
 
@@ -808,8 +808,9 @@ void World::on_dummy_killed(ae::u32 dummy_id, const Vec3& death_pos) {
 }
 
 void World::restart_match() {
-    player_kills_ = 0;
-    player_deaths_ = 0;
+    for (auto& p : players_) {
+        p.reset_score();
+    }
     match_time_ = 0.0F;
     match_over_ = false;
     respawn_timer_ = 0.0F;
@@ -825,14 +826,14 @@ void World::restart_match() {
     }
 
     reset_player_to_spawn();
-    player_.reset_weapon_runtime(0, 150);
+    if (!players_.empty()) {
+        players_[0].reset_weapon_runtime(0, 150);
+    }
     if (jolt_ && jolt_->character) {
-        jolt_->character->SetPosition(JPH::RVec3(
-            player_.state().position.x,
-            player_.state().position.y,
-            player_.state().position.z
-        ));
-        jolt_->character->SetLinearVelocity(JPH::Vec3(0, 0, 0));
+        if (!players_.empty()) {
+            jolt_->character->set_position(ae::Vec3 {players_[0].state().position.x, players_[0].state().position.y, players_[0].state().position.z});
+        }
+        jolt_->character->set_linear_velocity({});
     }
 
     // Respawn all dummies
@@ -846,7 +847,7 @@ void World::restart_match() {
         d.position = d.start_position;
         d.last_hit_timer = 0.0F;
         d.respawn_timer = 0.0F;
-        comp.fire_timer = 1.0F + (static_cast<float>(std::rand() % 100) / 100.0F) * 2.0F;
+        comp.fire_timer = 1.0F + (static_cast<float>(std::rand() % 100) / 100.0F) * 2.0F; // NOLINT(clang-analyzer-security.insecureAPI.rand)
         comp.burst_timer = 0.0F;
         comp.burst_count = 0;
     }
@@ -857,6 +858,69 @@ ae::u8 World::get_match_phase() const {
     if (match_over_) return 6;
     if (respawn_timer_ > 0.0F) return 3;
     return 3;
+}
+
+// --- Multi-player management -------------------------------------------------
+
+ae::u32 World::add_player() {
+    if (players_.size() >= kMaxPlayers) {
+        return static_cast<ae::u32>(players_.size()) - 1;
+    }
+    players_.emplace_back();
+    players_.back().reset();
+    players_.back().reset_to_spawn(player_spawn_);
+    players_.back().set_network_object_id(static_cast<ae::u32>(players_.size()));
+    return static_cast<ae::u32>(players_.size()) - 1;
+}
+
+void World::remove_player(ae::u32 index) {
+    if (index < players_.size()) {
+        players_.erase(players_.begin() + static_cast<std::ptrdiff_t>(index));
+    }
+}
+
+Player* World::get_player(ae::u32 index) {
+    if (index >= players_.size())
+        return nullptr;
+    return &players_[index];
+}
+
+const Player* World::get_player(ae::u32 index) const {
+    if (index >= players_.size())
+        return nullptr;
+    return &players_[index];
+}
+
+const ReplicatedPlayerState& World::get_player_state(ae::u32 index) const {
+    static const ReplicatedPlayerState kEmptyState {};
+    if (index >= players_.size())
+        return kEmptyState;
+    return players_[index].state();
+}
+
+ReplicatedPlayerState& World::get_player_state_mut(ae::u32 index) {
+    static ReplicatedPlayerState kEmptyState {};
+    if (index >= players_.size())
+        return kEmptyState;
+    return players_[index].state();
+}
+
+bool World::is_player_alive(ae::u32 index) const {
+    if (index >= players_.size())
+        return false;
+    return players_[index].is_alive();
+}
+
+ae::u32 World::get_player_kills(ae::u32 index) const {
+    if (index >= players_.size())
+        return 0;
+    return players_[index].kills();
+}
+
+ae::u32 World::get_player_deaths(ae::u32 index) const {
+    if (index >= players_.size())
+        return 0;
+    return players_[index].deaths();
 }
 
 }  // namespace ahamkara::game

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ae/render/skeletal_animation.h"
+#include "ae/skeleton/types.h"
 #include <vector>
 
 namespace ae::animation {
@@ -11,5 +11,5 @@ struct AnimationRenderOutput {
 };
 /// Extract joint matrices from a pose vector into a flat float array for GPU skinning.
 /// The pose vector is produced by AnimationDriver::tick() or CharacterAnimInstance::tick().
-AnimationRenderOutput extract_joint_matrices(const std::vector<ae::render::Mat4>& pose);
+AnimationRenderOutput extract_joint_matrices(const std::vector<ae::skeleton::Mat4>& pose);
 } // namespace ae::animation

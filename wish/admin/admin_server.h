@@ -2,6 +2,8 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#else
+#include <unistd.h>
 #endif
 
 #include "ae/core/types.h"
@@ -53,7 +55,6 @@ public:
 
     [[nodiscard]] bool is_running() const;
 
-private:
     void serve();
     void handle_client(int client_fd) const;
 
@@ -62,6 +63,8 @@ private:
 #else
     using SocketHandle = int;
 #endif
+
+private:
 
     static void close_socket(SocketHandle s) {
 #ifdef _WIN32

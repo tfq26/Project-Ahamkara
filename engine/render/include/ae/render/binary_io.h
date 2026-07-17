@@ -4,6 +4,7 @@
 #include <fstream>
 #include <limits>
 #include <string>
+#include <vector>
 #include <string_view>
 
 namespace ae::render {

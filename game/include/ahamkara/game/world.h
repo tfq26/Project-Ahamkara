@@ -21,12 +21,17 @@
 
 namespace ahamkara::game {
 
+static constexpr int kMaxPlayers = 8;
+
 struct HistoricalState {
     ae::u32 tick {0};
     Vec3 player_position {};
     static constexpr int kMaxDummies = 4;
+    static constexpr int kMaxPlayerPositions = kMaxPlayers;
     Vec3 dummy_positions[kMaxDummies] {};
     bool dummy_alive[kMaxDummies] {};
+    Vec3 player_positions[kMaxPlayerPositions] {};
+    bool player_alive[kMaxPlayerPositions] {};
 };
 
 struct InteractionTargetState {
@@ -69,15 +74,36 @@ public:
     /// Does NOT consume player input — call apply_input() for that.
     void advance_sim(float delta_seconds);
 
-    /// Apply a player's input to the world for the current tick.
+    /// Apply input for player at the given index.
     /// Handles movement controller, weapon state, and firing.
-    void apply_input(float delta_seconds, const PlayerInputCommand& input);
+    void apply_input(ae::u32 player_index, float delta_seconds, const PlayerInputCommand& input);
 
-    /// Combined convenience: advance_sim + apply_input.
+    /// Backward-compatible overload: applies input to player 0.
+    void apply_input(float delta_seconds, const PlayerInputCommand& input) {
+        apply_input(0, delta_seconds, input);
+    }
+
+    /// Combined convenience: advance_sim + apply_input (player 0).
     /// Used by client-local paths (local_play, client_prediction).
     void tick(float delta_seconds, const PlayerInputCommand& input);
 
-    [[nodiscard]] const ReplicatedPlayerState& get_player_state() const { return player_.state(); }
+    /// Multi-player management.
+    ae::u32 add_player();
+    void remove_player(ae::u32 index);
+    [[nodiscard]] ae::u32 player_count() const {
+        return static_cast<ae::u32>(players_.size());
+    }
+    [[nodiscard]] Player* get_player(ae::u32 index);
+    [[nodiscard]] const Player* get_player(ae::u32 index) const;
+    [[nodiscard]] std::vector<Player>& players() {
+        return players_;
+    }
+    [[nodiscard]] const std::vector<Player>& players() const {
+        return players_;
+    }
+
+    [[nodiscard]] const ReplicatedPlayerState& get_player_state(ae::u32 index = 0) const;
+    [[nodiscard]] ReplicatedPlayerState& get_player_state_mut(ae::u32 index = 0);
     [[nodiscard]] const CameraAnchor& get_camera_anchor() const { return movement_controller_.camera_anchor(); }
     [[nodiscard]] float get_player_visual_height() const;
 
@@ -94,20 +120,34 @@ public:
     /// should write through this.
     [[nodiscard]] TargetDummyState* dummies_mut() { return dummies_; }
 
-    [[nodiscard]] int get_ammo_current() const { return player_.get_ammo_current(); }
-    [[nodiscard]] int get_ammo_max() const { return player_.get_ammo_max(); }
-    [[nodiscard]] int get_reserve_ammo() const { return player_.get_reserve_ammo(); }
-    [[nodiscard]] int get_active_weapon_index() const { return player_.get_active_weapon_index(); }
+    [[nodiscard]] int get_ammo_current(ae::u32 index = 0) const {
+        return players_[index].get_ammo_current();
+    }
+    [[nodiscard]] int get_ammo_max(ae::u32 index = 0) const {
+        return players_[index].get_ammo_max();
+    }
+    [[nodiscard]] int get_reserve_ammo(ae::u32 index = 0) const {
+        return players_[index].get_reserve_ammo();
+    }
+    [[nodiscard]] int get_active_weapon_index(ae::u32 index = 0) const {
+        return players_[index].get_active_weapon_index();
+    }
     [[nodiscard]] const WeaponDefinition& get_active_weapon_def() const;
-    [[nodiscard]] const WeaponState& get_weapon_state() const { return player_.get_weapon_state(); }
+    [[nodiscard]] const WeaponState& get_weapon_state(ae::u32 index = 0) const {
+        return players_[index].get_weapon_state();
+    }
 
-    void switch_weapon(int slot);
-    void start_reload();
-    bool consume_ammo();
-    void tick_weapon(float delta_seconds, bool fire_held);
-    [[nodiscard]] bool can_fire() const { return player_.can_fire(); }
+    void switch_weapon(int slot, ae::u32 index = 0);
+    void start_reload(ae::u32 index = 0);
+    bool consume_ammo(ae::u32 index = 0);
+    void tick_weapon(float delta_seconds, bool fire_held, ae::u32 index = 0);
+    [[nodiscard]] bool can_fire(ae::u32 index = 0) const {
+        return players_[index].can_fire();
+    }
     /// Notify the weapon runtime that a shot was fired.
-    void notify_weapon_fired() { player_.notify_weapon_fired(); }
+    void notify_weapon_fired(ae::u32 index = 0) {
+        players_[index].notify_weapon_fired();
+    }
 
     [[nodiscard]] entt::registry& registry() { return registry_; }
     [[nodiscard]] const entt::registry& registry() const { return registry_; }
@@ -146,11 +186,21 @@ public:
     void set_muzzle_flash(float time) { muzzle_flash_timer_ = time; }
 
     /// Ability state accessors (delegated to Player).
-    [[nodiscard]] const AbilityState& ability_state() const { return player_.ability_state(); }
-    [[nodiscard]] AbilityState& ability_state() { return player_.ability_state(); }
-    void tick_abilities(float dt) { player_.tick_abilities(dt); }
-    bool use_grenade() { return player_.use_grenade(); }
-    bool use_special() { return player_.use_special(); }
+    [[nodiscard]] const AbilityState& ability_state(ae::u32 index = 0) const {
+        return players_[index].ability_state();
+    }
+    [[nodiscard]] AbilityState& ability_state(ae::u32 index = 0) {
+        return players_[index].ability_state();
+    }
+    void tick_abilities(float dt, ae::u32 index = 0) {
+        players_[index].tick_abilities(dt);
+    }
+    bool use_grenade(ae::u32 index = 0) {
+        return players_[index].use_grenade();
+    }
+    bool use_special(ae::u32 index = 0) {
+        return players_[index].use_special();
+    }
 
     /// Recoil pattern index — advanced each shot for deterministic recoil.
     [[nodiscard]] int recoil_index() const { return fire_recoil_index_; }
@@ -172,23 +222,29 @@ public:
 
     /// Fire cooldown (seconds remaining).  Negative means ready to fire.
     /// Delegates to the active weapon state.
-    [[nodiscard]] float fire_cooldown_timer() const { return player_.fire_cooldown_timer(); }
-    void set_fire_cooldown_timer(float t) { player_.set_fire_cooldown_timer(t); }
+    [[nodiscard]] float fire_cooldown_timer(ae::u32 index = 0) const {
+        return players_[index].fire_cooldown_timer();
+    }
+    void set_fire_cooldown_timer(float t, ae::u32 index = 0) {
+        players_[index].set_fire_cooldown_timer(t);
+    }
 
     void spawn_damage_number(const Vec3& position, float damage, bool is_critical);
     void queue_audio_event(const AudioEvent& event);
     [[nodiscard]] HistoricalState get_historical_state(ae::u32 target_tick) const;
 
     [[nodiscard]] float get_damage_feedback_timer() const { return damage_feedback_timer_; }
-    void apply_damage_to_player(float damage, const Vec3& attacker_pos);
-    [[nodiscard]] bool is_player_alive() const { return player_.is_alive(); }
-    void respawn_player();
-    [[nodiscard]] ae::u32 get_player_kills() const { return player_kills_; }
-    [[nodiscard]] ae::u32 get_player_deaths() const { return player_deaths_; }
+    void apply_damage_to_player(ae::u32 player_index, float damage, const Vec3& attacker_pos);
+    [[nodiscard]] bool is_player_alive(ae::u32 index = 0) const;
+    void respawn_player(ae::u32 index = 0);
+    [[nodiscard]] ae::u32 get_player_kills(ae::u32 index = 0) const;
+    [[nodiscard]] ae::u32 get_player_deaths(ae::u32 index = 0) const;
     [[nodiscard]] float get_match_time() const { return match_time_; }
     [[nodiscard]] ae::u8 get_match_phase() const;
     [[nodiscard]] ae::u32 get_team_score_red() const { return 0; }
-    [[nodiscard]] ae::u32 get_team_score_blue() const { return player_kills_; }
+    [[nodiscard]] ae::u32 get_team_score_blue() const {
+        return players_.empty() ? 0 : players_[0].kills();
+    }
     [[nodiscard]] bool is_match_over() const { return match_over_; }
     void restart_match();
     [[nodiscard]] const std::vector<ColliderBox>& get_world_colliders() const { return owned_colliders_; }
@@ -218,7 +274,7 @@ private:
 
     static constexpr int kMaxAudioEventsPerTick = 16;
 
-    Player player_;
+    std::vector<Player> players_;
     PlayerSpawnDefinition player_spawn_ {};
     PlayerMovementController movement_controller_;
     const ColliderBox* colliders_ {nullptr};
@@ -270,8 +326,6 @@ private:
     int ability_use_count_ {0};
 
     float respawn_timer_ {0.0F};
-    ae::u32 player_kills_ {0};
-    ae::u32 player_deaths_ {0};
     float match_time_ {0.0F};
     bool match_over_ {false};
     float damage_feedback_timer_ {0.0F};

@@ -69,7 +69,7 @@ void AnimationDebugger::log_state_change(const AnimStateId& from,
 }
 
 void AnimationDebugger::extract_skeleton_lines(
-    const std::vector<render::Mat4>& global_matrices,
+    const std::vector<skeleton::Mat4>& global_matrices,
     const std::vector<int>& parent_indices,
     const std::vector<std::string>& /*joint_names*/,
     std::vector<JointLine>& out_lines) {

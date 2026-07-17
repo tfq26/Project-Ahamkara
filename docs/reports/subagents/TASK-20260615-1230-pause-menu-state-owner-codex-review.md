@@ -3,7 +3,7 @@ type: review
 status: active
 created: 2026-06-15
 reviewer: codex
-task: ../../vault/queue-tasks/completed/TASK-20260615-1230-pause-menu-state-owner.md
+task: TASK-20260615-1230-pause-menu-state-owner
 report: TASK-20260615-1230-pause-menu-state-owner-report.md
 decision: complete
 subsystems:
@@ -15,7 +15,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260615-1230-pause-menu-state-owner](../../vault/queue-tasks/completed/TASK-20260615-1230-pause-menu-state-owner.md)
+TASK-20260615-1230-pause-menu-state-owner
 
 ## Report
 

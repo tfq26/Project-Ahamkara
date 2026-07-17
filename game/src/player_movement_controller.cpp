@@ -1,14 +1,13 @@
 #include "ahamkara/game/player_movement_controller.h"
 
-#include "game_physics.h"
+#include "world_jolt_bridge.h"
 #include "world_camera.h"
 
+#include "ae/collision/character.h"
 #include "ae/core/math.h"
 
 #include <algorithm>
 #include <cmath>
-
-#include <Jolt/Physics/Character/CharacterVirtual.h>
 
 namespace ahamkara::game {
 namespace {
@@ -174,7 +173,7 @@ void PlayerMovementController::finish_frame(
     bool on_ground,
     const ColliderBox* colliders,
     std::size_t collider_count,
-    JPH::CharacterVirtual* character) {
+    ae::collision::CharacterController* character) {
 
     if (character) {
         resolve_mantle(player_state, colliders, collider_count, character);
@@ -194,7 +193,7 @@ void PlayerMovementController::resolve_mantle(
     ReplicatedPlayerState& player_state,
     const ColliderBox* colliders,
     std::size_t collider_count,
-    JPH::CharacterVirtual* character) {
+    ae::collision::CharacterController* character) {
 
     if (player_state.velocity.y <= 0.5F) return;
     if (!colliders || collider_count == 0) return;
@@ -222,8 +221,8 @@ void PlayerMovementController::resolve_mantle(
         player_state.velocity.y = 0.0F;
 
         if (character) {
-            character->SetPosition(JPH::RVec3(player_state.position.x, player_state.position.y, player_state.position.z));
-            character->SetLinearVelocity(JPH::Vec3(player_state.velocity.x, player_state.velocity.y, player_state.velocity.z));
+            character->set_position(ae::Vec3 {player_state.position.x, player_state.position.y, player_state.position.z});
+            character->set_linear_velocity(ae::Vec3 {player_state.velocity.x, player_state.velocity.y, player_state.velocity.z});
         }
         return;
     }
@@ -232,7 +231,7 @@ void PlayerMovementController::resolve_mantle(
 void PlayerMovementController::resolve_ladder_and_ledge(
     ReplicatedPlayerState& player_state,
     const PlayerInputCommand& input,
-    JPH::CharacterVirtual* character) {
+    ae::collision::CharacterController* character) {
 
     if (movement_sim_state_.ground_material == SurfaceMaterial::Ladder) {
         movement_sim_state_.on_ladder = true;
@@ -240,10 +239,8 @@ void PlayerMovementController::resolve_ladder_and_ledge(
         movement_sim_state_.on_ladder = false;
     }
     if (movement_sim_state_.on_ladder && character) {
-        character->SetLinearVelocity(JPH::Vec3(
-            character->GetLinearVelocity().GetX(),
-            input.move_axis.y * 4.0F,
-            character->GetLinearVelocity().GetZ()));
+        ae::Vec3 vel = character->get_linear_velocity();
+        character->set_linear_velocity(ae::Vec3 {vel.x, input.move_axis.y * 4.0F, vel.z});
     }
 }
 

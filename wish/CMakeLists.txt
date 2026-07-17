@@ -3,6 +3,8 @@ add_library(wish_engine STATIC
     core/src/match_runtime.cpp
     core/src/activity_manager.cpp
     core/src/activity_loader.cpp
+    core/src/error_envelope.cpp
+    core/src/error_catalog.cpp
     net/src/transport_config.cpp
     session/src/session_model.cpp
     replication/src/replication_frame.cpp

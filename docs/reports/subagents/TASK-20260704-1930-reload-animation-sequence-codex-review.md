@@ -5,7 +5,7 @@ created: 2026-07-08
 reviewer: codex
 reviewer_role: primary
 reviewer_model:
-task: docs/vault/queue-tasks/review-needed/TASK-20260704-1930-reload-animation-sequence.md
+task: TASK-20260704-1930-reload-animation-sequence
 report: docs/reports/subagents/TASK-20260704-1930-reload-animation-sequence-report.md
 decision: verify
 escalation_tier: medium

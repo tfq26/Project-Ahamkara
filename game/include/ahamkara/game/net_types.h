@@ -8,6 +8,10 @@
 
 namespace ahamkara::game {
 
+/// Sentinel values representing "no entity / no player".
+static constexpr ae::u32 kInvalidNetworkObjectId = 0;
+static constexpr ae::u32 kInvalidPlayerId = 0;
+
 struct Vec2 {
     float x {0.0F};
     float y {0.0F};

@@ -3,14 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
-
-#if defined(__APPLE__)
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
-#else
-#include <GL/gl.h>
-#include <GL/glext.h>
-#endif
+#include "ae/render/gl_platform.h"
 
 
 #define AE_LOG_CATEGORY "Render"

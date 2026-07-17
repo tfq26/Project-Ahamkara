@@ -5,7 +5,7 @@ created: 2026-06-28
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/open/TASK-20260623-1615-deep-logging-wish.md
+task: TASK-20260623-1615-deep-logging-wish
 report: TASK-20260623-1615-deep-logging-wish-report.md
 decision: revise
 escalation_tier: low
@@ -18,7 +18,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260623-1615-deep-logging-wish](../../vault/queue-tasks/open/TASK-20260623-1615-deep-logging-wish.md)
+TASK-20260623-1615-deep-logging-wish
 
 ## Report
 

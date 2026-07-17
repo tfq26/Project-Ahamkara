@@ -5,7 +5,7 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/completed/TASK-20260622-1110-phase4-reliable-channel.md
+task: TASK-20260622-1110-phase4-reliable-channel
 report: TASK-20260622-1110-phase4-reliable-channel-report.md
 decision: complete
 escalation_tier: low
@@ -18,7 +18,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260622-1110-phase4-reliable-channel](../../vault/queue-tasks/completed/TASK-20260622-1110-phase4-reliable-channel.md)
+TASK-20260622-1110-phase4-reliable-channel
 
 ## Report
 

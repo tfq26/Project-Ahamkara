@@ -29,6 +29,7 @@ DebugFrontendState make_debug_frontend_state() {
     state.last_time_seconds = ae::now_seconds();
     state.perf_logger = std::make_unique<ae::PerformanceLogger>();
     state.perf_logger->open("ahamkara_perf");
+    state.frame_profiler.reset();
     return state;
 }
 

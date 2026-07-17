@@ -11,18 +11,24 @@ set(CMAKE_CXX_STANDARD 20)
 
 if(WIN32)
     add_compile_definitions(NOMINMAX)
+    # Force all targets to use dynamic CRT (MD/MDd) to avoid RuntimeLibrary
+    # mismatches with FetchContent dependencies like JoltPhysics.
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(FetchContent)
+# Do not recursively install FetchContent dependencies with cmake --install.
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY ON)
 
 # Configure Jolt options before fetching
 set(TARGET_UNIT_TESTS OFF CACHE BOOL "" FORCE)
 set(TARGET_HELLO_WORLD OFF CACHE BOOL "" FORCE)
 set(TARGET_PERFORMANCE_TEST OFF CACHE BOOL "" FORCE)
 set(TARGET_SAMPLES OFF CACHE BOOL "" FORCE)
-set(USE_STATIC_CRT OFF CACHE BOOL "" FORCE)
+# NOTE: Jolt v5.0.0 uses USE_STATIC_MSVC_RUNTIME_LIBRARY, not USE_STATIC_CRT
+set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF CACHE BOOL "" FORCE)
 set(ENABLE_ALL_WARNINGS OFF CACHE BOOL "" FORCE)
 
 FetchContent_Declare(
@@ -55,7 +61,17 @@ FetchContent_Declare(
     GIT_TAG        master
 )
 
-FetchContent_MakeAvailable(jolt glm entt miniaudio)
+# glm/entt/miniaudio are general engine deps; Jolt is only required for
+# physics/collision/game paths and can be skipped for pure package export.
+FetchContent_MakeAvailable(glm entt miniaudio)
+if(NOT AHAMKARA_ENGINE_ONLY)
+    FetchContent_MakeAvailable(jolt)
+endif()
+
+# Force-fix Jolt CRT on Windows in case its internal CMake overrode our setting
+if(WIN32 AND TARGET Jolt)
+    set_property(TARGET Jolt PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+endif()
 
 option(AHAMKARA_BUILD_WISH_ADMIN "Build the Wish admin HTTP server (requires Lua/sol2)" OFF)
 
@@ -89,34 +105,70 @@ endif()
 add_library(miniaudio_lib INTERFACE)
 target_include_directories(miniaudio_lib INTERFACE ${miniaudio_SOURCE_DIR})
 
-add_library(wish_core INTERFACE)
-target_include_directories(wish_core INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-
 option(AHAMKARA_BUILD_CLIENT "Build the Ahamkara client" ON)
 option(AHAMKARA_BUILD_SERVER "Build the Ahamkara dedicated server" ON)
 option(AHAMKARA_BUILD_TESTS "Build the Ahamkara test targets" ON)
 option(AHAMKARA_BUILD_SAMPLES "Build sample games that consume the engine" ON)
+option(AHAMKARA_BUILD_WISH "Build Wish backend modules (not part of pure engine package)" ON)
+option(AHAMKARA_BUILD_GAME "Build Flashback/gameplay library (not part of pure engine package)" ON)
+option(AHAMKARA_ENGINE_ONLY "Configure pure engine targets only (disables wish/game/client/server/samples)" OFF)
+
+if(AHAMKARA_ENGINE_ONLY)
+    set(AHAMKARA_BUILD_WISH OFF CACHE BOOL "" FORCE)
+    set(AHAMKARA_BUILD_GAME OFF CACHE BOOL "" FORCE)
+    set(AHAMKARA_BUILD_CLIENT OFF CACHE BOOL "" FORCE)
+    set(AHAMKARA_BUILD_SERVER OFF CACHE BOOL "" FORCE)
+    set(AHAMKARA_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+endif()
 
 add_subdirectory(engine/core)
-add_subdirectory(engine/collision)
-add_subdirectory(engine/physics)
 add_subdirectory(engine/network)
 add_subdirectory(engine/runtime)
-add_subdirectory(wish)
-add_subdirectory(game)
+# Collision/physics require Jolt and are excluded from pure engine-only package builds.
+if(NOT AHAMKARA_ENGINE_ONLY)
+    add_subdirectory(engine/collision)
+    add_subdirectory(engine/physics)
+endif()
+
+# ae_skeleton and ae_animation are headless (no GLFW/OpenGL deps); they must
+# be built before game/ which depends on animation headers transitively.
+# Excluded from engine-only packages since game code is outside the engine boundary.
+if(NOT AHAMKARA_ENGINE_ONLY)
+    add_subdirectory(engine/skeleton)
+    add_subdirectory(engine/animation)
+endif()
+
+# Product modules live outside the pure Ahamkara engine package.
+if(AHAMKARA_BUILD_WISH)
+    add_subdirectory(wish)
+endif()
+
+# Wish consumer fixture — proves Wish builds, links, and runs without Ahamkara or Flashback.
+if(AHAMKARA_BUILD_WISH AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/wish_consumer/CMakeLists.txt")
+    enable_testing()
+    add_subdirectory(tests/wish_consumer)
+endif()
+if(AHAMKARA_BUILD_GAME)
+    if(NOT AHAMKARA_BUILD_WISH)
+        message(FATAL_ERROR "AHAMKARA_BUILD_GAME requires AHAMKARA_BUILD_WISH (game links wish_engine).")
+    endif()
+    add_subdirectory(game)
+endif()
 
 if(AHAMKARA_BUILD_CLIENT)
     find_package(OpenGL REQUIRED)
     find_package(glfw3 REQUIRED)
     add_subdirectory(engine/platform)
     add_subdirectory(engine/render)
-    add_subdirectory(engine/animation)
     add_subdirectory(engine/ui)
     add_subdirectory(engine/input)
     add_subdirectory(engine/audio)
     add_subdirectory(client)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/CMakeLists.txt")
         add_subdirectory(tools)
+    endif()
+    if(AHAMKARA_BUILD_TESTS)
+        enable_testing()
     endif()
     if(AHAMKARA_BUILD_SAMPLES AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/samples/flashback/CMakeLists.txt")
         add_subdirectory(samples/flashback)
@@ -128,11 +180,10 @@ if(AHAMKARA_BUILD_SERVER)
 endif()
 
 if(AHAMKARA_BUILD_TESTS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt")
-    enable_testing()
     add_subdirectory(tests)
 endif()
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/wish-test-client/CMakeLists.txt")
+if(AHAMKARA_BUILD_GAME AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/wish-test-client/CMakeLists.txt")
     add_subdirectory(tools/wish-test-client)
 endif()
 

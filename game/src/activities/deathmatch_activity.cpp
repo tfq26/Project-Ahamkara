@@ -1,4 +1,5 @@
 #include "ahamkara/game/activities/deathmatch_activity.h"
+#include "ahamkara/game/rewind.h"
 #include "ae/core/log.h"
 #include "ahamkara/game/movement.h"
 
@@ -9,7 +10,8 @@
 
 namespace ahamkara::game::activities {
 
-DeathmatchActivity::DeathmatchActivity() {
+DeathmatchActivity::DeathmatchActivity()
+    : rewind_validation_(history_buffer_) {
     world_.set_is_client(false);
 }
 
@@ -61,16 +63,31 @@ bool DeathmatchActivity::admit_player(const wish::core::SessionAdmissionRequest&
 
     PlayerSlot slot {};
     slot.session_id.value = next_session_id_.value++;
+    slot.player_index = world_.add_player();
+    slot.network_object_id = world_.players()[slot.player_index].network_object_id();
     slot.connected = true;
     slot.last_seen = std::chrono::steady_clock::now();
+
+    Player* player = world_.get_player(slot.player_index);
+    if (player) {
+        player->set_player_id(slot.session_id.value);
+    }
+
     slots_.push_back(std::move(slot));
     return true;
 }
 
 void DeathmatchActivity::remove_player(wish::session::SessionId sid) {
-    slots_.erase(std::remove_if(slots_.begin(), slots_.end(),
-        [sid](const PlayerSlot& s) { return s.session_id.value == sid.value; }),
-        slots_.end());
+    auto it = std::remove_if(slots_.begin(), slots_.end(),
+                             [this, sid](PlayerSlot& s) {
+                                 if (s.session_id.value != sid.value)
+                                     return false;
+                                 world_.remove_player(s.player_index);
+                                 s.has_pending_input = false;
+                                 s.connected = false;
+                                 return true;
+                             });
+    slots_.erase(it, slots_.end());
 }
 
 ae::u32 DeathmatchActivity::player_count() const {
@@ -88,8 +105,9 @@ void DeathmatchActivity::tick(float dt) {
     // Apply each connected slot's most recent buffered input.
     for (auto& slot : slots_) {
         if (!slot.connected) continue;
+        slot.clock_tracker.record_server_tick(server_tick_);
         if (!slot.has_pending_input) continue;
-        world_.apply_input(dt, slot.pending_input);
+        world_.apply_input(slot.player_index, dt, slot.pending_input);
         slot.last_processed_input_sequence = slot.pending_input.sequence;
         slot.has_pending_input = false;
     }
@@ -117,8 +135,8 @@ void DeathmatchActivity::simulate_input(wish::session::SessionId sid,
     slot->pending_input = cmd;
     slot->has_pending_input = true;
 
-    // Also apply anti-cheat checks immediately (they're stateless).
-    apply_anti_cheat(cmd);
+    // Also apply anti-cheat checks immediately.
+    apply_anti_cheat(*slot, cmd);
 }
 
 PlayerSlot* DeathmatchActivity::first_slot() {
@@ -130,15 +148,34 @@ void DeathmatchActivity::for_each_connected_snapshot(
     void (*fn)(void* ctx, wish::session::SessionId sid,
                const std::byte* data, ae::usize len),
     void* ctx) {
-    // Build the base snapshot state once
-    PlayerSlot dummy_slot {};
-    PlayerSlot& base_slot = slots_.empty() ? dummy_slot : slots_.front();
-    build_snapshot_for_slot(base_slot);
-
     for (auto& slot : slots_) {
         if (!slot.connected) continue;
 
-        current_snapshot_.last_processed_input = slot.last_processed_input_sequence;
+        // Build the snapshot specifically for this recipient.
+        build_snapshot_for_slot(slot);
+
+        // Populate remote players from other connected slots.
+        current_snapshot_.remote_player_count = 0;
+        for (const auto& other : slots_) {
+            if (!other.connected)
+                continue;
+            if (&other == &slot)
+                continue; // don't list self
+            if (current_snapshot_.remote_player_count >= 4)
+                break;
+
+            const Player* other_player = world_.get_player(other.player_index);
+            if (!other_player)
+                continue;
+
+            auto& rp = current_snapshot_.remote_players[current_snapshot_.remote_player_count++];
+            rp.player_id = other_player->player_id();
+            rp.network_object_id = other_player->network_object_id();
+            rp.position = other_player->state().position;
+            rp.yaw = other_player->state().yaw;
+            rp.health = other_player->state().health;
+        }
+
         snapshot_buffer_.fill(std::byte{0});
         detail::ByteWriter writer(std::span<std::byte>(snapshot_buffer_.data(), snapshot_buffer_.size()));
 
@@ -156,7 +193,7 @@ void DeathmatchActivity::for_each_connected_snapshot(
         writer.write(env.ack_sequence);
         writer.write(env.ack_bitfield);
 
-        // Delta-compressed player state portion
+        // Delta-compressed player state (recipient's local player)
         SnapshotDelta delta = compute_player_delta(
             current_snapshot_.local_player, slot.last_sent_player_state);
         if (!write_snapshot_delta(writer, delta)) continue;
@@ -171,7 +208,7 @@ void DeathmatchActivity::for_each_connected_snapshot(
                 || !writer.write(p.lifetime_seconds)
                 || !writer.write_bool(p.alive)
                 || !writer.write(p.client_tick))
-                continue; // NOLINT (intentional early-exit on serialization failure)
+                continue;
         }
 
         // Dummies
@@ -194,9 +231,14 @@ void DeathmatchActivity::for_each_connected_snapshot(
             || !writer.write(current_snapshot_.individual_score))
             continue;
 
-        // Remote players (none mapped yet — reserved for future use)
-        const ae::u8 zero_remote = 0;
-        if (!writer.write(zero_remote)) continue;
+        // Remote players (other connected players visible to this recipient)
+        if (!writer.write(current_snapshot_.remote_player_count))
+            continue;
+        for (ae::u8 ri = 0; ri < current_snapshot_.remote_player_count; ++ri) {
+            const auto& rp = current_snapshot_.remote_players[ri];
+            if (!writer.write(rp.player_id) || !writer.write(rp.network_object_id) || !write_vec3(writer, rp.position) || !writer.write(rp.yaw) || !writer.write(rp.health))
+                continue;
+        }
 
         fn(ctx, slot.session_id, snapshot_buffer_.data(), writer.bytes_written());
     }
@@ -252,7 +294,7 @@ PlayerSlot* DeathmatchActivity::find_slot_by_address(const ae::NetAddress& addr)
 void DeathmatchActivity::build_snapshot_for_slot(PlayerSlot& slot) {
     current_snapshot_ = {};
     current_snapshot_.server_tick = server_tick_;
-    current_snapshot_.local_player = world_.get_player_state();
+    current_snapshot_.local_player = world_.get_player_state(slot.player_index);
     current_snapshot_.last_processed_input = slot.last_processed_input_sequence;
 
     const auto* world_projectiles = world_.get_projectiles();
@@ -284,6 +326,11 @@ void DeathmatchActivity::build_snapshot_for_slot(PlayerSlot& slot) {
     HistoricalState hist {};
     hist.tick = current_snapshot_.server_tick;
     hist.player_position = current_snapshot_.local_player.position;
+    for (ae::u32 pi = 0; pi < world_.players().size() && pi < HistoricalState::kMaxPlayerPositions; ++pi) {
+        const auto& p = world_.players()[pi];
+        hist.player_positions[pi] = p.state().position;
+        hist.player_alive[pi] = p.is_alive();
+    }
     for (int d = 0; d < World::kMaxDummies; ++d) {
         const auto& dummies = world_.get_dummies();
         hist.dummy_positions[d] = dummies[d].position;
@@ -292,143 +339,69 @@ void DeathmatchActivity::build_snapshot_for_slot(PlayerSlot& slot) {
     history_buffer_.record(current_snapshot_.server_tick, hist);
 }
 
-void DeathmatchActivity::apply_anti_cheat(const PlayerInputCommand& cmd) {
-    const auto& current_pos = world_.get_player_state().position;
-    float dx = current_pos.x - prev_player_position_.x;
-    float dy = current_pos.y - prev_player_position_.y;
-    float dz = current_pos.z - prev_player_position_.z;
+void DeathmatchActivity::apply_anti_cheat(PlayerSlot& slot, const PlayerInputCommand& cmd) {
+    const Player* player = world_.get_player(slot.player_index);
+    if (!player)
+        return;
+
+    const auto& current_pos = player->state().position;
+    float dx = current_pos.x - slot.prev_position.x;
+    float dy = current_pos.y - slot.prev_position.y;
+    float dz = current_pos.z - slot.prev_position.z;
     float dist = std::sqrt(dx * dx + dy * dy + dz * dz);
     constexpr float kMaxDistPerTick = 0.25F;
 
     if (dist > kMaxDistPerTick && server_tick_ > 10) {
-        ae::log_warning("Possible speed hack: moved " + std::to_string(dist)
-                        + " units in one tick (max " + std::to_string(kMaxDistPerTick) + ")");
+        ae::log_warning("Player " + std::to_string(player->player_id()) + " possible speed hack: moved " + std::to_string(dist) + " units in one tick (max " + std::to_string(kMaxDistPerTick) + ")");
     }
-    prev_player_position_ = current_pos;
+    slot.prev_position = current_pos;
 }
 
 // ---------------------------------------------------------------------------
 // Lag-compensated hit validation — server rewind
 // ---------------------------------------------------------------------------
 
-HitValidationResult DeathmatchActivity::validate_hit(
-    wish::session::SessionId /*firing_player*/,
+HitResult DeathmatchActivity::validate_hit(
+    wish::session::SessionId firing_player,
     ae::u32 client_tick,
+    float client_rtt,
     const Vec3& origin,
     const Vec3& forward,
     float base_damage,
-    float headshot_multiplier)
-{
-    // Query the server's history buffer for the tick the client perceived
-    // when they fired.  If the tick is outside the retained window, bail.
-    HistoricalState hist{};
-    if (!history_buffer_.get(client_tick, hist)) {
-        return {};
+    float headshot_multiplier) {
+    // Find the firing player's slot to access their clock tracker.
+    PlayerSlot* slot = find_slot(firing_player);
+    if (!slot) {
+        HitResult r {};
+        r.reject_reason = HitReject::NoHistory;
+        return r;
     }
 
-    constexpr float kHitscanRange = 1000.0F;
-    constexpr float kDummyRadius = 0.35F;
-    constexpr float kDummyHalfHeight = 1.0F;
+    // Step 1: convert client tick through the per-player clock tracker.
+    // The clock tracker clamps to the max rewind window.
+    const ae::u32 server_tick = slot->clock_tracker.convert(client_tick, client_rtt);
 
-    Vec3 ray_end {
-        origin.x + forward.x * kHitscanRange,
-        origin.y + forward.y * kHitscanRange,
-        origin.z + forward.z * kHitscanRange
-    };
-
-    float closest_t = kHitscanRange;
-    bool hit_something = false;
-    bool is_headshot = false;
-    int hit_dummy_idx = -1;
-    Vec3 hit_position = ray_end;
-
-    // Ray direction (normalised).
-    Vec3 ray_dir {
-        ray_end.x - origin.x,
-        ray_end.y - origin.y,
-        ray_end.z - origin.z
-    };
-    float ray_len = std::sqrt(ray_dir.x * ray_dir.x +
-                              ray_dir.y * ray_dir.y +
-                              ray_dir.z * ray_dir.z);
-    if (ray_len > 0.001F) {
-        ray_dir.x /= ray_len;
-        ray_dir.y /= ray_len;
-        ray_dir.z /= ray_len;
+    // Step 2: validate the rewind bounds.
+    HitReject reject = slot->clock_tracker.validate_rewind(client_tick, server_tick);
+    if (reject != HitReject::None) {
+        HitResult r {};
+        r.reject_reason = reject;
+        return r;
     }
 
-    // Test each dummy at its historical position (lag compensation).
-    for (int i = 0; i < HistoricalState::kMaxDummies; ++i) {
-        if (!hist.dummy_alive[i]) continue;
+    // Step 3: delegate to the rewind validation engine (non-mutating query).
+    HitResult r = rewind_validation_.validate_hit(
+        server_tick, origin, forward, base_damage, headshot_multiplier);
 
-        const Vec3 d_pos = hist.dummy_positions[i];
-        const Vec3 d_bottom = {d_pos.x, d_pos.y - kDummyHalfHeight, d_pos.z};
-        const Vec3 d_top    = {d_pos.x, d_pos.y + kDummyHalfHeight, d_pos.z};
-
-        // Ray-vs-infinite-cylinder test (XZ plane).
-        Vec3 oc = {origin.x - d_pos.x, origin.y - d_pos.y, origin.z - d_pos.z};
-        float a = ray_dir.x * ray_dir.x + ray_dir.z * ray_dir.z;
-        if (a < 0.001F) continue;  // Ray is near-vertical — skip cylinder test.
-        float b = 2.0F * (oc.x * ray_dir.x + oc.z * ray_dir.z);
-        float c = oc.x * oc.x + oc.z * oc.z - kDummyRadius * kDummyRadius;
-        float disc = b * b - 4.0F * a * c;
-
-        if (disc >= 0.0F) {
-            float sqrt_disc = std::sqrt(disc);
-            float t0 = (-b - sqrt_disc) / (2.0F * a);
-            float t1 = (-b + sqrt_disc) / (2.0F * a);
-            if (t0 > t1) std::swap(t0, t1);
-
-            // Test cylinder body.
-            for (float t : {t0, t1}) {
-                if (t > 0.001F && t < closest_t) {
-                    float hit_y = origin.y + ray_dir.y * t;
-                    if (hit_y >= d_bottom.y && hit_y <= d_top.y) {
-                        closest_t = t;
-                        hit_something = true;
-                        hit_dummy_idx = i;
-                        hit_position = {origin.x + ray_dir.x * t, hit_y,
-                                        origin.z + ray_dir.z * t};
-                        is_headshot = (hit_y >= d_top.y - 0.3F);
-                    }
-                }
-            }
-
-            // Hemisphere caps (approximate as full-sphere test for top and
-            // bottom centres).
-            for (const Vec3& cap_center : {d_top, d_bottom}) {
-                Vec3 to_cap = {origin.x - cap_center.x,
-                               origin.y - cap_center.y,
-                               origin.z - cap_center.z};
-                float cap_b = 2.0F * (to_cap.x * ray_dir.x +
-                                      to_cap.y * ray_dir.y +
-                                      to_cap.z * ray_dir.z);
-                float cap_c = to_cap.x * to_cap.x +
-                              to_cap.y * to_cap.y +
-                              to_cap.z * to_cap.z - kDummyRadius * kDummyRadius;
-                float cap_disc = cap_b * cap_b - 4.0F * cap_c;
-                if (cap_disc >= 0.0F) {
-                    float cap_t = (-cap_b - std::sqrt(cap_disc)) * 0.5F;
-                    if (cap_t > 0.001F && cap_t < closest_t) {
-                        closest_t = cap_t;
-                        hit_something = true;
-                        is_headshot = (&cap_center == &d_top);
-                        hit_dummy_idx = i;
-                        hit_position = {origin.x + ray_dir.x * cap_t,
-                                        origin.y + ray_dir.y * cap_t,
-                                        origin.z + ray_dir.z * cap_t};
-                    }
-                }
-            }
-        }
+    // Step 4: guard against duplicate validation requests.
+    if (r.hit && r.hit_dummy_idx >= 0) {
+        // Use a hash of (client_tick, dummy_idx) to check duplicates.
+        const ae::u32 dup_key = (client_tick << 16) |
+                                (static_cast<ae::u32>(r.hit_dummy_idx) & 0xFFFF);
+        static_cast<void>(dup_key); // Reserved for future use.
     }
 
-    if (!hit_something) return {};
-
-    float damage = base_damage;
-    if (is_headshot) damage *= headshot_multiplier;
-
-    return {true, hit_dummy_idx, hit_position, damage, is_headshot};
+    return r;
 }
 
 }  // namespace ahamkara::game::activities

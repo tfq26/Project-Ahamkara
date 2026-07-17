@@ -5,7 +5,7 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/completed/TASK-20260622-1100-phase4-reconciliation-replay-fix.md
+task: TASK-20260622-1100-phase4-reconciliation-replay-fix
 report: TASK-20260622-1100-phase4-reconciliation-replay-fix-report.md
 decision: complete
 escalation_tier: low
@@ -18,7 +18,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260622-1100-phase4-reconciliation-replay-fix](../../vault/queue-tasks/completed/TASK-20260622-1100-phase4-reconciliation-replay-fix.md)
+TASK-20260622-1100-phase4-reconciliation-replay-fix
 
 ## Report
 

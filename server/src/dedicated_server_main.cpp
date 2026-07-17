@@ -2,7 +2,9 @@
 #include "ae/core/log.h"
 #include "ae/core/time.h"
 #include "ae/network/cli_helpers.h"
+#include "ae/network/connection.h"
 #include "ae/network/network_simulator.h"
+#include "ae/network/reliable_channel.h"
 #include "ae/network/server_history.h"
 #include "ae/network/udp_socket.h"
 #include "ae/render/compiled_level.h"
@@ -41,25 +43,22 @@ inline std::string build_remote_endpoint(const ae::NetAddress& address) {
     return address.ip + ":" + std::to_string(address.port);
 }
 
-/// State for one peer connected to this server across all activities.
-struct PeerState {
-    ae::NetAddress address {};
-    bool handshake_complete {false};
-    std::chrono::steady_clock::time_point last_seen {};
-    wish::session::SessionId session_id {};
-    wish::core::ActivityId activity_id {0};
-
-    // Auth state
+/// Per-session bookkeeping: additional state the server tracks alongside
+/// the ConnectionManager's PeerConnection.
+struct SessionState {
     bool session_admitted {false};
     std::string authenticated_player_id;
     std::string pending_auth_token;
+    wish::session::SessionId session_id {};
+    wish::core::ActivityId activity_id {0};
+    ae::ReliableChannel reliable_channel {};
 };
 
-}  // namespace
+} // namespace
 
 int main(int argc, char** argv) {
     ae::Application application(ae::RuntimeMode::DedicatedServer);
-    application.start();
+    (void)application.start();
 
     const wish::admin::ServerConfig server_config = wish::admin::load_server_config(argc, argv);
 
@@ -125,9 +124,14 @@ int main(int argc, char** argv) {
     wish::integrations::nakama::NoopSessionAdmissionService session_admission_service;
     wish::integrations::nakama::NoopMatchResultReporter match_result_reporter;
 
-    // ── Peer tracking ─────────────────────────────────────────────────────
-    std::unordered_map<std::string, PeerState> peers;
-    std::vector<ae::NetAddress> handshake_list;  // addresses that completed handshake
+    // ── Peer tracking: ConnectionManager + per-session state ────────────
+    ae::ConnectionManager conn_manager(
+        std::chrono::seconds(5),  // handshake timeout
+        std::chrono::seconds(10), // disconnect timeout
+        std::chrono::seconds(30), // grace period
+        3                         // max missed heartbeats
+    );
+    std::unordered_map<ae::u64, SessionState> session_states;
 
     // ── Tick timing ───────────────────────────────────────────────────────
     const float tick_rate = server_config.tick_rate > 0.0F ? server_config.tick_rate : 60.0F;
@@ -139,6 +143,8 @@ int main(int argc, char** argv) {
 
     ae::u32 server_tick = 0;
     ae::u32 main_envelope_seq = 0;
+    ae::u32 next_session_id = 1;
+    ae::u32 heartbeat_tick_interval = static_cast<ae::u32>(tick_rate); // 1 Hz
 
     // ── Packet buffers ────────────────────────────────────────────────────
     ahamkara::game::PlayerInputPacketBuffer packet_buffer {};
@@ -173,14 +179,13 @@ int main(int argc, char** argv) {
             status.match_active = true;
         }
 
-        // Report players from all running activities
-        for (auto& p : peers) {
-            if (!p.second.handshake_complete) continue;
+        // Report connected peers
+        conn_manager.for_each_state(ae::ConnectionState::Connected, [&](const ae::PeerConnection& peer) {
             wish::admin::PlayerStatus player {};
-            player.endpoint = p.first;
-            player.seconds_since_seen = std::chrono::duration<float>(now - p.second.last_seen).count();
+            player.endpoint = peer.address.ip + ":" + std::to_string(peer.address.port);
+            player.seconds_since_seen = std::chrono::duration<float>(now - peer.last_seen).count();
             status.players.push_back(std::move(player));
-        }
+        });
 
         std::lock_guard<std::mutex> lock(admin_status_mutex);
         admin_status = std::move(status);
@@ -214,6 +219,10 @@ int main(int argc, char** argv) {
 
     auto previous_frame = std::chrono::steady_clock::now();
 
+    // Additional buffers for heartbeat and welcome packets.
+    ahamkara::game::HeartbeatPacketBuffer heartbeat_buffer {};
+    ahamkara::game::ClientReconnectPacketBuffer reconnect_buffer {};
+
     // ── Main loop ─────────────────────────────────────────────────────────
     while (application.is_running()) {
         const float frame_dt = ae::compute_frame_dt(previous_frame);
@@ -226,17 +235,16 @@ int main(int argc, char** argv) {
         while (true) {
             ae::NetAddress from {};
             const ae::i32 received = sim.receive_from(from, packet_buffer.data(), packet_buffer.size());
-            if (received <= 0) break;
+            if (received <= 0)
+                break;
 
             const auto packet_span = std::span<const std::byte>(
                 packet_buffer.data(), static_cast<ae::usize>(received));
 
-            std::string peer_key = from.ip + ":" + std::to_string(from.port);
-            PeerState& peer = peers[peer_key];
-            peer.address = from;
-            peer.last_seen = frame_now;
+            // Register peer activity via ConnectionManager.
+            ae::PeerConnection& peer_conn = conn_manager.connect_request(from, frame_now);
 
-            // ── Handshake ──────────────────────────────────────────────
+            // ── Handshake (ClientHello) ────────────────────────────────
             if (received >= static_cast<ae::i32>(ahamkara::game::kMinClientHelloWireSize)) {
                 ahamkara::game::ClientHelloPacket hello {};
                 ahamkara::game::PacketEnvelope in_envelope {};
@@ -252,60 +260,104 @@ int main(int argc, char** argv) {
 
                     ahamkara::game::PacketEnvelope env {};
                     env.sequence = ++main_envelope_seq;
-                    if (!ahamkara::game::serialize_server_reject_packet(env, reject, reject_buffer)
-                        || !sim.send_to(from, reject_buffer.data(), reject_buffer.size())) {
+                    if (!ahamkara::game::serialize_server_reject_packet(env, reject, reject_buffer) || !sim.send_to(from, reject_buffer.data(), reject_buffer.size())) {
                         ae::log_warning("Dedicated server failed to reject an unsupported protocol version.");
                     }
                     continue;
                 }
 
-                if (static_cast<int>(handshake_list.size()) >= server_config.max_players &&
-                    std::find(handshake_list.begin(), handshake_list.end(), from) == handshake_list.end()) {
-                    ahamkara::game::ServerRejectPacket reject {};
-                    reject.protocol_version = ahamkara::game::kProtocolVersion;
-                    reject.reason = ahamkara::game::HandshakeRejectReason::ServerBusy;
+                // Check capacity.
+                {
+                    const auto handshaking_count = conn_manager.count_by_state(ae::ConnectionState::Handshaking) + conn_manager.count_by_state(ae::ConnectionState::Connected);
+                    if (static_cast<int>(handshaking_count) > server_config.max_players &&
+                        !peer_conn.preserves_session) {
+                        ahamkara::game::ServerRejectPacket reject {};
+                        reject.protocol_version = ahamkara::game::kProtocolVersion;
+                        reject.reason = ahamkara::game::HandshakeRejectReason::ServerBusy;
 
-                    ahamkara::game::PacketEnvelope env {};
-                    env.sequence = ++main_envelope_seq;
-                    if (!ahamkara::game::serialize_server_reject_packet(env, reject, reject_buffer)
-                        || !sim.send_to(from, reject_buffer.data(), reject_buffer.size())) {
-                        ae::log_warning("Dedicated server failed to reject an extra client.");
+                        ahamkara::game::PacketEnvelope env {};
+                        env.sequence = ++main_envelope_seq;
+                        if (!ahamkara::game::serialize_server_reject_packet(env, reject, reject_buffer) || !sim.send_to(from, reject_buffer.data(), reject_buffer.size())) {
+                            ae::log_warning("Dedicated server failed to reject an extra client.");
+                        }
+                        continue;
                     }
-                    continue;
                 }
 
-                if (std::find(handshake_list.begin(), handshake_list.end(), from) == handshake_list.end()) {
-                    handshake_list.push_back(from);
+                // If this is a graceful reconnect (session already in grace period),
+                // skip the full handshake and restore session.
+                const bool is_reconnect = peer_conn.state == ae::ConnectionState::Connected &&
+                                          peer_conn.preserves_session;
+
+                if (!is_reconnect) {
+                    // Complete the handshake: set session id.
+                    const ae::u64 sid = next_session_id++;
+                    conn_manager.complete_handshake(from, sid, frame_now);
                 }
+
+                // Reload session state reference.
+                auto* peer_conn_ref = conn_manager.find(from);
+                if (!peer_conn_ref)
+                    continue;
+                const ae::u64 sid = peer_conn_ref->session_id;
+
+                auto& ss_it = session_states[sid];
+                ss_it.session_id.value = sid;
 
                 ahamkara::game::ServerWelcomePacket welcome {};
                 welcome.protocol_version = ahamkara::game::kProtocolVersion;
                 std::snprintf(welcome.player_id, ahamkara::game::kMaxPlayerIdLength, "%s",
-                    peer.authenticated_player_id.empty() ? "pending" : peer.authenticated_player_id.c_str());
+                              ss_it.authenticated_player_id.empty() ? "pending" : ss_it.authenticated_player_id.c_str());
 
                 ahamkara::game::PacketEnvelope env {};
                 env.sequence = ++main_envelope_seq;
-                if (!ahamkara::game::serialize_server_welcome_packet(env, welcome, welcome_buffer)
-                    || !sim.send_to(from, welcome_buffer.data(), welcome_buffer.size())) {
+                if (!ahamkara::game::serialize_server_welcome_packet(env, welcome, welcome_buffer) || !sim.send_to(from, welcome_buffer.data(), welcome_buffer.size())) {
                     ae::log_warning("Dedicated server failed to send a handshake welcome.");
                 }
 
-                // Save the auth token for later validation on first input
+                // Save the auth token for later validation on first input.
                 if (hello.auth_token_length > 0 && hello.auth_token_length <= ahamkara::game::kMaxAuthTokenLength) {
-                    peer.pending_auth_token.assign(hello.auth_token, hello.auth_token_length);
+                    ss_it.pending_auth_token.assign(hello.auth_token, hello.auth_token_length);
                 }
 
-                peer.handshake_complete = true;
+                conn_manager.touch(from, frame_now);
+                continue;
+            }
+
+            // ── Heartbeat pong from client ───────────────────────────
+            if (received == static_cast<ae::i32>(ahamkara::game::heartbeat_packet_size())) {
+                ahamkara::game::PacketEnvelope hb_envelope {};
+                ahamkara::game::HeartbeatPacket hb_packet {};
+                if (ahamkara::game::deserialize_heartbeat_packet(packet_span, hb_envelope, hb_packet)) {
+                    conn_manager.touch(from, frame_now);
+                }
+                continue;
+            }
+
+            // ── ClientReconnect ───────────────────────────────────────
+            if (received == static_cast<ae::i32>(ahamkara::game::client_reconnect_packet_size())) {
+                ahamkara::game::PacketEnvelope rc_envelope {};
+                ahamkara::game::ClientReconnectPacket rc_packet {};
+                if (ahamkara::game::deserialize_client_reconnect_packet(packet_span, rc_envelope, rc_packet)) {
+                    // Find the peer in grace period by session_id.
+                    auto* grace_peer = conn_manager.find_by_session(rc_packet.session_id);
+                    if (grace_peer && grace_peer->state == ae::ConnectionState::GracePeriod) {
+                        // Reconnect: transition back to Connected.
+                        conn_manager.connect_request(from, frame_now);
+                        conn_manager.complete_handshake(from, rc_packet.session_id, frame_now);
+                        ae::log_info("Client reconnected with session " + std::to_string(rc_packet.session_id));
+                    }
+                }
                 continue;
             }
 
             // ── Input packets ──────────────────────────────────────────
             if (received != static_cast<ae::i32>(packet_buffer.size())) {
-                // Unknown packet size — could be activity-specific
+                // Unknown packet size — could be activity-specific.
                 continue;
             }
 
-            if (!peer.handshake_complete) {
+            if (peer_conn.state != ae::ConnectionState::Connected) {
                 ae::log_warning("Dedicated server received input before handshake completion.");
                 continue;
             }
@@ -318,11 +370,17 @@ int main(int argc, char** argv) {
                 continue;
             }
 
+            auto& ss = session_states[peer_conn.session_id];
+
+            // Feed the envelope into the per-session reliable channel for ack tracking.
+            ss.reliable_channel.on_ack(in_envelope.ack_sequence, in_envelope.ack_bitfield);
+
             // ── Auth / admission (first input) ─────────────────────────
-            if (!peer.session_admitted) {
+            if (!ss.session_admitted) {
                 const std::string remote_endpoint = build_remote_endpoint(from);
-                const std::string& auth_token = peer.pending_auth_token.empty()
-                    ? "wish-placeholder-token" : peer.pending_auth_token;
+                const std::string& auth_token = ss.pending_auth_token.empty()
+                                                    ? "wish-placeholder-token"
+                                                    : ss.pending_auth_token;
                 const wish::core::AuthResult auth_result = auth_validator->validate(
                     wish::core::AuthRequest {
                         .token = auth_token,
@@ -345,54 +403,65 @@ int main(int argc, char** argv) {
                     continue;
                 }
 
-                // Admit the player into the default deathmatch activity
+                // Admit the player into the default deathmatch activity.
                 auto* dm = static_cast<ahamkara::game::activities::DeathmatchActivity*>(
                     activity_mgr.get_activity(default_activity_id));
                 if (!dm || !dm->admit_player(wish::core::SessionAdmissionRequest {
-                        .player_id = auth_result.player_id,
-                        .session_id = auth_result.session_id,
-                        .remote_endpoint = remote_endpoint,
-                    })) {
+                               .player_id = auth_result.player_id,
+                               .session_id = auth_result.session_id,
+                               .remote_endpoint = remote_endpoint,
+                           })) {
                     ae::log_warning("Dedicated server could not admit player into activity.");
                     continue;
                 }
 
-                // Get the player slot
+                // Get the player slot.
                 auto* slot = dm->first_slot();
                 if (slot) {
                     slot->address = from;
-                    peer.session_id = slot->session_id;
-                    peer.activity_id = default_activity_id;
-                    peer.session_admitted = true;
-                    peer.authenticated_player_id = auth_result.player_id;
+                    ss.session_id = slot->session_id;
+                    ss.activity_id = default_activity_id;
+                    ss.session_admitted = true;
+                    ss.authenticated_player_id = auth_result.player_id;
                 }
             }
 
             // ── Route input to the activity ────────────────────────────
-            auto* activity = activity_mgr.get_activity(peer.activity_id);
-            if (!activity) continue;
+            auto* activity = activity_mgr.get_activity(ss.activity_id);
+            if (!activity)
+                continue;
 
-            // Record envelope processing
-            activity->process_input(peer.session_id, in_envelope, command.sequence);
+            // Record envelope processing.
+            activity->process_input(ss.session_id, in_envelope, command.sequence);
 
-            // Simulate input in deathmatch activity
+            // Simulate input in deathmatch activity.
             if (auto* dm = dynamic_cast<ahamkara::game::activities::DeathmatchActivity*>(activity)) {
-                dm->simulate_input(peer.session_id, delta_seconds, command);
+                dm->simulate_input(ss.session_id, delta_seconds, command);
             }
+
+            conn_manager.touch(from, frame_now);
         }
 
-        // ── Prune timed-out peers ──────────────────────────────────────
-        for (auto it = peers.begin(); it != peers.end(); ) {
-            const auto elapsed = std::chrono::duration<float>(frame_now - it->second.last_seen).count();
-            if (elapsed > server_config.disconnect_timeout_seconds) {
+        // ── State machine tick & peer pruning ──────────────────────────
+        // ConnectionManager handles timeouts: Handshaking→removed,
+        // Connected→GracePeriod→removed, Disconnecting→removed.
+        // Before ticking, notify activities about peers entering GracePeriod.
+        conn_manager.for_each_state(ae::ConnectionState::GracePeriod, [&](ae::PeerConnection& peer) {
+            auto it = session_states.find(peer.session_id);
+            if (it != session_states.end() && it->second.session_admitted) {
                 auto* activity = activity_mgr.get_activity(it->second.activity_id);
                 if (activity) {
                     activity->remove_player(it->second.session_id);
                 }
-                handshake_list.erase(
-                    std::remove(handshake_list.begin(), handshake_list.end(), it->second.address),
-                    handshake_list.end());
-                it = peers.erase(it);
+            }
+        });
+
+        conn_manager.tick(frame_now);
+
+        // Clean up session state for removed peers.
+        for (auto it = session_states.begin(); it != session_states.end();) {
+            if (conn_manager.find_by_session(it->first) == nullptr) {
+                it = session_states.erase(it);
             } else {
                 ++it;
             }
@@ -401,24 +470,70 @@ int main(int argc, char** argv) {
         // ── Tick all activities ────────────────────────────────────────
         activity_mgr.tick_all(delta_seconds);
 
-        // ── Broadcast snapshots ────────────────────────────────────────
+        // ── Broadcast snapshots with reliable channel integration ──────
         activity_mgr.broadcast_snapshots([&](wish::session::SessionId sid,
-                                              const std::byte* data, ae::usize len) {
-            // Find the client address for this session
-            for (auto& p : peers) {
-                if (p.second.session_id.value == sid.value && p.second.handshake_complete) {
-                    sim.send_to(p.second.address, data, static_cast<ae::i32>(len));
-                    break;
-                }
+                                             const std::byte* data, ae::usize len) {
+            // Find the client address for this session.
+            auto* peer = conn_manager.find_by_session(sid.value);
+            if (!peer || peer->state != ae::ConnectionState::Connected)
+                return;
+
+            // Track in reliable channel.
+            auto it = session_states.find(sid.value);
+            if (it != session_states.end()) {
+                auto& rc = it->second.reliable_channel;
+                const auto seq = peer->sequence_tracker.prepare_outgoing();
+                rc.on_send(seq.sequence, reinterpret_cast<const ae::u8*>(data), len,
+                           std::chrono::duration<double>(frame_now.time_since_epoch()).count());
             }
+
+            sim.send_to(peer->address, data, static_cast<ae::i32>(len));
         });
+
+        // ── Retransmit unacked reliable snapshots ─────────────────────
+        const double now_seconds = std::chrono::duration<double>(frame_now.time_since_epoch()).count();
+        constexpr double kReliableTimeout = 0.1; // 100 ms retransmit timeout.
+
+        for (auto& [sid, ss] : session_states) {
+            (void)sid;
+            const auto due = ss.reliable_channel.collect_retransmits(now_seconds, kReliableTimeout);
+            for (const auto seq : due) {
+                const auto* payload = ss.reliable_channel.payload(seq);
+                if (!payload)
+                    continue;
+                auto* peer = conn_manager.find_by_session(sid);
+                if (!peer || peer->state != ae::ConnectionState::Connected)
+                    continue;
+                sim.send_to(peer->address, payload->data(), static_cast<ae::i32>(payload->size()));
+            }
+        }
+
+        // ── Heartbeat broadcast ───────────────────────────────────────
+        if (server_tick % heartbeat_tick_interval == 0) {
+            ahamkara::game::HeartbeatPacket hb {};
+            hb.server_tick = server_tick;
+            hb.connected_players = static_cast<ae::u32>(conn_manager.connected_count());
+
+            conn_manager.for_each_state(ae::ConnectionState::Connected, [&](ae::PeerConnection& peer) {
+                ahamkara::game::PacketEnvelope env {};
+                env.sequence = ++main_envelope_seq;
+                if (ahamkara::game::serialize_heartbeat_packet(env, hb, heartbeat_buffer)) {
+                    if (!sim.send_to(peer.address, heartbeat_buffer.data(), heartbeat_buffer.size())) {
+                        ae::log_warning("Dedicated server failed to send heartbeat.");
+                    }
+                }
+                // Mark this heartbeat as potentially missed (cleared on next packet).
+                conn_manager.mark_missed_heartbeat(peer.address);
+            });
+        }
 
         // ── Periodic stats ─────────────────────────────────────────────
         server_tick++;
         if (server_tick % 300 == 0) {
             std::ostringstream stats;
             stats << "Server tick=" << server_tick
-                  << " peers=" << peers.size()
+                  << " peers=" << conn_manager.count()
+                  << " connected=" << conn_manager.connected_count()
                   << " activities=" << activity_mgr.running_count()
                   << " players=" << activity_mgr.total_player_count();
             ae::log_info(stats.str());
@@ -440,11 +555,12 @@ int main(int argc, char** argv) {
     }
 
     // ── Shutdown ──────────────────────────────────────────────────────────
-    for (auto& p : peers) {
-        if (p.second.session_admitted) {
+    for (auto& [sid, ss] : session_states) {
+        (void)sid;
+        if (ss.session_admitted) {
             match_result_reporter.report_match_result(wish::core::MatchResult {
                 .match_id = "wish-match",
-                .player_id = p.second.authenticated_player_id,
+                .player_id = ss.authenticated_player_id,
                 .completed = false,
                 .summary = "dedicated server shutdown",
             });

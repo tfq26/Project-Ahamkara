@@ -136,8 +136,8 @@ public:
               StateMachine& sm,
               AnimationGraph& graph,
               WeaponAnimState& weapon_state,
-              render::Mat4& out_weapon_transform,
-              std::vector<render::Mat4>& out_pose);
+              skeleton::Mat4& out_weapon_transform,
+              std::vector<skeleton::Mat4>& out_pose);
 
     /// Compute aim offset additive transforms for third-person.
     void compute_aim_offset(const AnimGameplayInput& input,
@@ -170,23 +170,28 @@ private:
 
 /// Compressed animation state for network replication.
 /// 8 bytes total, suitable for server snapshots.
-#ifdef _MSC_VER
-#pragma pack(push, 1)
-#endif
 struct alignas(8) CompressedAnimState {
-    std::uint8_t state_id : 6;         // AnimMovementState enum
-    std::uint8_t blend_param : 8;      // quantized 0..255 → 0..1
-    std::uint8_t clip_time : 8;        // quantized 0..255 → 0..1
-    std::uint8_t crossfade_weight : 7; // quantized 0..127 → 0..1
-    std::uint8_t is_transitioning : 1;
-    std::uint16_t aim_yaw : 10;        // quantized radians (-π..π)
-    std::uint16_t aim_pitch : 10;      // quantized radians (-π/2..π/2)
-    std::uint8_t flags : 4;            // is_ads, is_firing, is_on_ground, etc.
+    // Layout: explicit bytes to guarantee 8-byte size across all compilers.
+    // Byte 0: state_id (6 bits) | blend_param high 2 bits
+    // Byte 1: blend_param low 8 bits
+    // Byte 2: clip_time
+    // Byte 3: crossfade_weight (7 bits) | is_transitioning (1 bit)
+    // Byte 4-5: aim_yaw (10 bits) | aim_pitch high 6 bits
+    // Byte 6: aim_pitch low 8 bits
+    // Byte 7: flags (4 bits) | padding (4 bits)
+    std::uint8_t state_id_: 6;         // AnimMovementState enum
+    std::uint8_t blend_param_hi: 2;    // blend_param bits 8-9
+    std::uint8_t blend_param_lo;
+    std::uint8_t clip_time_;
+    std::uint8_t crossfade_weight_: 7; // quantized 0..127 → 0..1
+    std::uint8_t is_transitioning_: 1;
+    std::uint16_t aim_yaw_: 10;        // quantized radians (-π..π)
+    std::uint16_t aim_pitch_hi: 6;     // aim_pitch bits 8-9
+    std::uint8_t aim_pitch_lo;
+    std::uint8_t flags_: 4;            // is_ads, is_firing, is_on_ground, etc.
+    std::uint8_t : 4;                  // padding
 };
 static_assert(sizeof(CompressedAnimState) == 8, "CompressedAnimState must be 8 bytes");
-#ifdef _MSC_VER
-#pragma pack(pop)
-#endif
 
 /// Quantize a float in [0,1] to a uint8_t
 inline std::uint8_t quantize_normalized(float value) {

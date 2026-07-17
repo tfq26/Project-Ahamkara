@@ -1,0 +1,15 @@
+---
+BasedOnStyle: LLVM
+IndentWidth: 4
+ContinuationIndentWidth: 4
+ColumnLimit: 0
+SortIncludes: Never
+IncludeBlocks: Preserve
+DerivePointerAlignment: false
+PointerAlignment: Left
+NamespaceIndentation: None
+SpaceBeforeCpp11BracedList: true
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+

@@ -3,6 +3,9 @@
 #include "asset_importer_manifest.h"
 #include "asset_importer_registry.h"
 #include "asset_importer_pack.h"
+#include "ae/core/log.h"
+
+#define AE_LOG_CATEGORY "Tools"
 
 #include <filesystem>
 #include <iostream>
@@ -71,7 +74,7 @@ int main(int argc, char** argv) {
     records.reserve(entries.size());
     for (const auto& entry : entries) {
         if (!std::filesystem::exists(entry.source)) {
-            std::cerr << "Skipping missing source asset: " << entry.source << '\n';
+            ae::log_warning_cat(AE_LOG_CATEGORY, "Skipping missing source asset: " + entry.source.string());
             ++stats.skipped;
             continue;
         }
@@ -88,7 +91,7 @@ int main(int argc, char** argv) {
                 continue;
             }
 
-            std::cout << "skip   " << entry.source << " -> " << entry.output << '\n';
+            ae::log_info_cat(AE_LOG_CATEGORY, "skip   " + entry.source.string() + " -> " + entry.output.string());
             records.push_back(std::move(record));
             ++stats.skipped;
             continue;
@@ -103,6 +106,7 @@ int main(int argc, char** argv) {
             records.push_back(std::move(record));
             ++stats.imported;
         } else {
+            ae::log_error_cat(AE_LOG_CATEGORY, "FAIL   " + entry.source.string());
             ++stats.failed;
         }
     }
@@ -111,15 +115,15 @@ int main(int argc, char** argv) {
         if (!write_registry(registry_path, records)) {
             ++stats.failed;
         } else {
-            std::cout << "registry " << registry_path << '\n';
+            ae::log_info_cat(AE_LOG_CATEGORY, "registry " + registry_path.string());
             // Auto-pack all compiled assets into assets.pkg
             std::filesystem::path pkg_path = registry_path.parent_path() / "assets.pkg";
             if (!pack_assets(registry_path, pkg_path)) {
-                std::cerr << "Warning: Auto-packing assets failed.\n";
+                ae::log_error_cat(AE_LOG_CATEGORY, "Auto-packing assets failed");
             }
         }
     }
 
-    std::cout << "Imported: " << stats.imported << ", skipped: " << stats.skipped << ", failed: " << stats.failed << '\n';
+    ae::log_info_cat(AE_LOG_CATEGORY, "Imported: " + std::to_string(stats.imported) + ", skipped: " + std::to_string(stats.skipped) + ", failed: " + std::to_string(stats.failed));
     return stats.failed == 0 ? 0 : 1;
 }

@@ -1,172 +1,78 @@
 #pragma once
+// Private header — game/src/ only.
+// Bridges the engine-owned CollisionWorld + CharacterController to game code.
+// Game public headers must NOT include this file or any Jolt headers directly.
 
 #include <Jolt/Jolt.h>
-#include <Jolt/RegisterTypes.h>
-#include <Jolt/Core/Factory.h>
-#include <Jolt/Core/TempAllocator.h>
-#include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Body/BodyID.h>
 
+#include "ae/collision/world.h"
+#include "ae/collision/character.h"
 #include "ahamkara/game/debug_map.h"
 
+#include <memory>
 #include <vector>
 
 namespace ahamkara::game {
 
-// --- Jolt Physics Layers ------------------------------------------------------
-
-namespace Layers {
-    static constexpr JPH::ObjectLayer NON_MOVING = 0;
-    static constexpr JPH::ObjectLayer MOVING = 1;
-    static constexpr JPH::ObjectLayer NUM_LAYERS = 2;
-}
-
-namespace BroadPhaseLayers {
-    static constexpr JPH::BroadPhaseLayer NON_MOVING(0);
-    static constexpr JPH::BroadPhaseLayer MOVING(1);
-    static constexpr JPH::uint NUM_LAYERS(2);
-}
-
-// --- Jolt Filter Implementations ----------------------------------------------
-
-class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter {
-public:
-    virtual bool ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const override {
-        switch (inObject1) {
-            case Layers::NON_MOVING:
-                return inObject2 == Layers::MOVING;
-            case Layers::MOVING:
-                return true;
-            default:
-                return false;
-        }
-    }
-};
-
-class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface {
-public:
-    BPLayerInterfaceImpl() {
-        mObjectToBroadPhase[Layers::NON_MOVING] = BroadPhaseLayers::NON_MOVING;
-        mObjectToBroadPhase[Layers::MOVING] = BroadPhaseLayers::MOVING;
-    }
-
-    virtual JPH::uint GetNumBroadPhaseLayers() const override {
-        return BroadPhaseLayers::NUM_LAYERS;
-    }
-
-    virtual JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override {
-        return mObjectToBroadPhase[inLayer];
-    }
-
-#if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
-    virtual const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override {
-        switch ((JPH::BroadPhaseLayer::Type)inLayer) {
-            case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING: return "NON_MOVING";
-            case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::MOVING:     return "MOVING";
-            default:                                                       return "INVALID";
-        }
-    }
-#endif
-
-private:
-    JPH::BroadPhaseLayer mObjectToBroadPhase[Layers::NUM_LAYERS];
-};
-
-class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFilter {
-public:
-    virtual bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override {
-        switch (inLayer1) {
-            case Layers::NON_MOVING:
-                return inLayer2 == BroadPhaseLayers::MOVING;
-            case Layers::MOVING:
-                return true;
-            default:
-                return false;
-        }
-    }
-};
+struct TargetDummyState;
+class World;
 
 // --- Character Contact Listener ------------------------------------------------
-
-class World;
 
 class AhamkaraCharacterContactListener : public JPH::CharacterContactListener {
 private:
     World* world_;
-public:
-    AhamkaraCharacterContactListener(World* world) : world_(world) {}
+    ae::collision::CollisionWorld* collision_world_;
 
-    virtual bool OnContactValidate(const JPH::CharacterVirtual* inCharacter, const JPH::BodyID& inBodyID2, const JPH::SubShapeID& inSubShapeID2) override;
+  public:
+    AhamkaraCharacterContactListener(World* world, ae::collision::CollisionWorld* cw)
+        : world_(world), collision_world_(cw) {}
+
+    bool OnContactValidate(const JPH::CharacterVirtual* inCharacter,
+                           const JPH::BodyID& inBodyID2,
+                           const JPH::SubShapeID& inSubShapeID2) override;
 };
 
-// --- JoltWorldImpl -------------------------------------------------------------
-
-struct TargetDummyState;
+// --- JoltWorldImpl (GamePhysics) ------------------------------------------------
 
 struct JoltWorldImpl {
-    JPH::TempAllocatorImpl temp_allocator;
-    JPH::JobSystemThreadPool job_system;
+    // Engine-owned world — the single authoritative physics simulation
+    ae::collision::CollisionWorld collision_world;
 
-    BPLayerInterfaceImpl bp_layer_interface;
-    ObjectVsBroadPhaseLayerFilterImpl ob_bp_filter;
-    ObjectLayerPairFilterImpl ob_ob_filter;
+    // Character controller — wraps JPH::CharacterVirtual
+    std::unique_ptr<ae::collision::CharacterController> character;
 
-    JPH::PhysicsSystem physics_system;
-
+    // Cached shapes for crouch/stand transitions (opaque handles)
     JPH::RefConst<JPH::Shape> standing_shape;
     JPH::RefConst<JPH::Shape> crouching_shape;
+    bool is_crouched {false}; // Tracks last set shape
 
-    JPH::CharacterVirtual* character = nullptr;
+    // Bridge body storage — raw Jolt BodyIDs managed by game code.
+    // Will be migrated to CollisionWorld::BodyHandle in a later phase.
     std::vector<JPH::BodyID> map_bodies;
     std::vector<JPH::BodyID> dummy_bodies;
 
     AhamkaraCharacterContactListener contact_listener;
 
-    JoltWorldImpl(World* world)
-        : temp_allocator(10 * 1024 * 1024)
-        , job_system(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, 1)
-        , contact_listener(world) {
+    JoltWorldImpl(World* world);
+    ~JoltWorldImpl();
 
-        physics_system.Init(
-            1024,
-            0,
-            1024,
-            1024,
-            bp_layer_interface,
-            ob_bp_filter,
-            ob_ob_filter
-        );
-    }
-
-    ~JoltWorldImpl() {
-        if (character) {
-            delete character;
-        }
-        auto& bi = physics_system.GetBodyInterface();
-        for (auto id : map_bodies) {
-            bi.RemoveBody(id);
-            bi.DestroyBody(id);
-        }
-        for (auto id : dummy_bodies) {
-            bi.RemoveBody(id);
-            bi.DestroyBody(id);
-        }
-    }
+    // Temporary: exposes the engine-owned PhysicsSystem for body bridge
+    // code that has not yet migrated to BodyHandle.
+    JPH::PhysicsSystem& get_physics_system();
 };
 
-// Alias used by world.cpp
+// Alias kept for backward compat with world.h forward declaration
 using GamePhysics = JoltWorldImpl;
 
-// --- Initialization ------------------------------------------------------------
-
-void initialize_jolt_once();
-
-// --- Collider recreation helper ------------------------------------------------
+// --- Collider recreation helper -------------------------------------------------
 
 void rebuild_jolt_colliders(
     JoltWorldImpl& jolt,

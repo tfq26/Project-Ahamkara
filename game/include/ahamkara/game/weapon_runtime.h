@@ -11,6 +11,12 @@ namespace ahamkara::game {
 /// cache) belong outside this class — see ae::render::WeaponModelCache and
 /// the client presentation layer.
 ///
+/// ## Ownership
+///
+/// `WeaponRuntime` is owned by `Player` (ahamkara::game::Player).  `World`
+/// accesses weapon state only through `Player` read-accessors.  Weapon state
+/// never lives in `World` directly.
+///
 /// ## Subclass Extension Points
 ///
 /// Override the virtual hooks below to add weapon-specific runtime behavior
@@ -23,11 +29,15 @@ namespace ahamkara::game {
 ///   on_tick(dt)               — per-frame runtime logic (e.g. charge-up,
 ///                               overheat cooldown)
 ///
-/// ## What Subclasses Must NOT Do
+/// ## Subclass Contract
 ///
-/// - Do not include render or animation headers.
-/// - Do not store viewmodel, attachment, or animation state here.
-/// - Do not access WeaponModelCache or any ae::render type.
+/// 1. Override zero or more of the virtual hooks above.
+/// 2. Read `current_def()` or `state()` to inspect current weapon parameters.
+/// 3. Mutate `state()` to drive custom runtime state (charge level, overheat
+///    percentage, spread multiplier).
+/// 4. NEVER include render or animation headers.
+/// 5. NEVER store viewmodel, attachment, or animation state here.
+/// 6. NEVER access WeaponModelCache or any ae::render type.
 ///
 class WeaponRuntime {
 public:
@@ -71,6 +81,12 @@ protected:
     /// Override to add per-shot runtime logic such as charge drain,
     /// alt-ammo consumption, or spread accumulation.
     virtual void on_fire() {}
+
+    /// Read the active WeaponDefinition from subclass hooks without
+    /// going through the public API.
+    [[nodiscard]] const WeaponDefinition& current_def() const {
+        return active_weapon_def();
+    }
 
     /// Current reload countdown (seconds remaining).  Zero when not reloading.
     [[nodiscard]] float reload_timer() const { return reload_timer_; }

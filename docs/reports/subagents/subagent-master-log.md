@@ -228,4 +228,13 @@ Improved job system (condition variable wake-up, dispatch(), submit_after_all())
 ||- **Task**: CI packaging, runtime-boundary tests, build matrix, CPack, GitHub Actions
 ||- **Files changed**: 10 files: new (`.github/workflows/ci.yml`, `cmake/InstallRules.cmake`, `scripts/validate-matrix.sh`, `tests/src/runtime_boundary_tests.cpp`); modified (`CMakeLists.txt`, `CMakePresets.json`, `Dockerfile`, `tests/CMakeLists.txt`, `tests/src/nakama_bridge_tests.cpp`, `docs/vault/workflows/phase-slice-map.md`)
 ||- **Validation**: 20/26 tests pass (ahamkara_runtime_boundary_tests 9/9 new). Pre-existing server build failure on macOS blocks full debug build.
-||- **Report**: `docs/reports/subagents/20260708-1740-ci-packaging-report.md`
+|||- **Report**: `docs/reports/subagents/20260708-1740-ci-packaging-report.md`
+
+## 2026-07-12 — Gaming PC Windows Build (desktop2608)
+
+|- **Agent**: oz
+|- **Task**: Set up desktop2608 (Tailscale) as a Windows build target, fix pre-existing MSVC compilation + linker errors (CRT mismatch, unresolved OpenGL symbols)
+|- **Files changed**: `CMakeLists.txt`, `engine/render/CMakeLists.txt`, `engine/render/include/ae/render/gl_platform.h`, `engine/render/src/render_backend_opengl.cpp`, `engine/render/glad/` (NEW)
+|- **New GLAD loader**: OpenGL 4.5 core profile runtime loader via `gladLoadGL(glfwGetProcAddress)`
+|- **Build**: 368+ objects compiled, all executables linked (client, server, tests, tools, samples)
+|- **Report**: `docs/reports/subagents/20260712-gaming-pc-windows-build.md`

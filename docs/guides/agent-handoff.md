@@ -68,24 +68,20 @@ Rules:
 
 ## Repo Orientation
 
-High-level layout:
-
-- `engine/`: engine libraries such as core, network, runtime, collision, render
-- `game/`: gameplay-facing logic and types
-- `client/`: playable client executable
-- `server/`: dedicated server executable
-- `tests/`: CTest test targets
-- `tools/`: supporting tools and utilities
-- `docs/`: guides, system docs, roadmaps, reports, and the vault
-- `scripts/`: helper scripts for setup, build, test, and local run
+The current folder layout and target destination are maintained in
+[the repository map](../repo-map.md) and
+[repository-split architecture](../architecture/repository-split.md). Do not
+infer final ownership from the transitional folder names.
 
 Start by reading:
 
 - [README.md](../../README.md)
 - [docs/README.md](../README.md)
+- [docs/architecture/overview.md](../architecture/overview.md)
+- [docs/repo-map.md](../repo-map.md)
 - [docs/guides/building.md](building.md)
+- [docs/guides/maintenance.md](maintenance.md)
 - [docs/guides/remote-agent-workflow.md](remote-agent-workflow.md)
-- [docs/vault/workflows/phase-slice-map.md](../vault/workflows/phase-slice-map.md)
 - [CMakePresets.json](../../CMakePresets.json)
 - [CMakeLists.txt](../../CMakeLists.txt)
 
@@ -155,13 +151,9 @@ For large features:
 3. Writing subagents should use separate branches or git worktrees.
 4. The parent agent reviews, integrates, and reruns tests.
 
-When a worker is launched from Warp through `tools/agent-runner/warp-worker.sh`,
-the handoff prompt should explicitly tell it to use subagents for broad slice
-work when the model can spawn them. If the worker is launched as a phase batch,
-it should first read the roadmap phase list, then fan out one subagent per
-slice, and allow nested subagents only for isolated subtasks inside that slice.
-Each subagent still needs its own worktree and report, and the parent remains
-responsible for integration.
+Use multiple agents only when the active instructions permit delegation and the
+work can be split into independent, bounded slices. The parent remains
+responsible for integration and validation.
 
 Suggested subagent output:
 
@@ -171,29 +163,9 @@ Suggested subagent output:
 - assumptions
 - risks
 
-The repo already contains `docs/reports/subagents/` and it is a reasonable place
-to store structured handoff notes when helpful.
-
-## Known Current State
-
-At the time this handoff was written:
-
-- The remote-agent workflow docs and helper scripts were added on branch
-  `codex/remote-agent-workflow`.
-- A local compile fix was also applied in
-  [engine/collision/include/ae/collision/world.h](/Users/taufeeqali/Projects/Ahamkara/engine/collision/include/ae/collision/world.h:1)
-  to add the missing `#include <memory>` required by `std::unique_ptr`.
-- After that compile fix, the `debug-headless` path builds far enough for tests
-  to execute.
-
-Known remaining test failures after the compile issue is fixed:
-
-- [tests/src/world_tests.cpp](/Users/taufeeqali/Projects/Ahamkara/tests/src/world_tests.cpp:81)
-  in `test_world_camera_yaw_wraps`
-- [tests/src/gameplay_tests.cpp](/Users/taufeeqali/Projects/Ahamkara/tests/src/gameplay_tests.cpp:424)
-  in `test_match_state_add_score`
-
-These two are real assertion failures, not workspace bootstrap problems.
+Historical agent reports live under `docs/reports/subagents/`; they preserve
+evidence but do not represent current work status. Check GitHub Issues and run
+the relevant tests instead of trusting an old handoff result.
 
 ## How An Agent Should Start
 

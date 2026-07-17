@@ -63,7 +63,7 @@ public:
         float x1, y1, z1;
         float r {0.0F}, g {1.0F}, b {0.0F}; // green bones
     };
-    void extract_skeleton_lines(const std::vector<render::Mat4>& global_matrices,
+    void extract_skeleton_lines(const std::vector<skeleton::Mat4>& global_matrices,
                                  const std::vector<int>& parent_indices,
                                  const std::vector<std::string>& joint_names,
                                  std::vector<JointLine>& out_lines);

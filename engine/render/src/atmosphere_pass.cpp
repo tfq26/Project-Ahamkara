@@ -1,11 +1,6 @@
 #include "ae/render/atmosphere_pass.h"
 #include "ae/core/log.h"
-
-#if defined(__APPLE__)
-#include <OpenGL/gl3.h>
-#else
-#include <GL/gl.h>
-#endif
+#include "ae/render/gl_platform.h"
 
 #include <cmath>
 #include <cstring>

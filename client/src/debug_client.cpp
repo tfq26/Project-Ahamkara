@@ -36,7 +36,7 @@ int run_local_client(
 
     // ── Window + ImGui ──────────────────────────────────────────────────
     ae::WindowConfig window_config {};
-    window_config.title = "Flashback";
+    window_config.title = client_config.app_name;
     window_config.width  = client_config.window_width;
     window_config.height = client_config.window_height;
     window_config.fullscreen = client_config.fullscreen;
@@ -61,7 +61,7 @@ int run_local_client(
 
     // ── Application + renderer ──────────────────────────────────────────
     ae::Application application(ae::RuntimeMode::Client);
-    application.start();
+    (void)application.start();
 
     ae::render::DebugRenderer renderer;
     if (!renderer.initialize(*window)) {

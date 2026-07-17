@@ -1,54 +1,37 @@
-# Feature Task Workflow
+# Feature and issue workflow
 
 Status: Active
 
-Use this workflow for Ahamkara work that spans multiple files, multiple agents,
-or more than one session.
-
-## First Read Path
+## First read
 
 1. [Docs index](../../README.md)
-2. [Agent handoff](../../guides/agent-handoff.md)
-3. [Start Here](../00-start-here.md)
-4. [Repo Map](../01-repo-map.md)
-5. [Agent Skills](../05-agent-skills.md)
-6. Relevant [system map](../systems/README.md)
-7. Relevant source, tests, and CMake targets
+2. [Architecture overview](../../architecture/overview.md)
+3. [Repository map](../../repo-map.md)
+4. Relevant design/system docs
+5. Current source, tests, and CMake targets
 
-## Task Note
+## Work record
 
-Create a feature or task note in `docs/vault/features/` when work is large
-enough that another agent might inherit it.
+Use one canonical GitHub issue for scope, state, dependencies, acceptance
+criteria, and implementation discussion. Follow the
+[GitHub issue skill](../skills/github-issues/SKILL.md).
 
-Use [feature brief template](../templates/feature-brief.md).
+Create a feature brief under `docs/vault/features/` only for durable context
+that should remain after the issue closes. Do not copy the issue body.
 
-If Codex is handing a specific implementation slice to OpenCode, create an
-OpenCode queue task with [OpenCode task queue workflow](opencode-task-queue.md).
+## Report triggers
 
-## Report Triggers
+Write a historical report only for a meaningful boundary:
 
-Write a formal report only at meaningful boundaries:
+- non-obvious investigation result;
+- major implementation handoff;
+- validation failure another contributor must reproduce;
+- architecture review with evidence.
 
-- task completed
-- task paused or blocked
-- non-obvious validation failure found
-- another agent needs to inherit context
-- supervisor accepts or rejects a worker slice
+Use [the reporting profile](ahamkara-reporting-profile.md).
 
-Use [Ahamkara reporting profile](ahamkara-reporting-profile.md) for the report.
+## Completion bar
 
-## Completion Bar
-
-A task is not complete just because files changed. The final handoff should say:
-
-- what changed
-- what was validated
-- what was not validated
-- what risks remain
-- what the next agent should do, if anything
-
-## Related
-
-- [Known good commands](../memory/known-good-commands.md)
-- [Known traps](../memory/known-traps.md)
-- [Decision log](../memory/decision-log.md)
+The issue/PR handoff says what changed, what was validated, what was not
+validated, what risks remain, and whether the acceptance criteria are fully
+met. Durable behavior/ownership changes update canonical docs.

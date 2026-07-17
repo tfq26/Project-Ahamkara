@@ -35,9 +35,7 @@ import argparse
 import json
 import math
 import sys
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
 
 import bmesh
 
@@ -49,6 +47,7 @@ except ImportError as exc:
 
 
 # ── Transform helper ───────────────────────────────────────────────────────────
+
 
 def _transform_matrix(
     location: tuple[float, float, float],
@@ -64,10 +63,11 @@ def _transform_matrix(
 
 # ── Primitive builders ─────────────────────────────────────────────────────────
 
+
 def _add_box(bm: bmesh.types.BMesh, comp: dict) -> int:
     vert_start = len(bm.verts)
     face_start = len(bm.faces)
-    result = bmesh.ops.create_cube(bm, size=2.0)
+    bmesh.ops.create_cube(bm, size=2.0)
     new_verts = bm.verts[vert_start:]
     new_faces = bm.faces[face_start:]
 
@@ -89,7 +89,7 @@ def _add_cylinder(bm: bmesh.types.BMesh, comp: dict) -> int:
     depth = comp.get("depth", 0.5)
     verts_count = comp.get("verts", 16)
 
-    result = bmesh.ops.create_cone(
+    bmesh.ops.create_cone(
         bm,
         segments=verts_count,
         radius1=radius,
@@ -118,7 +118,7 @@ def _add_cone(bm: bmesh.types.BMesh, comp: dict) -> int:
     depth = comp.get("depth", 0.2)
     verts_count = comp.get("verts", 12)
 
-    result = bmesh.ops.create_cone(
+    bmesh.ops.create_cone(
         bm,
         segments=verts_count,
         radius1=r1,
@@ -150,13 +150,12 @@ def _add_torus(bm: bmesh.types.BMesh, comp: dict) -> int:
 
     # create a circle cross-section at (major_r, 0, 0) in YZ plane, then spin
     # around Z axis
-    circle_verts_start = len(bm.verts)
+    len(bm.verts)
     bmesh.ops.create_circle(
         bm,
         segments=ring_segs,
         radius=minor_r,
-        matrix=Matrix.Translation(Vector((major_r, 0.0, 0.0)))
-        @ Euler((0.0, math.pi / 2, 0.0)).to_matrix().to_4x4(),
+        matrix=Matrix.Translation(Vector((major_r, 0.0, 0.0))) @ Euler((0.0, math.pi / 2, 0.0)).to_matrix().to_4x4(),
         cap_ends=False,
     )
 
@@ -199,8 +198,8 @@ _BUILDERS = {
 
 # ── Material ───────────────────────────────────────────────────────────────────
 
-def _make_material(name: str, rgba: tuple[float, float, float, float],
-                   metallic: float = 0.12, roughness: float = 0.72):
+
+def _make_material(name: str, rgba: tuple[float, float, float, float], metallic: float = 0.12, roughness: float = 0.72):
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
     bsdf = mat.node_tree.nodes.get("Principled BSDF")
@@ -212,6 +211,7 @@ def _make_material(name: str, rgba: tuple[float, float, float, float],
 
 
 # ── Build ──────────────────────────────────────────────────────────────────────
+
 
 def build_from_spec(spec: dict):
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -234,7 +234,7 @@ def build_from_spec(spec: dict):
         if comp_type is None:
             continue  # comment-only entries
         if comp_type not in _BUILDERS:
-            print(f"WARNING: unknown component type '{comp_type}', skipping")
+            print(f"build_weapon: WARNING: unknown component type '{comp_type}', skipping", file=sys.stderr)
             continue
         total_verts += _BUILDERS[comp_type](bm, comp)
 
@@ -250,12 +250,15 @@ def build_from_spec(spec: dict):
     obj.location = Vector((0.0, 0.0, 0.0))
     obj.scale = (spec.get("scale", 1.0),) * 3
 
-    print(f"Built '{output_name}': {total_verts} verts, {len(materials)} materials, "
-          f"{len(spec.get('components',[]))} components")
+    print(
+        f"build_weapon: Built '{output_name}': {total_verts} verts, {len(materials)} materials, "
+        f"{len(spec.get('components', []))} components"
+    )
     return obj
 
 
 # ── Export ─────────────────────────────────────────────────────────────────────
+
 
 def export_weapon(spec: dict, out_dir: Path) -> tuple[Path, Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -286,21 +289,19 @@ def export_weapon(spec: dict, out_dir: Path) -> tuple[Path, Path]:
     for obj in bpy.context.scene.objects:
         obj.select_set(original_selection.get(obj.name, False))
 
-    print(f"Exported {blend_path.name} and {gltf_path.name} to {out_dir}")
+    print(f"build_weapon: Exported {blend_path.name} and {gltf_path.name} to {out_dir}")
     return blend_path, gltf_path
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
+
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--spec", required=True, help="Path to weapon JSON spec")
     parser.add_argument("--out_dir", default="assets/models")
     parser.add_argument("--open", action="store_true")
-    if "--" in argv:
-        cli_args = argv[argv.index("--") + 1 :]
-    else:
-        cli_args = argv[1:]
+    cli_args = argv[argv.index("--") + 1 :] if "--" in argv else argv[1:]
     return parser.parse_args(cli_args)
 
 
@@ -308,13 +309,13 @@ def main(argv: list[str]) -> int:
     args = _parse_args(argv)
     spec_path = Path(args.spec)
     if not spec_path.exists():
-        print(f"ERROR: spec file not found: {spec_path}")
+        print(f"build_weapon: ERROR: spec file not found: {spec_path}", file=sys.stderr)
         return 1
 
     spec = json.loads(spec_path.read_text())
     out_dir = Path(args.out_dir).resolve()
 
-    blend_path, gltf_path = export_weapon(spec, out_dir)
+    blend_path, _gltf_path = export_weapon(spec, out_dir)
 
     if args.open and not bpy.app.background:
         bpy.ops.wm.open_mainfile(filepath=str(blend_path))

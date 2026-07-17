@@ -1,50 +1,83 @@
 # CI workflow
 #
 # Builds all CMake presets (debug, release, debug-headless) and runs tests
-# for presets that support them.  Runs on Ubuntu 24.04 and macOS 14.
+# for presets that support them. Runs on self-hosted Linux runner (servlenovo1).
+# Agent branches auto-merge only when they explicitly opt in through the
+# agent/automerge/** namespace; ordinary agent branches are PR-only.
 
 name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - develop
+      - "agent/automerge/**"
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+
+permissions:
+  contents: write
+  issues: write
 
 env:
   CMAKE_BUILD_PARALLEL_LEVEL: 4
 
 jobs:
-  build-and-test:
-    name: ${{ matrix.preset }} (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        preset: [debug, release, debug-headless]
-        os: [ubuntu-24.04, macos-14]
-        exclude:
-          # macOS jobs: only debug and release (no headless runner needed)
-          - os: macos-14
-            preset: debug-headless
-
-    runs-on: ${{ matrix.os }}
+  lint:
+    name: Lint
+    runs-on: [self-hosted, linux]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            cmake ninja-build libglfw3-dev libgl1-mesa-dev
+      - name: Generate compilation database
+        run: cmake --preset debug
 
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
+      - name: Run change-aware lint gate
+        env:
+          EVENT_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
-          brew update
-          brew install ninja glfw
+          base_ref="${EVENT_BASE_REF}"
+          if [[ -z "${base_ref}" || "${base_ref}" =~ ^0+$ ]]; then
+            base_ref=$(git rev-parse HEAD^)
+          fi
+          ./scripts/lint.sh \
+            --base-ref "${base_ref}" \
+            --committed-only \
+            --compile-db build/debug
+
+      - name: Publish lint summary
+        if: always()
+        run: |
+          if [[ -f build/lint/summary.md ]]; then
+            cat build/lint/summary.md >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahamkara-lint-report
+          path: build/lint/
+          if-no-files-found: warn
+
+  build-and-test:
+    name: ${{ matrix.preset }} (self-hosted)
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [debug, release, debug-headless]
+
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Configure
         run: cmake --preset ${{ matrix.preset }}
@@ -62,18 +95,12 @@ jobs:
 
   package:
     name: Package
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux]
     needs: [build-and-test]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            cmake ninja-build libglfw3-dev libgl1-mesa-dev
 
       - name: Package
         run: |
@@ -86,3 +113,37 @@ jobs:
         with:
           name: ahamkara-package
           path: build/package/*.tar.gz
+
+  auto-merge:
+    needs: build-and-test
+    if: |
+      success() &&
+      github.event_name == 'push' &&
+      startsWith(github.ref_name, 'agent/automerge/')
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Auto-merge into develop
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "Oz Agent"
+          git config user.email "oz-agent@warp.dev"
+          git fetch origin develop
+          git checkout develop
+          if git merge --no-ff "${{ github.ref_name }}" -m "Auto-merge ${{ github.ref_name }} into develop [skip ci]"; then
+            git push origin develop
+            echo "Merged ${{ github.ref_name }} into develop"
+            # Post success comment on the triggering issue if applicable
+            BRANCH="${{ github.ref_name }}"
+            ISSUE_NUM=$(echo "$BRANCH" | grep -oE '[0-9]+' | head -1)
+            if [ -n "$ISSUE_NUM" ]; then
+              gh issue comment "$ISSUE_NUM" --body "✅ Auto-merged into \`develop\`. Next stop: \`main\` via release PR." 2>/dev/null || true
+            fi
+          else
+            echo "Merge conflict — manual intervention needed"
+            exit 1
+          fi

@@ -9,11 +9,11 @@ namespace ae::animation {
 // JointTransform
 // ============================================================
 
-render::Mat4 JointTransform::to_mat4() const {
+skeleton::Mat4 JointTransform::to_mat4() const {
     // T * R * S
-    render::Mat4 t = render::Mat4::translation(tx, ty, tz);
-    render::Mat4 r = render::Mat4::rotation_quat(qx, qy, qz, qw);
-    render::Mat4 s = render::Mat4::scale(sx, sy, sz);
+    skeleton::Mat4 t = skeleton::Mat4::translation(tx, ty, tz);
+    skeleton::Mat4 r = skeleton::Mat4::rotation_quat(qx, qy, qz, qw);
+    skeleton::Mat4 s = skeleton::Mat4::scale(sx, sy, sz);
     return t * r * s;
 }
 
@@ -29,7 +29,7 @@ JointTransform JointTransform::blend(const JointTransform& a, const JointTransfo
     float aq[4] = {a.qx, a.qy, a.qz, a.qw};
     float bq[4] = {b.qx, b.qy, b.qz, b.qw};
     float out_q[4];
-    render::quat_slerp(aq, bq, t, out_q);
+    skeleton::quat_slerp(aq, bq, t, out_q);
     result.qx = out_q[0];
     result.qy = out_q[1];
     result.qz = out_q[2];
@@ -60,7 +60,7 @@ void AnimationPose::compute_globals(const std::vector<int>& parent_indices) {
     global_matrices.resize(count);
 
     for (std::size_t j = 0; j < count; ++j) {
-        render::Mat4 local = local_transforms[j].to_mat4();
+        skeleton::Mat4 local = local_transforms[j].to_mat4();
 
         int parent = (j < parent_indices.size()) ? parent_indices[j] : -1;
         if (parent >= 0 && static_cast<std::size_t>(parent) < count) {

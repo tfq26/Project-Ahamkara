@@ -22,6 +22,11 @@
 #ifndef GL_SAMPLES_PASSED
 #define GL_SAMPLES_PASSED 0x8914
 #endif
+#elif defined(_WIN32)
+// Windows SDK's GL/gl.h is legacy OpenGL 1.1 which conflicts with
+// the GL extension types used by the engine.  Use glad to resolve
+// GL functions at runtime via wglGetProcAddress.
+#include <glad/gl.h>
 #else
 #include <GL/gl.h>
 #include <GL/glext.h>

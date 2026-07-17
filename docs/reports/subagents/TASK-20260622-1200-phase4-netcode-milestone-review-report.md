@@ -5,7 +5,7 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/completed/TASK-20260622-1200-phase4-netcode-milestone-review.md
+task: TASK-20260622-1200-phase4-netcode-milestone-review
 report: TASK-20260622-1200-phase4-netcode-milestone-review-report.md
 decision: complete
 escalation_tier: medium
@@ -19,7 +19,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260622-1200-phase4-netcode-milestone-review](../../vault/queue-tasks/completed/TASK-20260622-1200-phase4-netcode-milestone-review.md)
+TASK-20260622-1200-phase4-netcode-milestone-review
 
 ## Report
 
@@ -41,8 +41,8 @@ accepted items.
 - `docs/reports/subagents/TASK-20260622-1110-phase4-reliable-channel-report.md`
 - `docs/reports/subagents/TASK-20260622-1100-phase4-reconciliation-replay-fix-codex-review.md`
 - `docs/reports/subagents/TASK-20260622-1110-phase4-reliable-channel-codex-review.md`
-- `docs/vault/queue-tasks/completed/TASK-20260622-1100-phase4-reconciliation-replay-fix.md`
-- `docs/vault/queue-tasks/completed/TASK-20260622-1110-phase4-reliable-channel.md`
+- `TASK-20260622-1100-phase4-reconciliation-replay-fix` (retired local task record)
+- `TASK-20260622-1110-phase4-reliable-channel` (retired local task record)
 - `game/src/client_prediction.cpp`
 - `engine/network/include/ae/network/reliable_channel.h`
 

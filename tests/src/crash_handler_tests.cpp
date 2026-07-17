@@ -1,3 +1,4 @@
+#include <csignal>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -64,12 +65,14 @@ TEST(capture_stack_trace) {
 // Test: signal_name returns correct names
 // ===================================================================
 TEST(signal_name_table) {
-    require(std::string(ae::signal_name(11)) == "SIGSEGV", "signal 11 = SIGSEGV");
-    require(std::string(ae::signal_name(6)) == "SIGABRT", "signal 6 = SIGABRT");
-    require(std::string(ae::signal_name(8)) == "SIGFPE", "signal 8 = SIGFPE");
-    require(std::string(ae::signal_name(4)) == "SIGILL", "signal 4 = SIGILL");
-    require(std::string(ae::signal_name(10)) == "SIGBUS", "signal 10 = SIGBUS");
-    require(std::string(ae::signal_name(99)) == "UNKNOWN", "unknown signal");
+    require(std::string(ae::signal_name(SIGSEGV)) == "SIGSEGV", "SIGSEGV lookup");
+    require(std::string(ae::signal_name(SIGABRT)) == "SIGABRT", "SIGABRT lookup");
+    require(std::string(ae::signal_name(SIGFPE)) == "SIGFPE", "SIGFPE lookup");
+    require(std::string(ae::signal_name(SIGILL)) == "SIGILL", "SIGILL lookup");
+#ifdef SIGBUS
+    require(std::string(ae::signal_name(SIGBUS)) == "SIGBUS", "SIGBUS lookup");
+#endif
+    require(std::string(ae::signal_name(-1)) == "UNKNOWN", "unknown signal");
 }
 
 // ===================================================================

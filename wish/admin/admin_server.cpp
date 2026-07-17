@@ -124,7 +124,11 @@ void HttpAdminServer::stop() {
 
     running_ = false;
     if (socket_is_valid(listen_fd_)) {
+#ifdef _WIN32
+        ::shutdown(listen_fd_, SD_BOTH);
+#else
         ::shutdown(listen_fd_, SHUT_RDWR);
+#endif
         close_socket(listen_fd_);
         listen_fd_ = socket_invalid();
     }

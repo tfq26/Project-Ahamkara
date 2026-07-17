@@ -166,7 +166,8 @@ void draw_metrics_overlay(const DebugScene& scene, int width, int height,
     draw_ui_text(16.0F, y, 1.4F, "MEMORY", UiTextStyle::Section);
     y += row_h;
 
-    // RSS    const double rss_mb = scene.rss_bytes / (1024.0 * 1024.0);
+    // RSS
+    const double rss_mb = scene.rss_bytes / (1024.0 * 1024.0);
     const double rss_peak_mb = scene.rss_peak_bytes / (1024.0 * 1024.0);
     const double rss_soft_mb = scene.rss_soft_budget / (1024.0 * 1024.0);
     const double rss_hard_mb = scene.rss_hard_budget / (1024.0 * 1024.0);

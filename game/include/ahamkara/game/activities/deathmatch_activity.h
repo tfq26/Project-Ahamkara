@@ -7,6 +7,7 @@
 #include "ahamkara/game/gameplay_types.h"
 #include "ahamkara/game/net_packets.h"
 #include "ahamkara/game/net_types.h"
+#include "ahamkara/game/rewind.h"
 #include "ahamkara/game/world.h"
 #include "wish/core/activity.h"
 #include "wish/core/session_services.h"
@@ -23,6 +24,14 @@
 namespace ahamkara::game::activities {
 
 /// Snapshot payload specific to deathmatch PvP.
+struct RemotePlayerSnapshot {
+    ae::u32 player_id {0};
+    ae::u32 network_object_id {0};
+    Vec3 position {};
+    float yaw {0.0F};
+    float health {0.0F};
+};
+
 struct DeathmatchSnapshot {
     ae::u32 server_tick {0};
     ae::u32 last_processed_input {0};
@@ -36,16 +45,10 @@ struct DeathmatchSnapshot {
     ae::u32 team_score_red {0};
     ae::u32 team_score_blue {0};
     ae::u16 individual_score {0};
+    ae::u8 remote_player_count {0};
+    RemotePlayerSnapshot remote_players[4] {};
 };
 
-/// Result of a lag-compensated hit validation.
-struct HitValidationResult {
-    bool hit {false};
-    int hit_dummy_idx {-1};
-    Vec3 hit_position {};
-    float damage {0};
-    bool is_headshot {false};
-};
 /// Serialize a deathmatch snapshot payload into a ByteWriter.
 inline bool write_deathmatch_snapshot(detail::ByteWriter& writer, const DeathmatchSnapshot& snap) {
     if (!writer.write(snap.server_tick)
@@ -92,6 +95,12 @@ struct PlayerSlot {
     bool connected {false};
     std::chrono::steady_clock::time_point last_seen {};
     ae::u32 client_tick {0};
+    ServerClockTracker clock_tracker {};
+
+    /// Index into World::players_ — which player this slot controls.
+    ae::u32 player_index {0};
+    /// Unique network object identity for this slot's player.
+    ae::u32 network_object_id {kInvalidNetworkObjectId};
 
     // Last player state sent to this client, for delta compression.
     // Updated each time we broadcast a snapshot for this slot.
@@ -102,6 +111,10 @@ struct PlayerSlot {
     // stores input here, tick() drains it.
     PlayerInputCommand pending_input {};
     bool has_pending_input {false};
+
+    // Per-player anti-cheat state
+    Vec3 prev_position {};
+    ae::u32 last_fire_tick {0};
 };
 
 /// Full deathmatch PvP activity.
@@ -129,12 +142,13 @@ public:
     void simulate_input(wish::session::SessionId sid, float delta_seconds,
                         const PlayerInputCommand& cmd);
 
-    /// Lag-compensated hit validation.  Queries the server history buffer
-    /// at the client's perceived tick and runs ray-vs-dummy hit detection
-    /// against the historical dummy positions from that tick.
-    [[nodiscard]] HitValidationResult validate_hit(
+    /// Lag-compensated hit validation via RewindValidation + ServerClockTracker.
+    /// Converts client tick through the per-player clock tracker, validates the
+    /// rewind window, queries history, and returns a non-mutating hit result.
+    [[nodiscard]] HitResult validate_hit(
         wish::session::SessionId firing_player,
         ae::u32 client_tick,
+        float client_rtt,
         const Vec3& origin,
         const Vec3& forward,
         float base_damage,
@@ -168,21 +182,18 @@ private:
     PlayerSlot* find_slot(wish::session::SessionId sid);
     PlayerSlot* find_slot_by_address(const ae::NetAddress& addr);
     void build_snapshot_for_slot(PlayerSlot& slot);
-    void apply_anti_cheat(const PlayerInputCommand& cmd);
+    void apply_anti_cheat(PlayerSlot& slot, const PlayerInputCommand& cmd);
 
     wish::core::ActivityConfig config_;
     World world_;
     GameModeRules game_rules_;
     DeathmatchState dm_state_;
     ae::ServerHistoryBuffer<HistoricalState, 1024> history_buffer_;
+    RewindValidation rewind_validation_;
 
     std::deque<PlayerSlot> slots_;
     wish::session::SessionId next_session_id_ {1};
     ae::u32 server_tick_ {0};
-
-    // Anti-cheat state
-    Vec3 prev_player_position_ {0.0F, 0.0F, 0.0F};
-    ae::u32 last_fire_tick_ {0};
     static constexpr ae::u32 kFireTickCooldown {3};
 
     // Latest built snapshot for broadcast

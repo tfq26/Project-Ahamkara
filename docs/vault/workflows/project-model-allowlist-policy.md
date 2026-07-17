@@ -87,4 +87,3 @@ This lets you:
 
 - [Local secrets workflow](local-secrets-workflow.md)
 - [Model routing](model-routing.md)
-- [Cross-project LangGraph workbench](cross-project-langgraph-workbench.md)

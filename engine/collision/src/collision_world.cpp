@@ -1,4 +1,5 @@
 #include "jolt_backend.h"  // Internal: defines CollisionWorld::Impl
+#include "ae/collision/character.h"
 #include "ae/core/log.h"
 
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
@@ -203,6 +204,15 @@ int CollisionWorld::query_aabb(
         }
     }
     return count;
+}
+
+// ============================================================
+// Character controller factory
+// ============================================================
+
+std::unique_ptr<CharacterController> CollisionWorld::create_character(const CharacterDef& def) {
+    return std::unique_ptr<CharacterController>(
+        new CharacterController(*this, def));
 }
 
 CollisionStats CollisionWorld::get_stats() const {

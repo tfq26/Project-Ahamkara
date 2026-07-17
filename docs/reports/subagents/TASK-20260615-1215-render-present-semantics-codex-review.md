@@ -5,7 +5,7 @@ created: 2026-06-22
 reviewer: codex
 reviewer_role: primary
 reviewer_model: gpt-5-codex
-task: ../../vault/queue-tasks/completed/TASK-20260615-1215-render-present-semantics.md
+task: TASK-20260615-1215-render-present-semantics
 report: TASK-20260615-1215-render-present-semantics-report.md
 decision: complete
 escalation_tier: high
@@ -19,7 +19,7 @@ subsystems:
 
 ## Task
 
-[TASK-20260615-1215-render-present-semantics](../../vault/queue-tasks/completed/TASK-20260615-1215-render-present-semantics.md)
+TASK-20260615-1215-render-present-semantics
 
 ## Report
 

@@ -17,6 +17,10 @@ add_executable(ahamkara_world_tests
     src/world_tests.cpp
 )
 
+add_executable(ahamkara_player_entity_tests
+    src/player_entity_tests.cpp
+)
+
 add_executable(ahamkara_movement_tests
     src/movement_tests.cpp
 )
@@ -50,6 +54,7 @@ endif()
 target_compile_features(ahamkara_smoke_tests PRIVATE cxx_std_20)
 target_compile_features(ahamkara_playtest_harness_tests PRIVATE cxx_std_20)
 target_compile_features(ahamkara_world_tests PRIVATE cxx_std_20)
+target_compile_features(ahamkara_player_entity_tests PRIVATE cxx_std_20)
 target_compile_features(ahamkara_movement_tests PRIVATE cxx_std_20)
 target_compile_features(ahamkara_player_movement_controller_tests PRIVATE cxx_std_20)
 target_include_directories(ahamkara_smoke_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
@@ -91,6 +96,12 @@ target_link_libraries(ahamkara_world_tests
         ahamkara_game
 )
 
+target_link_libraries(ahamkara_player_entity_tests
+    PRIVATE
+        ae_runtime
+        ahamkara_game
+)
+
 target_link_libraries(ahamkara_movement_tests
     PRIVATE
         ahamkara_game
@@ -104,6 +115,7 @@ target_link_libraries(ahamkara_player_movement_controller_tests
 add_test(NAME ahamkara_smoke_tests COMMAND ahamkara_smoke_tests)
 add_test(NAME ahamkara_playtest_harness_tests COMMAND ahamkara_playtest_harness_tests)
 add_test(NAME ahamkara_world_tests COMMAND ahamkara_world_tests)
+add_test(NAME ahamkara_player_entity_tests COMMAND ahamkara_player_entity_tests)
 add_test(NAME ahamkara_movement_tests COMMAND ahamkara_movement_tests)
 add_test(NAME ahamkara_player_movement_controller_tests COMMAND ahamkara_player_movement_controller_tests)
 add_executable(ahamkara_collision_tests
@@ -193,6 +205,20 @@ target_link_libraries(ahamkara_core_tests
 
 add_test(NAME ahamkara_core_tests COMMAND ahamkara_core_tests)
 
+add_executable(ahamkara_weapon_runtime_tests
+    src/weapon_runtime_tests.cpp
+)
+
+target_compile_features(ahamkara_weapon_runtime_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_weapon_runtime_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../game/include)
+
+target_link_libraries(ahamkara_weapon_runtime_tests
+    PRIVATE
+        ahamkara_game
+)
+
+add_test(NAME ahamkara_weapon_runtime_tests COMMAND ahamkara_weapon_runtime_tests)
+
 add_executable(ahamkara_weapon_loader_tests
     src/weapon_loader_tests.cpp
 )
@@ -211,6 +237,11 @@ add_test(NAME ahamkara_weapon_loader_tests COMMAND ahamkara_weapon_loader_tests
 add_test(
     NAME agent_runner_python_tests
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/agent-runner/tests/test_agent_runner.py
+)
+
+add_test(
+    NAME lint_runner_python_tests
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/lint/tests/test_lint_runner.py
 )
 
 add_executable(ahamkara_nakama_bridge_tests
@@ -289,6 +320,25 @@ target_link_libraries(ahamkara_reliable_channel_tests
 
 add_test(NAME ahamkara_reliable_channel_tests COMMAND ahamkara_reliable_channel_tests)
 
+add_executable(ahamkara_interpolation_buffer_tests
+    src/interpolation_buffer_tests.cpp
+)
+
+target_compile_features(ahamkara_interpolation_buffer_tests PRIVATE cxx_std_20)
+
+target_include_directories(ahamkara_interpolation_buffer_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/network/include
+)
+
+target_link_libraries(ahamkara_interpolation_buffer_tests
+    PRIVATE
+        ae_network
+)
+
+add_test(NAME ahamkara_interpolation_buffer_tests COMMAND ahamkara_interpolation_buffer_tests)
+
 add_executable(ahamkara_console_tests
     src/console_tests.cpp
     ../engine/core/src/console.cpp
@@ -336,7 +386,10 @@ add_executable(ahamkara_encounter_scripting_tests
 
 target_compile_features(ahamkara_encounter_scripting_tests PRIVATE cxx_std_20)
 target_include_directories(ahamkara_encounter_scripting_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../game/include)
-target_include_directories(ahamkara_encounter_scripting_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include)
+target_include_directories(
+    ahamkara_encounter_scripting_tests
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+)
 target_link_libraries(ahamkara_encounter_scripting_tests PRIVATE ahamkara_game)
 
 add_test(NAME ahamkara_encounter_scripting_tests COMMAND ahamkara_encounter_scripting_tests)
@@ -443,3 +496,119 @@ target_compile_definitions(ahamkara_runtime_boundary_tests PRIVATE
     $<$<BOOL:${AHAMKARA_BUILD_SERVER}>:AHAMKARA_BUILD_SERVER=$<BOOL:${AHAMKARA_BUILD_SERVER}>>
 )
 add_test(NAME ahamkara_runtime_boundary_tests COMMAND ahamkara_runtime_boundary_tests)
+
+# CI regression coverage: these exercise the actual generated build/install
+# graph instead of matching target names in source text.
+if(TARGET ahamkara_controller_mapper)
+    add_test(
+        NAME ahamkara_controller_mapper_build_regression
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
+                --config $<CONFIG>
+                --target ahamkara_controller_mapper
+    )
+endif()
+
+if(TARGET ahamkara_server)
+    add_test(
+        NAME ahamkara_server_build_regression
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
+                --config $<CONFIG>
+                --target ahamkara_server
+    )
+endif()
+
+add_test(
+    NAME ahamkara_install_rules_smoke
+    COMMAND ${CMAKE_COMMAND} --install ${CMAKE_BINARY_DIR}
+            --config $<CONFIG>
+            --prefix ${CMAKE_BINARY_DIR}/test-install
+)
+
+add_executable(ahamkara_animation_headless_tests
+    src/animation_headless_tests.cpp
+)
+target_link_libraries(ahamkara_animation_headless_tests
+    PRIVATE
+        ae_animation
+        ae_skeleton
+        ae_core
+)
+add_test(NAME ahamkara_animation_headless_tests COMMAND ahamkara_animation_headless_tests)
+
+# Out-of-tree package consumer smoke (engine package boundary).
+# Builds a tiny external project against an installed Ahamkara package prefix.
+add_test(
+    NAME ahamkara_out_of_tree_package_consumer
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -DBINARY_DIR=${CMAKE_BINARY_DIR}
+        -DCONSUMER_SRC=${CMAKE_SOURCE_DIR}/tests/out_of_tree_consumer
+        -P ${CMAKE_SOURCE_DIR}/cmake/OutOfTreeConsumerTest.cmake
+)
+
+add_executable(ahamkara_error_identity_tests
+    src/error_identity_tests.cpp
+)
+target_link_libraries(ahamkara_error_identity_tests
+    PRIVATE
+        ae_core
+)
+add_test(NAME ahamkara_error_identity_tests COMMAND ahamkara_error_identity_tests)
+
+add_executable(ahamkara_game_module_host_tests
+    src/game_module_host_tests.cpp
+)
+target_link_libraries(ahamkara_game_module_host_tests
+    PRIVATE
+        ae_runtime
+        ae_core
+)
+add_test(NAME ahamkara_game_module_host_tests COMMAND ahamkara_game_module_host_tests)
+
+add_executable(ahamkara_wish_error_tests
+    src/wish_error_tests.cpp
+)
+target_compile_features(ahamkara_wish_error_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_wish_error_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_wish_error_tests
+    PRIVATE
+        wish_engine
+)
+add_test(NAME ahamkara_wish_error_tests COMMAND ahamkara_wish_error_tests)
+
+add_executable(ahamkara_rewind_tests
+    src/rewind_tests.cpp
+)
+target_compile_features(ahamkara_rewind_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_rewind_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+        ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+)
+target_link_libraries(ahamkara_rewind_tests
+    PRIVATE
+        ahamkara_game
+)
+add_test(NAME ahamkara_rewind_tests COMMAND ahamkara_rewind_tests)
+
+add_executable(ahamkara_connection_lifecycle_tests
+    src/connection_lifecycle_tests.cpp
+)
+target_compile_features(ahamkara_connection_lifecycle_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_connection_lifecycle_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_connection_lifecycle_tests
+    PRIVATE
+        ae_network
+)
+add_test(NAME ahamkara_connection_lifecycle_tests COMMAND ahamkara_connection_lifecycle_tests)
+
+add_executable(ahamkara_jitter_buffer_tests
+    src/jitter_buffer_tests.cpp
+)
+target_compile_features(ahamkara_jitter_buffer_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_jitter_buffer_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_jitter_buffer_tests
+    PRIVATE
+        ae_network
+)
+add_test(NAME ahamkara_jitter_buffer_tests COMMAND ahamkara_jitter_buffer_tests)

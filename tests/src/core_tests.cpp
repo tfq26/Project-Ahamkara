@@ -3,6 +3,7 @@
 #include "ae/core/log.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <chrono>
 #include <iostream>
@@ -32,6 +33,27 @@ void test_job_system_submit_and_wait() {
     std::cout << "test_job_system_submit_and_wait passed.\n";
 }
 
+void test_job_system_repeated_lifecycle() {
+    constexpr int kIterations = 100;
+    for (int iteration = 0; iteration < kIterations; ++iteration) {
+        ae::JobSystem js;
+        js.init(2);
+
+        std::atomic<int> completed {0};
+        for (int job = 0; job < 4; ++job) {
+            [[maybe_unused]] auto handle = js.submit([&completed]() {
+                completed.fetch_add(1, std::memory_order_relaxed);
+            });
+        }
+
+        js.wait_all();
+        assert(completed.load(std::memory_order_relaxed) == 4);
+        js.shutdown();
+    }
+
+    std::cout << "test_job_system_repeated_lifecycle passed.\n";
+}
+
 void test_job_system_submit_after_single_child() {
     ae::JobSystem js;
     js.init(2);
@@ -53,12 +75,42 @@ void test_job_system_submit_after_single_child() {
     std::cout << "test_job_system_submit_after_single_child passed.\n";
 }
 
+void test_job_system_submit_after_running_parent() {
+    ae::JobSystem js;
+    js.init(2);
+
+    std::atomic<bool> parent_started {false};
+    std::atomic<bool> allow_parent_to_finish {false};
+    bool child_done = false;
+
+    auto parent = js.submit([&]() {
+        parent_started.store(true, std::memory_order_release);
+        while (!allow_parent_to_finish.load(std::memory_order_acquire)) {
+            std::this_thread::yield();
+        }
+    });
+
+    while (!parent_started.load(std::memory_order_acquire)) {
+        std::this_thread::yield();
+    }
+
+    auto child = js.submit_after(parent, [&]() {
+        child_done = true;
+    });
+    allow_parent_to_finish.store(true, std::memory_order_release);
+
+    js.wait(child);
+    assert(child_done);
+    js.shutdown();
+    std::cout << "test_job_system_submit_after_running_parent passed.\n";
+}
+
 void test_job_system_submit_after_multiple_children() {
     ae::JobSystem js;
     js.init(2);
 
     bool parent_done = false;
-    int child_count = 0;
+    std::atomic<int> child_count {0};
 
     auto parent = js.submit([&]() {
         parent_done = true;
@@ -67,13 +119,13 @@ void test_job_system_submit_after_multiple_children() {
     for (int i = 0; i < 3; ++i) {
         [[maybe_unused]] auto h = js.submit_after(parent, [&]() {
             assert(parent_done);
-            ++child_count;
+            child_count.fetch_add(1, std::memory_order_relaxed);
         });
     }
 
     js.wait_all();
     assert(parent_done);
-    assert(child_count == 3);
+    assert(child_count.load(std::memory_order_relaxed) == 3);
     js.shutdown();
     std::cout << "test_job_system_submit_after_multiple_children passed.\n";
 }
@@ -302,7 +354,7 @@ void test_frame_allocator_basic_alloc() {
 }
 
 void test_frame_allocator_alignment() {
-    ae::FrameAllocator alloc(1024, 1);  // single slot
+    ae::FrameAllocator alloc(1024, 1); // single slot
     alloc.end_frame();
 
     void* p1 = alloc.allocate(1, 1);
@@ -324,6 +376,19 @@ void test_frame_allocator_alignment() {
     assert((reinterpret_cast<std::uintptr_t>(p4) & 0x7F) == 0);
 
     std::cout << "test_frame_allocator_alignment passed.\n";
+}
+
+void test_frame_allocator_alignment_across_slots() {
+    ae::FrameAllocator alloc(771, 3); // 3 slots whose starts are not all 128-byte aligned
+
+    for (int slot = 0; slot < alloc.num_slots(); ++slot) {
+        alloc.end_frame();
+        void* ptr = alloc.allocate(64, 128);
+        assert(ptr != nullptr);
+        assert((reinterpret_cast<std::uintptr_t>(ptr) & 0x7F) == 0);
+    }
+
+    std::cout << "test_frame_allocator_alignment_across_slots passed.\n";
 }
 
 void test_frame_allocator_oom() {
@@ -470,7 +535,9 @@ int main() {
 
     std::cout << "--- JobSystem Tests ---\n";
     test_job_system_submit_and_wait();
+    test_job_system_repeated_lifecycle();
     test_job_system_submit_after_single_child();
+    test_job_system_submit_after_running_parent();
     test_job_system_submit_after_multiple_children();
     test_job_system_submit_after_all();
     test_job_system_submit_after_all_single_parent();
@@ -485,6 +552,7 @@ int main() {
     std::cout << "\n--- FrameAllocator Tests ---\n";
     test_frame_allocator_basic_alloc();
     test_frame_allocator_alignment();
+    test_frame_allocator_alignment_across_slots();
     test_frame_allocator_oom();
     test_frame_allocator_array_and_object();
     test_frame_allocator_reset_all();
