@@ -11,8 +11,8 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import build_level  # noqa: E402
-import spec_to_lvl  # noqa: E402  (placed on path by build_level import)
+import build_level
+import spec_to_lvl
 
 
 def _close(a: float, b: float) -> bool:
@@ -20,7 +20,7 @@ def _close(a: float, b: float) -> bool:
 
 
 def fail(msg: str) -> int:
-    print(f"test_build_level FAIL: {msg}", file=sys.stderr)
+    print(f"test_build_level: FAIL: {msg}", file=sys.stderr)
     return 1
 
 
@@ -40,9 +40,9 @@ def test_plan_blockout() -> int:
     if len(plan["boxes"]) != 1:
         return fail("expected 1 box")
     box = plan["boxes"][0]
-    if not all(_close(a, b) for a, b in zip(box["center"], [0.0, 2.0, 0.0])):
+    if not all(_close(a, b) for a, b in zip(box["center"], [0.0, 2.0, 0.0], strict=False)):
         return fail(f"box center wrong: {box['center']}")
-    if not all(_close(a, b) for a, b in zip(box["size"], [4.0, 2.0, 8.0])):
+    if not all(_close(a, b) for a, b in zip(box["size"], [4.0, 2.0, 8.0], strict=False)):
         return fail(f"box size wrong: {box['size']}")
     if not box["wall"]:
         return fail("box wall flag lost")
@@ -93,7 +93,7 @@ def main() -> int:
         rc = test()
         if rc != 0:
             return rc
-    print("test_build_level passed")
+    print("test_build_level: passed")
     return 0
 
 

@@ -1,10 +1,13 @@
 #include "asset_importer_registry.h"
+#include "ae/core/log.h"
 
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+
+#define AE_LOG_CATEGORY "Tools"
 
 namespace asset_importer {
 
@@ -84,14 +87,14 @@ bool write_registry(const std::filesystem::path& registry_path, const std::vecto
     if (!registry_path.parent_path().empty()) {
         std::filesystem::create_directories(registry_path.parent_path(), error);
         if (error) {
-            std::cerr << "Failed to create registry directory for " << registry_path << ": " << error.message() << '\n';
+            ae::log_error_cat(AE_LOG_CATEGORY, "Failed to create registry directory for " + registry_path.string() + ": " + error.message());
             return false;
         }
     }
 
     std::ofstream file(registry_path);
     if (!file) {
-        std::cerr << "Failed to create asset registry: " << registry_path << '\n';
+        ae::log_error_cat(AE_LOG_CATEGORY, "Failed to create asset registry: " + registry_path.string());
         return false;
     }
 
@@ -142,7 +145,7 @@ bool read_registry(const std::filesystem::path& registry_path, AssetRecordMap& r
     }
 
     if (header != "asset_id\tkind\tsource\toutput\tmetadata\tsource_hash\tmetadata_hash\toutput_size") {
-        std::cerr << "Asset registry header mismatch: " << registry_path << '\n';
+        ae::log_error_cat(AE_LOG_CATEGORY, "Asset registry header mismatch: " + registry_path.string());
         return false;
     }
 
@@ -155,7 +158,7 @@ bool read_registry(const std::filesystem::path& registry_path, AssetRecordMap& r
 
         split_registry_row(line, fields);
         if (fields.size() != 8) {
-            std::cerr << "Malformed asset registry row in " << registry_path << '\n';
+            ae::log_error_cat(AE_LOG_CATEGORY, "Malformed asset registry row in " + registry_path.string());
             return false;
         }
 
@@ -171,7 +174,7 @@ bool read_registry(const std::filesystem::path& registry_path, AssetRecordMap& r
         try {
             record.output_size = static_cast<std::uintmax_t>(std::stoull(fields[7]));
         } catch (const std::exception&) {
-            std::cerr << "Invalid output_size in asset registry: " << registry_path << '\n';
+            ae::log_error_cat(AE_LOG_CATEGORY, "Invalid output_size in asset registry: " + registry_path.string());
             return false;
         }
 
@@ -190,13 +193,13 @@ bool populate_record_identity(const ImportEntry& entry, ImportedAssetRecord& rec
     record.output_size = 0;
 
     if (!compute_file_hash(entry.source, record.source_hash)) {
-        std::cerr << "Failed to hash source asset: " << entry.source << '\n';
+        ae::log_error_cat(AE_LOG_CATEGORY, "Failed to hash source asset: " + entry.source.string());
         return false;
     }
 
     if (!entry.metadata.empty()) {
         if (!compute_file_hash(entry.metadata, record.metadata_hash)) {
-            std::cerr << "Failed to hash metadata asset: " << entry.metadata << '\n';
+            ae::log_error_cat(AE_LOG_CATEGORY, "Failed to hash metadata asset: " + entry.metadata.string());
             return false;
         }
     }
@@ -208,7 +211,7 @@ bool finalize_record_output(const ImportEntry& entry, ImportedAssetRecord& recor
     std::error_code error;
     record.output_size = std::filesystem::file_size(entry.output, error);
     if (error) {
-        std::cerr << "Failed to stat compiled asset: " << entry.output << ": " << error.message() << '\n';
+        ae::log_error_cat(AE_LOG_CATEGORY, "Failed to stat compiled asset: " + entry.output.string() + ": " + error.message());
         return false;
     }
 

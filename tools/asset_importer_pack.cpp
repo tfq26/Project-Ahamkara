@@ -1,10 +1,13 @@
 #include "asset_importer_pack.h"
 #include "asset_importer_registry.h"
+#include "ae/core/log.h"
 
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <filesystem>
+
+#define AE_LOG_CATEGORY "Tools"
 
 namespace asset_importer {
 
@@ -24,7 +27,7 @@ struct PkgEntry {
 bool pack_assets(const std::filesystem::path& registry_path, const std::filesystem::path& output_pkg_path) {
     AssetRecordMap records;
     if (!read_registry(registry_path, records)) {
-        std::cerr << "Failed to read registry for packing: " << registry_path << '\n';
+        ae::log_error_cat(AE_LOG_CATEGORY, "Failed to read registry for packing: " + registry_path.string());
         return false;
     }
 
@@ -35,16 +38,16 @@ bool pack_assets(const std::filesystem::path& registry_path, const std::filesyst
     for (const auto& [id, record] : records) {
         if (record.kind == "model" || record.kind == "material" || record.kind == "texture") {
             std::filesystem::path final_path = record.output;
-            if (!std::filesystem::exists(final_path)) {
-                final_path = registry_dir / record.output;
                 if (!std::filesystem::exists(final_path)) {
-                    final_path = manifest_dir / record.output;
+                    final_path = registry_dir / record.output;
                     if (!std::filesystem::exists(final_path)) {
-                        std::cerr << "Packed file not found: " << record.output << '\n';
-                        return false;
+                        final_path = manifest_dir / record.output;
+                        if (!std::filesystem::exists(final_path)) {
+                            ae::log_error_cat(AE_LOG_CATEGORY, "Packed file not found: " + record.output.string());
+                            return false;
+                        }
                     }
                 }
-            }
 
             PkgEntry entry;
             entry.asset_id = record.asset_id;
@@ -56,7 +59,7 @@ bool pack_assets(const std::filesystem::path& registry_path, const std::filesyst
 
     std::ofstream file(output_pkg_path, std::ios::binary);
     if (!file) {
-        std::cerr << "Failed to create output package: " << output_pkg_path << '\n';
+        ae::log_error_cat(AE_LOG_CATEGORY, "Failed to create output package: " + output_pkg_path.string());
         return false;
     }
 
@@ -102,14 +105,14 @@ bool pack_assets(const std::filesystem::path& registry_path, const std::filesyst
     // Write padding to align to 4096 bytes boundary before first file data
     if (padding_before_first_data > 0) {
         std::vector<char> padding(padding_before_first_data, 0);
-        file.write(padding.data(), padding_before_first_data);
+        file.write(padding.data(), static_cast<std::streamsize>(padding_before_first_data));
     }
 
     // Write each file's data, with padding to 4096 bytes boundary
     for (const auto& entry : pkg_entries) {
         std::ifstream src(entry.filepath, std::ios::binary);
         if (!src) {
-            std::cerr << "Failed to read compiled file for packing: " << entry.filepath << '\n';
+            ae::log_error_cat(AE_LOG_CATEGORY, "Failed to read compiled file for packing: " + entry.filepath.string());
             return false;
         }
 
@@ -118,11 +121,11 @@ bool pack_assets(const std::filesystem::path& registry_path, const std::filesyst
         std::uint64_t padding_needed = ((entry.size + 4095) & ~4095ULL) - entry.size;
         if (padding_needed > 0) {
             std::vector<char> padding(padding_needed, 0);
-            file.write(padding.data(), padding_needed);
+            file.write(padding.data(), static_cast<std::streamsize>(padding_needed));
         }
     }
 
-    std::cout << "Successfully packed " << pkg_entries.size() << " assets into " << output_pkg_path << '\n';
+    ae::log_info_cat(AE_LOG_CATEGORY, "Successfully packed " + std::to_string(pkg_entries.size()) + " assets into " + output_pkg_path.string());
     return true;
 }
 
