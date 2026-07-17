@@ -1,5 +1,6 @@
 #pragma once
 
+#include "wish/types.h"
 #include "wish/core/activity.h"
 
 #include <memory>
@@ -39,7 +40,7 @@ public:
         base_->remove_player(sid);
     }
 
-    ae::u32 player_count() const override {
+    wish::u32 player_count() const override {
         return base_->player_count();
     }
 
@@ -48,13 +49,13 @@ public:
     }
 
     void process_input(session::SessionId sid,
-                       const ae::PacketEnvelope& envelope,
-                       ae::u32 command_sequence) override {
+                       const wish::PacketEnvelope& envelope,
+                       wish::u32 command_sequence) override {
         base_->process_input(sid, envelope, command_sequence);
     }
 
-    ae::usize build_snapshot_bytes(session::SessionId sid,
-                                   std::span<std::byte> buffer) override {
+    wish::usize build_snapshot_bytes(session::SessionId sid,
+                                     std::span<std::byte> buffer) override {
         return base_->build_snapshot_bytes(sid, buffer);
     }
 
@@ -76,7 +77,7 @@ public:
 
     void for_each_connected_snapshot(
         void (*fn)(void* ctx, session::SessionId sid,
-                   const std::byte* data, ae::usize len),
+                   const std::byte* data, wish::usize len),
         void* ctx) override {
         base_->for_each_connected_snapshot(fn, ctx);
     }

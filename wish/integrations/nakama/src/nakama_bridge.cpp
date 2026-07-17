@@ -1,7 +1,7 @@
-#include "ae/core/log.h"
+#include "wish/types.h"
+#include "wish/log.h"
 #include "wish/integrations/nakama/nakama_bridge.h"
 
-#include "ae/core/cli_utils.h"
 #include "wish/integrations/nakama/mock_session_services.h"
 
 #include <algorithm>
@@ -53,14 +53,14 @@ bool parse_bool_text(std::string_view text) {
 
 void apply_env_bool(const char* name, bool& value) {
     if (const char* raw = std::getenv(name)) {
-        value = parse_bool_text(ae::trim(raw));
+        value = parse_bool_text(wish::trim(raw));
     }
 }
 
 void apply_env_int(const char* name, int& value) {
     if (const char* raw = std::getenv(name)) {
         try {
-            value = std::stoi(std::string(ae::trim(raw)));
+            value = std::stoi(std::string(wish::trim(raw)));
         } catch (...) {
         }
     }
@@ -69,7 +69,7 @@ void apply_env_int(const char* name, int& value) {
 void apply_env_port(const char* name, unsigned short& value) {
     if (const char* raw = std::getenv(name)) {
         try {
-            const int parsed = std::stoi(std::string(ae::trim(raw)));
+            const int parsed = std::stoi(std::string(wish::trim(raw)));
             if (parsed > 0 && parsed <= 65535) {
                 value = static_cast<unsigned short>(parsed);
             }
@@ -80,7 +80,7 @@ void apply_env_port(const char* name, unsigned short& value) {
 
 void apply_env_string(const char* name, std::string& value) {
     if (const char* raw = std::getenv(name)) {
-        value = std::string(ae::trim(raw));
+        value = std::string(wish::trim(raw));
     }
 }
 
@@ -133,7 +133,7 @@ void apply_cli_port(const char* arg, std::string_view key, unsigned short& value
 }
 
 void parse_url_into_settings(std::string_view url, BridgeSettings& settings) {
-    const auto trimmed = ae::trim(url);
+    const auto trimmed = wish::trim(url);
     if (trimmed.empty()) {
         return;
     }

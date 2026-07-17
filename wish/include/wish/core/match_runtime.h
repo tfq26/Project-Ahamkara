@@ -1,7 +1,6 @@
 #pragma once
 
-#include "ae/core/types.h"
-#include "ae/network/packet_envelope.h"
+#include "wish/types.h"
 #include "wish/replication/replication_frame.h"
 #include "wish/session/session_model.h"
 
@@ -56,19 +55,19 @@ public:
         hooks_ = hooks != nullptr ? hooks : &null_hooks();
     }
 
-    void note_client(const ae::NetAddress& address, ae::u32 received_input_sequence, const ae::PacketEnvelope& envelope) {
+    void note_client(const wish::NetAddress& address, wish::u32 received_input_sequence, const wish::PacketEnvelope& envelope) {
         session.client_address = address;
         session.connected = true;
         session.sequence_tracker.process_incoming(envelope);
         session.last_received_input_sequence = received_input_sequence;
     }
 
-    void mark_input_processed(ae::u32 input_sequence) {
+    void mark_input_processed(wish::u32 input_sequence) {
         session.last_processed_input_sequence = input_sequence;
         replication.last_processed_input = input_sequence;
     }
 
-    [[nodiscard]] ae::PacketEnvelope prepare_snapshot_envelope() {
+    [[nodiscard]] wish::PacketEnvelope prepare_snapshot_envelope() {
         return session.sequence_tracker.prepare_outgoing();
     }
 
