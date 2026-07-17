@@ -11,6 +11,7 @@ add_library(wish_engine STATIC
     session/src/session_model.cpp
     replication/src/replication_frame.cpp
     admin/src/admin_command.cpp
+    admin/src/metrics_collector.cpp
     integrations/nakama/src/nakama_bridge.cpp
 )
 
