@@ -576,6 +576,17 @@ target_link_libraries(ahamkara_wish_error_tests
 )
 add_test(NAME ahamkara_wish_error_tests COMMAND ahamkara_wish_error_tests)
 
+add_executable(ahamkara_metrics_tests
+    src/metrics_tests.cpp
+)
+target_compile_features(ahamkara_metrics_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_metrics_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_metrics_tests
+    PRIVATE
+        wish_engine
+)
+add_test(NAME ahamkara_metrics_tests COMMAND ahamkara_metrics_tests)
+
 add_executable(ahamkara_rewind_tests
     src/rewind_tests.cpp
 )
