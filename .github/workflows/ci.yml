@@ -1,7 +1,7 @@
 # CI workflow
 #
 # Builds all CMake presets (debug, release, debug-headless) and runs tests
-# for presets that support them.  Runs on Ubuntu 24.04 and macOS 14.
+# for presets that support them. Runs on self-hosted Linux runner (servlenovo1).
 
 name: CI
 
@@ -60,35 +60,17 @@ jobs:
           if-no-files-found: warn
 
   build-and-test:
-    name: ${{ matrix.preset }} (${{ matrix.os }})
+    name: ${{ matrix.preset }} (self-hosted)
     strategy:
       fail-fast: false
       matrix:
         preset: [debug, release, debug-headless]
-        os: [ubuntu-24.04, macos-14]
-        exclude:
-          # macOS jobs: only debug and release (no headless runner needed)
-          - os: macos-14
-            preset: debug-headless
 
-    runs-on: ${{ matrix.os }}
+    runs-on: [self-hosted, linux]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            cmake ninja-build libglfw3-dev libgl1-mesa-dev
-
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          brew install ninja glfw
 
       - name: Configure
         run: cmake --preset ${{ matrix.preset }}
@@ -106,18 +88,12 @@ jobs:
 
   package:
     name: Package
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux]
     needs: [build-and-test]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            cmake ninja-build libglfw3-dev libgl1-mesa-dev
 
       - name: Package
         run: |
