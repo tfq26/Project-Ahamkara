@@ -46,4 +46,3 @@ Work is tracked only in [GitHub Issues](https://github.com/tfq26/Project-Ahamkar
 - Run the headless validation suite: `cmake --preset debug-headless && cmake --build --preset debug-headless && ctest --test-dir build/debug-headless --output-on-failure`.
 - Read `build/lint/summary.md` first; machine-readable results are in `build/lint/summary.json` and the per-tool reports beside it.
 - Do not broaden lint exclusions or weaken checks to make a ticket pass. Record genuine legacy debt in a specific GitHub issue.
->>>>>>> 063280f (Issue #56: Repository source of truth)

@@ -1,7 +1,7 @@
 # CI workflow
 #
-# Builds all CMake presets (debug, release, debug-headless) and runs tests
-# for presets that support them. Runs on self-hosted Linux runner (servlenovo1).
+# Builds all CMake presets (debug, release, debug-headless) and runs tests,
+# package, and engine-only validation. Runs on self-hosted Linux runner.
 
 name: CI
 
@@ -15,8 +15,8 @@ env:
   CMAKE_BUILD_PARALLEL_LEVEL: 4
 
 jobs:
-  lint:
-    name: Lint
+  validate:
+    name: Validate
     runs-on: [self-hosted, linux]
 
     steps:
@@ -24,6 +24,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Check for unresolved template tokens
+        run: ./scripts/check-template-tokens.sh --ci
+
+      - name: Check for tracked __pycache__ directories
+        run: |
+          PYCACHE=$(git ls-files '**/__pycache__/')
+          if [[ -n "$PYCACHE" ]]; then
+            echo "Error: tracked __pycache__ directories found:"
+            echo "$PYCACHE"
+            exit 1
+          fi
+          echo "No tracked __pycache__ directories — clean"
 
       - name: Validate documentation links
         run: python3 scripts/check-docs-links.sh --ci
@@ -61,6 +74,7 @@ jobs:
 
   build-and-test:
     name: ${{ matrix.preset }} (self-hosted)
+    needs: validate
     strategy:
       fail-fast: false
       matrix:
@@ -85,6 +99,24 @@ jobs:
       - name: Run tests (debug-headless only)
         if: matrix.preset == 'debug-headless'
         run: ctest --test-dir build/debug-headless --output-on-failure
+
+  engine-only:
+    name: Engine-only
+    needs: validate
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure (engine-only)
+        run: cmake --preset debug -DAHAMKARA_ENGINE_ONLY=ON
+
+      - name: Build (engine-only)
+        run: cmake --build --preset debug
+
+      - name: Run engine tests
+        run: ctest --test-dir build/debug --output-on-failure
 
   package:
     name: Package
