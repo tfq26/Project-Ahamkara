@@ -172,7 +172,7 @@ void tick_dummy_ai(
                 // Fire a shot
                 // Apply damage to player (hitscan)
                 float damage = kDummyWeaponDamage;
-                world.apply_damage_to_player(damage, d.position);
+                world.apply_damage_to_player(0, damage, d.position);
                 world.queue_audio_event(AudioEvent{"dummy_fire", 0.7f, AudioCategory::Weapon});
 
                 if (comp.burst_count <= 0) {
