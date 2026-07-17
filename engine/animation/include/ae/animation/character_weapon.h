@@ -73,7 +73,9 @@ public:
 
     // --- Query ---
 
-    [[nodiscard]] const std::vector<skeleton::Mat4>& last_pose() const { return last_pose_; }
+    [[nodiscard]] const std::vector<skeleton::Mat4>& last_pose() const {
+        return last_pose_;
+    }
     [[nodiscard]] int joint_count() const { return joint_count_; }
 
 private:
@@ -172,8 +174,8 @@ struct WeaponAnimState {
 /// @param ads_blend Current ADS blend factor [0,1] for sway reduction.
 /// @param out_offset Output: sway-only transform offset.
 void evaluate_sway_layer(WeaponAnimState& state, const WeaponAnimConfig& config,
-                          float dt, float look_delta_x, float look_delta_y,
-                          float ads_blend, skeleton::Mat4& out_offset);
+                         float dt, float look_delta_x, float look_delta_y,
+                         float ads_blend, skeleton::Mat4& out_offset);
 
 /// Evaluate weapon bob layer (movement → vertical/horizontal oscillation).
 /// @param state Must have valid bob_phase.
@@ -183,8 +185,8 @@ void evaluate_sway_layer(WeaponAnimState& state, const WeaponAnimConfig& config,
 /// @param is_moving Whether the player is moving.
 /// @param out_offset Output: bob-only transform offset.
 void evaluate_bob_layer(WeaponAnimState& state, const WeaponAnimConfig& config,
-                         float dt, float player_speed, bool is_moving,
-                         skeleton::Mat4& out_offset);
+                        float dt, float player_speed, bool is_moving,
+                        skeleton::Mat4& out_offset);
 
 /// Evaluate weapon recoil kick layer (fire impulse → brief kick + recovery).
 /// @param state Must have valid fire_anim_time; call fire_weapon_kick() to trigger a kick.
@@ -192,7 +194,7 @@ void evaluate_bob_layer(WeaponAnimState& state, const WeaponAnimConfig& config,
 /// @param dt Delta time in seconds.
 /// @param out_offset Output: recoil-kick-only transform offset.
 void evaluate_recoil_kick_layer(WeaponAnimState& state, const WeaponAnimConfig& config,
-                                 float dt, skeleton::Mat4& out_offset);
+                                float dt, skeleton::Mat4& out_offset);
 
 /// Trigger a recoil kick impulse on the next evaluate_recoil_kick_layer() call.
 /// Sets the fire_anim_time so the recoil layer produces a brief upward kick.
@@ -208,9 +210,9 @@ void fire_weapon_kick(WeaponAnimState& state);
 /// @param is_moving Whether the player is moving.
 /// @param out_transform Output weapon root transform (applied as model matrix).
 void evaluate_weapon_animation(WeaponAnimState& state, const WeaponAnimConfig& config,
-                                float dt, float player_speed,
-                                float look_delta_x, float look_delta_y,
-                                bool is_moving, bool is_ads, bool fire_pressed,
-                                skeleton::Mat4& out_transform);
+                               float dt, float player_speed,
+                               float look_delta_x, float look_delta_y,
+                               bool is_moving, bool is_ads, bool fire_pressed,
+                               skeleton::Mat4& out_transform);
 
 }  // namespace ae::animation

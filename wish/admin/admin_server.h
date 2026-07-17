@@ -6,6 +6,7 @@
 #include <unistd.h>
 #endif
 
+#include "wish/admin/heartbeat_service.h"
 #include "wish/types.h"
 
 #include <chrono>
@@ -50,7 +51,7 @@ public:
     HttpAdminServer& operator=(HttpAdminServer&&) = delete;
     ~HttpAdminServer();
 
-    bool start(wish::u16 port, StatusProvider provider);
+    bool start(wish::u16 port, StatusProvider provider, HeartbeatService& heartbeat_service);
     void stop();
 
     [[nodiscard]] bool is_running() const;
@@ -64,8 +65,7 @@ public:
     using SocketHandle = int;
 #endif
 
-private:
-
+  private:
     static void close_socket(SocketHandle s) {
 #ifdef _WIN32
         closesocket(s);
@@ -84,6 +84,8 @@ private:
     static std::string status_code_text(int status_code);
     static std::string parse_path(std::string_view request_line);
     static std::string parse_method(std::string_view request_line);
+    static std::string parse_body(std::string_view request);
+    std::string render_servers() const;
 
     wish::u16 port_ {0};
     SocketHandle listen_fd_ {socket_invalid()};
@@ -104,6 +106,7 @@ private:
 #endif
     }
     StatusProvider status_provider_ {};
+    HeartbeatService* heartbeat_service_ {nullptr};
     std::thread thread_ {};
     bool running_ {false};
 };

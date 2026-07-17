@@ -23,9 +23,9 @@ import re
 import subprocess
 import sys
 import time
-import urllib.request
 import urllib.error
-from datetime import datetime, timezone
+import urllib.request
+from datetime import UTC, datetime
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -86,10 +86,13 @@ def fatal(msg: str):
 def api_get(path: str) -> dict | list:
     """GET from the GitHub REST API."""
     url = f"https://api.github.com/repos/{REPO}/{path.lstrip('/')}"
-    req = urllib.request.Request(url, headers={
-        "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
-        "Accept": "application/vnd.github.v3+json",
-    })
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+            "Accept": "application/vnd.github.v3+json",
+        },
+    )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read().decode())
@@ -102,11 +105,15 @@ def api_post(path: str, data: dict) -> dict | None:
     """POST to the GitHub REST API."""
     url = f"https://api.github.com/repos/{REPO}/{path.lstrip('/')}"
     body = json.dumps(data).encode()
-    req = urllib.request.Request(url, data=body, headers={
-        "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
-        "Accept": "application/vnd.github.v3+json",
-        "Content-Type": "application/json",
-    })
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+            "Accept": "application/vnd.github.v3+json",
+            "Content-Type": "application/json",
+        },
+    )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read().decode())
@@ -148,8 +155,12 @@ def run_cmd(cmd: str, cwd: str | None = None, timeout: int = 120) -> tuple[bool,
     """Run a shell command."""
     try:
         result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True,
-            timeout=timeout, cwd=cwd,
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=cwd,
         )
         return result.returncode == 0, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
@@ -260,7 +271,7 @@ Fix the issues described above. Do NOT re-implement working code.
 
 ## Task
 
-Implement issue #{issue['number']}: {issue['title']}
+Implement issue #{issue["number"]}: {issue["title"]}
 
 {body[:2000]}
 
@@ -283,7 +294,7 @@ Implement issue #{issue['number']}: {issue['title']}
 7. Do NOT include sudo commands.
 8. After implementing, you may optionally run `cmake --preset debug && cmake --build build/debug -j$(nproc)` locally to verify, but the real build will happen on the server.
 9. Make sure git is configured and you commit and push your changes.
-10. Commit message format: "[Task #{issue['number']}] {issue['title']}
+10. Commit message format: "[Task #{issue["number"]}] {issue["title"]}
 
 Co-Authored-By: Oz <oz-agent@warp.dev>"
 """
@@ -346,13 +357,13 @@ def run_windows_build(branch: str) -> tuple[bool, str]:
     SSH into the gaming PC, pull the branch, rebuild clean, and return
     (success, log_text).
     """
-    log.info("=== Windows build: pulling branch %s on %s@%s ===",
-             branch, WINDOWS_USER, WINDOWS_HOST)
+    log.info("=== Windows build: pulling branch %s on %s@%s ===", branch, WINDOWS_USER, WINDOWS_HOST)
 
     # Step 1: git pull branch on the PC
     ssh_git = [
-        "ssh", f"{WINDOWS_USER}@{WINDOWS_HOST}",
-        f"cd {WINDOWS_PATH} && git fetch origin && git checkout {branch} && git pull"
+        "ssh",
+        f"{WINDOWS_USER}@{WINDOWS_HOST}",
+        f"cd {WINDOWS_PATH} && git fetch origin && git checkout {branch} && git pull",
     ]
     try:
         r = subprocess.run(ssh_git, capture_output=True, text=True, timeout=60)
@@ -369,18 +380,15 @@ def run_windows_build(branch: str) -> tuple[bool, str]:
     # We chain commands via cmd.exe over SSH with vcvars64.bat.
     # Build script that runs via SSH:
     build_cmds = (
-        f'rmdir /s /q {WINDOWS_PATH}\\build\\debug 2>nul && '
+        f"rmdir /s /q {WINDOWS_PATH}\\build\\debug 2>nul && "
         f'call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat" && '
         f'"C:\\Program Files\\CMake\\bin\\cmake.exe" -S {WINDOWS_PATH} -B {WINDOWS_PATH}\\build\\debug '
-        f'-G Ninja -DCMAKE_BUILD_TYPE=Debug '
-        f'-DCMAKE_TOOLCHAIN_FILE={WINDOWS_PATH}\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake '
-        f'-DCMAKE_EXPORT_COMPILE_COMMANDS=ON >nul 2>&1 && '
+        f"-G Ninja -DCMAKE_BUILD_TYPE=Debug "
+        f"-DCMAKE_TOOLCHAIN_FILE={WINDOWS_PATH}\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake "
+        f"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON >nul 2>&1 && "
         f'"C:\\Program Files\\CMake\\bin\\cmake.exe" --build {WINDOWS_PATH}\\build\\debug -- -j8'
     )
-    ssh_build = [
-        "ssh", f"{WINDOWS_USER}@{WINDOWS_HOST}",
-        f"cmd.exe /q /c \"\"{build_cmds}\"\""
-    ]
+    ssh_build = ["ssh", f"{WINDOWS_USER}@{WINDOWS_HOST}", f'cmd.exe /q /c ""{build_cmds}""']
 
     try:
         r = subprocess.run(ssh_build, capture_output=True, text=True, timeout=600)
@@ -609,8 +617,11 @@ def main() -> None:
     log.info("Oz Runner starting")
     log.info("Repo: %s", REPO)
     log.info("Clone: %s", AHAMKARA_CLONE)
-    log.info("Coder: %s (%s)", "DeepSeek" if DEEPSEEK_API_KEY else "OpenAI",
-             DEEPSEEK_MODEL if DEEPSEEK_API_KEY else OPENAI_MODEL)
+    log.info(
+        "Coder: %s (%s)",
+        "DeepSeek" if DEEPSEEK_API_KEY else "OpenAI",
+        DEEPSEEK_MODEL if DEEPSEEK_API_KEY else OPENAI_MODEL,
+    )
     log.info("Poll interval: %ds", POLL_INTERVAL)
 
     # Handle --process flag
@@ -622,7 +633,7 @@ def main() -> None:
         if not issue:
             fatal(f"Issue #{issue_num} not found")
         state = load_state()
-        state[str(issue_num)] = {"started": datetime.now(timezone.utc).isoformat()}
+        state[str(issue_num)] = {"started": datetime.now(UTC).isoformat()}
         save_state(state)
         process_issue(issue)
         state = load_state()
@@ -651,10 +662,9 @@ def main() -> None:
                     started = state.get(str(num), {}).get("started", "")
                     if started:
                         started_dt = datetime.fromisoformat(started)
-                        elapsed = (datetime.now(timezone.utc) - started_dt).total_seconds()
+                        elapsed = (datetime.now(UTC) - started_dt).total_seconds()
                         if elapsed > 7200:
-                            log.warning("Issue #%s has been active for %.0f min, may be stale",
-                                        num, elapsed / 60)
+                            log.warning("Issue #%s has been active for %.0f min, may be stale", num, elapsed / 60)
                     continue
 
                 # Check comments to see if we already started this issue
@@ -670,7 +680,7 @@ def main() -> None:
 
                 log.info("New issue detected: #%s - %s", num, title)
 
-                state[str(num)] = {"started": datetime.now(timezone.utc).isoformat()}
+                state[str(num)] = {"started": datetime.now(UTC).isoformat()}
                 save_state(state)
 
                 process_issue(issue)
@@ -686,6 +696,7 @@ def main() -> None:
         except Exception as e:
             log.error("Poll loop error: %s", e)
             import traceback
+
             log.error(traceback.format_exc())
 
     if run_once:

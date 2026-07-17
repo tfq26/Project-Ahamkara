@@ -14,13 +14,11 @@ Output: ~/Projects/Ahamkara/.ahamkara-queue/pending.json
 
 import json
 import logging
-import os
 import subprocess
-import sys
-import urllib.request
 import urllib.error
+import urllib.request
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
 
 REPO = "tfq26/Project-Ahamkara"
 QUEUE_DIR = Path.home() / "Projects" / "Ahamkara" / ".ahamkara-queue"
@@ -45,7 +43,9 @@ def gh_token() -> str:
     """Get GitHub token from gh CLI keychain."""
     result = subprocess.run(
         ["gh", "auth", "token"],
-        capture_output=True, text=True, timeout=10,
+        capture_output=True,
+        text=True,
+        timeout=10,
     )
     if result.returncode != 0:
         raise RuntimeError("gh auth token failed: " + result.stderr[:200])
@@ -55,10 +55,13 @@ def gh_token() -> str:
 def api_get(path: str) -> dict | list:
     token = gh_token()
     url = f"https://api.github.com/repos/{REPO}/{path.lstrip('/')}"
-    req = urllib.request.Request(url, headers={
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github.v3+json",
-    })
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github.v3+json",
+        },
+    )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read().decode())
@@ -130,7 +133,9 @@ def main():
         comments_data = api_get(f"issues/{num}/comments")
         if isinstance(comments_data, list):
             all_text = " ".join(c.get("body", "") or "" for c in comments_data)
-            if "Build and tests passed" in all_text or ("BUILD OK" in all_text.upper() and "<!-- GEMINI_REVIEW -->" in all_text):
+            if "Build and tests passed" in all_text or (
+                "BUILD OK" in all_text.upper() and "<!-- GEMINI_REVIEW -->" in all_text
+            ):
                 processed.add(num)
                 save_processed(processed)
                 continue
@@ -140,7 +145,7 @@ def main():
             "number": num,
             "title": title,
             "body": (issue.get("body") or "")[:2000],
-            "detected_at": datetime.now(timezone.utc).isoformat(),
+            "detected_at": datetime.now(UTC).isoformat(),
             "labels": [l.get("name", "") for l in (issue.get("labels") or [])],
             "html_url": issue.get("html_url", ""),
         }

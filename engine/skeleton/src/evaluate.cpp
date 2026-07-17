@@ -16,18 +16,18 @@ Mat4::Mat4() {
 
 Mat4 Mat4::identity() {
     Mat4 result;
-    result.m[0]  = 1.0F;  // col 0, row 0
-    result.m[5]  = 1.0F;  // col 1, row 1
-    result.m[10] = 1.0F;  // col 2, row 2
-    result.m[15] = 1.0F;  // col 3, row 3
+    result.m[0] = 1.0F;  // col 0, row 0
+    result.m[5] = 1.0F;  // col 1, row 1
+    result.m[10] = 1.0F; // col 2, row 2
+    result.m[15] = 1.0F; // col 3, row 3
     return result;
 }
 
 Mat4 Mat4::translation(float x, float y, float z) {
     Mat4 result = identity();
-    result.m[12] = x;  // col 3, row 0
-    result.m[13] = y;  // col 3, row 1
-    result.m[14] = z;  // col 3, row 2
+    result.m[12] = x; // col 3, row 0
+    result.m[13] = y; // col 3, row 1
+    result.m[14] = z; // col 3, row 2
     return result;
 }
 
@@ -61,8 +61,8 @@ Mat4 Mat4::rotation_quat(float x, float y, float z, float w) {
     result.m[5] = 1.0F - 2.0F * (xx + zz);
     result.m[6] = 2.0F * (yz + wx);
     // col 2
-    result.m[8]  = 2.0F * (xz + wy);
-    result.m[9]  = 2.0F * (yz - wx);
+    result.m[8] = 2.0F * (xz + wy);
+    result.m[9] = 2.0F * (yz - wx);
     result.m[10] = 1.0F - 2.0F * (xx + yy);
 
     return result;
@@ -70,8 +70,8 @@ Mat4 Mat4::rotation_quat(float x, float y, float z, float w) {
 
 Mat4 Mat4::scale(float sx, float sy, float sz) {
     Mat4 result = identity();
-    result.m[0]  = sx;
-    result.m[5]  = sy;
+    result.m[0] = sx;
+    result.m[5] = sy;
     result.m[10] = sz;
     return result;
 }
@@ -114,8 +114,10 @@ void quat_slerp(const float* a, const float* b, float t, float* out) {
     }
 
     // Clamp dot to [-1, 1] to avoid acos domain errors
-    if (dot > 1.0F) dot = 1.0F;
-    if (dot < -1.0F) dot = -1.0F;
+    if (dot > 1.0F)
+        dot = 1.0F;
+    if (dot < -1.0F)
+        dot = -1.0F;
 
     const float threshold = 0.9995F;
     if (dot > threshold) {
@@ -136,8 +138,8 @@ void quat_slerp(const float* a, const float* b, float t, float* out) {
         return;
     }
 
-    float theta_0 = std::acos(dot);        // angle between a and b
-    float theta = theta_0 * t;             // angle between a and result
+    float theta_0 = std::acos(dot); // angle between a and b
+    float theta = theta_0 * t;      // angle between a and result
     float sin_theta = std::sin(theta);
     float sin_theta_0 = std::sin(theta_0);
 
@@ -162,7 +164,8 @@ namespace {
  */
 bool find_keyframes(const std::vector<float>& times, float time,
                     std::size_t& idx0, std::size_t& idx1, float& t) {
-    if (times.empty()) return false;
+    if (times.empty())
+        return false;
 
     if (time <= times.front()) {
         idx0 = 0;
@@ -208,8 +211,7 @@ void evaluate_animation(
     const AnimationClipData& anim,
     const Skin& skin,
     float time,
-    std::vector<Mat4>& out_joint_matrices)
-{
+    std::vector<Mat4>& out_joint_matrices) {
     const std::size_t joint_count = skin.joints.size();
     out_joint_matrices.resize(joint_count);
 
@@ -236,17 +238,20 @@ void evaluate_animation(
 
         // Map node index to joint index
         auto jt = node_to_joint.find(channel.node_index);
-        if (jt == node_to_joint.end()) continue;
+        if (jt == node_to_joint.end())
+            continue;
         int joint_idx = jt->second;
 
         const auto& sampler = anim.samplers[static_cast<std::size_t>(channel.sampler_index)];
-        if (sampler.input_times.empty() || sampler.output_values.empty()) continue;
+        if (sampler.input_times.empty() || sampler.output_values.empty())
+            continue;
 
         // Find keyframe pair
         std::size_t kf0 = 0;
         std::size_t kf1 = 0;
         float blend = 0.0F;
-        if (!find_keyframes(sampler.input_times, time, kf0, kf1, blend)) continue;
+        if (!find_keyframes(sampler.input_times, time, kf0, kf1, blend))
+            continue;
 
         if (channel.path == "translation") {
             // 3 floats per keyframe
@@ -349,8 +354,7 @@ void evaluate_animation(
 void evaluate_procedural_animation(
     ProceduralAnimState& state,
     float dt,
-    std::vector<Mat4>& out_joint_matrices)
-{
+    std::vector<Mat4>& out_joint_matrices) {
     state.time += dt;
 
     // 8 joints: [0] root, [1] hips, [2] spine, [3] head,
@@ -386,20 +390,20 @@ void evaluate_procedural_animation(
     // Joint 4: Left arm — very subtle swing
     float arm_swing = sway * 0.03F;
     Mat4 left_arm = Mat4::rotation_quat(0.0F, 0.0F, std::sin(arm_swing * 0.5F),
-                                         std::cos(arm_swing * 0.5F));
+                                        std::cos(arm_swing * 0.5F));
 
     // Joint 5: Right arm — opposite phase
     Mat4 right_arm = Mat4::rotation_quat(0.0F, 0.0F, std::sin(-arm_swing * 0.5F),
-                                          std::cos(-arm_swing * 0.5F));
+                                         std::cos(-arm_swing * 0.5F));
 
     // Joint 6: Left leg — practically static (subtle knee bend)
     float leg_bend = breath * 0.01F;
     Mat4 left_leg = Mat4::rotation_quat(std::sin(leg_bend * 0.5F), 0.0F, 0.0F,
-                                         std::cos(leg_bend * 0.5F));
+                                        std::cos(leg_bend * 0.5F));
 
     // Joint 7: Right leg — same
     Mat4 right_leg = Mat4::rotation_quat(std::sin(leg_bend * 0.5F), 0.0F, 0.0F,
-                                          std::cos(leg_bend * 0.5F));
+                                         std::cos(leg_bend * 0.5F));
 
     // Compute global transforms. Hierarchy:
     //   root → hips → spine → head
@@ -407,13 +411,13 @@ void evaluate_procedural_animation(
     //   root → hips → right_arm
     //   root → hips → left_leg
     //   root → hips → right_leg
-    Mat4 g_root     = root;
-    Mat4 g_hips     = g_root * hips;
-    Mat4 g_spine    = g_hips * spine;
-    Mat4 g_head     = g_spine * head;
+    Mat4 g_root = root;
+    Mat4 g_hips = g_root * hips;
+    Mat4 g_spine = g_hips * spine;
+    Mat4 g_head = g_spine * head;
     Mat4 g_left_arm = g_hips * left_arm;
     Mat4 g_right_arm = g_hips * right_arm;
-    Mat4 g_left_leg  = g_hips * left_leg;
+    Mat4 g_left_leg = g_hips * left_leg;
     Mat4 g_right_leg = g_hips * right_leg;
 
     out_joint_matrices[0] = g_root;
@@ -425,8 +429,6 @@ void evaluate_procedural_animation(
     out_joint_matrices[6] = g_left_leg;
     out_joint_matrices[7] = g_right_leg;
 }
-
-
 
 PosePalette extract_pose_palette(const std::vector<Mat4>& pose) {
     PosePalette out;

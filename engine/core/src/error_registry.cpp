@@ -13,7 +13,7 @@ const ErrorDescriptor kAhamkaraActive[] = {
         "error.cfg.load_failed",
         "core/config",
         ErrorSeverity::Error,
-        RecoveryPolicy{RecoveryAction::RestartApp, 0, 0, true},
+        RecoveryPolicy {RecoveryAction::RestartApp, 0, 0, true},
         "docs/operations/error-codes.md#ae-cfg-0001",
     },
     {
@@ -22,7 +22,7 @@ const ErrorDescriptor kAhamkaraActive[] = {
         "error.asset.load_failed",
         "core/assets",
         ErrorSeverity::Error,
-        RecoveryPolicy{RecoveryAction::Retry, 2, 250, true},
+        RecoveryPolicy {RecoveryAction::Retry, 2, 250, true},
         "docs/operations/error-codes.md#ae-ast-0001",
     },
     {
@@ -31,7 +31,7 @@ const ErrorDescriptor kAhamkaraActive[] = {
         "error.net.socket_failed",
         "network",
         ErrorSeverity::Error,
-        RecoveryPolicy{RecoveryAction::Retry, 3, 500, true},
+        RecoveryPolicy {RecoveryAction::Retry, 3, 500, true},
         "docs/operations/error-codes.md#ae-net-0001",
     },
     {
@@ -40,7 +40,7 @@ const ErrorDescriptor kAhamkaraActive[] = {
         "error.render.init_failed",
         "render",
         ErrorSeverity::Fatal,
-        RecoveryPolicy{RecoveryAction::RestartApp, 0, 0, true},
+        RecoveryPolicy {RecoveryAction::RestartApp, 0, 0, true},
         "docs/operations/error-codes.md#ae-rnd-0001",
     },
     {
@@ -49,7 +49,7 @@ const ErrorDescriptor kAhamkaraActive[] = {
         "error.audio.init_failed",
         "audio",
         ErrorSeverity::Error,
-        RecoveryPolicy{RecoveryAction::RestartSubsystem, 1, 0, true},
+        RecoveryPolicy {RecoveryAction::RestartSubsystem, 1, 0, true},
         "docs/operations/error-codes.md#ae-aud-0001",
     },
 };

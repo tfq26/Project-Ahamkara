@@ -46,20 +46,22 @@ public:
     /// Is a clip currently playing?
     [[nodiscard]] bool is_playing() const { return active_animation_ != nullptr; }
 
-    [[nodiscard]] bool has_data() const { return joint_count_ > 0 && !clips_.empty(); }
+    [[nodiscard]] bool has_data() const {
+        return joint_count_ > 0 && !clips_.empty();
+    }
 
 private:
-    ae::skeleton::Skin skin_{};
-    std::vector<ae::skeleton::AnimationClipData> clips_{};
-    std::vector<ae::skeleton::Mat4> joint_matrices_;
+  ae::skeleton::Skin skin_ {};
+  std::vector<ae::skeleton::AnimationClipData> clips_ {};
+  std::vector<ae::skeleton::Mat4> joint_matrices_;
 
-    const ae::skeleton::AnimationClipData* active_animation_{nullptr};
-    std::string current_clip_name_;
-    float current_time_{0.0f};
-    float duration_{0.0f};
-    bool paused_{false};
-    bool loop_{true};
-    int joint_count_{0};
+  const ae::skeleton::AnimationClipData* active_animation_ {nullptr};
+  std::string current_clip_name_;
+  float current_time_ {0.0f};
+  float duration_ {0.0f};
+  bool paused_ {false};
+  bool loop_ {true};
+  int joint_count_ {0};
 };
 
 }  // namespace ae::animation

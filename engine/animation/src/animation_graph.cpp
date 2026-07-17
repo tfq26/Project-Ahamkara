@@ -10,8 +10,8 @@
 namespace ae::animation {
 
 void AnimationGraph::register_clip(const std::string& name,
-                                    const skeleton::AnimationClipData* source,
-                                    float duration, bool looping) {
+                                   const skeleton::AnimationClipData* source,
+                                   float duration, bool looping) {
     AnimationClip clip;
     clip.name = name;
     clip.source = source;
@@ -37,8 +37,8 @@ void AnimationGraph::set_parent_indices(const std::vector<int>& parent_indices) 
 }
 
 void AnimationGraph::evaluate(const std::vector<StateMachine::ActiveClip>& active_clips,
-                               float dt,
-                               std::vector<skeleton::Mat4>& out_matrices) {
+                              float dt,
+                              std::vector<skeleton::Mat4>& out_matrices) {
     if (!skin_) {
         // No skin registered — fall back to procedural
         // (caller should provide a procedural state externally)
@@ -154,7 +154,7 @@ void AnimationGraph::evaluate(const std::vector<StateMachine::ActiveClip>& activ
 }
 
 void AnimationGraph::evaluate_single(const std::string& clip_name, float dt,
-                                      std::vector<skeleton::Mat4>& out_matrices) {
+                                     std::vector<skeleton::Mat4>& out_matrices) {
     std::vector<StateMachine::ActiveClip> clips;
     StateMachine::ActiveClip ac;
     ac.clip_name = clip_name;
@@ -171,8 +171,8 @@ void AnimationGraph::evaluate_single(const std::string& clip_name, float dt,
 }
 
 void AnimationGraph::apply_additive(const std::vector<JointTransform>& additive_offsets,
-                                     std::vector<skeleton::Mat4>& in_out_matrices,
-                                     const std::vector<int>& parent_indices) {
+                                    std::vector<skeleton::Mat4>& in_out_matrices,
+                                    const std::vector<int>& parent_indices) {
     const std::size_t count = std::min(additive_offsets.size(), in_out_matrices.size());
     if (count == 0) return;
 
@@ -197,7 +197,7 @@ void AnimationGraph::apply_additive(const std::vector<JointTransform>& additive_
 }
 
 void AnimationGraph::evaluate_procedural(skeleton::ProceduralAnimState& state, float dt,
-                                          std::vector<skeleton::Mat4>& out_matrices) {
+                                         std::vector<skeleton::Mat4>& out_matrices) {
     skeleton::evaluate_procedural_animation(state, dt, out_matrices);
 }
 

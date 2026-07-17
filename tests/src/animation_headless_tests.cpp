@@ -14,8 +14,14 @@ ae::skeleton::AnimationClipData make_rotation_clip() {
     sampler.input_times = {0.0F, 1.0F};
     const float s = 0.70710678F;
     sampler.output_values = {
-        0.0F, 0.0F, 0.0F, 1.0F,
-        0.0F, s, 0.0F, s,
+        0.0F,
+        0.0F,
+        0.0F,
+        1.0F,
+        0.0F,
+        s,
+        0.0F,
+        s,
     };
     sampler.interpolation = "LINEAR";
     clip.samplers.push_back(sampler);
@@ -45,7 +51,7 @@ bool nearly_equal(float a, float b, float eps = 1.0e-3F) {
 } // namespace
 
 int main() {
-    ae::skeleton::ProceduralAnimState proc{};
+    ae::skeleton::ProceduralAnimState proc {};
     std::vector<ae::skeleton::Mat4> procedural;
     ae::skeleton::evaluate_procedural_animation(proc, 1.0F / 60.0F, procedural);
     if (procedural.size() != 8U) {
@@ -69,7 +75,7 @@ int main() {
         return 1;
     }
 
-    std::vector<ae::skeleton::Mat4> pose_vec{pose[0]};
+    std::vector<ae::skeleton::Mat4> pose_vec {pose[0]};
     const auto palette = ae::skeleton::extract_pose_palette(pose_vec);
     if (palette.joint_count != 1 || palette.joint_matrices.size() != 16U) {
         std::cerr << "palette contract failed\n";

@@ -11,20 +11,30 @@ namespace ae {
 /// Stable, human-searchable error identity: PRODUCT-DOMAIN-NUMBER
 /// Example: AE-NET-1004
 class ErrorCode {
-public:
+  public:
     static constexpr std::size_t kMaxText = 31;
 
     constexpr ErrorCode() = default;
-    explicit constexpr ErrorCode(std::string_view text) { assign(text); }
+    explicit constexpr ErrorCode(std::string_view text) {
+        assign(text);
+    }
 
-    [[nodiscard]] constexpr bool valid() const { return length_ > 0; }
+    [[nodiscard]] constexpr bool valid() const {
+        return length_ > 0;
+    }
     [[nodiscard]] constexpr std::string_view text() const {
         return std::string_view(text_.data(), length_);
     }
-    [[nodiscard]] std::string str() const { return std::string(text()); }
+    [[nodiscard]] std::string str() const {
+        return std::string(text());
+    }
 
-    [[nodiscard]] constexpr std::string_view product() const { return part(0); }
-    [[nodiscard]] constexpr std::string_view domain() const { return part(1); }
+    [[nodiscard]] constexpr std::string_view product() const {
+        return part(0);
+    }
+    [[nodiscard]] constexpr std::string_view domain() const {
+        return part(1);
+    }
     [[nodiscard]] constexpr std::uint16_t number() const {
         const auto n = part(2);
         std::uint16_t value = 0;
@@ -57,13 +67,16 @@ public:
             return false;
         }
         for (char c : product) {
-            if (c < 'A' || c > 'Z') return false;
+            if (c < 'A' || c > 'Z')
+                return false;
         }
         for (char c : domain) {
-            if (c < 'A' || c > 'Z') return false;
+            if (c < 'A' || c > 'Z')
+                return false;
         }
         for (char c : number) {
-            if (c < '0' || c > '9') return false;
+            if (c < '0' || c > '9')
+                return false;
         }
         return true;
     }
@@ -75,7 +88,7 @@ public:
         return !(a == b);
     }
 
-private:
+  private:
     constexpr void assign(std::string_view text) {
         length_ = 0;
         if (!is_well_formed(text)) {
@@ -106,8 +119,8 @@ private:
         return {};
     }
 
-    std::array<char, kMaxText> text_{};
-    std::size_t length_{0};
+    std::array<char, kMaxText> text_ {};
+    std::size_t length_ {0};
 };
 
 } // namespace ae

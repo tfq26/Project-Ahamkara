@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cerrno>
 #include <cstring>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -70,13 +71,14 @@ HttpAdminServer::~HttpAdminServer() {
     stop();
 }
 
-bool HttpAdminServer::start(wish::u16 port, StatusProvider provider) {
+bool HttpAdminServer::start(wish::u16 port, StatusProvider provider, HeartbeatService& heartbeat_service) {
     if (running_) {
         return true;
     }
 
     port_ = port;
     status_provider_ = std::move(provider);
+    heartbeat_service_ = &heartbeat_service;
 
     listen_fd_ = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (!socket_is_valid(listen_fd_)) {
@@ -212,20 +214,76 @@ void HttpAdminServer::handle_client(int client_fd) const {
     int code = 200;
     std::string_view text = "OK";
 
-    if (method != "GET") {
+    if (method == "GET") {
+        if (path == "/health") {
+            body = render_health(status);
+        } else if (path == "/match/status") {
+            body = render_match_status(status);
+        } else if (path == "/players") {
+            body = render_players(status);
+        } else if (path == "/api/v1/servers") {
+            body = render_servers();
+        } else if (path == "/api/v1/sessions") {
+            body = "{\"status\":\"ok\",\"sessions\":[]}";
+        } else if (path == "/api/v1/activities") {
+            body = "{\"status\":\"ok\",\"activities\":[]}";
+        } else {
+            code = 404;
+            text = "Not Found";
+            body = "{\"error\":\"unknown endpoint\"}";
+        }
+    } else if (method == "POST" && path == "/api/v1/heartbeat") {
+        const std::string req_body = parse_body(request);
+        if (heartbeat_service_) {
+            // Simple JSON field extraction — find "server_id", "address", "port"
+            auto extract_string = [](const std::string& json, const std::string& key) -> std::string {
+                const std::string search = "\"" + key + "\":\"";
+                const auto pos = json.find(search);
+                if (pos == std::string::npos)
+                    return {};
+                const auto start = pos + search.size();
+                const auto end = json.find('"', start);
+                if (end == std::string::npos)
+                    return {};
+                return json.substr(start, end - start);
+            };
+            auto extract_u16 = [](const std::string& json, const std::string& key) -> std::optional<wish::u16> {
+                const std::string search = "\"" + key + "\":";
+                const auto pos = json.find(search);
+                if (pos == std::string::npos)
+                    return {};
+                const auto start = pos + search.size();
+                try {
+                    const int val = std::stoi(json.substr(start));
+                    if (val < 0 || val > 65535)
+                        return {};
+                    return static_cast<wish::u16>(val);
+                } catch (...) {
+                    return {};
+                }
+            };
+
+            const std::string server_id = extract_string(req_body, "server_id");
+            const std::string address = extract_string(req_body, "address");
+            const auto port = extract_u16(req_body, "port");
+
+            if (server_id.empty() || address.empty() || !port.has_value()) {
+                code = 400;
+                text = "Bad Request";
+                body = "{\"error\":\"missing required fields: server_id, address, port\"}";
+            } else {
+                heartbeat_service_->report_heartbeat(server_id, address, *port);
+                body = "{\"status\":\"ok\",\"server_id\":\"" + escape_json(server_id) + "\"}";
+            }
+        } else {
+            code = 503;
+            text = "Service Unavailable";
+            body = "{\"error\":\"heartbeat service not available\"}";
+        }
+    } else {
         code = 405;
         text = "Method Not Allowed";
-        body = "{\"error\":\"GET only\"}";
-    } else if (path == "/health") {
-        body = render_health(status);
-    } else if (path == "/match/status") {
-        body = render_match_status(status);
-    } else if (path == "/players") {
-        body = render_players(status);
-    } else {
-        code = 404;
-        text = "Not Found";
-        body = "{\"error\":\"unknown endpoint\"}";
+        body = "{\"error\":\"method not allowed\"}";
     }
 
     const std::string response = make_response(code, text, std::move(body));
@@ -370,6 +428,41 @@ std::string HttpAdminServer::parse_method(std::string_view request_line) {
     }
 
     return std::string(request_line.substr(0, space));
+}
+
+std::string HttpAdminServer::parse_body(std::string_view request) {
+    const std::size_t header_end = request.find("\r\n\r\n");
+    if (header_end == std::string_view::npos) {
+        return {};
+    }
+    const auto body_start = header_end + 4;
+    return std::string(request.substr(body_start));
+}
+
+std::string HttpAdminServer::render_servers() const {
+    if (!heartbeat_service_) {
+        return "{\"status\":\"error\",\"servers\":[],\"error\":\"heartbeat service not available\"}";
+    }
+
+    const std::vector<ServerInfo> servers = heartbeat_service_->get_servers();
+    std::ostringstream stream;
+    stream << '{'
+           << "\"status\":\"ok\","
+           << "\"servers\":[";
+    for (std::size_t i = 0; i < servers.size(); ++i) {
+        if (i > 0) {
+            stream << ',';
+        }
+        const auto& srv = servers[i];
+        stream << '{'
+               << "\"id\":\"" << escape_json(srv.id) << "\","
+               << "\"address\":\"" << escape_json(srv.address) << "\","
+               << "\"port\":" << srv.port << ','
+               << "\"alive\":" << (srv.alive ? "true" : "false")
+               << '}';
+    }
+    stream << "]}";
+    return stream.str();
 }
 
 }  // namespace wish::admin

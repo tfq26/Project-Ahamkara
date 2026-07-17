@@ -5,7 +5,6 @@
 #include <cmath>
 #include "ae/render/gl_platform.h"
 
-
 #define AE_LOG_CATEGORY "Render"
 
 namespace ae::render {

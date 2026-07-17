@@ -80,11 +80,11 @@ void AnimationDriver::set_weapon_config(const WeaponAnimConfig& config) {
 }
 
 void AnimationDriver::tick(const AnimGameplayInput& input, float dt,
-                            StateMachine& sm,
-                            AnimationGraph& graph,
-                            WeaponAnimState& weapon_state,
-                            skeleton::Mat4& out_weapon_transform,
-                            std::vector<skeleton::Mat4>& out_pose) {
+                           StateMachine& sm,
+                           AnimationGraph& graph,
+                           WeaponAnimState& weapon_state,
+                           skeleton::Mat4& out_weapon_transform,
+                           std::vector<skeleton::Mat4>& out_pose) {
     // ── Locomotion triggers ────────────────────────────────────────
 
     // Movement state changes
