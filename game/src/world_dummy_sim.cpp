@@ -1,6 +1,8 @@
 #include "world_dummy_sim.h"
 #include "world_jolt_bridge.h"
 
+#include "jolt_backend.h"
+
 #include "ahamkara/game/movement.h"
 #include "ae/core/math.h"
 
@@ -36,7 +38,6 @@ bool line_of_sight_clear(
     const Vec3& player_pos) {
     // Quick check: if distance is very small, LOS is clear
     float dx = to.x - from.x;
-    float dy = to.y - from.y;
     float dz = to.z - from.z;
     float dist = std::sqrt(dx * dx + dz * dz);
     if (dist < 0.5F) return true;
@@ -169,17 +170,13 @@ void tick_dummy_ai(
                 comp.burst_timer = kDummyBurstInterval;
                 comp.burst_count--;
                 // Fire a shot
-                float inaccuracy = (static_cast<float>(std::rand() % 1000) / 1000.0F - 0.5F) * kDummyInaccuracyDeg;
-                float fire_yaw = d.yaw + inaccuracy;
-                float fire_pitch = (static_cast<float>(std::rand() % 1000) / 1000.0F - 0.5F) * 3.0F;
-
                 // Apply damage to player (hitscan)
                 float damage = kDummyWeaponDamage;
                 world.apply_damage_to_player(damage, d.position);
                 world.queue_audio_event(AudioEvent{"dummy_fire", 0.7f, AudioCategory::Weapon});
 
                 if (comp.burst_count <= 0) {
-                    comp.fire_timer = kDummyFireInterval + (static_cast<float>(std::rand() % 100) / 100.0F) * 0.5F;
+                    comp.fire_timer = kDummyFireInterval + (static_cast<float>(std::rand() % 100) / 100.0F) * 0.5F; // NOLINT(clang-analyzer-security.insecureAPI.rand)
                 }
             }
         } else if (comp.fire_timer <= 0.0F) {
@@ -191,11 +188,11 @@ void tick_dummy_ai(
 }
 
 void sync_dummies_to_jolt(
-    JPH::PhysicsSystem& physics_system,
+    ae::collision::CollisionWorld& collision_world,
     std::vector<JPH::BodyID>& dummy_bodies,
     const entt::registry& registry) {
 
-    auto& bi = physics_system.GetBodyInterface();
+    auto& bi = collision_world.impl()->physics()->GetBodyInterface();
     auto view = registry.view<TargetDummyComponent>();
     int dummy_count = 0;
     for (auto entity : view) {
@@ -215,8 +212,7 @@ void sync_dummies_to_jolt(
             JPH::RVec3(0.0f, 0.0f, 0.0f),
             JPH::Quat::sIdentity(),
             JPH::EMotionType::Kinematic,
-            Layers::MOVING
-        );
+            ae::collision::jolt_helpers::kJoltLayerNpc);
 
         JPH::BodyID body_id = bi.CreateAndAddBody(body_settings, JPH::EActivation::Activate);
         dummy_bodies.push_back(body_id);

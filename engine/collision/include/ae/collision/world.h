@@ -8,6 +8,11 @@
 #include <vector>
 
 namespace ae::collision {
+class CharacterController;
+struct CharacterDef;
+} // namespace ae::collision
+
+namespace ae::collision {
 
 // ============================================================
 // CollisionWorld — the central collision simulation container
@@ -148,6 +153,15 @@ public:
     // --- Stats ---
 
     [[nodiscard]] CollisionStats get_stats() const;
+
+    // --- Character controller ---
+
+    /**
+     * Create a kinematic character controller that lives in this world.
+     * The returned CharacterController shares this world's Jolt physics
+     * system and responds to the same collision filters.
+     */
+    [[nodiscard]] std::unique_ptr<CharacterController> create_character(const CharacterDef& def);
 
     // --- Internal access (for trace backend implementation only) ---
     class Impl;

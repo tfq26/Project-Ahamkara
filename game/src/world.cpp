@@ -4,13 +4,13 @@
 #include "ahamkara/game/worlds/debug_javelin4_world.h"
 #include "ae/core/math.h"
 
-#include "game_physics.h"
+#include "world_jolt_bridge.h"
 #include "world_dummy_sim.h"
 #include "world_projectile.h"
 #include "world_camera.h"
 
-#include <Jolt/Physics/Character/CharacterVirtual.h>
-#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include "ae/collision/character.h"
+
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 
@@ -33,8 +33,6 @@ constexpr float kPlayerCollisionRadius = 0.22F;
 World::World() : World(worlds::debug_javelin4()) {}
 
 World::World(const WorldDefinition& definition) {
-    initialize_jolt_once();
-
     player_.reset();
     apply_world_definition(definition);
 
@@ -62,22 +60,16 @@ World::World(const WorldDefinition& definition) {
     JPH::RotatedTranslatedShapeSettings crouching_settings(JPH::Vec3(0.0f, crouching_offset_y, 0.0f), JPH::Quat::sIdentity(), inner_crouching);
     jolt_->crouching_shape = crouching_settings.Create().Get();
 
-    // Initialize the kinematic character controller
-    JPH::CharacterVirtualSettings char_settings;
-    char_settings.mShape = jolt_->standing_shape;
-    char_settings.mMaxSlopeAngle = JPH::DegreesToRadians(50.0f);
-    char_settings.mMass = 70.0f;
-    char_settings.mMaxStrength = 100.0f;
-    char_settings.mPredictiveContactDistance = 0.1f;
-    char_settings.mCharacterPadding = 0.02f;
-
-    jolt_->character = new JPH::CharacterVirtual(
-        &char_settings,
-        JPH::RVec3(player_.state().position.x, player_.state().position.y, player_.state().position.z),
-        JPH::Quat::sIdentity(),
-        &jolt_->physics_system
-    );
-    jolt_->character->SetListener(&jolt_->contact_listener);
+    // Initialize the kinematic character controller via engine-owned world
+    ae::collision::CharacterDef char_def;
+    {
+        const auto& p = player_.state().position;
+        char_def.position = ae::Vec3 {p.x, p.y, p.z};
+    }
+    char_def.capsule_radius = standing_radius;
+    char_def.capsule_half_height = standing_half_height;
+    jolt_->character = jolt_->collision_world.create_character(char_def);
+    jolt_->character->set_jolt_contact_listener(&jolt_->contact_listener);
 
     for (int i = 0; i < dummy_count_; ++i) {
         auto entity = registry_.create();
@@ -167,7 +159,7 @@ void World::advance_sim(float delta_seconds) {
         tick_dummies(registry_, delta_seconds);
     }
     if (jolt_) {
-        sync_dummies_to_jolt(jolt_->physics_system, jolt_->dummy_bodies, registry_);
+        sync_dummies_to_jolt(jolt_->collision_world, jolt_->dummy_bodies, registry_);
     }
 
     if (!is_client_) {
@@ -221,91 +213,66 @@ void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
     if (!is_player_alive()) return;
 
     const bool on_ground = is_on_ground();
-    const JPH::Vec3 current_vel = jolt_->character->GetLinearVelocity();
+    const ae::Vec3 ae_vel = jolt_->character->get_linear_velocity();
+    const Vec3 current_vel {ae_vel.x, ae_vel.y, ae_vel.z};
 
     movement_controller_.begin_frame(
         player_.state(),
         input,
         delta_seconds,
         on_ground,
-        {
-            static_cast<float>(current_vel.GetX()),
-            static_cast<float>(current_vel.GetY()),
-            static_cast<float>(current_vel.GetZ())
-        },
+        current_vel,
         cfg_walk_speed(),
         cfg_sprint_speed(),
         cfg_jump_speed(),
         cfg_gravity());
 
     bool want_crouch = movement_controller_.crouch_active();
-    if (!want_crouch && jolt_->character->GetShape() == jolt_->crouching_shape) {
-        bool allowed = jolt_->character->SetShape(
-            jolt_->standing_shape,
-            1.5f,
-            jolt_->physics_system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-            jolt_->physics_system.GetDefaultLayerFilter(Layers::MOVING),
-            JPH::BodyFilter(),
-            JPH::ShapeFilter(),
-            jolt_->temp_allocator);
-        if (!allowed) {
-            want_crouch = true;
+    {
+        constexpr float kStandRadius = 0.22F;
+        constexpr float kStandHalfHeight = (kStandingVisualHeight - 2.0F * 0.22F) * 0.5F;
+        constexpr float kCrouchRadius = 0.15F;
+        constexpr float kCrouchHalfHeight = (kCrouchingVisualHeight - 2.0F * 0.15F) * 0.5F;
+
+        if (!want_crouch && jolt_->is_crouched) {
+            bool allowed = jolt_->character->set_shape(kStandHalfHeight, kStandRadius);
+            if (allowed) {
+                jolt_->is_crouched = false;
+            }
+        } else if (want_crouch && !jolt_->is_crouched) {
+            jolt_->character->set_shape(kCrouchHalfHeight, kCrouchRadius);
+            jolt_->is_crouched = true;
         }
-    } else if (want_crouch && jolt_->character->GetShape() == jolt_->standing_shape) {
-        jolt_->character->SetShape(
-            jolt_->crouching_shape,
-            1.5f,
-            jolt_->physics_system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-            jolt_->physics_system.GetDefaultLayerFilter(Layers::MOVING),
-            JPH::BodyFilter(),
-            JPH::ShapeFilter(),
-            jolt_->temp_allocator);
     }
 
     const Vec3& desired_velocity = movement_controller_.desired_velocity();
-    jolt_->character->SetLinearVelocity(JPH::Vec3(desired_velocity.x, desired_velocity.y, desired_velocity.z));
+    jolt_->character->set_linear_velocity(ae::Vec3 {desired_velocity.x, desired_velocity.y, desired_velocity.z});
 
-    JPH::CharacterVirtual::ExtendedUpdateSettings update_settings;
-    update_settings.mStickToFloorStepDown = JPH::Vec3(0.0f, -0.35f, 0.0f);
-    update_settings.mWalkStairsStepUp = JPH::Vec3(0.0f, 0.4f, 0.0f);
-
-    jolt_->character->ExtendedUpdate(
+    jolt_->character->extended_update(
         delta_seconds,
-        JPH::Vec3(0.0f, -cfg_gravity(), 0.0f),
-        update_settings,
-        jolt_->physics_system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-        jolt_->physics_system.GetDefaultLayerFilter(Layers::MOVING),
-        JPH::BodyFilter(),
-        JPH::ShapeFilter(),
-        jolt_->temp_allocator
+        ae::Vec3 {0.0F, -cfg_gravity(), 0.0F},
+        0.4F, // walk_stairs_step_up
+        0.35F // stick_to_floor_step_down
     );
 
     // Sync player state back from KCC
-    JPH::RVec3 pos = jolt_->character->GetPosition();
-    JPH::Vec3 vel = jolt_->character->GetLinearVelocity();
-    player_.state().position.x = static_cast<float>(pos.GetX());
-    player_.state().position.y = static_cast<float>(pos.GetY());
-    player_.state().position.z = static_cast<float>(pos.GetZ());
-    player_.state().velocity.x = static_cast<float>(vel.GetX());
-    player_.state().velocity.y = static_cast<float>(vel.GetY());
-    player_.state().velocity.z = static_cast<float>(vel.GetZ());
+    ae::Vec3 pos = jolt_->character->get_position();
+    ae::Vec3 vel = jolt_->character->get_linear_velocity();
+    player_.state().position = {pos.x, pos.y, pos.z};
+    player_.state().velocity = {vel.x, vel.y, vel.z};
 
     // --- Slope slide ---
     bool on_ground_after = is_on_ground();
-    if (on_ground_after && jolt_->character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround) {
-        JPH::Vec3 jolt_gn = jolt_->character->GetGroundNormal();
-        Vec3 ground_normal = {
-            static_cast<float>(jolt_gn.GetX()),
-            static_cast<float>(jolt_gn.GetY()),
-            static_cast<float>(jolt_gn.GetZ())
-        };
+    if (on_ground_after && jolt_->character->is_on_ground()) {
+        ae::Vec3 ae_gn = jolt_->character->get_ground_normal();
+        Vec3 ground_normal = {ae_gn.x, ae_gn.y, ae_gn.z};
         float slope_deg = compute_slope_angle(ground_normal);
         constexpr MovementConfig kDefaultCfg;
         if (slope_deg > kDefaultCfg.max_walkable_slope) {
             Vec3 vel_slide = player_.state().velocity;
             apply_slope_physics(vel_slide, ground_normal, delta_seconds, kDefaultCfg);
             player_.state().velocity = vel_slide;
-            jolt_->character->SetLinearVelocity(JPH::Vec3(vel_slide.x, vel_slide.y, vel_slide.z));
+            jolt_->character->set_linear_velocity(ae::Vec3 {vel_slide.x, vel_slide.y, vel_slide.z});
         }
     }
 
@@ -315,15 +282,15 @@ void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
         if (player_.state().velocity.y < 0.0F) {
             player_.state().velocity.y = 0.0F;
         }
-        jolt_->character->SetPosition(JPH::RVec3(player_.state().position.x, 0.0F, player_.state().position.z));
+        jolt_->character->set_position(ae::Vec3 {player_.state().position.x, 0.0F, player_.state().position.z});
     }
 
     // Fall-death reset
     if (player_.state().position.y < -20.0F) {
         player_.state().position = { -12.0F, 2.0F, 0.0F };
         player_.state().velocity = {};
-        jolt_->character->SetPosition(JPH::RVec3(player_.state().position.x, player_.state().position.y, player_.state().position.z));
-        jolt_->character->SetLinearVelocity(JPH::Vec3(0, 0, 0));
+        jolt_->character->set_position(ae::Vec3 {player_.state().position.x, player_.state().position.y, player_.state().position.z});
+        jolt_->character->set_linear_velocity({});
     }
 
     movement_controller_.finish_frame(
@@ -333,7 +300,7 @@ void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
         is_on_ground(),
         colliders_,
         collider_count_,
-        jolt_->character);
+        jolt_->character.get());
 
     if (input.reload_pressed) {
         start_reload();
@@ -376,17 +343,11 @@ void World::apply_input(float delta_seconds, const PlayerInputCommand& input) {
 void World::set_player_state(const ReplicatedPlayerState& state) {
     player_.set_state(state);
     if (jolt_ && jolt_->character) {
-        jolt_->character->SetPosition(JPH::RVec3(state.position.x, state.position.y, state.position.z));
-        jolt_->character->SetLinearVelocity(JPH::Vec3(state.velocity.x, state.velocity.y, state.velocity.z));
-        jolt_->character->RefreshContacts(
-            jolt_->physics_system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-            jolt_->physics_system.GetDefaultLayerFilter(Layers::MOVING),
-            JPH::BodyFilter(),
-            JPH::ShapeFilter(),
-            jolt_->temp_allocator
-        );
+        jolt_->character->set_position(ae::Vec3 {state.position.x, state.position.y, state.position.z});
+        jolt_->character->set_linear_velocity(ae::Vec3 {state.velocity.x, state.velocity.y, state.velocity.z});
+        jolt_->character->refresh_contacts();
     }
-    movement_controller_.finish_frame(player_.state(), PlayerInputCommand {}, 0.0F, is_on_ground(), colliders_, collider_count_, jolt_ ? jolt_->character : nullptr);
+    movement_controller_.finish_frame(player_.state(), PlayerInputCommand {}, 0.0F, is_on_ground(), colliders_, collider_count_, jolt_ ? jolt_->character.get() : nullptr);
 }
 
 float World::get_player_visual_height() const {
@@ -395,7 +356,7 @@ float World::get_player_visual_height() const {
 
 bool World::is_on_ground() const {
     if (jolt_ && jolt_->character) {
-        if (jolt_->character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround) {
+        if (jolt_->character->is_on_ground()) {
             return true;
         }
     }
@@ -432,7 +393,7 @@ bool World::load_colliders_from_level(const ae::render::LevelAsset& level) {
         player_.state().yaw = sp.yaw;
         movement_controller_.reset_to_spawn({player_.state().position, sp.yaw});
         if (jolt_ && jolt_->character)
-            jolt_->character->SetPosition(JPH::RVec3(sp.pos_x, sp.pos_y, sp.pos_z));
+            jolt_->character->set_position({sp.pos_x, sp.pos_y, sp.pos_z});
     }
     owned_colliders_ = std::move(boxes);
     colliders_ = owned_colliders_.data();
@@ -586,7 +547,7 @@ void World::spawn_muzzle_particles(const Vec3& position, const Vec3& forward) {
         if (particle_count_ >= kMaxParticles) break;
         auto& p = particles_[particle_count_++];
         p.position = position;
-        float speed = 2.0F + static_cast<float>(std::rand() % 100) / 100.0F * 3.0F;
+        float speed = 2.0F + static_cast<float>(std::rand() % 100) / 100.0F * 3.0F; // NOLINT(clang-analyzer-security.insecureAPI.rand)
         p.velocity = {
             forward.x * speed + (static_cast<float>(std::rand() % 100) / 100.0F - 0.5F) * 0.5F,
             forward.y * speed + (static_cast<float>(std::rand() % 100) / 100.0F - 0.5F) * 0.5F,
@@ -605,7 +566,7 @@ void World::spawn_impact_particles(const Vec3& position, const Vec3& normal) {
         if (particle_count_ >= kMaxParticles) break;
         auto& p = particles_[particle_count_++];
         p.position = position;
-        float speed = 1.0F + static_cast<float>(std::rand() % 100) / 100.0F * 2.0F;
+        float speed = 1.0F + static_cast<float>(std::rand() % 100) / 100.0F * 2.0F; // NOLINT(clang-analyzer-security.insecureAPI.rand)
         p.velocity = {
             normal.x * speed + (static_cast<float>(std::rand() % 100) / 100.0F - 0.5F) * 1.0F,
             normal.y * speed + (static_cast<float>(std::rand() % 100) / 100.0F - 0.5F) * 1.0F,
@@ -779,12 +740,8 @@ void World::respawn_player() {
     player_.reset_weapon_runtime(0, 150);
 
     if (jolt_ && jolt_->character) {
-        jolt_->character->SetPosition(JPH::RVec3(
-            player_.state().position.x,
-            player_.state().position.y,
-            player_.state().position.z
-        ));
-        jolt_->character->SetLinearVelocity(JPH::Vec3(0, 0, 0));
+        jolt_->character->set_position(ae::Vec3 {player_.state().position.x, player_.state().position.y, player_.state().position.z});
+        jolt_->character->set_linear_velocity({});
     }
 }
 
@@ -827,12 +784,8 @@ void World::restart_match() {
     reset_player_to_spawn();
     player_.reset_weapon_runtime(0, 150);
     if (jolt_ && jolt_->character) {
-        jolt_->character->SetPosition(JPH::RVec3(
-            player_.state().position.x,
-            player_.state().position.y,
-            player_.state().position.z
-        ));
-        jolt_->character->SetLinearVelocity(JPH::Vec3(0, 0, 0));
+        jolt_->character->set_position(ae::Vec3 {player_.state().position.x, player_.state().position.y, player_.state().position.z});
+        jolt_->character->set_linear_velocity({});
     }
 
     // Respawn all dummies
@@ -846,7 +799,7 @@ void World::restart_match() {
         d.position = d.start_position;
         d.last_hit_timer = 0.0F;
         d.respawn_timer = 0.0F;
-        comp.fire_timer = 1.0F + (static_cast<float>(std::rand() % 100) / 100.0F) * 2.0F;
+        comp.fire_timer = 1.0F + (static_cast<float>(std::rand() % 100) / 100.0F) * 2.0F; // NOLINT(clang-analyzer-security.insecureAPI.rand)
         comp.burst_timer = 0.0F;
         comp.burst_count = 0;
     }

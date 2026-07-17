@@ -2,6 +2,7 @@ add_library(ae_collision STATIC
     src/collision_world.cpp
     src/trace.cpp
     src/debug.cpp
+    src/character.cpp
 )
 
 target_compile_features(ae_collision PUBLIC cxx_std_20)

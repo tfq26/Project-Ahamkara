@@ -1,25 +1,47 @@
 #include "world_jolt_bridge.h"
 #include "ahamkara/game/world.h"
 
-#include <Jolt/RegisterTypes.h>
+// Access the engine-internal Jolt backend for PhysicsSystem access
+#include "jolt_backend.h"
+
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 
 namespace ahamkara::game {
 
-// --- One-time Jolt initialization -------------------------------------------
+// ============================================================
+// JoltWorldImpl constructor / destructor
+// ============================================================
 
-void initialize_jolt_once() {
-    static bool initialized = false;
-    if (!initialized) {
-        JPH::RegisterDefaultAllocator();
-        JPH::Factory::sInstance = new JPH::Factory();
-        JPH::RegisterTypes();
-        initialized = true;
-    }
+JoltWorldImpl::JoltWorldImpl(World* world)
+    : collision_world() // engine-owned world (initializes Jolt once)
+      ,
+      contact_listener(world, &collision_world) {
+    // Character is created by world.cpp after this constructor runs.
+    // All Jolt initialization is handled by CollisionWorld::Impl.
 }
 
-// --- Character contact validation --------------------------------------------
+JPH::PhysicsSystem& JoltWorldImpl::get_physics_system() {
+    return *collision_world.impl()->physics();
+}
+
+JoltWorldImpl::~JoltWorldImpl() {
+    auto* phys = collision_world.impl()->physics();
+    auto& bi = phys->GetBodyInterface();
+    for (auto id : map_bodies) {
+        bi.RemoveBody(id);
+        bi.DestroyBody(id);
+    }
+    for (auto id : dummy_bodies) {
+        bi.RemoveBody(id);
+        bi.DestroyBody(id);
+    }
+    // character is destroyed by unique_ptr, collision_world by its own destructor
+}
+
+// ============================================================
+// Character contact validation
+// ============================================================
 
 bool AhamkaraCharacterContactListener::OnContactValidate(
     const JPH::CharacterVirtual* inCharacter,
@@ -29,7 +51,7 @@ bool AhamkaraCharacterContactListener::OnContactValidate(
         return true;
     }
 
-    auto& bi = world_->jolt_->physics_system.GetBodyInterface();
+    auto& bi = collision_world_->impl()->physics()->GetBodyInterface();
     JPH::uint64 userData = bi.GetUserData(inBodyID2);
 
     if (userData < world_->collider_count_) {
@@ -46,7 +68,9 @@ bool AhamkaraCharacterContactListener::OnContactValidate(
     return true;
 }
 
-// --- Collider recreation ------------------------------------------------------
+// ============================================================
+// Collider recreation
+// ============================================================
 
 void rebuild_jolt_colliders(
     JoltWorldImpl& jolt,
@@ -56,7 +80,8 @@ void rebuild_jolt_colliders(
     int dummy_count,
     const JPH::RefConst<JPH::Shape>& /*standing_shape*/) {
 
-    auto& bi = jolt.physics_system.GetBodyInterface();
+    auto* phys = jolt.collision_world.impl()->physics();
+    auto& bi = phys->GetBodyInterface();
 
     // Remove existing map bodies
     for (auto id : jolt.map_bodies) {
@@ -72,7 +97,7 @@ void rebuild_jolt_colliders(
     }
     jolt.dummy_bodies.clear();
 
-    // Create map collider bodies
+    // Create map collider bodies using engine-defined layers
     for (std::size_t i = 0; i < collider_count; ++i) {
         const auto& c = colliders[i];
         float hx = (c.max_x - c.min_x) * 0.5f;
@@ -95,8 +120,8 @@ void rebuild_jolt_colliders(
             shape_result.Get(),
             JPH::RVec3(cx, cy, cz),
             JPH::Quat::sIdentity(),
-            c.wall ? JPH::EMotionType::Static : JPH::EMotionType::Static,
-            Layers::NON_MOVING
+            JPH::EMotionType::Static,
+            ae::collision::jolt_helpers::kJoltLayerStatic // unified: uses engine layer defs
         );
         body_settings.mUserData = static_cast<JPH::uint64>(i);
 
@@ -104,7 +129,7 @@ void rebuild_jolt_colliders(
         jolt.map_bodies.push_back(body_id);
     }
 
-    // Create dummy bodies (kinematic capsules)
+    // Create dummy bodies (kinematic capsules) using engine-defined layers
     for (int i = 0; i < dummy_count; ++i) {
         const auto& d = dummies[i];
         if (!d.alive) continue;
@@ -119,7 +144,7 @@ void rebuild_jolt_colliders(
             JPH::RVec3(d.position.x, d.position.y, d.position.z),
             JPH::Quat::sIdentity(),
             JPH::EMotionType::Kinematic,
-            Layers::MOVING
+            ae::collision::jolt_helpers::kJoltLayerNpc // unified: uses engine layer defs
         );
 
         JPH::BodyID body_id = bi.CreateAndAddBody(body_settings, JPH::EActivation::Activate);

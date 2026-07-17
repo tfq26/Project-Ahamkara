@@ -8,8 +8,8 @@
 
 #include <cstddef>
 
-namespace JPH {
-class CharacterVirtual;
+namespace ae::collision {
+class CharacterController;
 }
 
 namespace ahamkara::game {
@@ -38,7 +38,7 @@ public:
         bool on_ground,
         const ColliderBox* colliders,
         std::size_t collider_count,
-        JPH::CharacterVirtual* character);
+        ae::collision::CharacterController* character);
 
     [[nodiscard]] const CameraAnchor& camera_anchor() const { return camera_anchor_; }
     [[nodiscard]] const MovementDebugState& movement_debug() const { return movement_debug_; }
@@ -56,12 +56,12 @@ private:
         ReplicatedPlayerState& player_state,
         const ColliderBox* colliders,
         std::size_t collider_count,
-        JPH::CharacterVirtual* character);
+        ae::collision::CharacterController* character);
 
     void resolve_ladder_and_ledge(
         ReplicatedPlayerState& player_state,
         const PlayerInputCommand& input,
-        JPH::CharacterVirtual* character);
+        ae::collision::CharacterController* character);
 
     void update_camera_and_debug(
         ReplicatedPlayerState& player_state,

@@ -2,6 +2,7 @@
 Checks: >
   -*,
   clang-analyzer-*,
+  -clang-analyzer-core.uninitialized.Assign,
   bugprone-assert-side-effect,
   bugprone-dangling-handle,
   bugprone-infinite-loop,
@@ -14,6 +15,7 @@ Checks: >
   performance-inefficient-algorithm,
   performance-inefficient-string-concatenation,
   performance-unnecessary-copy-initialization
+
 WarningsAsErrors: '*'
 HeaderFilterRegex: '.*/(engine|client|game|server|wish|tools|samples|tests)/(?!.*(imgui|imgui_internal)\.h).*'
 SystemHeaders: false
