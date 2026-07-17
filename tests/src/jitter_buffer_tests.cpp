@@ -12,10 +12,18 @@ int fail(const std::string& msg) {
     return 1;
 }
 
-#define EXPECT(cond, msg) do { if (!(cond)) return fail(msg); } while(0)
-#define EXPECT_NEAR(a, b, eps) do { if (std::fabs((a) - (b)) > (eps)) { \
-    std::cerr << "  expected " << (a) << " ≈ " << (b) << " (eps=" << (eps) << ")\n"; \
-    return fail("tolerance exceeded"); } } while(0)
+#define EXPECT(cond, msg)     \
+    do {                      \
+        if (!(cond))          \
+            return fail(msg); \
+    } while (0)
+#define EXPECT_NEAR(a, b, eps)                                                               \
+    do {                                                                                     \
+        if (std::fabs((a) - (b)) > (eps)) {                                                  \
+            std::cerr << "  expected " << (a) << " ≈ " << (b) << " (eps=" << (eps) << ")\n"; \
+            return fail("tolerance exceeded");                                               \
+        }                                                                                    \
+    } while (0)
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
@@ -56,8 +64,8 @@ int test_jitter_increases_delay() {
 
     // Simulate bursty arrival: alternating fast and slow.
     for (int i = 0; i < 50; ++i) {
-        jb.record(tick_interval * 0.5F);  // fast
-        jb.record(tick_interval * 1.5F);  // slow
+        jb.record(tick_interval * 0.5F); // fast
+        jb.record(tick_interval * 1.5F); // slow
     }
 
     EXPECT(jb.jitter_estimate() > 0.001F, "jitter estimate should be > 0");
@@ -129,7 +137,7 @@ int test_configurable_bounds() {
 }
 
 int test_ewma_smoothing() {
-    ae::JitterBuffer jb(2.0F, 0.0F, 1.0F, 0.5F);  // High alpha for faster test.
+    ae::JitterBuffer jb(2.0F, 0.0F, 1.0F, 0.5F); // High alpha for faster test.
 
     const float tick_interval = 1.0F / 60.0F;
 
@@ -154,17 +162,25 @@ int test_ewma_smoothing() {
     return 0;
 }
 
-}  // namespace
+} // namespace
 
 int main() {
-    if (int rc = test_initial_state(); rc != 0) return rc;
-    if (int rc = test_perfect_interval_no_jitter(); rc != 0) return rc;
-    if (int rc = test_jitter_increases_delay(); rc != 0) return rc;
-    if (int rc = test_reset_clears_state(); rc != 0) return rc;
-    if (int rc = test_single_packet_initializes(); rc != 0) return rc;
-    if (int rc = test_first_packet_with_zero_interval(); rc != 0) return rc;
-    if (int rc = test_configurable_bounds(); rc != 0) return rc;
-    if (int rc = test_ewma_smoothing(); rc != 0) return rc;
+    if (int rc = test_initial_state(); rc != 0)
+        return rc;
+    if (int rc = test_perfect_interval_no_jitter(); rc != 0)
+        return rc;
+    if (int rc = test_jitter_increases_delay(); rc != 0)
+        return rc;
+    if (int rc = test_reset_clears_state(); rc != 0)
+        return rc;
+    if (int rc = test_single_packet_initializes(); rc != 0)
+        return rc;
+    if (int rc = test_first_packet_with_zero_interval(); rc != 0)
+        return rc;
+    if (int rc = test_configurable_bounds(); rc != 0)
+        return rc;
+    if (int rc = test_ewma_smoothing(); rc != 0)
+        return rc;
     std::cout << "jitter_buffer_tests passed\n";
     return 0;
 }

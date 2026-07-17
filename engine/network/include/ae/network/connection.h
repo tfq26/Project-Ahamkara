@@ -36,11 +36,16 @@ enum class ConnectionState : u8 {
 /// Human-readable name for a connection state.
 inline const char* connection_state_name(ConnectionState s) {
     switch (s) {
-        case ConnectionState::Disconnected:  return "Disconnected";
-        case ConnectionState::Handshaking:   return "Handshaking";
-        case ConnectionState::Connected:     return "Connected";
-        case ConnectionState::GracePeriod:   return "GracePeriod";
-        case ConnectionState::Disconnecting: return "Disconnecting";
+    case ConnectionState::Disconnected:
+        return "Disconnected";
+    case ConnectionState::Handshaking:
+        return "Handshaking";
+    case ConnectionState::Connected:
+        return "Connected";
+    case ConnectionState::GracePeriod:
+        return "GracePeriod";
+    case ConnectionState::Disconnecting:
+        return "Disconnecting";
     }
     return "Unknown";
 }
@@ -87,7 +92,7 @@ struct PeerConnection {
  * spawn its own threads.
  */
 class ConnectionManager {
-public:
+  public:
     using clock = std::chrono::steady_clock;
     using time_point = clock::time_point;
 
@@ -96,10 +101,7 @@ public:
         clock::duration disconnect_timeout = std::chrono::seconds(10),
         clock::duration grace_period = std::chrono::seconds(30),
         u32 max_missed_heartbeats = 3)
-        : handshake_timeout_(handshake_timeout)
-        , disconnect_timeout_(disconnect_timeout)
-        , grace_period_(grace_period)
-        , max_missed_heartbeats_(max_missed_heartbeats) {}
+        : handshake_timeout_(handshake_timeout), disconnect_timeout_(disconnect_timeout), grace_period_(grace_period), max_missed_heartbeats_(max_missed_heartbeats) {}
 
     // ── Lookup ──────────────────────────────────────────────────────────
 
@@ -172,8 +174,10 @@ public:
      */
     bool complete_handshake(const NetAddress& address, u64 session_id, time_point now) {
         auto* peer = find(address);
-        if (!peer) return false;
-        if (peer->state != ConnectionState::Handshaking) return false;
+        if (!peer)
+            return false;
+        if (peer->state != ConnectionState::Handshaking)
+            return false;
 
         peer->state = ConnectionState::Connected;
         peer->session_id = session_id;
@@ -187,7 +191,8 @@ public:
      */
     void touch(const NetAddress& address, time_point now) {
         auto* peer = find(address);
-        if (!peer) return;
+        if (!peer)
+            return;
         peer->last_seen = now;
 
         // If in an active state, clear missed heartbeats.
@@ -202,7 +207,8 @@ public:
      */
     bool disconnect(const NetAddress& address) {
         auto* peer = find(address);
-        if (!peer) return false;
+        if (!peer)
+            return false;
         if (peer->state != ConnectionState::Connected &&
             peer->state != ConnectionState::GracePeriod) {
             return false;
@@ -234,7 +240,8 @@ public:
 
         for (auto& [key, peer] : peers_) {
             const auto elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(
-                now - peer.last_seen).count();
+                                     now - peer.last_seen)
+                                     .count();
 
             switch (peer.state) {
             case ConnectionState::Handshaking:
@@ -284,7 +291,9 @@ public:
 
     // ── Queries ─────────────────────────────────────────────────────────
 
-    [[nodiscard]] std::size_t count() const { return peers_.size(); }
+    [[nodiscard]] std::size_t count() const {
+        return peers_.size();
+    }
 
     [[nodiscard]] std::size_t count_by_state(ConnectionState state) const {
         return static_cast<std::size_t>(std::count_if(
@@ -326,20 +335,38 @@ public:
 
     // ── Config ──────────────────────────────────────────────────────────
 
-    void set_handshake_timeout(clock::duration d) { handshake_timeout_ = d; }
-    void set_disconnect_timeout(clock::duration d) { disconnect_timeout_ = d; }
-    void set_grace_period(clock::duration d) { grace_period_ = d; }
-    void set_max_missed_heartbeats(u32 n) { max_missed_heartbeats_ = n; }
+    void set_handshake_timeout(clock::duration d) {
+        handshake_timeout_ = d;
+    }
+    void set_disconnect_timeout(clock::duration d) {
+        disconnect_timeout_ = d;
+    }
+    void set_grace_period(clock::duration d) {
+        grace_period_ = d;
+    }
+    void set_max_missed_heartbeats(u32 n) {
+        max_missed_heartbeats_ = n;
+    }
 
-    [[nodiscard]] clock::duration handshake_timeout() const { return handshake_timeout_; }
-    [[nodiscard]] clock::duration disconnect_timeout() const { return disconnect_timeout_; }
-    [[nodiscard]] clock::duration grace_period() const { return grace_period_; }
-    [[nodiscard]] u32 max_missed_heartbeats() const { return max_missed_heartbeats_; }
+    [[nodiscard]] clock::duration handshake_timeout() const {
+        return handshake_timeout_;
+    }
+    [[nodiscard]] clock::duration disconnect_timeout() const {
+        return disconnect_timeout_;
+    }
+    [[nodiscard]] clock::duration grace_period() const {
+        return grace_period_;
+    }
+    [[nodiscard]] u32 max_missed_heartbeats() const {
+        return max_missed_heartbeats_;
+    }
 
     /// Remove all peers.
-    void clear() { peers_.clear(); }
+    void clear() {
+        peers_.clear();
+    }
 
-private:
+  private:
     static std::string address_key(const NetAddress& addr) {
         return addr.ip + ":" + std::to_string(addr.port);
     }
@@ -352,4 +379,4 @@ private:
     u32 max_missed_heartbeats_;
 };
 
-}  // namespace ae
+} // namespace ae

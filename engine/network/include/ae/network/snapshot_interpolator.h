@@ -28,7 +28,7 @@ namespace ae {
  */
 template <typename Snapshot, usize Capacity = 3>
 class SnapshotInterpolator {
-public:
+  public:
     SnapshotInterpolator() = default;
 
     /**
@@ -38,7 +38,7 @@ public:
      */
     void push(const Snapshot& snapshot, double arrival_time) {
         if (count_ > 0 && snapshot.server_tick <= entries_[newest_].snapshot.server_tick) {
-            return;  // Out-of-order or duplicate.
+            return; // Out-of-order or duplicate.
         }
 
         newest_ = (newest_ + 1) % Capacity;
@@ -58,8 +58,7 @@ public:
      */
     [[nodiscard]] bool interpolate(
         double target_time,
-        typename std::remove_reference<decltype(Snapshot::local_player)>::type& out_player) const
-    {
+        typename std::remove_reference<decltype(Snapshot::local_player)>::type& out_player) const {
         using PlayerState = typename std::remove_reference<decltype(Snapshot::local_player)>::type;
 
         if (count_ == 0) {
@@ -99,8 +98,8 @@ public:
 
         const double range = newer->arrival_time - older->arrival_time;
         const float t = (range > 0.0)
-            ? static_cast<float>((target_time - older->arrival_time) / range)
-            : 0.0F;
+                            ? static_cast<float>((target_time - older->arrival_time) / range)
+                            : 0.0F;
         const float clamped_t = std::clamp(t, 0.0F, 1.0F);
 
         lerp_player(older->snapshot.local_player, newer->snapshot.local_player,
@@ -115,8 +114,7 @@ public:
     [[nodiscard]] bool get_bracketing_snapshots(
         double target_time,
         Snapshot* out_older_snap,
-        Snapshot* out_newer_snap) const
-    {
+        Snapshot* out_newer_snap) const {
         if (count_ == 0) {
             return false;
         }
@@ -138,11 +136,15 @@ public:
             }
         }
 
-        if (older) *out_older_snap = older->snapshot;
-        else      *out_older_snap = (newer ? newer->snapshot : Snapshot{});
+        if (older)
+            *out_older_snap = older->snapshot;
+        else
+            *out_older_snap = (newer ? newer->snapshot : Snapshot {});
 
-        if (newer) *out_newer_snap = newer->snapshot;
-        else      *out_newer_snap = (older ? older->snapshot : Snapshot{});
+        if (newer)
+            *out_newer_snap = newer->snapshot;
+        else
+            *out_newer_snap = (older ? older->snapshot : Snapshot {});
 
         return true;
     }
@@ -157,8 +159,12 @@ public:
     }
 
     /// Access the underlying JitterBuffer for configuration.
-    [[nodiscard]] JitterBuffer& jitter_buffer() { return jitter_buffer_; }
-    [[nodiscard]] const JitterBuffer& jitter_buffer() const { return jitter_buffer_; }
+    [[nodiscard]] JitterBuffer& jitter_buffer() {
+        return jitter_buffer_;
+    }
+    [[nodiscard]] const JitterBuffer& jitter_buffer() const {
+        return jitter_buffer_;
+    }
 
     /** Discard all buffered snapshots. */
     void reset() {
@@ -166,13 +172,17 @@ public:
         newest_ = 0;
     }
 
-    [[nodiscard]] usize size() const { return count_; }
-    [[nodiscard]] static constexpr usize capacity() { return Capacity; }
+    [[nodiscard]] usize size() const {
+        return count_;
+    }
+    [[nodiscard]] static constexpr usize capacity() {
+        return Capacity;
+    }
 
-private:
+  private:
     struct Slot {
         Snapshot snapshot;
-        double   arrival_time {0.0};
+        double arrival_time {0.0};
     };
 
     /// Walk back from `newest` by `offset` slots (0 = newest).
@@ -193,15 +203,17 @@ private:
         float yaw_a = a.yaw;
         float yaw_b = b.yaw;
         float yaw_delta = yaw_b - yaw_a;
-        if (yaw_delta > 180.0F)  yaw_delta -= 360.0F;
-        if (yaw_delta < -180.0F) yaw_delta += 360.0F;
+        if (yaw_delta > 180.0F)
+            yaw_delta -= 360.0F;
+        if (yaw_delta < -180.0F)
+            yaw_delta += 360.0F;
         out.yaw = yaw_a + yaw_delta * t;
 
         out.network_object_id = b.network_object_id;
-        out.player_id         = b.player_id;
-        out.movement_state    = b.movement_state;
-        out.health            = a.health + (b.health - a.health) * t;
-        out.shield            = a.shield + (b.shield - a.shield) * t;
+        out.player_id = b.player_id;
+        out.movement_state = b.movement_state;
+        out.health = a.health + (b.health - a.health) * t;
+        out.shield = a.shield + (b.shield - a.shield) * t;
     }
 
     /// Push a snapshot and feed its arrival interval into the jitter buffer.
@@ -216,8 +228,8 @@ private:
 
     std::array<Slot, Capacity> entries_ {};
     usize newest_ {0};
-    usize count_  {0};
+    usize count_ {0};
     mutable JitterBuffer jitter_buffer_ {};
 };
 
-}  // namespace ae
+} // namespace ae

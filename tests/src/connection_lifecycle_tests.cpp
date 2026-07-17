@@ -18,10 +18,17 @@ int fail(const std::string& msg) {
     return 1;
 }
 
-#define EXPECT(cond, msg) do { if (!(cond)) return fail(msg); } while(0)
+#define EXPECT(cond, msg)     \
+    do {                      \
+        if (!(cond))          \
+            return fail(msg); \
+    } while (0)
 
 void expect_state(const ae::PeerConnection* peer, ae::ConnectionState expected) {
-    if (!peer) { fail("peer is null"); return; }
+    if (!peer) {
+        fail("peer is null");
+        return;
+    }
     if (peer->state != expected) {
         std::cerr << "  expected state " << ae::connection_state_name(expected)
                   << " but got " << ae::connection_state_name(peer->state) << '\n';
@@ -32,8 +39,8 @@ void expect_state(const ae::PeerConnection* peer, ae::ConnectionState expected) 
 
 int test_new_peer_starts_handshaking() {
     ae::ConnectionManager mgr;
-    const auto base = time_point{};
-    const ae::NetAddress addr{"127.0.0.1", 10001};
+    const auto base = time_point {};
+    const ae::NetAddress addr {"127.0.0.1", 10001};
 
     auto& peer = mgr.connect_request(addr, base);
     EXPECT(peer.state == ae::ConnectionState::Handshaking, "new peer should be Handshaking");
@@ -44,8 +51,8 @@ int test_new_peer_starts_handshaking() {
 
 int test_complete_handshake_transitions_to_connected() {
     ae::ConnectionManager mgr;
-    const auto base = time_point{};
-    const ae::NetAddress addr{"127.0.0.1", 10002};
+    const auto base = time_point {};
+    const ae::NetAddress addr {"127.0.0.1", 10002};
 
     mgr.connect_request(addr, base);
     EXPECT(mgr.complete_handshake(addr, 42, base), "handshake should succeed");
@@ -61,8 +68,8 @@ int test_complete_handshake_transitions_to_connected() {
 
 int test_handshake_from_wrong_state_fails() {
     ae::ConnectionManager mgr;
-    const auto base = time_point{};
-    const ae::NetAddress addr{"127.0.0.1", 10003};
+    const auto base = time_point {};
+    const ae::NetAddress addr {"127.0.0.1", 10003};
 
     // No peer at all.
     EXPECT(!mgr.complete_handshake(addr, 1, base), "handshake on unknown addr should fail");
@@ -76,8 +83,8 @@ int test_handshake_from_wrong_state_fails() {
 
 int test_disconnect_transitions_to_disconnecting() {
     ae::ConnectionManager mgr;
-    const auto base = time_point{};
-    const ae::NetAddress addr{"127.0.0.1", 10004};
+    const auto base = time_point {};
+    const ae::NetAddress addr {"127.0.0.1", 10004};
 
     mgr.connect_request(addr, base);
     mgr.complete_handshake(addr, 1, base);
@@ -91,8 +98,8 @@ int test_disconnect_transitions_to_disconnecting() {
 
 int test_disconnect_from_wrong_state_fails() {
     ae::ConnectionManager mgr;
-    const auto base = time_point{};
-    const ae::NetAddress addr{"127.0.0.1", 10005};
+    const auto base = time_point {};
+    const ae::NetAddress addr {"127.0.0.1", 10005};
 
     // Not connected.
     EXPECT(!mgr.disconnect(addr), "disconnect on unknown addr should fail");
@@ -106,8 +113,8 @@ int test_disconnect_from_wrong_state_fails() {
 int test_tick_removes_handshake_timeout() {
     ae::ConnectionManager mgr;
     mgr.set_handshake_timeout(std::chrono::milliseconds(100));
-    const auto base = time_point{};
-    const ae::NetAddress addr{"127.0.0.1", 10006};
+    const auto base = time_point {};
+    const ae::NetAddress addr {"127.0.0.1", 10006};
 
     mgr.connect_request(addr, base);
     EXPECT(mgr.count() == 1, "peer exists");
@@ -128,8 +135,8 @@ int test_grace_period_and_reconnect() {
     mgr.set_grace_period(std::chrono::seconds(10));
     mgr.set_max_missed_heartbeats(2);
 
-    const auto base = time_point{};
-    const ae::NetAddress addr{"127.0.0.1", 10007};
+    const auto base = time_point {};
+    const ae::NetAddress addr {"127.0.0.1", 10007};
 
     mgr.connect_request(addr, base);
     mgr.complete_handshake(addr, 1, base);
@@ -138,7 +145,7 @@ int test_grace_period_and_reconnect() {
     // Simulate missed heartbeats → GracePeriod.
     mgr.mark_missed_heartbeat(addr);
     mgr.mark_missed_heartbeat(addr);
-    mgr.mark_missed_heartbeat(addr);  // exceeds max_missed_heartbeats (2)
+    mgr.mark_missed_heartbeat(addr); // exceeds max_missed_heartbeats (2)
     mgr.tick(base + std::chrono::milliseconds(100));
 
     EXPECT(mgr.count() == 1, "peer should still exist in grace period");
@@ -160,8 +167,8 @@ int test_grace_expiry_removes_peer() {
     mgr.set_grace_period(std::chrono::milliseconds(100));
     mgr.set_max_missed_heartbeats(1);
 
-    const auto base = time_point{};
-    const ae::NetAddress addr{"127.0.0.1", 10008};
+    const auto base = time_point {};
+    const ae::NetAddress addr {"127.0.0.1", 10008};
 
     mgr.connect_request(addr, base);
     mgr.complete_handshake(addr, 1, base);
@@ -181,15 +188,15 @@ int test_grace_expiry_removes_peer() {
 
 int test_for_each_state() {
     ae::ConnectionManager mgr;
-    const auto base = time_point{};
+    const auto base = time_point {};
 
-    mgr.connect_request(ae::NetAddress{"127.0.0.1", 20001}, base);
-    mgr.complete_handshake(ae::NetAddress{"127.0.0.1", 20001}, 1, base);
+    mgr.connect_request(ae::NetAddress {"127.0.0.1", 20001}, base);
+    mgr.complete_handshake(ae::NetAddress {"127.0.0.1", 20001}, 1, base);
 
-    mgr.connect_request(ae::NetAddress{"127.0.0.1", 20002}, base);
-    mgr.complete_handshake(ae::NetAddress{"127.0.0.1", 20002}, 2, base);
+    mgr.connect_request(ae::NetAddress {"127.0.0.1", 20002}, base);
+    mgr.complete_handshake(ae::NetAddress {"127.0.0.1", 20002}, 2, base);
 
-    mgr.connect_request(ae::NetAddress{"127.0.0.1", 20003}, base);
+    mgr.connect_request(ae::NetAddress {"127.0.0.1", 20003}, base);
 
     EXPECT(mgr.count_by_state(ae::ConnectionState::Connected) == 2, "2 connected");
     EXPECT(mgr.count_by_state(ae::ConnectionState::Handshaking) == 1, "1 handshaking");
@@ -205,8 +212,8 @@ int test_for_each_state() {
 
 int test_touch_resets_missed_heartbeats() {
     ae::ConnectionManager mgr;
-    const auto base = time_point{};
-    const ae::NetAddress addr{"127.0.0.1", 10009};
+    const auto base = time_point {};
+    const ae::NetAddress addr {"127.0.0.1", 10009};
 
     mgr.connect_request(addr, base);
     mgr.complete_handshake(addr, 1, base);
@@ -226,8 +233,8 @@ int test_touch_resets_missed_heartbeats() {
 
 int test_remove_peer() {
     ae::ConnectionManager mgr;
-    const auto base = time_point{};
-    const ae::NetAddress addr{"127.0.0.1", 10010};
+    const auto base = time_point {};
+    const ae::NetAddress addr {"127.0.0.1", 10010};
 
     mgr.connect_request(addr, base);
     EXPECT(mgr.count() == 1, "1 peer");
@@ -238,20 +245,31 @@ int test_remove_peer() {
     return 0;
 }
 
-}  // namespace
+} // namespace
 
 int main() {
-    if (int rc = test_new_peer_starts_handshaking(); rc != 0) return rc;
-    if (int rc = test_complete_handshake_transitions_to_connected(); rc != 0) return rc;
-    if (int rc = test_handshake_from_wrong_state_fails(); rc != 0) return rc;
-    if (int rc = test_disconnect_transitions_to_disconnecting(); rc != 0) return rc;
-    if (int rc = test_disconnect_from_wrong_state_fails(); rc != 0) return rc;
-    if (int rc = test_tick_removes_handshake_timeout(); rc != 0) return rc;
-    if (int rc = test_grace_period_and_reconnect(); rc != 0) return rc;
-    if (int rc = test_grace_expiry_removes_peer(); rc != 0) return rc;
-    if (int rc = test_for_each_state(); rc != 0) return rc;
-    if (int rc = test_touch_resets_missed_heartbeats(); rc != 0) return rc;
-    if (int rc = test_remove_peer(); rc != 0) return rc;
+    if (int rc = test_new_peer_starts_handshaking(); rc != 0)
+        return rc;
+    if (int rc = test_complete_handshake_transitions_to_connected(); rc != 0)
+        return rc;
+    if (int rc = test_handshake_from_wrong_state_fails(); rc != 0)
+        return rc;
+    if (int rc = test_disconnect_transitions_to_disconnecting(); rc != 0)
+        return rc;
+    if (int rc = test_disconnect_from_wrong_state_fails(); rc != 0)
+        return rc;
+    if (int rc = test_tick_removes_handshake_timeout(); rc != 0)
+        return rc;
+    if (int rc = test_grace_period_and_reconnect(); rc != 0)
+        return rc;
+    if (int rc = test_grace_expiry_removes_peer(); rc != 0)
+        return rc;
+    if (int rc = test_for_each_state(); rc != 0)
+        return rc;
+    if (int rc = test_touch_resets_missed_heartbeats(); rc != 0)
+        return rc;
+    if (int rc = test_remove_peer(); rc != 0)
+        return rc;
     std::cout << "connection_lifecycle_tests passed\n";
     return 0;
 }

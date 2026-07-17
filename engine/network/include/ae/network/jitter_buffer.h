@@ -25,16 +25,13 @@ namespace ae {
  * SnapshotInterpolator::suggest_delay_seconds().
  */
 class JitterBuffer {
-public:
+  public:
     explicit JitterBuffer(
         float base_delay_multiplier = 2.0F,
         float min_delay_seconds = 0.016F,
         float max_delay_seconds = 0.5F,
         float ewma_alpha = 0.125F)
-        : base_delay_multiplier_(base_delay_multiplier)
-        , min_delay_seconds_(min_delay_seconds)
-        , max_delay_seconds_(max_delay_seconds)
-        , ewma_alpha_(ewma_alpha) {}
+        : base_delay_multiplier_(base_delay_multiplier), min_delay_seconds_(min_delay_seconds), max_delay_seconds_(max_delay_seconds), ewma_alpha_(ewma_alpha) {}
 
     /**
      * @brief Record the arrival of a new packet.
@@ -51,13 +48,11 @@ public:
         }
 
         // EWMA on average arrival interval.
-        avg_interval_ = avg_interval_ * (1.0F - ewma_alpha_)
-                      + arrival_interval * ewma_alpha_;
+        avg_interval_ = avg_interval_ * (1.0F - ewma_alpha_) + arrival_interval * ewma_alpha_;
 
         // EWMA on absolute deviation (jitter).
         const float deviation = std::fabs(arrival_interval - avg_interval_);
-        jitter_estimate_ = jitter_estimate_ * (1.0F - ewma_alpha_)
-                          + deviation * ewma_alpha_;
+        jitter_estimate_ = jitter_estimate_ * (1.0F - ewma_alpha_) + deviation * ewma_alpha_;
     }
 
     /**
@@ -84,12 +79,16 @@ public:
     /**
      * @brief Current jitter estimate in seconds.
      */
-    [[nodiscard]] float jitter_estimate() const { return jitter_estimate_; }
+    [[nodiscard]] float jitter_estimate() const {
+        return jitter_estimate_;
+    }
 
     /**
      * @brief Current average arrival interval.
      */
-    [[nodiscard]] float avg_interval() const { return avg_interval_; }
+    [[nodiscard]] float avg_interval() const {
+        return avg_interval_;
+    }
 
     /// Reset to initial state.
     void reset() {
@@ -98,21 +97,39 @@ public:
         initialized_ = false;
     }
 
-    [[nodiscard]] bool is_initialized() const { return initialized_; }
+    [[nodiscard]] bool is_initialized() const {
+        return initialized_;
+    }
 
     // ── Config ──────────────────────────────────────────────────────────
 
-    void set_base_delay_multiplier(float m) { base_delay_multiplier_ = m; }
-    void set_min_delay_seconds(float s) { min_delay_seconds_ = s; }
-    void set_max_delay_seconds(float s) { max_delay_seconds_ = s; }
-    void set_ewma_alpha(float a) { ewma_alpha_ = a; }
+    void set_base_delay_multiplier(float m) {
+        base_delay_multiplier_ = m;
+    }
+    void set_min_delay_seconds(float s) {
+        min_delay_seconds_ = s;
+    }
+    void set_max_delay_seconds(float s) {
+        max_delay_seconds_ = s;
+    }
+    void set_ewma_alpha(float a) {
+        ewma_alpha_ = a;
+    }
 
-    [[nodiscard]] float base_delay_multiplier() const { return base_delay_multiplier_; }
-    [[nodiscard]] float min_delay_seconds() const { return min_delay_seconds_; }
-    [[nodiscard]] float max_delay_seconds() const { return max_delay_seconds_; }
-    [[nodiscard]] float ewma_alpha() const { return ewma_alpha_; }
+    [[nodiscard]] float base_delay_multiplier() const {
+        return base_delay_multiplier_;
+    }
+    [[nodiscard]] float min_delay_seconds() const {
+        return min_delay_seconds_;
+    }
+    [[nodiscard]] float max_delay_seconds() const {
+        return max_delay_seconds_;
+    }
+    [[nodiscard]] float ewma_alpha() const {
+        return ewma_alpha_;
+    }
 
-private:
+  private:
     /// How many jitter estimates to add to the base delay.
     static constexpr float kJitterMultiplier = 4.0F;
 
@@ -125,4 +142,4 @@ private:
     bool initialized_ {false};
 };
 
-}  // namespace ae
+} // namespace ae

@@ -25,7 +25,7 @@ namespace ae {
  * is a separate integration step.
  */
 class ReliableChannel {
-public:
+  public:
     struct InFlight {
         std::vector<u8> payload;
         double last_send_time {0.0};
@@ -37,7 +37,9 @@ public:
         u64 packets_acked {0};
         u64 packets_retransmitted {0};
 
-        void reset() { *this = Stats{}; }
+        void reset() {
+            *this = Stats {};
+        }
     };
 
     /// Register a reliable packet as in-flight (caller already allocated `seq`).
@@ -93,19 +95,25 @@ public:
         return (it == in_flight_.end()) ? 0u : it->second.send_count;
     }
 
-    [[nodiscard]] std::size_t pending_count() const { return in_flight_.size(); }
+    [[nodiscard]] std::size_t pending_count() const {
+        return in_flight_.size();
+    }
 
-    [[nodiscard]] const Stats& stats() const { return stats_; }
-    void reset_stats() { stats_.reset(); }
+    [[nodiscard]] const Stats& stats() const {
+        return stats_;
+    }
+    void reset_stats() {
+        stats_.reset();
+    }
 
     void clear() {
         in_flight_.clear();
         stats_.reset();
     }
 
-private:
+  private:
     std::map<u16, InFlight> in_flight_;
     Stats stats_ {};
 };
 
-}  // namespace ae
+} // namespace ae

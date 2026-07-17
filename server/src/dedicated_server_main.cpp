@@ -54,7 +54,7 @@ struct SessionState {
     ae::ReliableChannel reliable_channel {};
 };
 
-}  // namespace
+} // namespace
 
 int main(int argc, char** argv) {
     ae::Application application(ae::RuntimeMode::DedicatedServer);
@@ -126,10 +126,10 @@ int main(int argc, char** argv) {
 
     // ── Peer tracking: ConnectionManager + per-session state ────────────
     ae::ConnectionManager conn_manager(
-        std::chrono::seconds(5),    // handshake timeout
-        std::chrono::seconds(10),   // disconnect timeout
-        std::chrono::seconds(30),   // grace period
-        3                           // max missed heartbeats
+        std::chrono::seconds(5),  // handshake timeout
+        std::chrono::seconds(10), // disconnect timeout
+        std::chrono::seconds(30), // grace period
+        3                         // max missed heartbeats
     );
     std::unordered_map<ae::u64, SessionState> session_states;
 
@@ -144,7 +144,7 @@ int main(int argc, char** argv) {
     ae::u32 server_tick = 0;
     ae::u32 main_envelope_seq = 0;
     ae::u32 next_session_id = 1;
-    ae::u32 heartbeat_tick_interval = static_cast<ae::u32>(tick_rate);  // 1 Hz
+    ae::u32 heartbeat_tick_interval = static_cast<ae::u32>(tick_rate); // 1 Hz
 
     // ── Packet buffers ────────────────────────────────────────────────────
     ahamkara::game::PlayerInputPacketBuffer packet_buffer {};
@@ -235,7 +235,8 @@ int main(int argc, char** argv) {
         while (true) {
             ae::NetAddress from {};
             const ae::i32 received = sim.receive_from(from, packet_buffer.data(), packet_buffer.size());
-            if (received <= 0) break;
+            if (received <= 0)
+                break;
 
             const auto packet_span = std::span<const std::byte>(
                 packet_buffer.data(), static_cast<ae::usize>(received));
@@ -259,8 +260,7 @@ int main(int argc, char** argv) {
 
                     ahamkara::game::PacketEnvelope env {};
                     env.sequence = ++main_envelope_seq;
-                    if (!ahamkara::game::serialize_server_reject_packet(env, reject, reject_buffer)
-                        || !sim.send_to(from, reject_buffer.data(), reject_buffer.size())) {
+                    if (!ahamkara::game::serialize_server_reject_packet(env, reject, reject_buffer) || !sim.send_to(from, reject_buffer.data(), reject_buffer.size())) {
                         ae::log_warning("Dedicated server failed to reject an unsupported protocol version.");
                     }
                     continue;
@@ -268,8 +268,7 @@ int main(int argc, char** argv) {
 
                 // Check capacity.
                 {
-                    const auto handshaking_count = conn_manager.count_by_state(ae::ConnectionState::Handshaking)
-                                                  + conn_manager.count_by_state(ae::ConnectionState::Connected);
+                    const auto handshaking_count = conn_manager.count_by_state(ae::ConnectionState::Handshaking) + conn_manager.count_by_state(ae::ConnectionState::Connected);
                     if (static_cast<int>(handshaking_count) > server_config.max_players &&
                         !peer_conn.preserves_session) {
                         ahamkara::game::ServerRejectPacket reject {};
@@ -278,8 +277,7 @@ int main(int argc, char** argv) {
 
                         ahamkara::game::PacketEnvelope env {};
                         env.sequence = ++main_envelope_seq;
-                        if (!ahamkara::game::serialize_server_reject_packet(env, reject, reject_buffer)
-                            || !sim.send_to(from, reject_buffer.data(), reject_buffer.size())) {
+                        if (!ahamkara::game::serialize_server_reject_packet(env, reject, reject_buffer) || !sim.send_to(from, reject_buffer.data(), reject_buffer.size())) {
                             ae::log_warning("Dedicated server failed to reject an extra client.");
                         }
                         continue;
@@ -299,7 +297,8 @@ int main(int argc, char** argv) {
 
                 // Reload session state reference.
                 auto* peer_conn_ref = conn_manager.find(from);
-                if (!peer_conn_ref) continue;
+                if (!peer_conn_ref)
+                    continue;
                 const ae::u64 sid = peer_conn_ref->session_id;
 
                 auto& ss_it = session_states[sid];
@@ -308,12 +307,11 @@ int main(int argc, char** argv) {
                 ahamkara::game::ServerWelcomePacket welcome {};
                 welcome.protocol_version = ahamkara::game::kProtocolVersion;
                 std::snprintf(welcome.player_id, ahamkara::game::kMaxPlayerIdLength, "%s",
-                    ss_it.authenticated_player_id.empty() ? "pending" : ss_it.authenticated_player_id.c_str());
+                              ss_it.authenticated_player_id.empty() ? "pending" : ss_it.authenticated_player_id.c_str());
 
                 ahamkara::game::PacketEnvelope env {};
                 env.sequence = ++main_envelope_seq;
-                if (!ahamkara::game::serialize_server_welcome_packet(env, welcome, welcome_buffer)
-                    || !sim.send_to(from, welcome_buffer.data(), welcome_buffer.size())) {
+                if (!ahamkara::game::serialize_server_welcome_packet(env, welcome, welcome_buffer) || !sim.send_to(from, welcome_buffer.data(), welcome_buffer.size())) {
                     ae::log_warning("Dedicated server failed to send a handshake welcome.");
                 }
 
@@ -381,7 +379,8 @@ int main(int argc, char** argv) {
             if (!ss.session_admitted) {
                 const std::string remote_endpoint = build_remote_endpoint(from);
                 const std::string& auth_token = ss.pending_auth_token.empty()
-                    ? "wish-placeholder-token" : ss.pending_auth_token;
+                                                    ? "wish-placeholder-token"
+                                                    : ss.pending_auth_token;
                 const wish::core::AuthResult auth_result = auth_validator->validate(
                     wish::core::AuthRequest {
                         .token = auth_token,
@@ -408,10 +407,10 @@ int main(int argc, char** argv) {
                 auto* dm = static_cast<ahamkara::game::activities::DeathmatchActivity*>(
                     activity_mgr.get_activity(default_activity_id));
                 if (!dm || !dm->admit_player(wish::core::SessionAdmissionRequest {
-                        .player_id = auth_result.player_id,
-                        .session_id = auth_result.session_id,
-                        .remote_endpoint = remote_endpoint,
-                    })) {
+                               .player_id = auth_result.player_id,
+                               .session_id = auth_result.session_id,
+                               .remote_endpoint = remote_endpoint,
+                           })) {
                     ae::log_warning("Dedicated server could not admit player into activity.");
                     continue;
                 }
@@ -429,7 +428,8 @@ int main(int argc, char** argv) {
 
             // ── Route input to the activity ────────────────────────────
             auto* activity = activity_mgr.get_activity(ss.activity_id);
-            if (!activity) continue;
+            if (!activity)
+                continue;
 
             // Record envelope processing.
             activity->process_input(ss.session_id, in_envelope, command.sequence);
@@ -459,7 +459,7 @@ int main(int argc, char** argv) {
         conn_manager.tick(frame_now);
 
         // Clean up session state for removed peers.
-        for (auto it = session_states.begin(); it != session_states.end(); ) {
+        for (auto it = session_states.begin(); it != session_states.end();) {
             if (conn_manager.find_by_session(it->first) == nullptr) {
                 it = session_states.erase(it);
             } else {
@@ -472,10 +472,11 @@ int main(int argc, char** argv) {
 
         // ── Broadcast snapshots with reliable channel integration ──────
         activity_mgr.broadcast_snapshots([&](wish::session::SessionId sid,
-                                              const std::byte* data, ae::usize len) {
+                                             const std::byte* data, ae::usize len) {
             // Find the client address for this session.
             auto* peer = conn_manager.find_by_session(sid.value);
-            if (!peer || peer->state != ae::ConnectionState::Connected) return;
+            if (!peer || peer->state != ae::ConnectionState::Connected)
+                return;
 
             // Track in reliable channel.
             auto it = session_states.find(sid.value);
@@ -491,16 +492,18 @@ int main(int argc, char** argv) {
 
         // ── Retransmit unacked reliable snapshots ─────────────────────
         const double now_seconds = std::chrono::duration<double>(frame_now.time_since_epoch()).count();
-        constexpr double kReliableTimeout = 0.1;  // 100 ms retransmit timeout.
+        constexpr double kReliableTimeout = 0.1; // 100 ms retransmit timeout.
 
         for (auto& [sid, ss] : session_states) {
             (void)sid;
             const auto due = ss.reliable_channel.collect_retransmits(now_seconds, kReliableTimeout);
             for (const auto seq : due) {
                 const auto* payload = ss.reliable_channel.payload(seq);
-                if (!payload) continue;
+                if (!payload)
+                    continue;
                 auto* peer = conn_manager.find_by_session(sid);
-                if (!peer || peer->state != ae::ConnectionState::Connected) continue;
+                if (!peer || peer->state != ae::ConnectionState::Connected)
+                    continue;
                 sim.send_to(peer->address, payload->data(), static_cast<ae::i32>(payload->size()));
             }
         }
