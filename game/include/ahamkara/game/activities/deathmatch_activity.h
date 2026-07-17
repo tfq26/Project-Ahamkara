@@ -24,6 +24,14 @@
 namespace ahamkara::game::activities {
 
 /// Snapshot payload specific to deathmatch PvP.
+struct RemotePlayerSnapshot {
+    ae::u32 player_id {0};
+    ae::u32 network_object_id {0};
+    Vec3 position {};
+    float yaw {0.0F};
+    float health {0.0F};
+};
+
 struct DeathmatchSnapshot {
     ae::u32 server_tick {0};
     ae::u32 last_processed_input {0};
@@ -37,6 +45,8 @@ struct DeathmatchSnapshot {
     ae::u32 team_score_red {0};
     ae::u32 team_score_blue {0};
     ae::u16 individual_score {0};
+    ae::u8 remote_player_count {0};
+    RemotePlayerSnapshot remote_players[4] {};
 };
 
 /// Serialize a deathmatch snapshot payload into a ByteWriter.
@@ -87,6 +97,11 @@ struct PlayerSlot {
     ae::u32 client_tick {0};
     ServerClockTracker clock_tracker {};
 
+    /// Index into World::players_ — which player this slot controls.
+    ae::u32 player_index {0};
+    /// Unique network object identity for this slot's player.
+    ae::u32 network_object_id {kInvalidNetworkObjectId};
+
     // Last player state sent to this client, for delta compression.
     // Updated each time we broadcast a snapshot for this slot.
     ReplicatedPlayerState last_sent_player_state {};
@@ -96,6 +111,10 @@ struct PlayerSlot {
     // stores input here, tick() drains it.
     PlayerInputCommand pending_input {};
     bool has_pending_input {false};
+
+    // Per-player anti-cheat state
+    Vec3 prev_position {};
+    ae::u32 last_fire_tick {0};
 };
 
 /// Full deathmatch PvP activity.
@@ -163,7 +182,7 @@ private:
     PlayerSlot* find_slot(wish::session::SessionId sid);
     PlayerSlot* find_slot_by_address(const ae::NetAddress& addr);
     void build_snapshot_for_slot(PlayerSlot& slot);
-    void apply_anti_cheat(const PlayerInputCommand& cmd);
+    void apply_anti_cheat(PlayerSlot& slot, const PlayerInputCommand& cmd);
 
     wish::core::ActivityConfig config_;
     World world_;
@@ -175,10 +194,6 @@ private:
     std::deque<PlayerSlot> slots_;
     wish::session::SessionId next_session_id_ {1};
     ae::u32 server_tick_ {0};
-
-    // Anti-cheat state
-    Vec3 prev_player_position_ {0.0F, 0.0F, 0.0F};
-    ae::u32 last_fire_tick_ {0};
     static constexpr ae::u32 kFireTickCooldown {3};
 
     // Latest built snapshot for broadcast

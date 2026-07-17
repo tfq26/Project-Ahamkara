@@ -29,12 +29,12 @@ REPO = Path(__file__).resolve().parents[2]
 # 6 faces, 4 verts each (per-face normals + full-face UVs), 24 verts, 36 indices.
 # Each face: (normal, [4 corner positions]) wound CCW; uv = (0,0)(1,0)(1,1)(0,1).
 FACES = [
-    ((0, 0, 1),  [(-1, -1, 1), (1, -1, 1), (1, 1, 1), (-1, 1, 1)]),    # +Z
-    ((0, 0, -1), [(1, -1, -1), (-1, -1, -1), (-1, 1, -1), (1, 1, -1)]),# -Z
-    ((1, 0, 0),  [(1, -1, 1), (1, -1, -1), (1, 1, -1), (1, 1, 1)]),    # +X
-    ((-1, 0, 0), [(-1, -1, -1), (-1, -1, 1), (-1, 1, 1), (-1, 1, -1)]),# -X
-    ((0, 1, 0),  [(-1, 1, 1), (1, 1, 1), (1, 1, -1), (-1, 1, -1)]),    # +Y
-    ((0, -1, 0), [(-1, -1, -1), (1, -1, -1), (1, -1, 1), (-1, -1, 1)]),# -Y
+    ((0, 0, 1), [(-1, -1, 1), (1, -1, 1), (1, 1, 1), (-1, 1, 1)]),  # +Z
+    ((0, 0, -1), [(1, -1, -1), (-1, -1, -1), (-1, 1, -1), (1, 1, -1)]),  # -Z
+    ((1, 0, 0), [(1, -1, 1), (1, -1, -1), (1, 1, -1), (1, 1, 1)]),  # +X
+    ((-1, 0, 0), [(-1, -1, -1), (-1, -1, 1), (-1, 1, 1), (-1, 1, -1)]),  # -X
+    ((0, 1, 0), [(-1, 1, 1), (1, 1, 1), (1, 1, -1), (-1, 1, -1)]),  # +Y
+    ((0, -1, 0), [(-1, -1, -1), (1, -1, -1), (1, -1, 1), (-1, -1, 1)]),  # -Y
 ]
 UVS = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
 
@@ -69,11 +69,17 @@ def write_gltf(out_gltf: Path, out_bin: Path):
         "scene": 0,
         "scenes": [{"nodes": [0]}],
         "nodes": [{"mesh": 0}],
-        "meshes": [{"primitives": [{
-            "attributes": {"POSITION": 0, "NORMAL": 1, "TEXCOORD_0": 2},
-            "indices": 3,
-            "material": 0,
-        }]}],
+        "meshes": [
+            {
+                "primitives": [
+                    {
+                        "attributes": {"POSITION": 0, "NORMAL": 1, "TEXCOORD_0": 2},
+                        "indices": 3,
+                        "material": 0,
+                    }
+                ]
+            }
+        ],
         "materials": [{"pbrMetallicRoughness": {"baseColorFactor": [0.85, 0.45, 0.25, 1.0]}}],
         "buffers": [{"uri": out_bin.name, "byteLength": len(blob)}],
         "bufferViews": [
@@ -94,10 +100,9 @@ def write_gltf(out_gltf: Path, out_bin: Path):
 
 def write_tga(path: Path, size: int = 8):
     # Uncompressed 32-bit truecolor TGA, top-left origin, simple checkerboard.
-    header = bytes([0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    size & 0xFF, (size >> 8) & 0xFF,
-                    size & 0xFF, (size >> 8) & 0xFF,
-                    32, 0x28])
+    header = bytes(
+        [0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, size & 0xFF, (size >> 8) & 0xFF, size & 0xFF, (size >> 8) & 0xFF, 32, 0x28]
+    )
     px = bytearray()
     for y in range(size):
         for x in range(size):
@@ -127,7 +132,7 @@ def main() -> int:
     write_gltf(REPO / "assets/models/textured_cube.gltf", REPO / "assets/models/textured_cube.bin")
     write_tga(REPO / "assets/textures/cube_albedo.tga")
     write_mat(REPO / "assets/materials/cube.mat")
-    print("wrote textured_cube.gltf/.bin, cube_albedo.tga, cube.mat")
+    print("gen_textured_cube: wrote textured_cube.gltf/.bin, cube_albedo.tga, cube.mat")
     return 0
 
 

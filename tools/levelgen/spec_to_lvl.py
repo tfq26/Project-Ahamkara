@@ -38,7 +38,6 @@ Usage:
 import json
 import math
 import sys
-import tempfile
 from pathlib import Path
 
 
@@ -156,7 +155,7 @@ def parse_lvl(text: str) -> dict:
             for t in toks[6:]:
                 k, _, v = t.partition("=")
                 if k in ("wall", "jump_through", "auto_step"):
-                    box[k] = (v == "true")
+                    box[k] = v == "true"
                 elif k == "surface":
                     box[k] = int(v)
             out["collision"].append(box)
@@ -205,20 +204,22 @@ def selftest(spec_path: Path) -> int:
     if len(parsed["meshes"]) != len(spec.get("meshes", [])):
         failures.append("mesh count mismatch")
 
-    for got, want in zip(parsed["meshes"], spec.get("meshes", [])):
+    for got, want in zip(parsed["meshes"], spec.get("meshes", []), strict=False):
         if got.get("mesh") != want.get("mesh"):
             failures.append(f"mesh id mismatch: {got.get('mesh')} != {want.get('mesh')}")
         wp = want.get("pos", [0.0, 0.0, 0.0])
         gp = got.get("pos", [0.0, 0.0, 0.0])
-        if not all(_close(a, b) for a, b in zip(gp, wp)):
+        if not all(_close(a, b) for a, b in zip(gp, wp, strict=False)):
             failures.append("mesh pos mismatch")
 
     if failures:
         for f in failures:
-            print(f"selftest FAIL: {f}", file=sys.stderr)
+            print(f"spec_to_lvl: selftest FAIL: {f}", file=sys.stderr)
         return 1
-    print(f"selftest OK: {spec_path.name} ({len(parsed['meshes'])} mesh, "
-          f"{len(parsed['spawns'])} spawn, {len(parsed['collision'])} collision)")
+    print(
+        f"spec_to_lvl: selftest OK: {spec_path.name} ({len(parsed['meshes'])} mesh, "
+        f"{len(parsed['spawns'])} spawn, {len(parsed['collision'])} collision)"
+    )
     return 0
 
 
@@ -233,7 +234,7 @@ def main(argv: list[str]) -> int:
     spec = json.loads(spec_path.read_text())
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(spec_to_lvl_text(spec, spec_path.name))
-    print(f"wrote {out_path}")
+    print(f"spec_to_lvl: wrote {out_path}")
     return 0
 
 

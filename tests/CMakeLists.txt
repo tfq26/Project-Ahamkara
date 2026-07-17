@@ -17,6 +17,10 @@ add_executable(ahamkara_world_tests
     src/world_tests.cpp
 )
 
+add_executable(ahamkara_player_entity_tests
+    src/player_entity_tests.cpp
+)
+
 add_executable(ahamkara_movement_tests
     src/movement_tests.cpp
 )
@@ -50,6 +54,7 @@ endif()
 target_compile_features(ahamkara_smoke_tests PRIVATE cxx_std_20)
 target_compile_features(ahamkara_playtest_harness_tests PRIVATE cxx_std_20)
 target_compile_features(ahamkara_world_tests PRIVATE cxx_std_20)
+target_compile_features(ahamkara_player_entity_tests PRIVATE cxx_std_20)
 target_compile_features(ahamkara_movement_tests PRIVATE cxx_std_20)
 target_compile_features(ahamkara_player_movement_controller_tests PRIVATE cxx_std_20)
 target_include_directories(ahamkara_smoke_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
@@ -91,6 +96,12 @@ target_link_libraries(ahamkara_world_tests
         ahamkara_game
 )
 
+target_link_libraries(ahamkara_player_entity_tests
+    PRIVATE
+        ae_runtime
+        ahamkara_game
+)
+
 target_link_libraries(ahamkara_movement_tests
     PRIVATE
         ahamkara_game
@@ -104,6 +115,7 @@ target_link_libraries(ahamkara_player_movement_controller_tests
 add_test(NAME ahamkara_smoke_tests COMMAND ahamkara_smoke_tests)
 add_test(NAME ahamkara_playtest_harness_tests COMMAND ahamkara_playtest_harness_tests)
 add_test(NAME ahamkara_world_tests COMMAND ahamkara_world_tests)
+add_test(NAME ahamkara_player_entity_tests COMMAND ahamkara_player_entity_tests)
 add_test(NAME ahamkara_movement_tests COMMAND ahamkara_movement_tests)
 add_test(NAME ahamkara_player_movement_controller_tests COMMAND ahamkara_player_movement_controller_tests)
 add_executable(ahamkara_collision_tests
@@ -192,6 +204,20 @@ target_link_libraries(ahamkara_core_tests
 )
 
 add_test(NAME ahamkara_core_tests COMMAND ahamkara_core_tests)
+
+add_executable(ahamkara_weapon_runtime_tests
+    src/weapon_runtime_tests.cpp
+)
+
+target_compile_features(ahamkara_weapon_runtime_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_weapon_runtime_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../game/include)
+
+target_link_libraries(ahamkara_weapon_runtime_tests
+    PRIVATE
+        ahamkara_game
+)
+
+add_test(NAME ahamkara_weapon_runtime_tests COMMAND ahamkara_weapon_runtime_tests)
 
 add_executable(ahamkara_weapon_loader_tests
     src/weapon_loader_tests.cpp
@@ -293,6 +319,25 @@ target_link_libraries(ahamkara_reliable_channel_tests
 )
 
 add_test(NAME ahamkara_reliable_channel_tests COMMAND ahamkara_reliable_channel_tests)
+
+add_executable(ahamkara_interpolation_buffer_tests
+    src/interpolation_buffer_tests.cpp
+)
+
+target_compile_features(ahamkara_interpolation_buffer_tests PRIVATE cxx_std_20)
+
+target_include_directories(ahamkara_interpolation_buffer_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/network/include
+)
+
+target_link_libraries(ahamkara_interpolation_buffer_tests
+    PRIVATE
+        ae_network
+)
+
+add_test(NAME ahamkara_interpolation_buffer_tests COMMAND ahamkara_interpolation_buffer_tests)
 
 add_executable(ahamkara_console_tests
     src/console_tests.cpp
@@ -545,3 +590,25 @@ target_link_libraries(ahamkara_rewind_tests
         ahamkara_game
 )
 add_test(NAME ahamkara_rewind_tests COMMAND ahamkara_rewind_tests)
+
+add_executable(ahamkara_connection_lifecycle_tests
+    src/connection_lifecycle_tests.cpp
+)
+target_compile_features(ahamkara_connection_lifecycle_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_connection_lifecycle_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_connection_lifecycle_tests
+    PRIVATE
+        ae_network
+)
+add_test(NAME ahamkara_connection_lifecycle_tests COMMAND ahamkara_connection_lifecycle_tests)
+
+add_executable(ahamkara_jitter_buffer_tests
+    src/jitter_buffer_tests.cpp
+)
+target_compile_features(ahamkara_jitter_buffer_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_jitter_buffer_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_jitter_buffer_tests
+    PRIVATE
+        ae_network
+)
+add_test(NAME ahamkara_jitter_buffer_tests COMMAND ahamkara_jitter_buffer_tests)

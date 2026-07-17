@@ -1,10 +1,13 @@
 #include "asset_importer_texture.h"
 #include "ae/render/compiled_texture.h"
+#include "ae/core/log.h"
 
 #include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <vector>
+
+#define AE_LOG_CATEGORY "Tools"
 
 namespace asset_importer {
 
@@ -97,23 +100,23 @@ bool load_tga_texture(const std::filesystem::path& path, ae::render::TextureAsse
 bool compile_texture(const ImportEntry& entry) {
     const auto extension = entry.source.extension().generic_string();
     if (extension != ".tga" && extension != ".TGA") {
-        std::cerr << "Texture import currently supports TGA sources only: " << entry.source << '\n';
+        ae::log_error_cat(AE_LOG_CATEGORY, "Texture import currently supports TGA sources only: " + entry.source.string());
         return false;
     }
 
     ae::render::TextureAsset texture;
     std::string error;
     if (!load_tga_texture(entry.source, texture, error)) {
-        std::cerr << "Texture import failed for " << entry.source << ": " << error << '\n';
+        ae::log_error_cat(AE_LOG_CATEGORY, "Texture import failed for " + entry.source.string() + ": " + error);
         return false;
     }
 
     if (!ae::render::save_compiled_texture(entry.output.string(), texture, error)) {
-        std::cerr << "Failed to compile " << entry.source << " -> " << entry.output << ": " << error << '\n';
+        ae::log_error_cat(AE_LOG_CATEGORY, "Failed to compile " + entry.source.string() + " -> " + entry.output.string() + ": " + error);
         return false;
     }
 
-    std::cout << "texture " << entry.source << " -> " << entry.output << '\n';
+    ae::log_info_cat(AE_LOG_CATEGORY, "texture " + entry.source.string() + " -> " + entry.output.string());
     return true;
 }
 

@@ -1,10 +1,13 @@
 #include "asset_importer_level.h"
 #include "ae/render/compiled_level.h"
+#include "ae/core/log.h"
 
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
+
+#define AE_LOG_CATEGORY "Tools"
 
 namespace asset_importer {
 namespace {
@@ -239,16 +242,16 @@ bool compile_level(const ImportEntry& entry) {
     ae::render::LevelAsset level;
     std::string error;
     if (!load_level_source(entry.source, level, error)) {
-        std::cerr << "Level import failed for " << entry.source << ": " << error << '\n';
+        ae::log_error_cat(AE_LOG_CATEGORY, "Level import failed for " + entry.source.string() + ": " + error);
         return false;
     }
 
     if (!ae::render::save_compiled_level(entry.output.string(), level, error)) {
-        std::cerr << "Failed to compile " << entry.source << " -> " << entry.output << ": " << error << '\n';
+        ae::log_error_cat(AE_LOG_CATEGORY, "Failed to compile " + entry.source.string() + " -> " + entry.output.string() + ": " + error);
         return false;
     }
 
-    std::cout << "level " << entry.source << " -> " << entry.output << '\n';
+    ae::log_info_cat(AE_LOG_CATEGORY, "level " + entry.source.string() + " -> " + entry.output.string());
     return true;
 }
 
