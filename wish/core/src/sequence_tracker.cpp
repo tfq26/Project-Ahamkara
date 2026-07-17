@@ -49,8 +49,8 @@ void SequenceTracker::ack_sequence(u16 sequence) {
             ack_bitfield_ <<= delta;
         }
 
-        if (delta - 1 < 32) {
-            ack_bitfield_ |= (1U << (delta - 1));
+        if (delta > 0 && delta <= 32) {
+            ack_bitfield_ |= (1U << static_cast<unsigned>(delta - 1));
         }
 
         latest_received_ = sequence;

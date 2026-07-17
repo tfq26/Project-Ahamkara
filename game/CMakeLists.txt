@@ -44,6 +44,7 @@ target_include_directories(ahamkara_game
 target_link_libraries(ahamkara_game
     PUBLIC
         ae_core
+        ae_network
         Jolt
         EnTT
         wish_engine
