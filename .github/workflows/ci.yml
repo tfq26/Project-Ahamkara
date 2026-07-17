@@ -1,7 +1,7 @@
 # CI workflow
 #
-# Builds all CMake presets (debug, release, debug-headless) and runs tests
-# for presets that support them.  Runs on Ubuntu 24.04 and macOS 14.
+# Builds all CMake presets (debug, release) and runs tests, package, and
+# engine-only validation. Runs on self-hosted Linux runner (servlenovo1).
 
 name: CI
 
@@ -15,36 +15,42 @@ env:
   CMAKE_BUILD_PARALLEL_LEVEL: 4
 
 jobs:
-  build-and-test:
-    name: ${{ matrix.preset }} (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        preset: [debug, release, debug-headless]
-        os: [ubuntu-24.04, macos-14]
-        exclude:
-          # macOS jobs: only debug and release (no headless runner needed)
-          - os: macos-14
-            preset: debug-headless
-
-    runs-on: ${{ matrix.os }}
+  validate:
+    name: Validate
+    runs-on: [self-hosted, linux]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            cmake ninja-build libglfw3-dev libgl1-mesa-dev
+      - name: Check for unresolved template tokens
+        run: ./scripts/check-template-tokens.sh --ci
 
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
+      - name: Check for tracked __pycache__ directories
         run: |
-          brew update
-          brew install ninja glfw
+          PYCACHE=$(git ls-files '**/__pycache__/')
+          if [[ -n "$PYCACHE" ]]; then
+            echo "Error: tracked __pycache__ directories found:"
+            echo "$PYCACHE"
+            exit 1
+          fi
+          echo "No tracked __pycache__ directories — clean"
+
+  build-and-test:
+    name: ${{ matrix.preset }} (self-hosted)
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [debug, release, debug-headless]
+
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Configure
         run: cmake --preset ${{ matrix.preset }}
@@ -60,20 +66,32 @@ jobs:
         if: matrix.preset == 'debug-headless'
         run: ctest --test-dir build/debug-headless --output-on-failure
 
-  package:
-    name: Package
-    runs-on: ubuntu-24.04
-    needs: [build-and-test]
+  engine-only:
+    name: Engine-only
+    needs: validate
+    runs-on: [self-hosted, linux]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            cmake ninja-build libglfw3-dev libgl1-mesa-dev
+      - name: Configure (engine-only)
+        run: cmake --preset debug -DAHAMKARA_ENGINE_ONLY=ON
+
+      - name: Build (engine-only)
+        run: cmake --build --preset debug
+
+      - name: Run engine tests
+        run: ctest --test-dir build/debug --output-on-failure
+
+  package:
+    name: Package
+    runs-on: [self-hosted, linux]
+    needs: [build-and-test]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Package
         run: |

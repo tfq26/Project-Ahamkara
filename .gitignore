@@ -1,4 +1,6 @@
 /build/
+/.venv-lint/
+/.ruff_cache/
 /assets/compiled/
 .DS_Store
 /ahamkara_perf_*.csv
@@ -10,3 +12,11 @@ logs/
 .ai/mcp/
 .kronn/tmp/
 .kronn/
+.worktrees/
+
+build-issue55/
+build-#55/
+build-engine-only/
+tests/out_of_tree_consumer/build/
+
+__pycache__/
