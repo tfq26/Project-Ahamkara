@@ -20,7 +20,7 @@ from pathlib import Path
 
 try:
     import bpy
-    from mathutils import Euler, Matrix, Vector, Quaternion
+    from mathutils import Euler, Matrix, Quaternion, Vector
 except ImportError:
     raise RuntimeError("build_arm_rig.py must be run inside Blender")
 
@@ -34,18 +34,19 @@ ARM_LENGTHS = {
 }
 
 JOINT_POSITIONS = {
-    "root":        (0.0, 0.0, 0.0),
-    "shoulder":    (0.0, 0.0, 0.0),
-    "elbow":       (0.0, -ARM_LENGTHS["upper"], 0.0),
-    "wrist":       (0.0, -ARM_LENGTHS["upper"] - ARM_LENGTHS["forearm"], 0.0),
-    "hand":        (0.0, -ARM_LENGTHS["upper"] - ARM_LENGTHS["forearm"] - ARM_LENGTHS["hand"] * 0.5, 0.0),
-    "weapon_attach":(0.0, -ARM_LENGTHS["upper"] - ARM_LENGTHS["forearm"] - ARM_LENGTHS["hand"], 0.0),
+    "root": (0.0, 0.0, 0.0),
+    "shoulder": (0.0, 0.0, 0.0),
+    "elbow": (0.0, -ARM_LENGTHS["upper"], 0.0),
+    "wrist": (0.0, -ARM_LENGTHS["upper"] - ARM_LENGTHS["forearm"], 0.0),
+    "hand": (0.0, -ARM_LENGTHS["upper"] - ARM_LENGTHS["forearm"] - ARM_LENGTHS["hand"] * 0.5, 0.0),
+    "weapon_attach": (0.0, -ARM_LENGTHS["upper"] - ARM_LENGTHS["forearm"] - ARM_LENGTHS["hand"], 0.0),
 }
 
 BONE_CHAIN = ["root", "shoulder", "elbow", "wrist", "hand", "weapon_attach"]
 BONE_PARENTS = {"shoulder": "root", "elbow": "shoulder", "wrist": "elbow", "hand": "wrist", "weapon_attach": "hand"}
 
 # ── Build ─────────────────────────────────────────────────────────────────────
+
 
 def build_arm_mesh() -> tuple:
     """Create a simple skinned arm mesh (two cylinders)."""
@@ -86,18 +87,27 @@ def build_arm_mesh() -> tuple:
     bpy.ops.object.mode_set(mode="OBJECT")
 
     # Create mesh (two cylinders: upper arm + forearm)
-    bpy.ops.mesh.primitive_cylinder_add(vertices=12, radius=0.04, depth=ARM_LENGTHS["upper"],
-                                         location=(0, -ARM_LENGTHS["upper"] * 0.5, 0))
+    bpy.ops.mesh.primitive_cylinder_add(
+        vertices=12, radius=0.04, depth=ARM_LENGTHS["upper"], location=(0, -ARM_LENGTHS["upper"] * 0.5, 0)
+    )
     upper = bpy.context.active_object
     upper.name = "UpperArm"
 
-    bpy.ops.mesh.primitive_cylinder_add(vertices=10, radius=0.035, depth=ARM_LENGTHS["forearm"],
-                                         location=(0, -ARM_LENGTHS["upper"] - ARM_LENGTHS["forearm"] * 0.5, 0))
+    bpy.ops.mesh.primitive_cylinder_add(
+        vertices=10,
+        radius=0.035,
+        depth=ARM_LENGTHS["forearm"],
+        location=(0, -ARM_LENGTHS["upper"] - ARM_LENGTHS["forearm"] * 0.5, 0),
+    )
     forearm = bpy.context.active_object
     forearm.name = "Forearm"
 
-    bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.03, depth=ARM_LENGTHS["hand"] * 0.5,
-                                         location=(0, -ARM_LENGTHS["upper"] - ARM_LENGTHS["forearm"] - ARM_LENGTHS["hand"] * 0.25, 0))
+    bpy.ops.mesh.primitive_cylinder_add(
+        vertices=8,
+        radius=0.03,
+        depth=ARM_LENGTHS["hand"] * 0.5,
+        location=(0, -ARM_LENGTHS["upper"] - ARM_LENGTHS["forearm"] - ARM_LENGTHS["hand"] * 0.25, 0),
+    )
     hand = bpy.context.active_object
     hand.name = "Hand"
 
@@ -131,6 +141,7 @@ def build_arm_mesh() -> tuple:
 
 
 # ── Animation helpers ─────────────────────────────────────────────────────────
+
 
 def key_bone(armature, bone_name, frame, rotation_euler=None, rotation_quat=None, location=None):
     """Insert a keyframe for a bone at the given frame."""
@@ -167,7 +178,8 @@ def make_animation(armature, name, keyframes_func):
 
     def key(bone_name, frame, rotation_euler=None):
         pose_bone = armature.pose.bones.get(bone_name)
-        if pose_bone is None: return
+        if pose_bone is None:
+            return
         if rotation_euler is not None:
             pose_bone.rotation_mode = "QUATERNION"
             pose_bone.rotation_quaternion = Euler(rotation_euler, "XYZ").to_quaternion()
@@ -184,34 +196,39 @@ def make_animation(armature, name, keyframes_func):
     strip = track.strips.new(name, 0, action)
     strip.name = name
 
+
 def make_idle(armature):
     def keyframes(key):
         for f in range(0, int(FPS * 2) + 1, 3):
             t = f / float(FPS)
             shoulder_x = math.sin(t * 1.7) * 0.04
-            elbow_x   = math.cos(t * 2.1) * 0.015
-            wrist_z   = math.sin(t * 2.8) * 0.02
+            elbow_x = math.cos(t * 2.1) * 0.015
+            wrist_z = math.sin(t * 2.8) * 0.02
             key("shoulder", f, rotation_euler=(0, shoulder_x, 0))
-            key("elbow",    f, rotation_euler=(elbow_x, 0, 0))
-            key("wrist",    f, rotation_euler=(0, 0, wrist_z))
+            key("elbow", f, rotation_euler=(elbow_x, 0, 0))
+            key("wrist", f, rotation_euler=(0, 0, wrist_z))
+
     make_animation(armature, "idle", keyframes)
+
 
 def make_fire(armature):
     def keyframes(key):
         dur = int(FPS * 0.3)
         key("shoulder", 0, (0, 0, 0))
-        key("elbow",    0, (0, 0, 0))
-        key("wrist",    0, (0, 0, 0))
+        key("elbow", 0, (0, 0, 0))
+        key("wrist", 0, (0, 0, 0))
         key("shoulder", 2, (0, 0, -0.08))
-        key("elbow",    2, (0.12, 0, 0))
-        key("wrist",    2, (-0.25, 0, 0))
+        key("elbow", 2, (0.12, 0, 0))
+        key("wrist", 2, (-0.25, 0, 0))
         key("shoulder", 4, (0, 0, 0.02))
-        key("elbow",    4, (-0.03, 0, 0))
-        key("wrist",    4, (0.05, 0, 0))
+        key("elbow", 4, (-0.03, 0, 0))
+        key("wrist", 4, (0.05, 0, 0))
         key("shoulder", dur, (0, 0, 0))
-        key("elbow",    dur, (0, 0, 0))
-        key("wrist",    dur, (0, 0, 0))
+        key("elbow", dur, (0, 0, 0))
+        key("wrist", dur, (0, 0, 0))
+
     make_animation(armature, "fire", keyframes)
+
 
 def make_reload(armature):
     def keyframes(key):
@@ -220,24 +237,26 @@ def make_reload(armature):
         t2 = int(FPS * 0.8)
         t3 = int(FPS * 1.2)
         key("shoulder", 0, (0, 0, 0))
-        key("elbow",    0, (0, 0, 0))
-        key("wrist",    0, (0, 0, 0))
+        key("elbow", 0, (0, 0, 0))
+        key("wrist", 0, (0, 0, 0))
         key("shoulder", t1, (0, 0, -0.5))
-        key("elbow",    t1, (0.3, 0, 0))
-        key("wrist",    t1, (0, 0, 1.2))
+        key("elbow", t1, (0.3, 0, 0))
+        key("wrist", t1, (0, 0, 1.2))
         key("shoulder", t2, (0, 0, -0.55))
-        key("elbow",    t2, (0.35, 0, 0))
-        key("wrist",    t2, (0, 0, 1.6))
+        key("elbow", t2, (0.35, 0, 0))
+        key("wrist", t2, (0, 0, 1.6))
         key("shoulder", t3, (0, 0, -0.15))
-        key("elbow",    t3, (0.05, 0, 0))
-        key("wrist",    t3, (0, 0, 0.2))
+        key("elbow", t3, (0.05, 0, 0))
+        key("wrist", t3, (0, 0, 0.2))
         key("shoulder", dur, (0, 0, 0))
-        key("elbow",    dur, (0, 0, 0))
-        key("wrist",    dur, (0, 0, 0))
+        key("elbow", dur, (0, 0, 0))
+        key("wrist", dur, (0, 0, 0))
+
     make_animation(armature, "reload", keyframes)
 
 
 # ── Export ────────────────────────────────────────────────────────────────────
+
 
 def export(out_dir: Path):
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -276,9 +295,9 @@ def export(out_dir: Path):
     )
 
     action_count = len(bpy.data.actions)
-    print(f"Actions saved: {[a.name for a in bpy.data.actions]}")
-    print(f"NLA tracks: {len(armature.animation_data.nla_tracks)}")
-    print(f"Exported {basename}.blend and {basename}.gltf ({action_count} animations)")
+    print(f"build_arm_rig: Actions saved: {[a.name for a in bpy.data.actions]}")
+    print(f"build_arm_rig: NLA tracks: {len(armature.animation_data.nla_tracks)}")
+    print(f"build_arm_rig: Exported {basename}.blend and {basename}.gltf ({action_count} animations)")
     return 0
 
 
@@ -287,7 +306,7 @@ def _parse_args(argv):
     p.add_argument("--out_dir", default="assets/models")
     p.add_argument("--open", action="store_true")
     if "--" in argv:
-        return p.parse_args(argv[argv.index("--") + 1:])
+        return p.parse_args(argv[argv.index("--") + 1 :])
     return p.parse_args(argv[1:])
 
 

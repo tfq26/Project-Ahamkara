@@ -1,15 +1,18 @@
 #include "asset_importer_manifest.h"
+#include "ae/core/log.h"
 
 #include <fstream>
 #include <iostream>
 #include <string>
+
+#define AE_LOG_CATEGORY "Tools"
 
 namespace asset_importer {
 
 bool read_manifest(const std::filesystem::path& manifest_path, std::vector<ImportEntry>& entries) {
     std::ifstream file(manifest_path);
     if (!file) {
-        std::cerr << "Failed to open manifest: " << manifest_path << '\n';
+        ae::log_error_cat(AE_LOG_CATEGORY, "Failed to open manifest: " + manifest_path.string());
         return false;
     }
 
@@ -32,8 +35,8 @@ bool read_manifest(const std::filesystem::path& manifest_path, std::vector<Impor
 
         const auto tokens = split_tokens(line);
         if (tokens.size() < 3 || tokens.size() > 4) {
-            std::cerr << manifest_path << ':' << line_number
-                      << ": expected '<kind> <source> <output> [metadata]'\n";
+            ae::log_error_cat(AE_LOG_CATEGORY,
+                              manifest_path.string() + ":" + std::to_string(line_number) + ": expected '<kind> <source> <output> [metadata]'");
             return false;
         }
 

@@ -9,13 +9,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import sys
 from pathlib import Path
 
 try:
-    import bpy
     import bmesh
+    import bpy
     from mathutils import Matrix, Vector
 except ImportError:
     raise RuntimeError("build_level_meshes.py must be run inside Blender")
@@ -31,13 +30,16 @@ def _box_mesh(bm, min_x, min_z, max_x, max_z, top_y, bottom_y=0.0):
     sy = (top_y - bottom_y) * 0.5
     sz = (max_z - min_z) * 0.5
 
-    if sx < 0.01: sx = 0.01
-    if sy < 0.01: sy = 0.01
-    if sz < 0.01: sz = 0.01
+    if sx < 0.01:
+        sx = 0.01
+    if sy < 0.01:
+        sy = 0.01
+    if sz < 0.01:
+        sz = 0.01
 
-    bmesh.ops.create_cube(bm, size=2.0,
-                          matrix=Matrix.Translation(Vector((cx, cy, cz)))
-                          @ Matrix.Diagonal((sx, sy, sz, 1.0)).to_4x4())
+    bmesh.ops.create_cube(
+        bm, size=2.0, matrix=Matrix.Translation(Vector((cx, cy, cz))) @ Matrix.Diagonal((sx, sy, sz, 1.0)).to_4x4()
+    )
 
 
 def _material(r, g, b):
@@ -57,7 +59,7 @@ def parse_args(argv):
     p.add_argument("--out_dir", default="assets/models")
     p.add_argument("--open", action="store_true")
     if "--" in argv:
-        return p.parse_args(argv[argv.index("--") + 1:])
+        return p.parse_args(argv[argv.index("--") + 1 :])
     return p.parse_args(argv[1:])
 
 
@@ -121,7 +123,7 @@ def main(argv):
         export_materials="EXPORT",
     )
 
-    print(f"Exported {blend_path.name} and {gltf_path.name} ({len(colliders)} colliders)")
+    print(f"build_level_meshes: Exported {blend_path.name} and {gltf_path.name} ({len(colliders)} colliders)")
     return 0
 
 

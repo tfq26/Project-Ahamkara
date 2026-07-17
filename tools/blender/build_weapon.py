@@ -35,9 +35,7 @@ import argparse
 import json
 import math
 import sys
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
 
 import bmesh
 
@@ -49,6 +47,7 @@ except ImportError as exc:
 
 
 # ── Transform helper ───────────────────────────────────────────────────────────
+
 
 def _transform_matrix(
     location: tuple[float, float, float],
@@ -63,6 +62,7 @@ def _transform_matrix(
 
 
 # ── Primitive builders ─────────────────────────────────────────────────────────
+
 
 def _add_box(bm: bmesh.types.BMesh, comp: dict) -> int:
     vert_start = len(bm.verts)
@@ -155,8 +155,7 @@ def _add_torus(bm: bmesh.types.BMesh, comp: dict) -> int:
         bm,
         segments=ring_segs,
         radius=minor_r,
-        matrix=Matrix.Translation(Vector((major_r, 0.0, 0.0)))
-        @ Euler((0.0, math.pi / 2, 0.0)).to_matrix().to_4x4(),
+        matrix=Matrix.Translation(Vector((major_r, 0.0, 0.0))) @ Euler((0.0, math.pi / 2, 0.0)).to_matrix().to_4x4(),
         cap_ends=False,
     )
 
@@ -199,8 +198,8 @@ _BUILDERS = {
 
 # ── Material ───────────────────────────────────────────────────────────────────
 
-def _make_material(name: str, rgba: tuple[float, float, float, float],
-                   metallic: float = 0.12, roughness: float = 0.72):
+
+def _make_material(name: str, rgba: tuple[float, float, float, float], metallic: float = 0.12, roughness: float = 0.72):
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
     bsdf = mat.node_tree.nodes.get("Principled BSDF")
@@ -212,6 +211,7 @@ def _make_material(name: str, rgba: tuple[float, float, float, float],
 
 
 # ── Build ──────────────────────────────────────────────────────────────────────
+
 
 def build_from_spec(spec: dict):
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -234,7 +234,7 @@ def build_from_spec(spec: dict):
         if comp_type is None:
             continue  # comment-only entries
         if comp_type not in _BUILDERS:
-            print(f"WARNING: unknown component type '{comp_type}', skipping")
+            print(f"build_weapon: WARNING: unknown component type '{comp_type}', skipping", file=sys.stderr)
             continue
         total_verts += _BUILDERS[comp_type](bm, comp)
 
@@ -250,12 +250,15 @@ def build_from_spec(spec: dict):
     obj.location = Vector((0.0, 0.0, 0.0))
     obj.scale = (spec.get("scale", 1.0),) * 3
 
-    print(f"Built '{output_name}': {total_verts} verts, {len(materials)} materials, "
-          f"{len(spec.get('components',[]))} components")
+    print(
+        f"build_weapon: Built '{output_name}': {total_verts} verts, {len(materials)} materials, "
+        f"{len(spec.get('components', []))} components"
+    )
     return obj
 
 
 # ── Export ─────────────────────────────────────────────────────────────────────
+
 
 def export_weapon(spec: dict, out_dir: Path) -> tuple[Path, Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -286,11 +289,12 @@ def export_weapon(spec: dict, out_dir: Path) -> tuple[Path, Path]:
     for obj in bpy.context.scene.objects:
         obj.select_set(original_selection.get(obj.name, False))
 
-    print(f"Exported {blend_path.name} and {gltf_path.name} to {out_dir}")
+    print(f"build_weapon: Exported {blend_path.name} and {gltf_path.name} to {out_dir}")
     return blend_path, gltf_path
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
+
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(add_help=False)
@@ -308,7 +312,7 @@ def main(argv: list[str]) -> int:
     args = _parse_args(argv)
     spec_path = Path(args.spec)
     if not spec_path.exists():
-        print(f"ERROR: spec file not found: {spec_path}")
+        print(f"build_weapon: ERROR: spec file not found: {spec_path}", file=sys.stderr)
         return 1
 
     spec = json.loads(spec_path.read_text())

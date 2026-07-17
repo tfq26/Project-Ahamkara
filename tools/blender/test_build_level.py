@@ -11,8 +11,8 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import build_level  # noqa: E402
-import spec_to_lvl  # noqa: E402  (placed on path by build_level import)
+import build_level
+import spec_to_lvl
 
 
 def _close(a: float, b: float) -> bool:
@@ -20,7 +20,7 @@ def _close(a: float, b: float) -> bool:
 
 
 def fail(msg: str) -> int:
-    print(f"test_build_level FAIL: {msg}", file=sys.stderr)
+    print(f"test_build_level: FAIL: {msg}", file=sys.stderr)
     return 1
 
 
@@ -93,7 +93,7 @@ def main() -> int:
         rc = test()
         if rc != 0:
             return rc
-    print("test_build_level passed")
+    print("test_build_level: passed")
     return 0
 
 
