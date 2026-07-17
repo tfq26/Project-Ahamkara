@@ -40,9 +40,9 @@ def test_plan_blockout() -> int:
     if len(plan["boxes"]) != 1:
         return fail("expected 1 box")
     box = plan["boxes"][0]
-    if not all(_close(a, b) for a, b in zip(box["center"], [0.0, 2.0, 0.0])):
+    if not all(_close(a, b) for a, b in zip(box["center"], [0.0, 2.0, 0.0], strict=False)):
         return fail(f"box center wrong: {box['center']}")
-    if not all(_close(a, b) for a, b in zip(box["size"], [4.0, 2.0, 8.0])):
+    if not all(_close(a, b) for a, b in zip(box["size"], [4.0, 2.0, 8.0], strict=False)):
         return fail(f"box size wrong: {box['size']}")
     if not box["wall"]:
         return fail("box wall flag lost")

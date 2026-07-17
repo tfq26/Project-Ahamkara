@@ -204,12 +204,12 @@ def selftest(spec_path: Path) -> int:
     if len(parsed["meshes"]) != len(spec.get("meshes", [])):
         failures.append("mesh count mismatch")
 
-    for got, want in zip(parsed["meshes"], spec.get("meshes", [])):
+    for got, want in zip(parsed["meshes"], spec.get("meshes", []), strict=False):
         if got.get("mesh") != want.get("mesh"):
             failures.append(f"mesh id mismatch: {got.get('mesh')} != {want.get('mesh')}")
         wp = want.get("pos", [0.0, 0.0, 0.0])
         gp = got.get("pos", [0.0, 0.0, 0.0])
-        if not all(_close(a, b) for a, b in zip(gp, wp)):
+        if not all(_close(a, b) for a, b in zip(gp, wp, strict=False)):
             failures.append("mesh pos mismatch")
 
     if failures:

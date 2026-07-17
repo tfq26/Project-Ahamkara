@@ -105,7 +105,7 @@ bool pack_assets(const std::filesystem::path& registry_path, const std::filesyst
     // Write padding to align to 4096 bytes boundary before first file data
     if (padding_before_first_data > 0) {
         std::vector<char> padding(padding_before_first_data, 0);
-        file.write(padding.data(), padding_before_first_data);
+        file.write(padding.data(), static_cast<std::streamsize>(padding_before_first_data));
     }
 
     // Write each file's data, with padding to 4096 bytes boundary
@@ -121,7 +121,7 @@ bool pack_assets(const std::filesystem::path& registry_path, const std::filesyst
         std::uint64_t padding_needed = ((entry.size + 4095) & ~4095ULL) - entry.size;
         if (padding_needed > 0) {
             std::vector<char> padding(padding_needed, 0);
-            file.write(padding.data(), padding_needed);
+            file.write(padding.data(), static_cast<std::streamsize>(padding_needed));
         }
     }
 

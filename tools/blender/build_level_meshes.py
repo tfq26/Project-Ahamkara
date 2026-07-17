@@ -17,7 +17,7 @@ try:
     import bpy
     from mathutils import Matrix, Vector
 except ImportError:
-    raise RuntimeError("build_level_meshes.py must be run inside Blender")
+    raise RuntimeError("build_level_meshes.py must be run inside Blender") from None
 
 
 def _box_mesh(bm, min_x, min_z, max_x, max_z, top_y, bottom_y=0.0):

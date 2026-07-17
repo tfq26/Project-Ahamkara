@@ -20,9 +20,9 @@ from pathlib import Path
 
 try:
     import bpy
-    from mathutils import Euler, Matrix, Quaternion, Vector
+    from mathutils import Euler, Quaternion, Vector
 except ImportError:
-    raise RuntimeError("build_arm_rig.py must be run inside Blender")
+    raise RuntimeError("build_arm_rig.py must be run inside Blender") from None
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -264,7 +264,7 @@ def export(out_dir: Path):
 
     # Build
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    armature, mesh = build_arm_mesh()
+    armature, _mesh = build_arm_mesh()
     if not armature.animation_data:
         armature.animation_data_create()
     make_idle(armature)

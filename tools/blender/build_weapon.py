@@ -67,7 +67,7 @@ def _transform_matrix(
 def _add_box(bm: bmesh.types.BMesh, comp: dict) -> int:
     vert_start = len(bm.verts)
     face_start = len(bm.faces)
-    result = bmesh.ops.create_cube(bm, size=2.0)
+    bmesh.ops.create_cube(bm, size=2.0)
     new_verts = bm.verts[vert_start:]
     new_faces = bm.faces[face_start:]
 
@@ -89,7 +89,7 @@ def _add_cylinder(bm: bmesh.types.BMesh, comp: dict) -> int:
     depth = comp.get("depth", 0.5)
     verts_count = comp.get("verts", 16)
 
-    result = bmesh.ops.create_cone(
+    bmesh.ops.create_cone(
         bm,
         segments=verts_count,
         radius1=radius,
@@ -118,7 +118,7 @@ def _add_cone(bm: bmesh.types.BMesh, comp: dict) -> int:
     depth = comp.get("depth", 0.2)
     verts_count = comp.get("verts", 12)
 
-    result = bmesh.ops.create_cone(
+    bmesh.ops.create_cone(
         bm,
         segments=verts_count,
         radius1=r1,
@@ -150,7 +150,7 @@ def _add_torus(bm: bmesh.types.BMesh, comp: dict) -> int:
 
     # create a circle cross-section at (major_r, 0, 0) in YZ plane, then spin
     # around Z axis
-    circle_verts_start = len(bm.verts)
+    len(bm.verts)
     bmesh.ops.create_circle(
         bm,
         segments=ring_segs,
@@ -301,10 +301,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--spec", required=True, help="Path to weapon JSON spec")
     parser.add_argument("--out_dir", default="assets/models")
     parser.add_argument("--open", action="store_true")
-    if "--" in argv:
-        cli_args = argv[argv.index("--") + 1 :]
-    else:
-        cli_args = argv[1:]
+    cli_args = argv[argv.index("--") + 1 :] if "--" in argv else argv[1:]
     return parser.parse_args(cli_args)
 
 
@@ -318,7 +315,7 @@ def main(argv: list[str]) -> int:
     spec = json.loads(spec_path.read_text())
     out_dir = Path(args.out_dir).resolve()
 
-    blend_path, gltf_path = export_weapon(spec, out_dir)
+    blend_path, _gltf_path = export_weapon(spec, out_dir)
 
     if args.open and not bpy.app.background:
         bpy.ops.wm.open_mainfile(filepath=str(blend_path))
