@@ -67,7 +67,6 @@ public:
 #endif
 
   private:
-
     static void close_socket(SocketHandle s) {
 #ifdef _WIN32
         closesocket(s);
