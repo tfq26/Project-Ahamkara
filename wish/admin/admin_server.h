@@ -6,6 +6,7 @@
 #include <unistd.h>
 #endif
 
+#include "wish/admin/metrics_collector.h"
 #include "wish/types.h"
 
 #include <chrono>
@@ -42,6 +43,7 @@ struct ServerStatus {
 class HttpAdminServer {
 public:
     using StatusProvider = std::function<ServerStatus()>;
+    using MetricsProvider = std::function<Metrics()>;
 
     HttpAdminServer() = default;
     HttpAdminServer(const HttpAdminServer&) = delete;
@@ -50,7 +52,7 @@ public:
     HttpAdminServer& operator=(HttpAdminServer&&) = delete;
     ~HttpAdminServer();
 
-    bool start(wish::u16 port, StatusProvider provider);
+    bool start(wish::u16 port, StatusProvider provider, MetricsProvider metrics_provider = {});
     void stop();
 
     [[nodiscard]] bool is_running() const;
@@ -64,8 +66,7 @@ public:
     using SocketHandle = int;
 #endif
 
-private:
-
+  private:
     static void close_socket(SocketHandle s) {
 #ifdef _WIN32
         closesocket(s);
@@ -74,13 +75,14 @@ private:
 #endif
     }
 
-    static std::string make_response(int status_code, std::string_view status_text, std::string body);
+    static std::string make_response(int status_code, std::string_view status_text, std::string content_type, std::string body);
     static std::string make_json_response(std::string body);
     static std::string make_error_response(int status_code, std::string_view status_text, std::string body);
     static std::string escape_json(std::string_view text);
     static std::string render_health(const ServerStatus& status);
     static std::string render_match_status(const ServerStatus& status);
     static std::string render_players(const ServerStatus& status);
+    static std::string render_metrics(const Metrics& metrics);
     static std::string status_code_text(int status_code);
     static std::string parse_path(std::string_view request_line);
     static std::string parse_method(std::string_view request_line);
@@ -104,6 +106,7 @@ private:
 #endif
     }
     StatusProvider status_provider_ {};
+    MetricsProvider metrics_provider_ {};
     std::thread thread_ {};
     bool running_ {false};
 };

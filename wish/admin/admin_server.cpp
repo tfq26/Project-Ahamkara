@@ -1,4 +1,5 @@
 #include "wish/admin/admin_server.h"
+#include "wish/admin/metrics_collector.h"
 #include "wish/log.h"
 
 #include <algorithm>
@@ -70,13 +71,14 @@ HttpAdminServer::~HttpAdminServer() {
     stop();
 }
 
-bool HttpAdminServer::start(wish::u16 port, StatusProvider provider) {
+bool HttpAdminServer::start(wish::u16 port, StatusProvider provider, MetricsProvider metrics_provider) {
     if (running_) {
         return true;
     }
 
     port_ = port;
     status_provider_ = std::move(provider);
+    metrics_provider_ = std::move(metrics_provider);
 
     listen_fd_ = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (!socket_is_valid(listen_fd_)) {
@@ -222,20 +224,26 @@ void HttpAdminServer::handle_client(int client_fd) const {
         body = render_match_status(status);
     } else if (path == "/players") {
         body = render_players(status);
+    } else if (path == "/metrics") {
+        Metrics metrics = metrics_provider_ ? metrics_provider_() : Metrics {};
+        body = render_metrics(metrics);
+        const std::string response = make_response(code, text, "text/plain; version=0.0.4", std::move(body));
+        (void)write_all(client_fd, response);
+        return;
     } else {
         code = 404;
         text = "Not Found";
         body = "{\"error\":\"unknown endpoint\"}";
     }
 
-    const std::string response = make_response(code, text, std::move(body));
+    const std::string response = make_response(code, text, "application/json", std::move(body));
     (void)write_all(client_fd, response);
-}
+} // NOLINT
 
-std::string HttpAdminServer::make_response(int status_code, std::string_view status_text, std::string body) {
+std::string HttpAdminServer::make_response(int status_code, std::string_view status_text, std::string content_type, std::string body) {
     std::ostringstream stream;
     stream << "HTTP/1.1 " << status_code << ' ' << status_text << "\r\n";
-    stream << "Content-Type: application/json\r\n";
+    stream << "Content-Type: " << content_type << "\r\n";
     stream << "Content-Length: " << body.size() << "\r\n";
     stream << "Connection: close\r\n";
     stream << "Cache-Control: no-store\r\n";
@@ -245,11 +253,11 @@ std::string HttpAdminServer::make_response(int status_code, std::string_view sta
 }
 
 std::string HttpAdminServer::make_json_response(std::string body) {
-    return make_response(200, "OK", std::move(body));
+    return make_response(200, "OK", "application/json", std::move(body));
 }
 
 std::string HttpAdminServer::make_error_response(int status_code, std::string_view status_text, std::string body) {
-    return make_response(status_code, status_text, std::move(body));
+    return make_response(status_code, status_text, "application/json", std::move(body));
 }
 
 std::string HttpAdminServer::escape_json(std::string_view text) {
@@ -310,6 +318,12 @@ std::string HttpAdminServer::render_match_status(const ServerStatus& status) {
     }
     stream << "}}";
     return stream.str();
+}
+
+std::string HttpAdminServer::render_metrics(const Metrics& metrics) {
+    MetricsCollector collector;
+    collector.record(metrics);
+    return collector.render_prometheus();
 }
 
 std::string HttpAdminServer::render_players(const ServerStatus& status) {
