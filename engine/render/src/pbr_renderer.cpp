@@ -7,7 +7,6 @@
 #include <cmath>
 #include <cstring>
 
-
 #define AE_LOG_CATEGORY "Render"
 
 namespace ae::render {

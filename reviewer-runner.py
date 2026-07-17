@@ -20,9 +20,9 @@ import re
 import subprocess
 import sys
 import time
-import urllib.request
 import urllib.error
-from datetime import datetime, timezone
+import urllib.request
+from datetime import UTC, datetime
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -43,7 +43,9 @@ DOCKER_WORKSPACE = "/workspace"
 # Gemini reviewer config
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+GEMINI_API_URL = (
+    f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+)
 
 # GitHub token (read from env — used by api_get/api_post)
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN", "")
@@ -98,10 +100,13 @@ def gh(*args: str) -> str:
 def api_get(path: str) -> dict | list:
     """GET from the GitHub REST API."""
     url = f"https://api.github.com/repos/{REPO}/{path.lstrip('/')}"
-    req = urllib.request.Request(url, headers={
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json",
-    })
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Authorization": f"Bearer {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github.v3+json",
+        },
+    )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read().decode())
@@ -114,11 +119,15 @@ def api_post(path: str, data: dict) -> dict | None:
     """POST to the GitHub REST API."""
     url = f"https://api.github.com/repos/{REPO}/{path.lstrip('/')}"
     body = json.dumps(data).encode()
-    req = urllib.request.Request(url, data=body, headers={
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json",
-        "Content-Type": "application/json",
-    })
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Authorization": f"Bearer {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github.v3+json",
+            "Content-Type": "application/json",
+        },
+    )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read().decode())
@@ -131,11 +140,15 @@ def api_patch(path: str, data: dict) -> dict | None:
     """PATCH to the GitHub REST API."""
     url = f"https://api.github.com/repos/{REPO}/{path.lstrip('/')}"
     body = json.dumps(data).encode()
-    req = urllib.request.Request(url, data=body, headers={
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json",
-        "Content-Type": "application/json",
-    })
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Authorization": f"Bearer {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github.v3+json",
+            "Content-Type": "application/json",
+        },
+    )
     req.method = "PATCH"
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -264,17 +277,25 @@ def open_task_issues() -> list[dict]:
 def docker_run(worktree_path: str, cmd: str, timeout: int = 300) -> tuple[bool, str, str]:
     """Run a command inside the ahamkara-build Docker container."""
     docker_cmd = [
-        "docker", "run", "--rm",
-        "-v", f"{worktree_path}:{DOCKER_WORKSPACE}",
-        "--user", f"{os.getuid()}:{os.getgid()}",
-        "-w", DOCKER_WORKSPACE,
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        f"{worktree_path}:{DOCKER_WORKSPACE}",
+        "--user",
+        f"{os.getuid()}:{os.getgid()}",
+        "-w",
+        DOCKER_WORKSPACE,
         DOCKER_IMAGE,
-        "bash", "-c", cmd,
+        "bash",
+        "-c",
+        cmd,
     ]
     try:
         result = subprocess.run(
             docker_cmd,
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
             timeout=timeout,
         )
         ok = result.returncode == 0
@@ -312,8 +333,8 @@ def build_review_prompt(issue: dict, build_log: str, test_log: str) -> str:
     """Build a prompt for Gemini to review build/test failures."""
     return f"""You are a C++ game engine code reviewer. Review the build and test output below.
 
-Issue: #{issue['number']} - {issue['title']}
-{issue.get('body', '')[:1500]}
+Issue: #{issue["number"]} - {issue["title"]}
+{issue.get("body", "")[:1500]}
 
 BUILD LOG:
 {build_log[:3000] if build_log else "(none)"}
@@ -346,12 +367,12 @@ def review_with_gemini(issue: dict, build_log: str, test_log: str) -> str | None
 # ---------------------------------------------------------------------------
 def checkout_branch(branch: str) -> bool:
     """Fetch and checkout a remote branch in the local clone."""
-    ok, out, err = run_cmd(f"git fetch origin {branch}:{branch}", str(AHAMKARA_CLONE))
+    ok, _out, err = run_cmd(f"git fetch origin {branch}:{branch}", str(AHAMKARA_CLONE))
     if not ok:
         log.warning("Failed to fetch branch %s: %s", branch, err[:200])
         return False
 
-    ok, out, err = run_cmd(f"git checkout {branch}", str(AHAMKARA_CLONE))
+    ok, _out, err = run_cmd(f"git checkout {branch}", str(AHAMKARA_CLONE))
     if not ok:
         log.warning("Failed to checkout branch %s: %s", branch, err[:200])
         return False
@@ -362,8 +383,12 @@ def run_cmd(cmd: str, cwd: str | None = None, timeout: int = 120) -> tuple[bool,
     """Run a shell command."""
     try:
         result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True,
-            timeout=timeout, cwd=cwd,
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=cwd,
         )
         return result.returncode == 0, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
@@ -392,7 +417,7 @@ def process_issue(issue: dict) -> None:
         log.info("Attempt %d/%d", attempt, MAX_ATTEMPTS)
 
         # 1. Fetch the branch from origin
-        ok, out, err = run_cmd(f"git fetch origin {branch}:{branch}", str(AHAMKARA_CLONE))
+        ok, _out, err = run_cmd(f"git fetch origin {branch}:{branch}", str(AHAMKARA_CLONE))
         if not ok:
             msg = f"Failed to fetch branch `{branch}`. Is the local agent done pushing?"
             log.warning(msg)
@@ -400,7 +425,7 @@ def process_issue(issue: dict) -> None:
             return
 
         # 2. Checkout the branch
-        ok, out, err = run_cmd(f"git checkout {branch}", str(AHAMKARA_CLONE))
+        ok, _out, err = run_cmd(f"git checkout {branch}", str(AHAMKARA_CLONE))
         if not ok:
             log.warning("Failed to checkout %s: %s", branch, err[:200])
             return
@@ -416,7 +441,9 @@ def process_issue(issue: dict) -> None:
             # Gemini review
             review = review_with_gemini(issue, build_log, "")
             if review:
-                review_text = f"{MARKER_GEMINI_REVIEW}\n\n**Build failure — attempt {attempt}/{MAX_ATTEMPTS}**\n\n{review}"
+                review_text = (
+                    f"{MARKER_GEMINI_REVIEW}\n\n**Build failure — attempt {attempt}/{MAX_ATTEMPTS}**\n\n{review}"
+                )
                 comment_on_issue(num, review_text)
 
                 # Check if Gemini says it's a PASS
@@ -448,7 +475,9 @@ def process_issue(issue: dict) -> None:
 
             review = review_with_gemini(issue, "", test_log)
             if review:
-                review_text = f"{MARKER_GEMINI_REVIEW}\n\n**Test failure — attempt {attempt}/{MAX_ATTEMPTS}**\n\n{review}"
+                review_text = (
+                    f"{MARKER_GEMINI_REVIEW}\n\n**Test failure — attempt {attempt}/{MAX_ATTEMPTS}**\n\n{review}"
+                )
                 comment_on_issue(num, review_text)
 
                 if "REVIEW: PASS" in review.upper():
@@ -477,7 +506,7 @@ def process_issue(issue: dict) -> None:
             priority="info",
         )
 
-        comment_on_issue(num, f"✅ **Build and tests passed!** Creating PR...")
+        comment_on_issue(num, "✅ **Build and tests passed!** Creating PR...")
 
         # Check if PR already exists
         existing_pr = gh("pr", "list", "--head", branch, "--json", "number", "--jq", ".[0].number")
@@ -485,11 +514,18 @@ def process_issue(issue: dict) -> None:
             pr_url = f"https://github.com/{REPO}/pull/{existing_pr}"
             log.info("PR already exists: %s", pr_url)
         else:
-            pr_url = gh("pr", "create",
-                        "--title", f"[Task #{num}] {title}",
-                        "--body", f"Closes #{num}\n\nAutomated implementation by the Ahamkara pipeline.\n\nCo-Authored-By: Oz <oz-agent@warp.dev>",
-                        "--base", "main",
-                        "--head", branch)
+            pr_url = gh(
+                "pr",
+                "create",
+                "--title",
+                f"[Task #{num}] {title}",
+                "--body",
+                f"Closes #{num}\n\nAutomated implementation by the Ahamkara pipeline.\n\nCo-Authored-By: Oz <oz-agent@warp.dev>",
+                "--base",
+                "main",
+                "--head",
+                branch,
+            )
             log.info("PR created: %s", pr_url)
 
         # Close the issue
@@ -573,7 +609,7 @@ def main() -> None:
 
                 if "active" not in tracker:
                     tracker["active"] = {}
-                tracker["active"][str(num)] = {"started": datetime.now(timezone.utc).isoformat()}
+                tracker["active"][str(num)] = {"started": datetime.now(UTC).isoformat()}
                 save_processed(tracker)
 
                 process_issue(issue)

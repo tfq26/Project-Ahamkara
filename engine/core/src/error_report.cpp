@@ -4,7 +4,6 @@
 #include "ae/core/log.h"
 #include "ae/core/telemetry.h"
 
-
 #include <cctype>
 #include <mutex>
 #include <sstream>
@@ -45,7 +44,7 @@ std::string redact_sensitive(std::string_view value) {
             ++dots;
         } else if (std::isdigit(static_cast<unsigned char>(c))) {
             has_digit = true;
-        } else if (c != ':' ) {
+        } else if (c != ':') {
             has_digit = has_digit;
         }
     }
