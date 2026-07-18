@@ -231,8 +231,8 @@ PbrDrawCall make_level_draw_call(const LevelRenderInstance& instance, GpuMesh& m
 }
 
 LodLevel resolve_instance_lod(const LevelRenderInstance& instance,
-                               const float* camera_position,
-                               const LodSettings& settings) {
+                              const float* camera_position,
+                              const LodSettings& settings) {
     // Compute squared distance from camera to instance center.
     const float dx = instance.model_matrix[12] - camera_position[0];
     const float dy = instance.model_matrix[13] - camera_position[1];
@@ -280,7 +280,7 @@ std::uint64_t compute_material_key(const LevelRenderInstance& instance) {
         std::uint32_t u;
         std::memcpy(&u, &f, sizeof(u));
         h ^= u;
-        h = (h << 5) | (h >> 27);  // rotate
+        h = (h << 5) | (h >> 27); // rotate
     };
     hash_float(instance.albedo[0]);
     hash_float(instance.albedo[1]);
@@ -293,8 +293,8 @@ std::uint64_t compute_material_key(const LevelRenderInstance& instance) {
 }
 
 bool use_impostor(const LevelRenderInstance& instance,
-                   const float* camera_position,
-                   const LodSettings& settings) {
+                  const float* camera_position,
+                  const LodSettings& settings) {
     // Compute squared distance from camera to instance center.
     const float dx = instance.model_matrix[12] - camera_position[0];
     const float dy = instance.model_matrix[13] - camera_position[1];
@@ -370,8 +370,8 @@ bool sorted_by_material(const std::vector<LodBatchedCall>& calls) {
     std::size_t group_start = 0;
     for (std::size_t i = 1; i <= calls.size(); ++i) {
         const bool same_mesh = (i < calls.size()) &&
-            calls[i].mesh->vbo_positions.id == calls[group_start].mesh->vbo_positions.id &&
-            calls[i].mesh->ibo_indices.id == calls[group_start].mesh->ibo_indices.id;
+                               calls[i].mesh->vbo_positions.id == calls[group_start].mesh->vbo_positions.id &&
+                               calls[i].mesh->ibo_indices.id == calls[group_start].mesh->ibo_indices.id;
 
         if (!same_mesh) {
             // Check that all instances in [group_start, i) have the same material.
@@ -396,7 +396,7 @@ float batch_efficiency(const std::vector<LodBatchedCall>& calls) {
 
     // Count the number of runs (consecutive groups of the same mesh).
     int run_count = 1;
-    int batched_runs = 0;  // runs with length > 1
+    int batched_runs = 0; // runs with length > 1
     int current_run_length = 1;
 
     for (std::size_t i = 1; i < calls.size(); ++i) {

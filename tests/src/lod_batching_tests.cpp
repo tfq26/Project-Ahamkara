@@ -349,7 +349,7 @@ int test_impostor_not_used_when_lod2_exists() {
     ae::render::LevelRenderInstance instance;
     instance.lod_models[0].meshes.resize(1);
     instance.lod_models[1].meshes.resize(1);
-    instance.lod_models[2].meshes.resize(1);  // LOD2 exists
+    instance.lod_models[2].meshes.resize(1); // LOD2 exists
     instance.model_matrix[12] = 0.0F;
     instance.model_matrix[13] = 0.0F;
     instance.model_matrix[14] = 0.0F;
@@ -376,13 +376,17 @@ int test_impostor_batched_calls_excluded() {
     a.lod_models[2].meshes.resize(1);
     // b.lod_models[2] stays empty
 
-    a.model_matrix[12] = 0.0F; a.model_matrix[13] = 0.0F; a.model_matrix[14] = 0.0F;
-    b.model_matrix[12] = 0.0F; b.model_matrix[13] = 0.0F; b.model_matrix[14] = 0.0F;
+    a.model_matrix[12] = 0.0F;
+    a.model_matrix[13] = 0.0F;
+    a.model_matrix[14] = 0.0F;
+    b.model_matrix[12] = 0.0F;
+    b.model_matrix[13] = 0.0F;
+    b.model_matrix[14] = 0.0F;
 
     a.lod_models[0].meshes[0].vbo_positions = {1};
-    a.lod_models[0].meshes[0].ibo_indices  = {10};
+    a.lod_models[0].meshes[0].ibo_indices = {10};
     b.lod_models[0].meshes[0].vbo_positions = {2};
-    b.lod_models[0].meshes[0].ibo_indices  = {20};
+    b.lod_models[0].meshes[0].ibo_indices = {20};
 
     std::vector<ae::render::LevelRenderInstance> instances;
     instances.push_back(std::move(a));
@@ -423,25 +427,40 @@ int test_material_aware_sorting() {
 
     // Mesh M1: (vbo=1, ibo=10); Mesh M2: (vbo=2, ibo=20)
     a.lod_models[0].meshes[0].vbo_positions = {1};
-    a.lod_models[0].meshes[0].ibo_indices  = {10};
+    a.lod_models[0].meshes[0].ibo_indices = {10};
     b.lod_models[0].meshes[0].vbo_positions = {1};
-    b.lod_models[0].meshes[0].ibo_indices  = {10};
+    b.lod_models[0].meshes[0].ibo_indices = {10};
     c.lod_models[0].meshes[0].vbo_positions = {2};
-    c.lod_models[0].meshes[0].ibo_indices  = {20};
+    c.lod_models[0].meshes[0].ibo_indices = {20};
 
     // Material A: (albedo=1,0,0, metallic=0, roughness=1, no textures)
-    a.albedo[0] = 1.0F; a.albedo[1] = 0.0F; a.albedo[2] = 0.0F;
-    a.metallic = 0.0F; a.roughness = 1.0F;
+    a.albedo[0] = 1.0F;
+    a.albedo[1] = 0.0F;
+    a.albedo[2] = 0.0F;
+    a.metallic = 0.0F;
+    a.roughness = 1.0F;
     // Material B: (albedo=0,1,0, metallic=0.5, roughness=0.5, no textures)
-    b.albedo[0] = 0.0F; b.albedo[1] = 1.0F; b.albedo[2] = 0.0F;
-    b.metallic = 0.5F; b.roughness = 0.5F;
+    b.albedo[0] = 0.0F;
+    b.albedo[1] = 1.0F;
+    b.albedo[2] = 0.0F;
+    b.metallic = 0.5F;
+    b.roughness = 0.5F;
     // Material A again for c
-    c.albedo[0] = 1.0F; c.albedo[1] = 0.0F; c.albedo[2] = 0.0F;
-    c.metallic = 0.0F; c.roughness = 1.0F;
+    c.albedo[0] = 1.0F;
+    c.albedo[1] = 0.0F;
+    c.albedo[2] = 0.0F;
+    c.metallic = 0.0F;
+    c.roughness = 1.0F;
 
-    a.model_matrix[12] = 0.0F; a.model_matrix[13] = 0.0F; a.model_matrix[14] = 0.0F;
-    b.model_matrix[12] = 0.0F; b.model_matrix[13] = 0.0F; b.model_matrix[14] = 0.0F;
-    c.model_matrix[12] = 0.0F; c.model_matrix[13] = 0.0F; c.model_matrix[14] = 0.0F;
+    a.model_matrix[12] = 0.0F;
+    a.model_matrix[13] = 0.0F;
+    a.model_matrix[14] = 0.0F;
+    b.model_matrix[12] = 0.0F;
+    b.model_matrix[13] = 0.0F;
+    b.model_matrix[14] = 0.0F;
+    c.model_matrix[12] = 0.0F;
+    c.model_matrix[13] = 0.0F;
+    c.model_matrix[14] = 0.0F;
 
     std::vector<ae::render::LevelRenderInstance> instances;
     instances.push_back(std::move(a));
@@ -483,15 +502,20 @@ int test_sorted_by_material_false_when_interleaved() {
     b.lod_models[0].meshes.resize(1);
 
     a.lod_models[0].meshes[0].vbo_positions = {1};
-    a.lod_models[0].meshes[0].ibo_indices  = {10};
+    a.lod_models[0].meshes[0].ibo_indices = {10};
     b.lod_models[0].meshes[0].vbo_positions = {1};
-    b.lod_models[0].meshes[0].ibo_indices  = {10};
+    b.lod_models[0].meshes[0].ibo_indices = {10};
 
     // Different materials
-    a.albedo[0] = 1.0F; b.albedo[0] = 0.0F;
+    a.albedo[0] = 1.0F;
+    b.albedo[0] = 0.0F;
 
-    a.model_matrix[12] = 0.0F; a.model_matrix[13] = 0.0F; a.model_matrix[14] = 0.0F;
-    b.model_matrix[12] = 0.0F; b.model_matrix[13] = 0.0F; b.model_matrix[14] = 0.0F;
+    a.model_matrix[12] = 0.0F;
+    a.model_matrix[13] = 0.0F;
+    a.model_matrix[14] = 0.0F;
+    b.model_matrix[12] = 0.0F;
+    b.model_matrix[13] = 0.0F;
+    b.model_matrix[14] = 0.0F;
 
     // Manually build a sorted list that IS sorted by mesh but NOT by material
     ae::render::LodBatchedCall call_a = {&a.lod_models[0].meshes[0], &a};
@@ -514,7 +538,7 @@ int test_sorted_by_material_single_entry() {
     ae::render::LevelRenderInstance a;
     a.lod_models[0].meshes.resize(1);
     a.lod_models[0].meshes[0].vbo_positions = {1};
-    a.lod_models[0].meshes[0].ibo_indices  = {10};
+    a.lod_models[0].meshes[0].ibo_indices = {10};
 
     ae::render::LodBatchedCall call = {&a.lod_models[0].meshes[0], &a};
     std::vector<ae::render::LodBatchedCall> calls = {call};
@@ -545,15 +569,21 @@ int test_batch_efficiency_perfect() {
     c.lod_models[0].meshes.resize(1);
 
     a.lod_models[0].meshes[0].vbo_positions = {1};
-    a.lod_models[0].meshes[0].ibo_indices  = {10};
+    a.lod_models[0].meshes[0].ibo_indices = {10};
     b.lod_models[0].meshes[0].vbo_positions = {1};
-    b.lod_models[0].meshes[0].ibo_indices  = {10};
+    b.lod_models[0].meshes[0].ibo_indices = {10};
     c.lod_models[0].meshes[0].vbo_positions = {2};
-    c.lod_models[0].meshes[0].ibo_indices  = {20};
+    c.lod_models[0].meshes[0].ibo_indices = {20};
 
-    a.model_matrix[12] = 0.0F; a.model_matrix[13] = 0.0F; a.model_matrix[14] = 0.0F;
-    b.model_matrix[12] = 0.0F; b.model_matrix[13] = 0.0F; b.model_matrix[14] = 0.0F;
-    c.model_matrix[12] = 0.0F; c.model_matrix[13] = 0.0F; c.model_matrix[14] = 0.0F;
+    a.model_matrix[12] = 0.0F;
+    a.model_matrix[13] = 0.0F;
+    a.model_matrix[14] = 0.0F;
+    b.model_matrix[12] = 0.0F;
+    b.model_matrix[13] = 0.0F;
+    b.model_matrix[14] = 0.0F;
+    c.model_matrix[12] = 0.0F;
+    c.model_matrix[13] = 0.0F;
+    c.model_matrix[14] = 0.0F;
 
     std::vector<ae::render::LevelRenderInstance> instances;
     instances.push_back(std::move(a));
@@ -582,12 +612,16 @@ int test_batch_efficiency_no_batching() {
     b.lod_models[0].meshes.resize(1);
 
     a.lod_models[0].meshes[0].vbo_positions = {1};
-    a.lod_models[0].meshes[0].ibo_indices  = {10};
+    a.lod_models[0].meshes[0].ibo_indices = {10};
     b.lod_models[0].meshes[0].vbo_positions = {2};
-    b.lod_models[0].meshes[0].ibo_indices  = {20};
+    b.lod_models[0].meshes[0].ibo_indices = {20};
 
-    a.model_matrix[12] = 0.0F; a.model_matrix[13] = 0.0F; a.model_matrix[14] = 0.0F;
-    b.model_matrix[12] = 0.0F; b.model_matrix[13] = 0.0F; b.model_matrix[14] = 0.0F;
+    a.model_matrix[12] = 0.0F;
+    a.model_matrix[13] = 0.0F;
+    a.model_matrix[14] = 0.0F;
+    b.model_matrix[12] = 0.0F;
+    b.model_matrix[13] = 0.0F;
+    b.model_matrix[14] = 0.0F;
 
     std::vector<ae::render::LevelRenderInstance> instances;
     instances.push_back(std::move(a));
@@ -654,15 +688,21 @@ int test_missing_mesh_handles_in_lod() {
 int test_compute_material_key_consistency() {
     // Identical instances should produce identical material keys.
     ae::render::LevelRenderInstance a, b;
-    a.albedo[0] = 0.2F; a.albedo[1] = 0.4F; a.albedo[2] = 0.6F;
-    a.metallic = 0.3F; a.roughness = 0.7F;
+    a.albedo[0] = 0.2F;
+    a.albedo[1] = 0.4F;
+    a.albedo[2] = 0.6F;
+    a.metallic = 0.3F;
+    a.roughness = 0.7F;
     a.albedo_map = {42};
     a.normal_map = {43};
     a.orm_map = {44};
     a.emissive_map = {45};
 
-    b.albedo[0] = 0.2F; b.albedo[1] = 0.4F; b.albedo[2] = 0.6F;
-    b.metallic = 0.3F; b.roughness = 0.7F;
+    b.albedo[0] = 0.2F;
+    b.albedo[1] = 0.4F;
+    b.albedo[2] = 0.6F;
+    b.metallic = 0.3F;
+    b.roughness = 0.7F;
     b.albedo_map = {42};
     b.normal_map = {43};
     b.orm_map = {44};
@@ -692,30 +732,46 @@ int main() {
     if (int rc = test_batch_lod_selection(); rc != 0) return rc;
 
     // Configurable LOD distances
-    if (int rc = test_lod_configurable_distances(); rc != 0) return rc;
-    if (int rc = test_lod_wide_range_same_lod(); rc != 0) return rc;
-    if (int rc = test_lod_zero_distance(); rc != 0) return rc;
+    if (int rc = test_lod_configurable_distances(); rc != 0)
+        return rc;
+    if (int rc = test_lod_wide_range_same_lod(); rc != 0)
+        return rc;
+    if (int rc = test_lod_zero_distance(); rc != 0)
+        return rc;
 
     // Impostor selection
-    if (int rc = test_impostor_beyond_billboard_distance(); rc != 0) return rc;
-    if (int rc = test_impostor_not_used_when_lod2_exists(); rc != 0) return rc;
-    if (int rc = test_impostor_batched_calls_excluded(); rc != 0) return rc;
+    if (int rc = test_impostor_beyond_billboard_distance(); rc != 0)
+        return rc;
+    if (int rc = test_impostor_not_used_when_lod2_exists(); rc != 0)
+        return rc;
+    if (int rc = test_impostor_batched_calls_excluded(); rc != 0)
+        return rc;
 
     // Material-aware sorting
-    if (int rc = test_material_aware_sorting(); rc != 0) return rc;
-    if (int rc = test_sorted_by_material_false_when_interleaved(); rc != 0) return rc;
-    if (int rc = test_sorted_by_material_single_entry(); rc != 0) return rc;
-    if (int rc = test_sorted_by_material_empty(); rc != 0) return rc;
+    if (int rc = test_material_aware_sorting(); rc != 0)
+        return rc;
+    if (int rc = test_sorted_by_material_false_when_interleaved(); rc != 0)
+        return rc;
+    if (int rc = test_sorted_by_material_single_entry(); rc != 0)
+        return rc;
+    if (int rc = test_sorted_by_material_empty(); rc != 0)
+        return rc;
 
     // Batch efficiency
-    if (int rc = test_batch_efficiency_perfect(); rc != 0) return rc;
-    if (int rc = test_batch_efficiency_no_batching(); rc != 0) return rc;
-    if (int rc = test_batch_efficiency_empty(); rc != 0) return rc;
+    if (int rc = test_batch_efficiency_perfect(); rc != 0)
+        return rc;
+    if (int rc = test_batch_efficiency_no_batching(); rc != 0)
+        return rc;
+    if (int rc = test_batch_efficiency_empty(); rc != 0)
+        return rc;
 
     // Empty / missing instances
-    if (int rc = test_empty_instances_list(); rc != 0) return rc;
-    if (int rc = test_missing_mesh_handles_in_lod(); rc != 0) return rc;
-    if (int rc = test_compute_material_key_consistency(); rc != 0) return rc;
+    if (int rc = test_empty_instances_list(); rc != 0)
+        return rc;
+    if (int rc = test_missing_mesh_handles_in_lod(); rc != 0)
+        return rc;
+    if (int rc = test_compute_material_key_consistency(); rc != 0)
+        return rc;
 
     std::cout << "lod_batching_tests passed\n";
     return 0;

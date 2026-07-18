@@ -104,8 +104,8 @@ void compose_model_matrix(const LevelMeshInstance& instance, float out_matrix[16
 // higher-detail level if the selected LOD has no meshes.  Returns the resolved
 // LodLevel that was chosen.
 [[nodiscard]] LodLevel resolve_instance_lod(const LevelRenderInstance& instance,
-                                             const float* camera_position,
-                                             const LodSettings& settings = LodSettings{});
+                                            const float* camera_position,
+                                            const LodSettings& settings = LodSettings {});
 
 // Compute a 64-bit material identity key from a LevelRenderInstance's PBR
 // params.  Used for material-aware secondary sorting.
@@ -118,7 +118,7 @@ void compose_model_matrix(const LevelMeshInstance& instance, float out_matrix[16
 [[nodiscard]] std::vector<LodBatchedCall> batch_level_draw_calls(
     const std::vector<LevelRenderInstance>& instances,
     const float* camera_position,
-    const LodSettings& settings = LodSettings{});
+    const LodSettings& settings = LodSettings {});
 
 // Returns true if, in the given sorted batch list, every group of consecutive
 // calls sharing the same mesh also shares the same material identity.  This
@@ -133,8 +133,8 @@ void compose_model_matrix(const LevelMeshInstance& instance, float out_matrix[16
 // Determine whether an instance should be rendered as an impostor at the given
 // camera position using the provided LOD settings.
 [[nodiscard]] bool use_impostor(const LevelRenderInstance& instance,
-                                 const float* camera_position,
-                                 const LodSettings& settings = LodSettings{});
+                                const float* camera_position,
+                                const LodSettings& settings = LodSettings {});
 
 // ---------------------------------------------------------------------------
 // LevelRenderScene
@@ -171,7 +171,7 @@ public:
     // Call between begin_frame and end_frame on the renderer.
     // Accepts optional LodSettings for configurable LOD transition distances.
     void submit(PbrRenderer& pbr, const float* camera_position,
-                const LodSettings& settings = LodSettings{}) const;
+                const LodSettings& settings = LodSettings {}) const;
 
     [[nodiscard]] bool empty() const { return instances_.empty(); }
     [[nodiscard]] std::size_t instance_count() const { return instances_.size(); }
