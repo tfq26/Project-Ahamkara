@@ -1,7 +1,5 @@
 #pragma once
 
-#include "ae/network/packet_envelope.h"
-#include "ae/network/sequence_tracker.h"
 #include "ae/network/server_history.h"
 #include "ahamkara/game/deathmatch_mode.h"
 #include "ahamkara/game/gameplay_types.h"
@@ -87,9 +85,9 @@ inline bool write_deathmatch_snapshot(detail::ByteWriter& writer, const Deathmat
 
 /// Per-player session inside a deathmatch activity.
 struct PlayerSlot {
-    ae::NetAddress address {};
+    wish::NetAddress address {};
     wish::session::SessionId session_id {};
-    ae::SequenceTracker sequence_tracker {};
+    wish::SequenceTracker sequence_tracker {};
     ae::u32 last_processed_input_sequence {0};
     ae::u32 last_received_input_sequence {0};
     bool connected {false};
@@ -134,7 +132,7 @@ public:
     void tick(float dt) override;
 
     void process_input(wish::session::SessionId sid,
-                       const ae::PacketEnvelope& envelope,
+                       const wish::PacketEnvelope& envelope,
                        ae::u32 command_sequence) override;
 
     /// Advance the authoritative simulation with a full input command.
@@ -180,7 +178,7 @@ public:
 
 private:
     PlayerSlot* find_slot(wish::session::SessionId sid);
-    PlayerSlot* find_slot_by_address(const ae::NetAddress& addr);
+    PlayerSlot* find_slot_by_address(const wish::NetAddress& addr);
     void build_snapshot_for_slot(PlayerSlot& slot);
     void apply_anti_cheat(PlayerSlot& slot, const PlayerInputCommand& cmd);
 

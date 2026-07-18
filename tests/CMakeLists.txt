@@ -155,10 +155,14 @@ add_executable(ahamkara_session_tests
 target_compile_features(ahamkara_session_tests PRIVATE cxx_std_20)
 target_include_directories(ahamkara_session_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_include_directories(ahamkara_session_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../game/include)
+target_include_directories(ahamkara_session_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../wish/include)
+target_include_directories(ahamkara_session_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include)
+target_include_directories(ahamkara_session_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../engine/network/include)
 
 target_link_libraries(ahamkara_session_tests
     PRIVATE
         ae_network
+        wish_engine
 )
 
 add_test(NAME ahamkara_session_tests COMMAND ahamkara_session_tests)

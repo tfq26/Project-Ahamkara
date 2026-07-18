@@ -2,6 +2,7 @@
 
 #include "ae/core/packet_envelope.h"
 #include "ae/core/types.h"
+#include "wish/types.h"
 
 #include <cmath>
 #include <type_traits>
@@ -214,6 +215,6 @@ static_assert(std::is_trivially_copyable_v<PlayerInputCommand>);
 static_assert(std::is_trivially_copyable_v<ReplicatedPlayerState>);
 static_assert(std::is_trivially_copyable_v<ServerSnapshot>);
 
-using PacketEnvelope = ae::PacketEnvelope;
+using PacketEnvelope = wish::PacketEnvelope;
 
 }  // namespace ahamkara::game

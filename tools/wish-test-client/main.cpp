@@ -48,7 +48,7 @@ struct ClientSlot {
     std::string label;
     ae::UdpSocket socket;
     std::unique_ptr<ae::NetworkSimulator> simulator;
-    ae::SequenceTracker sequence_tracker;
+    wish::SequenceTracker sequence_tracker;
     ae::u32 next_client_tick {0};
     bool handshake_done {false};
     int handshake_ticks {0};

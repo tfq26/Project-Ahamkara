@@ -61,7 +61,7 @@ void HordeActivity::tick(float dt) {
 }
 
 void HordeActivity::process_input(wish::session::SessionId sid,
-                                   const ae::PacketEnvelope& envelope,
+                                   const wish::PacketEnvelope& envelope,
                                    ae::u32 command_sequence) {
     Slot* slot = find_slot(sid);
     if (!slot) return;
