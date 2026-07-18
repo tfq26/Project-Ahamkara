@@ -3,13 +3,11 @@
 
 #include "ae/render/compiled_mesh.h"
 #include "ae/render/compiled_texture.h"
-#include "ae/core/log.h"
-#include "ae/render/frustum.h"
 #include "ae/render/pbr_renderer.h"
-#include "ae/core/log.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <filesystem>
 
 
@@ -233,14 +231,27 @@ PbrDrawCall make_level_draw_call(const LevelRenderInstance& instance, GpuMesh& m
 }
 
 LodLevel resolve_instance_lod(const LevelRenderInstance& instance,
-                               const float* camera_position) {
+                              const float* camera_position,
+                              const LodSettings& settings) {
     // Compute squared distance from camera to instance center.
     const float dx = instance.model_matrix[12] - camera_position[0];
     const float dy = instance.model_matrix[13] - camera_position[1];
     const float dz = instance.model_matrix[14] - camera_position[2];
     const float dist_sq = dx * dx + dy * dy + dz * dz;
 
-    LodLevel lod = select_lod(dist_sq);
+    // Convert linear configurable distances to squared thresholds.
+    // distances[0] = LOD0->LOD1, distances[1] = LOD1->LOD2
+    const float lod1_threshold_sq = settings.distances[0] * settings.distances[0];
+    const float lod2_threshold_sq = settings.distances[1] * settings.distances[1];
+
+    LodLevel lod;
+    if (dist_sq > lod2_threshold_sq) {
+        lod = LodLevel::Low;
+    } else if (dist_sq > lod1_threshold_sq) {
+        lod = LodLevel::Medium;
+    } else {
+        lod = LodLevel::High;
+    }
 
     // Fall back to a higher-detail LOD if the selected model has no meshes.
     // LOD0 is always expected to have meshes (or the instance wouldn't exist).
@@ -251,34 +262,93 @@ LodLevel resolve_instance_lod(const LevelRenderInstance& instance,
     return lod;
 }
 
+std::uint64_t compute_material_key(const LevelRenderInstance& instance) {
+    // Build a 64-bit material identity key from texture handles and scalar
+    // PBR params.  Texture handles occupy the upper 32 bits (8 bits each for
+    // albedo, normal, orm, emissive map ids — enough for test-level identity).
+    // Scalar params (albedo, metallic, roughness) are mixed into the lower 32
+    // bits via a simple hash.
+    std::uint64_t key =
+        (static_cast<std::uint64_t>(instance.albedo_map.id) << 48) |
+        (static_cast<std::uint64_t>(instance.normal_map.id) << 32) |
+        (static_cast<std::uint64_t>(instance.orm_map.id) << 16) |
+        (static_cast<std::uint64_t>(instance.emissive_map.id) << 0);
+
+    // Mix scalar params via bitwise hash of float representations.
+    std::uint32_t h = 0;
+    auto hash_float = [&h](float f) {
+        std::uint32_t u;
+        std::memcpy(&u, &f, sizeof(u));
+        h ^= u;
+        h = (h << 5) | (h >> 27); // rotate
+    };
+    hash_float(instance.albedo[0]);
+    hash_float(instance.albedo[1]);
+    hash_float(instance.albedo[2]);
+    hash_float(instance.metallic);
+    hash_float(instance.roughness);
+
+    key ^= (static_cast<std::uint64_t>(h) << 0);
+    return key;
+}
+
+bool use_impostor(const LevelRenderInstance& instance,
+                  const float* camera_position,
+                  const LodSettings& settings) {
+    // Compute squared distance from camera to instance center.
+    const float dx = instance.model_matrix[12] - camera_position[0];
+    const float dy = instance.model_matrix[13] - camera_position[1];
+    const float dz = instance.model_matrix[14] - camera_position[2];
+    const float dist_sq = dx * dx + dy * dy + dz * dz;
+
+    const float billboard_threshold_sq = settings.billboard_distance * settings.billboard_distance;
+    // Use impostor when beyond the billboard distance AND no LOD2 mesh is
+    // available (or always if explicitly configured).
+    return dist_sq > billboard_threshold_sq &&
+           instance.lod_models[static_cast<int>(LodLevel::Low)].meshes.empty();
+}
+
 std::vector<LodBatchedCall> batch_level_draw_calls(
     const std::vector<LevelRenderInstance>& instances,
-    const float* camera_position) {
+    const float* camera_position,
+    const LodSettings& settings) {
 
     struct DrawCallSortEntry {
         const GpuMesh* mesh;
         const LevelRenderInstance* instance;
-        std::uint64_t sort_key;
+        std::uint64_t mesh_key;
+        std::uint64_t material_key;
     };
     std::vector<DrawCallSortEntry> entries;
 
     for (const auto& instance : instances) {
-        const LodLevel lod = resolve_instance_lod(instance, camera_position);
+        // Skip instances that should be rendered as impostors.
+        if (use_impostor(instance, camera_position, settings)) {
+            continue;
+        }
+
+        const LodLevel lod = resolve_instance_lod(instance, camera_position, settings);
         const GpuModel& model = instance.lod_models[static_cast<int>(lod)];
 
+        const std::uint64_t mat_key = compute_material_key(instance);
+
         for (const auto& mesh : model.meshes) {
-            // Sort key combines VBO and IBO handles so identical meshes group.
-            const std::uint64_t key =
+            // Primary sort key combines VBO and IBO handles so identical meshes group.
+            const std::uint64_t mesh_key =
                 (static_cast<std::uint64_t>(mesh.vbo_positions.id) << 32) |
                 static_cast<std::uint64_t>(mesh.ibo_indices.id);
-            entries.push_back({&mesh, &instance, key});
+            entries.push_back({&mesh, &instance, mesh_key, mat_key});
         }
     }
 
-    // Sort by mesh identity so same-mesh draw calls are consecutive.
+    // Sort by mesh identity (primary) then material identity (secondary).
+    // This ensures same-mesh draws are consecutive and grouped by material.
     std::sort(entries.begin(), entries.end(),
               [](const DrawCallSortEntry& a, const DrawCallSortEntry& b) {
-                  return a.sort_key < b.sort_key;
+                  if (a.mesh_key != b.mesh_key) {
+                      return a.mesh_key < b.mesh_key;
+                  }
+                  return a.material_key < b.material_key;
               });
 
     std::vector<LodBatchedCall> result;
@@ -289,8 +359,74 @@ std::vector<LodBatchedCall> batch_level_draw_calls(
     return result;
 }
 
-void LevelRenderScene::submit(PbrRenderer& pbr, const float* camera_position) const {
-    std::vector<LodBatchedCall> calls = batch_level_draw_calls(instances_, camera_position);
+bool sorted_by_material(const std::vector<LodBatchedCall>& calls) {
+    if (calls.size() <= 1) {
+        return true;
+    }
+
+    // Walk through the list.  Whenever we see a mesh change, that's a new
+    // group.  Within each mesh group, verify that all instances share the same
+    // material identity.
+    std::size_t group_start = 0;
+    for (std::size_t i = 1; i <= calls.size(); ++i) {
+        const bool same_mesh = (i < calls.size()) &&
+                               calls[i].mesh->vbo_positions.id == calls[group_start].mesh->vbo_positions.id &&
+                               calls[i].mesh->ibo_indices.id == calls[group_start].mesh->ibo_indices.id;
+
+        if (!same_mesh) {
+            // Check that all instances in [group_start, i) have the same material.
+            if (i - group_start > 1) {
+                const std::uint64_t ref_key = compute_material_key(*calls[group_start].instance);
+                for (std::size_t j = group_start + 1; j < i; ++j) {
+                    if (compute_material_key(*calls[j].instance) != ref_key) {
+                        return false;
+                    }
+                }
+            }
+            group_start = i;
+        }
+    }
+    return true;
+}
+
+float batch_efficiency(const std::vector<LodBatchedCall>& calls) {
+    if (calls.empty()) {
+        return 1.0F;
+    }
+
+    // Count the number of runs (consecutive groups of the same mesh).
+    int run_count = 1;
+    int batched_runs = 0; // runs with length > 1
+    int current_run_length = 1;
+
+    for (std::size_t i = 1; i < calls.size(); ++i) {
+        const bool same_mesh =
+            calls[i].mesh->vbo_positions.id == calls[i - 1].mesh->vbo_positions.id &&
+            calls[i].mesh->ibo_indices.id == calls[i - 1].mesh->ibo_indices.id;
+
+        if (same_mesh) {
+            ++current_run_length;
+        } else {
+            if (current_run_length > 1) {
+                ++batched_runs;
+            }
+            ++run_count;
+            current_run_length = 1;
+        }
+    }
+    if (current_run_length > 1) {
+        ++batched_runs;
+    }
+
+    if (run_count == 0) {
+        return 1.0F;
+    }
+    return static_cast<float>(batched_runs) / static_cast<float>(run_count);
+}
+
+void LevelRenderScene::submit(PbrRenderer& pbr, const float* camera_position,
+                              const LodSettings& settings) const {
+    std::vector<LodBatchedCall> calls = batch_level_draw_calls(instances_, camera_position, settings);
     for (const auto& call : calls) {
         PbrDrawCall draw_call = make_level_draw_call(*call.instance, *call.mesh);
         pbr.submit(draw_call);
