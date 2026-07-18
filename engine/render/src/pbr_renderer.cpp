@@ -1,6 +1,8 @@
 #include "ae/render/atmosphere_pass.h"
 #include "ae/render/color_grading.h"
 #include "ae/render/pbr_renderer.h"
+#include "ae/render/ssao_pass.h"
+#include "ae/render/temporal_aa.h"
 #include "ae/core/log.h"
 #include "ae/render/gl_platform.h"
 
@@ -55,6 +57,18 @@ struct PbrRenderer::Impl {
     FogParams fog_params_;
 
     // Ambient state
+
+    // SSAO / TAA state
+    SsaoPass ssao_pass_;
+    TemporalAA taa_;
+    bool ssao_enabled_ = false;
+    int frame_index_ = 0;
+    float jittered_proj_[16] = {};
+
+    // TAA uniform locations
+    int u_prev_view = -1, u_prev_proj = -1;
+
+    // Ambient SH coefficients (3rd order, 9 floats)
     float sh_coeffs_[kShCoeffCount] = {};
     bool use_sh_ambient_ = false;
     float ambient_sky_color_[3] = {0.5F, 0.7F, 1.0F};
@@ -185,6 +199,11 @@ struct PbrRenderer::Impl {
             uniform vec3 uProbePositions[MAX_PROBES];
             uniform float uProbeRadius[MAX_PROBES];
             uniform float uProbeIntensity[MAX_PROBES];
+            // SSAO uniforms
+            uniform sampler2D uAOTex;
+            uniform bool uHasAO;
+            // TAA / motion vector uniforms
+            uniform mat4 uPrevView, uPrevProj;
             // Color grading uniforms
             uniform float uExposure, uContrast, uSaturation, uBrightness;
             uniform float uVignetteStrength, uVignetteRadius;
@@ -299,6 +318,14 @@ struct PbrRenderer::Impl {
                     vec3 hemi_color = mix(uAmbientGroundColor, uAmbientSkyColor, hemisphere);
                     ambient = alb * uAmbientStrength * hemi_color * occlusion;
                 }
+
+                // SSAO factor — reduces ambient in occluded areas
+                float ao_factor = 1.0;
+                if (uHasAO) {
+                    ao_factor = 1.0 - texture(uAOTex, vUV).r;
+                    ao_factor = clamp(ao_factor, 0.0, 1.0);
+                }
+                ambient *= ao_factor;
 
                 // ── IBL / reflection probes ──
                 vec3 ibl_reflection = vec3(0.0);
@@ -444,6 +471,14 @@ struct PbrRenderer::Impl {
         u_aerial_fog_density = backend->get_uniform_location(pbr_shader, "uAerialFogDensity");
         u_fog_color = backend->get_uniform_location(pbr_shader, "uFogColor");
 
+        // SSAO uniforms
+        u_ao_tex = backend->get_uniform_location(pbr_shader, "uAOTex");
+        u_has_ao = backend->get_uniform_location(pbr_shader, "uHasAO");
+
+        // TAA / motion vector uniforms
+        u_prev_view = backend->get_uniform_location(pbr_shader, "uPrevView");
+        u_prev_proj = backend->get_uniform_location(pbr_shader, "uPrevProj");
+
         std::memcpy(view, identity_matrix(), 64);
         std::memcpy(proj, identity_matrix(), 64);
         return true;
@@ -465,6 +500,10 @@ struct PbrRenderer::Impl {
         std::memcpy(proj, p, 64);
         std::memcpy(cam_pos, cp, 12);
         shadow_pass = sp;
+
+        // TAA jitter — produce a jittered projection for this frame
+        float jitter_xy[2] = {};
+        taa_.jitter_projection(proj, frame_index_, 1920, 1080, jittered_proj_, jitter_xy);
     }
 
     void submit(const PbrDrawCall& dc) {
@@ -472,9 +511,13 @@ struct PbrRenderer::Impl {
         backend->use_shader(pbr_shader);
         glBindVertexArray(vao);
 
-        // Per-frame uniforms
+        // Per-frame uniforms — use jittered projection for TAA
         glUniformMatrix4fv(u_view, 1, GL_FALSE, view);
-        glUniformMatrix4fv(u_projection, 1, GL_FALSE, proj);
+        glUniformMatrix4fv(u_projection, 1, GL_FALSE, jittered_proj_);
+
+        // TAA motion vector uniforms (prev frame view/proj)
+        glUniformMatrix4fv(u_prev_view, 1, GL_FALSE, taa_.prev_view());
+        glUniformMatrix4fv(u_prev_proj, 1, GL_FALSE, taa_.prev_proj());
         glUniform3fv(u_view_pos, 1, cam_pos);
         glUniform1f(u_ambient, lights[0].ambient);
         glUniform3fv(u_ambient_sky, 1, ambient_sky_color_);
@@ -595,6 +638,15 @@ struct PbrRenderer::Impl {
             glUniform1fv(u_sh_coeffs, kShCoeffCount, sh_coeffs_);
         }
 
+        // SSAO — bind AO texture if available and enabled
+        if (ssao_enabled_ && ao_texture_.id != 0) {
+            backend->bind_texture(ao_texture_, 4);
+            glUniform1i(u_ao_tex, 4);
+            glUniform1i(u_has_ao, 1);
+        } else {
+            glUniform1i(u_has_ao, 0);
+        }
+
         // Color grading
         glUniform1f(u_exposure, color_grading_.exposure);
         glUniform1f(u_contrast, color_grading_.contrast);
@@ -680,6 +732,8 @@ struct PbrRenderer::Impl {
     }
 
     void shutdown() {
+        ssao_pass_.shutdown();
+        taa_.shutdown();
         if (vao != 0) {
             glDeleteVertexArrays(1, &vao);
             vao = 0;
@@ -690,7 +744,27 @@ struct PbrRenderer::Impl {
         }
     }
 
-    void end_frame() {}
+    void end_frame() {
+        // Store current view/proj as previous for next frame's motion vectors
+        taa_.store_prev_matrices(view, proj);
+        ++frame_index_;
+    }
+
+    void set_ssao_enabled(bool enabled) {
+        ssao_enabled_ = enabled;
+    }
+
+    void set_ao_texture(TextureHandle texture) {
+        ao_texture_ = texture;
+    }
+
+    void set_frame_index(int index) {
+        frame_index_ = index;
+    }
+
+    const float* jittered_projection() const {
+        return jittered_proj_;
+    }
 };
 
 PbrRenderer::PbrRenderer() : impl_(std::make_unique<Impl>()) {}
@@ -709,8 +783,20 @@ void PbrRenderer::set_ao_texture(TextureHandle tex) {
 }
 void PbrRenderer::set_color_grading(const ColorGradingParams& params) { impl_->set_color_grading(params); }
 void PbrRenderer::set_fog(const FogParams& params) { impl_->set_fog(params); }
+void PbrRenderer::set_ssao_enabled(bool enabled) {
+    impl_->set_ssao_enabled(enabled);
+}
+void PbrRenderer::set_ao_texture(TextureHandle texture) {
+    impl_->set_ao_texture(texture);
+}
+void PbrRenderer::set_frame_index(int index) {
+    impl_->set_frame_index(index);
+}
 void PbrRenderer::begin_frame(const float* v, const float* p, const float* c, ShadowPass* s) { impl_->begin_frame(v, p, c, s); }
 void PbrRenderer::submit(const PbrDrawCall& dc) { impl_->submit(dc); }
+const float* PbrRenderer::jittered_projection() const {
+    return impl_->jittered_projection();
+}
 void PbrRenderer::end_frame() { impl_->end_frame(); }
 
 } // namespace ae::render
