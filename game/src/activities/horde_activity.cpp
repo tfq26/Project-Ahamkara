@@ -61,8 +61,8 @@ void HordeActivity::tick(float dt) {
 }
 
 void HordeActivity::process_input(wish::session::SessionId sid,
-                                   const ae::PacketEnvelope& envelope,
-                                   ae::u32 command_sequence) {
+                                  const wish::PacketEnvelope& envelope,
+                                  ae::u32 command_sequence) {
     Slot* slot = find_slot(sid);
     if (!slot) return;
     slot->seq_tracker.process_incoming(envelope);
@@ -153,11 +153,10 @@ void HordeActivity::spawn_wave() {
         EnemyState e {};
         e.enemy_id = wave_number_ * 100 + i;
         e.position = Vec3 {
-            (static_cast<float>(i) - count * 0.5F) * 2.0F,
+            (static_cast<float>(i) - static_cast<float>(count) * 0.5F) * 2.0F,
             2.0F,
-            -15.0F + static_cast<float>(wave_number_) * 0.5F
-        };
-        e.health = 100.0F + wave_number_ * 25.0F;
+            -15.0F + static_cast<float>(wave_number_) * 0.5F};
+        e.health = 100.0F + static_cast<float>(wave_number_) * 25.0F;
         e.alive = true;
         e.enemy_type = (i % 3 == 0) ? 1U : (i % 3 == 1) ? 2U : 0U;  // mix of types
         enemies_[i] = e;

@@ -542,19 +542,19 @@ void test_sequence_tracker_outgoing_increment() {
 void test_sequence_tracker_incoming_without_gaps() {
     ae::SequenceTracker tracker;
 
-    ahamkara::game::PacketEnvelope e0 {};
+    ae::PacketEnvelope e0 {};
     e0.sequence = 0;
     tracker.process_incoming(e0);
     assert(tracker.packets_received() == 1);
     assert(tracker.estimated_lost() == 0);
 
-    ahamkara::game::PacketEnvelope e1 {};
+    ae::PacketEnvelope e1 {};
     e1.sequence = 1;
     tracker.process_incoming(e1);
     assert(tracker.packets_received() == 2);
     assert(tracker.estimated_lost() == 0);
 
-    ahamkara::game::PacketEnvelope e2 {};
+    ae::PacketEnvelope e2 {};
     e2.sequence = 2;
     tracker.process_incoming(e2);
     assert(tracker.estimated_lost() == 0);
@@ -563,12 +563,12 @@ void test_sequence_tracker_incoming_without_gaps() {
 void test_sequence_tracker_incoming_with_gaps() {
     ae::SequenceTracker tracker;
 
-    ahamkara::game::PacketEnvelope e0 {};
+    ae::PacketEnvelope e0 {};
     e0.sequence = 0;
     tracker.process_incoming(e0);
 
     // Jump from seq 0 to seq 5: packets 1-4 are lost.
-    ahamkara::game::PacketEnvelope e5 {};
+    ae::PacketEnvelope e5 {};
     e5.sequence = 5;
     tracker.process_incoming(e5);
     assert(tracker.estimated_lost() == 4);
@@ -578,17 +578,17 @@ void test_sequence_tracker_incoming_with_gaps() {
 void test_sequence_tracker_out_of_order_fills_gap() {
     ae::SequenceTracker tracker;
 
-    ahamkara::game::PacketEnvelope e0 {};
+    ae::PacketEnvelope e0 {};
     e0.sequence = 0;
     tracker.process_incoming(e0);
 
-    ahamkara::game::PacketEnvelope e5 {};
+    ae::PacketEnvelope e5 {};
     e5.sequence = 5;
     tracker.process_incoming(e5);
     assert(tracker.estimated_lost() == 4);
 
     // Late arrival of seq 3 fills one gap.
-    ahamkara::game::PacketEnvelope e3 {};
+    ae::PacketEnvelope e3 {};
     e3.sequence = 3;
     tracker.process_incoming(e3);
     assert(tracker.estimated_lost() == 3);
@@ -598,7 +598,7 @@ void test_sequence_tracker_out_of_order_fills_gap() {
 void test_sequence_tracker_ack_reflected_in_outgoing() {
     ae::SequenceTracker tracker;
 
-    ahamkara::game::PacketEnvelope in {};
+    ae::PacketEnvelope in {};
     in.sequence = 10;
     tracker.process_incoming(in);
 

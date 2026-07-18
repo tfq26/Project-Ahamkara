@@ -152,6 +152,7 @@ int main(int argc, char** argv) {
     ahamkara::game::ServerRejectPacketBuffer reject_buffer {};
 
     // ── Admin HTTP server ─────────────────────────────────────────────────
+    wish::admin::HeartbeatService heartbeat_service;
     wish::admin::HttpAdminServer admin_server;
     wish::admin::ServerStatus admin_status {};
     std::mutex admin_status_mutex;
@@ -193,8 +194,7 @@ int main(int argc, char** argv) {
 
     if (!admin_server.start(server_config.admin_port, [&]() {
             std::lock_guard<std::mutex> lock(admin_status_mutex);
-            return admin_status;
-        })) {
+            return admin_status; }, heartbeat_service)) {
         ae::log_error("Dedicated server failed to start the admin HTTP surface.");
         return 1;
     }
@@ -418,7 +418,7 @@ int main(int argc, char** argv) {
                 // Get the player slot.
                 auto* slot = dm->first_slot();
                 if (slot) {
-                    slot->address = from;
+                    slot->address = wish::NetAddress {from.ip, from.port};
                     ss.session_id = slot->session_id;
                     ss.activity_id = default_activity_id;
                     ss.session_admitted = true;
