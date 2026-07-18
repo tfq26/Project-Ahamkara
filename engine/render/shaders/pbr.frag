@@ -9,16 +9,24 @@ uniform sampler2D uAlbedoMap;
 uniform sampler2D uNormalMap;
 uniform sampler2D uOrmMap;
 uniform sampler2D uShadowMap;
+uniform sampler2D uEmissiveMap;
+uniform sampler2D uAOTexture;
 uniform vec3 uLightDir;
 uniform vec3 uLightColor;
 uniform vec3 uViewPos;
 uniform vec3 uAlbedo;
+uniform vec3 uEmissiveColor;
+uniform vec3 uAmbientSkyColor;
+uniform vec3 uAmbientGroundColor;
 uniform float uMetallic;
 uniform float uRoughness;
 uniform float uAmbientStrength;
+uniform float uEmissiveIntensity;
 uniform bool uHasAlbedoMap;
 uniform bool uHasNormalMap;
 uniform bool uHasOrmMap;
+uniform bool uHasEmissiveMap;
+uniform bool uHasAOTexture;
 
 out vec4 fragColor;
 
@@ -96,9 +104,24 @@ void main() {
     float NdotL = max(dot(N, L), 0.0);
     vec3 diffuse = kD * albedo / PI;
 
+    // ── Ambient (hemispherical) ──
+    float hemisphere = 0.5 + 0.5 * N.y;
+    vec3 ambient_color = mix(uAmbientGroundColor, uAmbientSkyColor, hemisphere);
+    float occlusion = 1.0;
+    if (uHasAOTexture) {
+        occlusion = texture(uAOTexture, vTexCoord).r;
+    }
+    vec3 ambient = ambient_color * uAmbientStrength * albedo * occlusion;
+
     float shadow = shadowCalculation(vLightSpacePos);
-    vec3 ambient = albedo * uAmbientStrength;
     vec3 lighting = ambient + (1.0 - shadow) * (diffuse + specular) * uLightColor * NdotL;
+
+    // ── Emissive ──
+    vec3 emissive = uEmissiveColor * uEmissiveIntensity;
+    if (uHasEmissiveMap) {
+        emissive += texture(uEmissiveMap, vTexCoord).rgb * uEmissiveIntensity;
+    }
+    lighting += emissive;
 
     fragColor = vec4(lighting, 1.0);
 }
