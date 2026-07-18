@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -16,6 +17,42 @@ namespace ae::render {
 class PbrRenderer;
 
 constexpr int kLodLevelCount = 3;
+
+// ---------------------------------------------------------------------------
+// Configurable LOD transition distances
+// ---------------------------------------------------------------------------
+
+struct LodSettings {
+    // Linear (not squared) distances at which to transition between LOD levels.
+    // distances[0]: LOD0 -> LOD1 threshold
+    // distances[1]: LOD1 -> LOD2 threshold
+    // distances[2]: LOD2 -> impostor threshold (beyond which a billboard is used)
+    float distances[kLodLevelCount] = {12.0F, 30.0F, 100.0F};
+
+    // Distance at which to switch to an impostor/billboard when no LOD2 mesh is
+    // available or as an alternative to LOD2.  Default matches distances[2].
+    float billboard_distance = 100.0F;
+};
+
+// ---------------------------------------------------------------------------
+// Impostor / billboard support
+// ---------------------------------------------------------------------------
+
+// A single billboard impostor rendered in place of a mesh at extreme distance.
+struct ImpostorInstance {
+    float world_pos[3] = {0.0F, 0.0F, 0.0F};
+    TextureHandle billboard_texture = kInvalidTexture;
+    float size = 1.0F;
+};
+
+// Manages a collection of billboard textures used for impostor rendering.
+struct ImpostorAtlas {
+    std::vector<TextureHandle> textures;
+};
+
+// ---------------------------------------------------------------------------
+// Core rendering types
+// ---------------------------------------------------------------------------
 
 // One renderable mesh instance built from a LevelMeshInstance: GPU geometry
 // for up to 3 LOD levels, a column-major world transform, scalar PBR material
@@ -45,6 +82,10 @@ struct PbrMaterialParams {
     float roughness {1.0F};
 };
 
+// ---------------------------------------------------------------------------
+// Free functions
+// ---------------------------------------------------------------------------
+
 // Build a column-major 4x4 world matrix from a level mesh instance.
 // Rotation is applied as Ry(yaw) * Rx(pitch) * Rz(roll); yaw/pitch/roll are in
 // degrees (matching the .lvl spawn-yaw convention). Pure / GL-free; unit-tested.
@@ -58,18 +99,46 @@ void compose_model_matrix(const LevelMeshInstance& instance, float out_matrix[16
 // meshes. Pure / GL-free; unit-tested.
 [[nodiscard]] PbrDrawCall make_level_draw_call(const LevelRenderInstance& instance, GpuMesh& mesh);
 
-// Select the best available LOD model for an instance given a camera position.
-// Falls back to the nearest higher-detail level if the selected LOD has no
-// meshes.  Returns the resolved LodLevel that was chosen.
+// Select the best available LOD model for an instance given a camera position
+// and optional configurable LOD distances.  Falls back to the nearest
+// higher-detail level if the selected LOD has no meshes.  Returns the resolved
+// LodLevel that was chosen.
 [[nodiscard]] LodLevel resolve_instance_lod(const LevelRenderInstance& instance,
-                                             const float* camera_position);
+                                             const float* camera_position,
+                                             const LodSettings& settings = LodSettings{});
+
+// Compute a 64-bit material identity key from a LevelRenderInstance's PBR
+// params.  Used for material-aware secondary sorting.
+[[nodiscard]] std::uint64_t compute_material_key(const LevelRenderInstance& instance);
 
 // Collect and sort draw calls from all instances by mesh GPU handle so that
-// identical meshes are submitted consecutively (batching).  Returns a sorted
-// vector of (mesh, instance) pairs.  Pure / GL-free; unit-tested.
+// identical meshes are submitted consecutively (batching), with material
+// identity as a secondary sort key.  Returns a sorted vector of (mesh,
+// instance) pairs.  Pure / GL-free; unit-tested.
 [[nodiscard]] std::vector<LodBatchedCall> batch_level_draw_calls(
     const std::vector<LevelRenderInstance>& instances,
-    const float* camera_position);
+    const float* camera_position,
+    const LodSettings& settings = LodSettings{});
+
+// Returns true if, in the given sorted batch list, every group of consecutive
+// calls sharing the same mesh also shares the same material identity.  This
+// verifies that material-aware secondary sorting is correct.
+[[nodiscard]] bool sorted_by_material(const std::vector<LodBatchedCall>& calls);
+
+// Measure batch efficiency as the fraction of consecutive same-mesh runs that
+// are longer than one (i.e. batched together).  Returns a value in [0, 1]
+// where 1.0 means all calls are perfectly batched (one run per unique mesh).
+[[nodiscard]] float batch_efficiency(const std::vector<LodBatchedCall>& calls);
+
+// Determine whether an instance should be rendered as an impostor at the given
+// camera position using the provided LOD settings.
+[[nodiscard]] bool use_impostor(const LevelRenderInstance& instance,
+                                 const float* camera_position,
+                                 const LodSettings& settings = LodSettings{});
+
+// ---------------------------------------------------------------------------
+// LevelRenderScene
+// ---------------------------------------------------------------------------
 
 // Owns the GPU geometry + textures for a level's static mesh instances and
 // submits them to the PbrRenderer each frame.
@@ -98,9 +167,11 @@ public:
     void destroy(RenderBackend& backend);
 
     // Submit all instances to the PBR renderer with LOD selection and
-    // mesh-based batching.  camera_position is a 3-float array (xyz).
+    // mesh+material-based batching.  camera_position is a 3-float array (xyz).
     // Call between begin_frame and end_frame on the renderer.
-    void submit(PbrRenderer& pbr, const float* camera_position) const;
+    // Accepts optional LodSettings for configurable LOD transition distances.
+    void submit(PbrRenderer& pbr, const float* camera_position,
+                const LodSettings& settings = LodSettings{}) const;
 
     [[nodiscard]] bool empty() const { return instances_.empty(); }
     [[nodiscard]] std::size_t instance_count() const { return instances_.size(); }
