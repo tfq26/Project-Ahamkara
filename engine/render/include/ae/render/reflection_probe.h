@@ -11,7 +11,7 @@ namespace ae::render {
 /// Manages a pool of reflection probes with spatial queries.
 /// Each probe is stored alongside a cached AABB for proximity tests.
 class ReflectionProbeManager {
-public:
+  public:
     ReflectionProbeManager() = default;
     ~ReflectionProbeManager() = default;
 
@@ -35,9 +35,11 @@ public:
     const ReflectionProbe& get_probe(std::size_t index) const;
 
     /// Number of probes in the pool.
-    std::size_t count() const { return entries_.size(); }
+    std::size_t count() const {
+        return entries_.size();
+    }
 
-private:
+  private:
     struct ProbeEntry {
         ReflectionProbe probe;
         float aabb_min[3] = {};
@@ -71,8 +73,7 @@ inline void ReflectionProbeManager::clear() {
 }
 
 inline std::vector<std::size_t> ReflectionProbeManager::find_probes_near(
-    const float position[3]) const
-{
+    const float position[3]) const {
     std::vector<std::size_t> result;
     for (std::size_t i = 0; i < entries_.size(); ++i) {
         const auto& e = entries_[i];

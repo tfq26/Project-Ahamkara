@@ -388,8 +388,8 @@ struct PbrRenderer::Impl {
         u_ambient   = backend->get_uniform_location(pbr_shader, "uAmbientStrength");
         u_ambient_sky = backend->get_uniform_location(pbr_shader, "uAmbientSkyColor");
         u_ambient_ground = backend->get_uniform_location(pbr_shader, "uAmbientGroundColor");
-        u_ao_tex    = backend->get_uniform_location(pbr_shader, "uAOTexture");
-        u_has_ao    = backend->get_uniform_location(pbr_shader, "uHasAOTexture");
+        u_ao_tex = backend->get_uniform_location(pbr_shader, "uAOTexture");
+        u_has_ao = backend->get_uniform_location(pbr_shader, "uHasAOTexture");
         u_has_albedo= backend->get_uniform_location(pbr_shader, "uHasAlbedoMap");
         u_has_normal= backend->get_uniform_location(pbr_shader, "uHasNormalMap");
         u_has_orm   = backend->get_uniform_location(pbr_shader, "uHasOrmMap");
@@ -581,7 +581,10 @@ struct PbrRenderer::Impl {
         // AO texture
         bool has_ao = ao_texture_.id != 0;
         glUniform1i(u_has_ao, has_ao ? 1 : 0);
-        if (has_ao) { backend->bind_texture(ao_texture_, 4); glUniform1i(u_ao_tex, 4); }
+        if (has_ao) {
+            backend->bind_texture(ao_texture_, 4);
+            glUniform1i(u_ao_tex, 4);
+        }
 
         // Emissive
         glUniform3fv(u_emissive_color, 1, dc.emissive_color);
@@ -698,9 +701,13 @@ void PbrRenderer::shutdown() { impl_->shutdown(); }
 void PbrRenderer::set_lights(const PbrLight* lights, int count) { impl_->set_lights(lights, count); }
 void PbrRenderer::set_cascade_splits(const float* splits) { impl_->set_cascade_splits(splits); }
 void PbrRenderer::set_ambient_sh(const float* coeffs) { impl_->set_ambient_sh(coeffs); }
-void PbrRenderer::set_ambient_sky_ground(const float sky[3], const float ground[3]) { impl_->set_ambient_sky_ground(sky, ground); }
+void PbrRenderer::set_ambient_sky_ground(const float sky[3], const float ground[3]) {
+    impl_->set_ambient_sky_ground(sky, ground);
+}
 void PbrRenderer::set_reflection_probes(const ReflectionProbe* probes, int count) { impl_->set_reflection_probes(probes, count); }
-void PbrRenderer::set_ao_texture(TextureHandle tex) { impl_->set_ao_texture(tex); }
+void PbrRenderer::set_ao_texture(TextureHandle tex) {
+    impl_->set_ao_texture(tex);
+}
 void PbrRenderer::set_color_grading(const ColorGradingParams& params) { impl_->set_color_grading(params); }
 void PbrRenderer::set_fog(const FogParams& params) { impl_->set_fog(params); }
 void PbrRenderer::begin_frame(const float* v, const float* p, const float* c, ShadowPass* s) { impl_->begin_frame(v, p, c, s); }
