@@ -783,12 +783,20 @@ void PbrRenderer::set_ao_texture(TextureHandle tex) {
 }
 void PbrRenderer::set_color_grading(const ColorGradingParams& params) { impl_->set_color_grading(params); }
 void PbrRenderer::set_fog(const FogParams& params) { impl_->set_fog(params); }
-void PbrRenderer::set_ssao_enabled(bool enabled) { impl_->set_ssao_enabled(enabled); }
-void PbrRenderer::set_ao_texture(TextureHandle texture) { impl_->set_ao_texture(texture); }
-void PbrRenderer::set_frame_index(int index) { impl_->set_frame_index(index); }
+void PbrRenderer::set_ssao_enabled(bool enabled) {
+    impl_->set_ssao_enabled(enabled);
+}
+void PbrRenderer::set_ao_texture(TextureHandle texture) {
+    impl_->set_ao_texture(texture);
+}
+void PbrRenderer::set_frame_index(int index) {
+    impl_->set_frame_index(index);
+}
 void PbrRenderer::begin_frame(const float* v, const float* p, const float* c, ShadowPass* s) { impl_->begin_frame(v, p, c, s); }
 void PbrRenderer::submit(const PbrDrawCall& dc) { impl_->submit(dc); }
-const float* PbrRenderer::jittered_projection() const { return impl_->jittered_projection(); }
+const float* PbrRenderer::jittered_projection() const {
+    return impl_->jittered_projection();
+}
 void PbrRenderer::end_frame() { impl_->end_frame(); }
 
 } // namespace ae::render
