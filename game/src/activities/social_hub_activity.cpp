@@ -61,8 +61,8 @@ void SocialHubActivity::tick(float dt) {
 }
 
 void SocialHubActivity::process_input(wish::session::SessionId sid,
-                                       const wish::PacketEnvelope& envelope,
-                                       ae::u32 command_sequence) {
+                                      const wish::PacketEnvelope& envelope,
+                                      ae::u32 command_sequence) {
     Slot* slot = find_slot(sid);
     if (!slot) return;
 
