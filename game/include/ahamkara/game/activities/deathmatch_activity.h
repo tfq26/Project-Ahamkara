@@ -3,6 +3,7 @@
 #include "ae/network/packet_envelope.h"
 #include "ae/network/sequence_tracker.h"
 #include "ae/network/server_history.h"
+#include "ae/network/udp_socket.h"
 #include "ahamkara/game/deathmatch_mode.h"
 #include "ahamkara/game/gameplay_types.h"
 #include "ahamkara/game/net_packets.h"
@@ -134,7 +135,7 @@ public:
     void tick(float dt) override;
 
     void process_input(wish::session::SessionId sid,
-                       const ae::PacketEnvelope& envelope,
+                       const wish::PacketEnvelope& envelope,
                        ae::u32 command_sequence) override;
 
     /// Advance the authoritative simulation with a full input command.

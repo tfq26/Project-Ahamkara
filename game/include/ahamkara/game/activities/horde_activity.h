@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ae/network/sequence_tracker.h"
+#include "ae/network/udp_socket.h"
 #include "ahamkara/game/gameplay_types.h"
 #include "ahamkara/game/net_packets.h"
 #include "ahamkara/game/net_types.h"
@@ -77,7 +79,7 @@ public:
 
     void tick(float dt) override;
     void process_input(wish::session::SessionId sid,
-                       const ae::PacketEnvelope& envelope,
+                       const wish::PacketEnvelope& envelope,
                        ae::u32 command_sequence) override;
 
     ae::usize build_snapshot_bytes(wish::session::SessionId sid,
