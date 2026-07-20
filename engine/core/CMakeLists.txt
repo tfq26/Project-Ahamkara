@@ -11,6 +11,7 @@ add_library(ae_core STATIC
     src/frame_pacer.cpp
     src/frame_profiler.cpp
     src/job_system.cpp
+    src/streaming_executor.cpp
     src/log.cpp
     src/memory_budget.cpp
     src/telemetry.cpp
