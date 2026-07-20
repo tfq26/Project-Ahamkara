@@ -313,6 +313,11 @@ if(TARGET ae_render)
     target_compile_features(ahamkara_ibl_tests PRIVATE cxx_std_20)
 
     target_link_libraries(ahamkara_ibl_tests
+        PRIVATE
+            ae_render
+    )
+
+    add_test(NAME ahamkara_ibl_tests COMMAND ahamkara_ibl_tests)
 
     add_executable(ahamkara_ssao_tests
         src/ssao_tests.cpp
@@ -324,8 +329,6 @@ if(TARGET ae_render)
         PRIVATE
             ae_render
     )
-
-    add_test(NAME ahamkara_ibl_tests COMMAND ahamkara_ibl_tests)
 
     add_test(NAME ahamkara_ssao_tests COMMAND ahamkara_ssao_tests)
 
@@ -447,6 +450,24 @@ target_link_libraries(ahamkara_streaming_residency_tests
 )
 
 add_test(NAME ahamkara_streaming_residency_tests COMMAND ahamkara_streaming_residency_tests)
+
+add_executable(ahamkara_streaming_executor_tests
+    src/streaming_executor_tests.cpp
+)
+
+target_compile_features(ahamkara_streaming_executor_tests PRIVATE cxx_std_20)
+
+target_include_directories(ahamkara_streaming_executor_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+)
+
+target_link_libraries(ahamkara_streaming_executor_tests
+    PRIVATE
+        ae_core
+)
+
+add_test(NAME ahamkara_streaming_executor_tests COMMAND ahamkara_streaming_executor_tests)
 
 # --- Destination Metadata ---
 add_executable(ahamkara_destination_metadata_tests
@@ -659,3 +680,47 @@ target_link_libraries(ahamkara_jitter_buffer_tests
         ae_network
 )
 add_test(NAME ahamkara_jitter_buffer_tests COMMAND ahamkara_jitter_buffer_tests)
+
+# ============================================================
+# Performance / Budget Benchmarks
+# ============================================================
+# These benchmarks emit machine-readable JSON and check hard
+# deterministic budgets (counters) plus statistical wall-clock
+# thresholds.  Build only when benchmarks are enabled.
+# To disable: set -DAHAMKARA_BUILD_BENCHMARKS=OFF
+
+option(AHAMKARA_BUILD_BENCHMARKS "Build performance benchmark targets" ON)
+
+if(AHAMKARA_BUILD_BENCHMARKS)
+    add_executable(ahamkara_benchmarks
+        src/benchmarks.cpp
+    )
+
+    target_compile_features(ahamkara_benchmarks PRIVATE cxx_std_20)
+
+    target_include_directories(ahamkara_benchmarks
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/../engine/network/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/..
+    )
+
+    target_link_libraries(ahamkara_benchmarks
+        PRIVATE
+            ae_core
+    )
+
+    add_test(NAME ahamkara_benchmarks COMMAND ahamkara_benchmarks)
+
+    # Deliberate regression fixture — proves the budget gate can fail.
+    # This test is EXPECTED to fail. Run with --regression flag.
+    add_test(
+        NAME ahamkara_benchmarks_regression
+        COMMAND ahamkara_benchmarks --regression
+    )
+    set_tests_properties(ahamkara_benchmarks_regression
+        PROPERTIES
+            WILL_FAIL TRUE
+            LABELS "benchmark;regression"
+    )
+endif()
