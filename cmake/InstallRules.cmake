@@ -19,7 +19,16 @@ ahamkara_set_export_includes(ae_runtime engine/runtime/include)
 ahamkara_set_export_includes(ae_collision engine/collision/include)
 ahamkara_set_export_includes(ae_physics engine/physics/include)
 
-set(_AHAMKARA_EXPORT_LIBS ae_core ae_network ae_runtime)
+set(_AHAMKARA_ENGINE_LIBS
+    ae_core ae_network ae_runtime
+    ae_skeleton ae_animation
+)
+set(_AHAMKARA_EXPORT_LIBS)
+foreach(_lib IN ITEMS ${_AHAMKARA_ENGINE_LIBS})
+    if(TARGET ${_lib})
+        list(APPEND _AHAMKARA_EXPORT_LIBS ${_lib})
+    endif()
+endforeach()
 
 install(TARGETS ${_AHAMKARA_EXPORT_LIBS}
     EXPORT AhamkaraTargets
@@ -29,8 +38,12 @@ install(TARGETS ${_AHAMKARA_EXPORT_LIBS}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
+set(_AHAMKARA_NONEXPORT_LIBS
+    ae_collision ae_physics ae_audio ae_input ae_ui ae_render ae_platform
+    ahamkara_game wish_engine
+)
 set(_AHAMKARA_EXTRA_LIBS)
-foreach(_lib IN ITEMS ae_collision ae_physics ae_skeleton ae_animation ae_audio ae_input ae_ui ae_render ae_platform ahamkara_game wish_engine)
+foreach(_lib IN ITEMS ${_AHAMKARA_NONEXPORT_LIBS})
     if(TARGET ${_lib})
         list(APPEND _AHAMKARA_EXTRA_LIBS ${_lib})
     endif()
@@ -41,6 +54,16 @@ if(_AHAMKARA_EXTRA_LIBS)
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Ahamkara
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Ahamkara
     )
+endif()
+
+# ---------------------------------------------------------------------------
+# Product executables — never exported, never part of an engine-only install.
+# ---------------------------------------------------------------------------
+if(TARGET ahamkara_server AND NOT AHAMKARA_ENGINE_ONLY)
+    install(TARGETS ahamkara_server RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Ahamkara)
+endif()
+if(TARGET ahamkara AND NOT AHAMKARA_ENGINE_ONLY)
+    install(TARGETS ahamkara RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Ahamkara)
 endif()
 
 install(DIRECTORY engine/core/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT Ahamkara)
@@ -61,10 +84,10 @@ endif()
 if(TARGET ae_platform)
     install(DIRECTORY engine/platform/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT Ahamkara)
 endif()
-if(TARGET ahamkara_game)
+if(TARGET ahamkara_game AND NOT AHAMKARA_ENGINE_ONLY)
     install(DIRECTORY game/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT Ahamkara)
 endif()
-if(TARGET wish_engine)
+if(TARGET wish_engine AND NOT AHAMKARA_ENGINE_ONLY)
     install(DIRECTORY wish/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT Ahamkara)
 endif()
 

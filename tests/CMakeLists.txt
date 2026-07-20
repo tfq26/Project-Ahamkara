@@ -1,5 +1,6 @@
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
+if(TARGET ahamkara_game)
 add_executable(ahamkara_smoke_tests
     src/network_smoke_tests.cpp
     src/camera_smoke_tests.cpp
@@ -118,6 +119,7 @@ add_test(NAME ahamkara_world_tests COMMAND ahamkara_world_tests)
 add_test(NAME ahamkara_player_entity_tests COMMAND ahamkara_player_entity_tests)
 add_test(NAME ahamkara_movement_tests COMMAND ahamkara_movement_tests)
 add_test(NAME ahamkara_player_movement_controller_tests COMMAND ahamkara_player_movement_controller_tests)
+endif()
 add_executable(ahamkara_collision_tests
     src/collision_tests.cpp
 )
@@ -131,6 +133,7 @@ target_link_libraries(ahamkara_collision_tests
 
 add_test(NAME ahamkara_collision_tests COMMAND ahamkara_collision_tests)
 
+if(TARGET ahamkara_game)
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../game/include/ahamkara/game/gameplay_types.h"
    AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../game/include/ahamkara/game/components.h"
    AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../game/src/gameplay_types.cpp")
@@ -147,7 +150,9 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../game/include/ahamkara/game/gameplay_ty
 
     add_test(NAME ahamkara_gameplay_tests COMMAND ahamkara_gameplay_tests)
 endif()
+endif()
 
+if(TARGET wish_engine)
 add_executable(ahamkara_session_tests
     src/session_runtime_tests.cpp
 )
@@ -163,6 +168,7 @@ target_link_libraries(ahamkara_session_tests
 
 add_test(NAME ahamkara_session_tests COMMAND ahamkara_session_tests)
 
+endif()
 add_executable(ahamkara_utility_tests
     src/utility_tests.cpp
 )
@@ -205,6 +211,7 @@ target_link_libraries(ahamkara_core_tests
 
 add_test(NAME ahamkara_core_tests COMMAND ahamkara_core_tests)
 
+if(TARGET ahamkara_game)
 add_executable(ahamkara_weapon_runtime_tests
     src/weapon_runtime_tests.cpp
 )
@@ -233,6 +240,7 @@ target_link_libraries(ahamkara_weapon_loader_tests
 
 add_test(NAME ahamkara_weapon_loader_tests COMMAND ahamkara_weapon_loader_tests
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..)
+endif()
 
 add_test(
     NAME agent_runner_python_tests
@@ -244,6 +252,7 @@ add_test(
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/lint/tests/test_lint_runner.py
 )
 
+if(TARGET wish_engine)
 add_executable(ahamkara_nakama_bridge_tests
     src/nakama_bridge_tests.cpp
 )
@@ -258,6 +267,7 @@ target_link_libraries(ahamkara_nakama_bridge_tests
 
 add_test(NAME ahamkara_nakama_bridge_tests COMMAND ahamkara_nakama_bridge_tests)
 
+endif()
 if(TARGET ae_render)
     add_executable(ahamkara_asset_pipeline_tests
         src/asset_pipeline_tests.cpp
@@ -314,6 +324,9 @@ if(TARGET ae_render)
 
     target_link_libraries(ahamkara_ibl_tests
 
+    PRIVATE
+        ae_render
+    )
     add_executable(ahamkara_ssao_tests
         src/ssao_tests.cpp
     )
@@ -405,6 +418,7 @@ target_include_directories(ahamkara_nav_grid_tests PRIVATE ${CMAKE_CURRENT_SOURC
 
 add_test(NAME ahamkara_nav_grid_tests COMMAND ahamkara_nav_grid_tests)
 
+if(TARGET ahamkara_game)
 add_executable(ahamkara_ai_combatant_tests
     src/ai_combatant_tests.cpp
 )
@@ -416,6 +430,8 @@ target_link_libraries(ahamkara_ai_combatant_tests PRIVATE ahamkara_game)
 
 add_test(NAME ahamkara_ai_combatant_tests COMMAND ahamkara_ai_combatant_tests)
 
+endif()
+if(TARGET ahamkara_game)
 add_executable(ahamkara_encounter_scripting_tests
     src/encounter_scripting_tests.cpp
 )
@@ -430,6 +446,7 @@ target_link_libraries(ahamkara_encounter_scripting_tests PRIVATE ahamkara_game)
 
 add_test(NAME ahamkara_encounter_scripting_tests COMMAND ahamkara_encounter_scripting_tests)
 
+endif()
 add_executable(ahamkara_streaming_residency_tests
     src/streaming_residency_tests.cpp
 )
@@ -449,6 +466,7 @@ target_link_libraries(ahamkara_streaming_residency_tests
 add_test(NAME ahamkara_streaming_residency_tests COMMAND ahamkara_streaming_residency_tests)
 
 # --- Destination Metadata ---
+if(TARGET ahamkara_game)
 add_executable(ahamkara_destination_metadata_tests
     src/destination_metadata_tests.cpp
 )
@@ -468,6 +486,7 @@ target_link_libraries(ahamkara_destination_metadata_tests
 
 add_test(NAME ahamkara_destination_metadata_tests COMMAND ahamkara_destination_metadata_tests)
 
+endif()
 # --- Profiling Tests ---
 add_executable(ahamkara_profiling_tests
     src/profiling_tests.cpp
@@ -601,6 +620,7 @@ target_link_libraries(ahamkara_game_module_host_tests
 )
 add_test(NAME ahamkara_game_module_host_tests COMMAND ahamkara_game_module_host_tests)
 
+if(TARGET wish_engine)
 add_executable(ahamkara_wish_error_tests
     src/wish_error_tests.cpp
 )
@@ -612,6 +632,8 @@ target_link_libraries(ahamkara_wish_error_tests
 )
 add_test(NAME ahamkara_wish_error_tests COMMAND ahamkara_wish_error_tests)
 
+endif()
+if(TARGET wish_engine)
 add_executable(ahamkara_metrics_tests
     src/metrics_tests.cpp
 )
@@ -623,6 +645,8 @@ target_link_libraries(ahamkara_metrics_tests
 )
 add_test(NAME ahamkara_metrics_tests COMMAND ahamkara_metrics_tests)
 
+endif()
+if(TARGET ahamkara_game)
 add_executable(ahamkara_rewind_tests
     src/rewind_tests.cpp
 )
@@ -638,6 +662,7 @@ target_link_libraries(ahamkara_rewind_tests
 )
 add_test(NAME ahamkara_rewind_tests COMMAND ahamkara_rewind_tests)
 
+endif()
 add_executable(ahamkara_connection_lifecycle_tests
     src/connection_lifecycle_tests.cpp
 )
@@ -659,3 +684,23 @@ target_link_libraries(ahamkara_jitter_buffer_tests
         ae_network
 )
 add_test(NAME ahamkara_jitter_buffer_tests COMMAND ahamkara_jitter_buffer_tests)
+
+if(TARGET ahamkara_game)
+    add_executable(ahamkara_network_boundary_tests
+        src/network_boundary_tests.cpp
+    )
+    target_compile_features(ahamkara_network_boundary_tests PRIVATE cxx_std_20)
+    target_include_directories(ahamkara_network_boundary_tests
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/..
+            ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/../engine/network/include
+    )
+    target_link_libraries(ahamkara_network_boundary_tests
+        PRIVATE
+            ae_network
+            ahamkara_game
+    )
+    add_test(NAME ahamkara_network_boundary_tests COMMAND ahamkara_network_boundary_tests)
+endif()
