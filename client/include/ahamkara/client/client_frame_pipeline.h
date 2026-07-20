@@ -132,6 +132,7 @@ private:
     DebugInspector inspector_;
     char console_input_buffer_[kConsoleBufSize] {};
     int console_history_pos_ {-1};
+    std::string console_draft_ {};
     bool console_open_ {false};
 
     bool autoplay_mode_ {false};

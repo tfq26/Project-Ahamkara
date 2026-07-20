@@ -142,15 +142,21 @@ ClientFramePipeline::ClientFramePipeline(
     console_.set_config_registry(&ae::ConfigRegistry::instance());
 
     // Register a custom console command to reload shaders.
-    console_.register_command("reload_shaders", "Reload GPU shaders from disk (placeholder)",
+    // Returns a precise unsupported/error result until a renderer reload contract exists.
+    console_.register_command("reload_shaders", "Reload GPU shaders from disk",
         [](const std::vector<std::string>&, ae::Console& self) {
-            self.print_tagged("Console", "Shader reload triggered (stub — implement renderer reload hook).");
+            self.print_tagged("Console",
+                "Error: reload_shaders is not yet implemented — "
+                "requires a renderer shader-reload contract.");
         });
 
     // Register a custom console command to show debug render stats.
+    // Returns a precise unsupported/error result until a debug renderer contract exists.
     console_.register_command("show_collision", "Toggle collision debug geometry",
         [](const std::vector<std::string>&, ae::Console& self) {
-            self.print_tagged("Console", "Collision debug geometry toggle (stub — implement in debug renderer).");
+            self.print_tagged("Console",
+                "Error: show_collision is not yet implemented — "
+                "requires a debug renderer collision contract.");
         });
 
     // ── Authoring: File Watcher ─────────────────────────────────────────
@@ -631,7 +637,6 @@ void ClientFramePipeline::render_console_overlay() {
 
         // Input line
         ImGui::PushItemWidth(-1.0f);
-        console_input_buffer_[0] = '\0';
         if (ImGui::InputText("##console_input", console_input_buffer_, kConsoleBufSize,
                              ImGuiInputTextFlags_EnterReturnsTrue)) {
             std::string input(console_input_buffer_);
@@ -639,6 +644,41 @@ void ClientFramePipeline::render_console_overlay() {
                 console_.execute(input);
                 console_input_buffer_[0] = '\0';
                 console_history_pos_ = -1;
+            }
+        }
+
+        // History navigation (Up/Down arrows).
+        if (console_.history_count() > 0) {
+            if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+                if (console_history_pos_ == -1) {
+                    // Save current draft before navigating into history.
+                    console_draft_.assign(console_input_buffer_);
+                    console_history_pos_ = console_.history_count() - 1;
+                } else if (console_history_pos_ > 0) {
+                    --console_history_pos_;
+                }
+                std::strncpy(console_input_buffer_,
+                             console_.history_line(console_history_pos_).c_str(),
+                             kConsoleBufSize - 1);
+                console_input_buffer_[kConsoleBufSize - 1] = '\0';
+                ImGui::SetKeyboardFocusHere(-1);
+            }
+            if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+                if (console_history_pos_ >= 0 &&
+                    console_history_pos_ < console_.history_count() - 1) {
+                    ++console_history_pos_;
+                    std::strncpy(console_input_buffer_,
+                                 console_.history_line(console_history_pos_).c_str(),
+                                 kConsoleBufSize - 1);
+                    console_input_buffer_[kConsoleBufSize - 1] = '\0';
+                } else {
+                    // Restore draft when navigating past newest.
+                    console_history_pos_ = -1;
+                    std::strncpy(console_input_buffer_, console_draft_.c_str(),
+                                 kConsoleBufSize - 1);
+                    console_input_buffer_[kConsoleBufSize - 1] = '\0';
+                }
+                ImGui::SetKeyboardFocusHere(-1);
             }
         }
         ImGui::PopItemWidth();

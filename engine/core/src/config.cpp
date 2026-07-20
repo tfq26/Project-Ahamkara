@@ -32,8 +32,12 @@ int ConfigRegistry::reload_from_file(const std::string& path) {
     std::ifstream file(path);
     if (!file.is_open()) {
         log_warning_cat(AE_LOG_CATEGORY, "Could not open config file: " + path);
+        log_warning_cat(AE_LOG_CATEGORY, "Previous valid configuration preserved.");
         return 0;
     }
+
+    // Take a snapshot so we can roll back on partial failure.
+    take_snapshot();
 
     int updated = 0;
     int unknown = 0;
@@ -59,15 +63,42 @@ int ConfigRegistry::reload_from_file(const std::string& path) {
         }
     }
 
-    if (updated > 0) {
+    if (updated == 0 && unknown > 0) {
+        // No known vars were updated — the file may have only unknown keys.
+        // This is suspicious; restore snapshot to avoid accidental mutation.
+        log_warning_cat(AE_LOG_CATEGORY,
+            std::to_string(unknown) + " unknown key(s) found and no known vars updated.");
+        log_warning_cat(AE_LOG_CATEGORY, "Restoring previous valid configuration.");
+        restore_snapshot();
+    } else if (updated > 0) {
         log_info_cat(AE_LOG_CATEGORY, std::to_string(updated) + " config variable(s) reloaded from " + path);
-    } else if (unknown > 0) {
-        log_debug_cat(AE_LOG_CATEGORY, std::to_string(unknown) + " unknown key(s) in " + path + " (no registered var)");
-    } else {
-        log_debug_cat(AE_LOG_CATEGORY, "No config variables updated from " + path);
+    }
+
+    if (unknown > 0) {
+        log_debug_cat(AE_LOG_CATEGORY, std::to_string(unknown) + " unknown key(s) in " + path);
     }
 
     return updated;
+}
+
+void ConfigRegistry::take_snapshot() {
+    snapshot_.clear();
+    for (const auto& [key, entry] : vars_) {
+        if (entry.serialize) {
+            snapshot_[key] = entry.serialize();
+        }
+    }
+}
+
+void ConfigRegistry::restore_snapshot() {
+    for (const auto& [key, value] : snapshot_) {
+        auto it = vars_.find(key);
+        if (it != vars_.end() && it->second.reload) {
+            it->second.reload(value);
+            log_debug_cat(AE_LOG_CATEGORY, "Rolled back config var " + key + " to snapshot value");
+        }
+    }
+    snapshot_.clear();
 }
 
 bool ConfigRegistry::save_to_file(const std::string& path) const {
