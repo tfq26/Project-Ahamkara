@@ -61,12 +61,9 @@ FetchContent_Declare(
     GIT_TAG        master
 )
 
-# glm/entt/miniaudio are general engine deps; Jolt is only required for
-# physics/collision/game paths and can be skipped for pure package export.
-FetchContent_MakeAvailable(glm entt miniaudio)
-if(NOT AHAMKARA_ENGINE_ONLY)
-    FetchContent_MakeAvailable(jolt)
-endif()
+# glm/entt/miniaudio are general engine deps; Jolt is required for
+# physics/collision which are part of the headless Ahamkara SDK.
+FetchContent_MakeAvailable(glm entt miniaudio jolt)
 
 # Force-fix Jolt CRT on Windows in case its internal CMake overrode our setting
 if(WIN32 AND TARGET Jolt)
@@ -111,9 +108,13 @@ option(AHAMKARA_BUILD_TESTS "Build the Ahamkara test targets" ON)
 option(AHAMKARA_BUILD_SAMPLES "Build sample games that consume the engine" ON)
 option(AHAMKARA_BUILD_WISH "Build Wish backend modules (not part of pure engine package)" ON)
 option(AHAMKARA_BUILD_GAME "Build Flashback/gameplay library (not part of pure engine package)" ON)
-option(AHAMKARA_ENGINE_ONLY "Configure pure engine targets only (disables wish/game/client/server/samples)" OFF)
+
+# AE_ENGINE_ONLY is the canonical name — AHAMKARA_ENGINE_ONLY exists for backward compat.
+option(AE_ENGINE_ONLY "Configure pure engine targets only (disables wish/game/client/server/samples)" OFF)
+set(AHAMKARA_ENGINE_ONLY "${AE_ENGINE_ONLY}" CACHE BOOL "Alias for AE_ENGINE_ONLY" FORCE)
 
 if(AHAMKARA_ENGINE_ONLY)
+    message(STATUS "AE_ENGINE_ONLY=ON — configuring pure engine targets only")
     set(AHAMKARA_BUILD_WISH OFF CACHE BOOL "" FORCE)
     set(AHAMKARA_BUILD_GAME OFF CACHE BOOL "" FORCE)
     set(AHAMKARA_BUILD_CLIENT OFF CACHE BOOL "" FORCE)
@@ -124,19 +125,15 @@ endif()
 add_subdirectory(engine/core)
 add_subdirectory(engine/network)
 add_subdirectory(engine/runtime)
-# Collision/physics require Jolt and are excluded from pure engine-only package builds.
-if(NOT AHAMKARA_ENGINE_ONLY)
-    add_subdirectory(engine/collision)
-    add_subdirectory(engine/physics)
-endif()
+# Collision/physics are headless engine modules (use Jolt, no GLFW/OpenGL deps)
+# and are always part of the Ahamkara SDK.
+add_subdirectory(engine/collision)
+add_subdirectory(engine/physics)
 
-# ae_skeleton and ae_animation are headless (no GLFW/OpenGL deps); they must
-# be built before game/ which depends on animation headers transitively.
-# Excluded from engine-only packages since game code is outside the engine boundary.
-if(NOT AHAMKARA_ENGINE_ONLY)
-    add_subdirectory(engine/skeleton)
-    add_subdirectory(engine/animation)
-endif()
+# ae_skeleton and ae_animation are headless engine modules (no GLFW/OpenGL deps)
+# and are always part of the Ahamkara SDK.
+add_subdirectory(engine/skeleton)
+add_subdirectory(engine/animation)
 
 # Product modules live outside the pure Ahamkara engine package.
 if(AHAMKARA_BUILD_WISH)
@@ -180,6 +177,7 @@ if(AHAMKARA_BUILD_SERVER)
 endif()
 
 if(AHAMKARA_BUILD_TESTS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt")
+    enable_testing()
     add_subdirectory(tests)
 endif()
 

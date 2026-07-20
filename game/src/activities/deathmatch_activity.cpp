@@ -114,12 +114,18 @@ void DeathmatchActivity::tick(float dt) {
 }
 
 void DeathmatchActivity::process_input(wish::session::SessionId sid,
-                                       const ae::PacketEnvelope& envelope,
+                                       const wish::PacketEnvelope& envelope,
                                        ae::u32 command_sequence) {
     PlayerSlot* slot = find_slot(sid);
     if (!slot) return;
 
-    slot->sequence_tracker.process_incoming(envelope);
+    // Convert wish::PacketEnvelope → ae::PacketEnvelope for the engine's
+    // SequenceTracker API.  Both types have identical layout.
+    ae::PacketEnvelope ae_env;
+    ae_env.sequence = envelope.sequence;
+    ae_env.ack_sequence = envelope.ack_sequence;
+    ae_env.ack_bitfield = envelope.ack_bitfield;
+    slot->sequence_tracker.process_incoming(ae_env);
     slot->last_received_input_sequence = command_sequence;
     slot->last_seen = std::chrono::steady_clock::now();
 }

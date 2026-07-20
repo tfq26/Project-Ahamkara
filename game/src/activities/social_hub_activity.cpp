@@ -61,12 +61,17 @@ void SocialHubActivity::tick(float dt) {
 }
 
 void SocialHubActivity::process_input(wish::session::SessionId sid,
-                                       const ae::PacketEnvelope& envelope,
+                                       const wish::PacketEnvelope& envelope,
                                        ae::u32 command_sequence) {
     Slot* slot = find_slot(sid);
     if (!slot) return;
 
-    slot->seq_tracker.process_incoming(envelope);
+    // Convert wish::PacketEnvelope -> ae::PacketEnvelope for SequenceTracker.
+    ae::PacketEnvelope ae_env;
+    ae_env.sequence = envelope.sequence;
+    ae_env.ack_sequence = envelope.ack_sequence;
+    ae_env.ack_bitfield = envelope.ack_bitfield;
+    slot->seq_tracker.process_incoming(ae_env);
     slot->last_received = command_sequence;
     slot->last_seen = std::chrono::steady_clock::now();
 }

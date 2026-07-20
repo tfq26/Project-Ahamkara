@@ -4,6 +4,10 @@ include(CMakeFindDependencyMacro)
 find_dependency(Threads)
 include("${CMAKE_CURRENT_LIST_DIR}/AhamkaraTargets.cmake")
 
+# Map installed Ahamkara::ae_* targets to friendly Ahamkara:: names.
+# Each alias is created only if the underlying target exists (handles
+# engine-only vs full builds transparently).
+
 if(TARGET Ahamkara::ae_core AND NOT TARGET Ahamkara::Core)
     add_library(Ahamkara::Core INTERFACE IMPORTED)
     set_target_properties(Ahamkara::Core PROPERTIES INTERFACE_LINK_LIBRARIES Ahamkara::ae_core)
@@ -16,5 +20,46 @@ if(TARGET Ahamkara::ae_network AND NOT TARGET Ahamkara::Network)
     add_library(Ahamkara::Network INTERFACE IMPORTED)
     set_target_properties(Ahamkara::Network PROPERTIES INTERFACE_LINK_LIBRARIES Ahamkara::ae_network)
 endif()
+if(TARGET Ahamkara::ae_collision AND NOT TARGET Ahamkara::Collision)
+    add_library(Ahamkara::Collision INTERFACE IMPORTED)
+    set_target_properties(Ahamkara::Collision PROPERTIES INTERFACE_LINK_LIBRARIES Ahamkara::ae_collision)
+endif()
+if(TARGET Ahamkara::ae_physics AND NOT TARGET Ahamkara::Physics)
+    add_library(Ahamkara::Physics INTERFACE IMPORTED)
+    set_target_properties(Ahamkara::Physics PROPERTIES INTERFACE_LINK_LIBRARIES Ahamkara::ae_physics)
+endif()
+if(TARGET Ahamkara::ae_skeleton AND NOT TARGET Ahamkara::Skeleton)
+    add_library(Ahamkara::Skeleton INTERFACE IMPORTED)
+    set_target_properties(Ahamkara::Skeleton PROPERTIES INTERFACE_LINK_LIBRARIES Ahamkara::ae_skeleton)
+endif()
+if(TARGET Ahamkara::ae_animation AND NOT TARGET Ahamkara::Animation)
+    add_library(Ahamkara::Animation INTERFACE IMPORTED)
+    set_target_properties(Ahamkara::Animation PROPERTIES INTERFACE_LINK_LIBRARIES Ahamkara::ae_animation)
+endif()
+
+# Version compatibility check — fail early with a clear message.
+if(NOT "${PACKAGE_FIND_VERSION}" STREQUAL "")
+    if(PACKAGE_FIND_VERSION VERSION_GREATER PACKAGE_VERSION)
+        message(FATAL_ERROR
+            "Ahamkara ${PACKAGE_FIND_VERSION} required but only "
+            "${PACKAGE_VERSION} installed. Update your Ahamkara package."
+        )
+    endif()
+    if(PACKAGE_FIND_VERSION VERSION_LESS "0.1.0")
+        message(FATAL_ERROR
+            "Ahamkara ${PACKAGE_FIND_VERSION} is too old. "
+            "Version 0.1.0 or later is required."
+        )
+    endif()
+endif()
+
+# Report available components for diagnostics.
+set(_AHAMKARA_AVAILABLE_COMPONENTS)
+foreach(_comp Core Runtime Network Collision Physics Skeleton Animation)
+    if(TARGET Ahamkara::${_comp})
+        list(APPEND _AHAMKARA_AVAILABLE_COMPONENTS ${_comp})
+    endif()
+endforeach()
+message(STATUS "Found Ahamkara ${PACKAGE_VERSION} — available components: ${_AHAMKARA_AVAILABLE_COMPONENTS}")
 
 check_required_components(Ahamkara)

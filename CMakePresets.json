@@ -69,6 +69,31 @@
         "AHAMKARA_BUILD_SAMPLES": "OFF",
         "AHAMKARA_BUILD_TESTS": "OFF"
       }
+    },
+    {
+      "name": "engine-only-debug",
+      "displayName": "Engine Only Debug",
+      "description": "Pure engine SDK without game/wish/client/server — debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/engine-only-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "AE_ENGINE_ONLY": "ON",
+        "AHAMKARA_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "engine-only-release",
+      "displayName": "Engine Only Release",
+      "description": "Pure engine SDK without game/wish/client/server — release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/engine-only-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "AE_ENGINE_ONLY": "ON",
+        "AHAMKARA_BUILD_TESTS": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -97,6 +122,14 @@
     {
       "name": "wish-standalone",
       "configurePreset": "wish-standalone"
+    },
+    {
+      "name": "engine-only-debug",
+      "configurePreset": "engine-only-debug"
+    },
+    {
+      "name": "engine-only-release",
+      "configurePreset": "engine-only-release"
     }
   ],
   "packagePresets": [
