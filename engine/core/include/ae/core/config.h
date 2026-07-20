@@ -137,11 +137,15 @@ public:
     /**
      * @brief Reload config from a key=value file.
      *
+     * Takes a snapshot of current values before applying. If the file
+     * cannot be opened or parsing fails completely, the previous
+     * valid state is preserved and a diagnostic is emitted.
+     *
      * Format: one key=value per line. Lines starting with # are comments.
      * Blank lines are ignored.
      *
      * @param path      File path to read.
-     * @return Number of variables updated.
+     * @return Number of variables updated (0 if unchanged or failed).
      */
     int reload_from_file(const std::string& path);
 
@@ -175,6 +179,13 @@ public:
     /// List all registered cvar keys.
     [[nodiscard]] std::vector<std::string> all_keys() const;
 
+    /// Save a snapshot of all current config values for rollback.
+    void take_snapshot();
+
+    /// Restore config values from the last snapshot.
+    /// Emits a diagnostic for each variable that changes.
+    void restore_snapshot();
+
     /// Number of registered cvars.
     [[nodiscard]] std::size_t count() const { return vars_.size(); }
 
@@ -186,6 +197,9 @@ private:
         std::function<std::string()> serialize;
     };
     std::unordered_map<std::string, Entry> vars_;
+
+    // Snapshot for rollback on reload failure.
+    std::unordered_map<std::string, std::string> snapshot_ {};
 
     // For poll-based reload: track last observed write time.
     bool has_last_write_time_ {false};
