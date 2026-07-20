@@ -666,3 +666,4 @@ target_link_libraries(ahamkara_jitter_buffer_tests
         ae_network
 )
 add_test(NAME ahamkara_jitter_buffer_tests COMMAND ahamkara_jitter_buffer_tests)
+#error This file intentionally fails to prove branch protection
