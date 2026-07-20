@@ -73,13 +73,25 @@ public:
 
     // Ambient / IBL
     void set_ambient_sh(const float* sh_coefficients);  // 9 floats (3rd-order)
+    void set_ambient_sky_ground(const float sky_color[3], const float ground_color[3]);
     void set_reflection_probes(const ReflectionProbe* probes, int count);
+    void set_ao_texture(TextureHandle ao_tex);
     void set_color_grading(const ColorGradingParams& params);
     void set_fog(const FogParams& params);
+
+    // SSAO
+    void set_ssao_enabled(bool enabled);
+    void set_ao_texture(TextureHandle texture);
+
+    // TAA
+    void set_frame_index(int index);
 
     void begin_frame(const float* view_matrix, const float* projection_matrix,
                      const float* camera_position, ShadowPass* shadow);
     void submit(const PbrDrawCall& draw_call);
+    /// Returns the (possibly jittered) projection matrix used this frame.
+    const float* jittered_projection() const;
+
     void end_frame();
 
 private:

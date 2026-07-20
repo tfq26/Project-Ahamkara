@@ -1,6 +1,8 @@
 #include "ae/render/atmosphere_pass.h"
 #include "ae/render/color_grading.h"
 #include "ae/render/pbr_renderer.h"
+#include "ae/render/ssao_pass.h"
+#include "ae/render/temporal_aa.h"
 #include "ae/core/log.h"
 #include "ae/render/gl_platform.h"
 
@@ -25,6 +27,8 @@ struct PbrRenderer::Impl {
     int u_light_dir = -1, u_light_color = -1, u_view_pos = -1;
     int u_albedo = -1, u_metallic = -1, u_roughness = -1;
     int u_ambient = -1;
+    int u_ambient_sky = -1, u_ambient_ground = -1;
+    int u_ao_tex = -1, u_has_ao = -1;
     int u_has_albedo = -1, u_has_normal = -1, u_has_orm = -1;
     int u_has_skinning = -1, u_joint_matrices = -1;
     int u_albedo_tex = -1, u_normal_tex = -1, u_orm_tex = -1, u_shadow_tex = -1;
@@ -52,9 +56,24 @@ struct PbrRenderer::Impl {
     ColorGradingParams color_grading_;
     FogParams fog_params_;
 
+    // Ambient state
+
+    // SSAO / TAA state
+    SsaoPass ssao_pass_;
+    TemporalAA taa_;
+    bool ssao_enabled_ = false;
+    int frame_index_ = 0;
+    float jittered_proj_[16] = {};
+
+    // TAA uniform locations
+    int u_prev_view = -1, u_prev_proj = -1;
+
     // Ambient SH coefficients (3rd order, 9 floats)
     float sh_coeffs_[kShCoeffCount] = {};
     bool use_sh_ambient_ = false;
+    float ambient_sky_color_[3] = {0.5F, 0.7F, 1.0F};
+    float ambient_ground_color_[3] = {0.2F, 0.15F, 0.1F};
+    TextureHandle ao_texture_;
     ReflectionProbe reflection_probes_[kMaxReflectionProbes];
     int reflection_probe_count_ = 0;
 
@@ -75,6 +94,20 @@ struct PbrRenderer::Impl {
     void set_ambient_sh(const float* coeffs) {
         std::memcpy(sh_coeffs_, coeffs, kShCoeffCount * sizeof(float));
         use_sh_ambient_ = true;
+    }
+
+    void set_ambient_sky_ground(const float sky[3], const float ground[3]) {
+        ambient_sky_color_[0] = sky[0];
+        ambient_sky_color_[1] = sky[1];
+        ambient_sky_color_[2] = sky[2];
+        ambient_ground_color_[0] = ground[0];
+        ambient_ground_color_[1] = ground[1];
+        ambient_ground_color_[2] = ground[2];
+        use_sh_ambient_ = false;
+    }
+
+    void set_ao_texture(TextureHandle tex) {
+        ao_texture_ = tex;
     }
 
     void set_reflection_probes(const ReflectionProbe* probes, int count) {
@@ -148,8 +181,11 @@ struct PbrRenderer::Impl {
             uniform sampler2DArray uShadowMapArray;
             uniform samplerCube uProbeCubemaps[MAX_PROBES];
             uniform vec3 uViewPos, uAlbedo, uEmissiveColor;
+            uniform vec3 uAmbientSkyColor, uAmbientGroundColor;
             uniform float uMetallic, uRoughness, uAmbientStrength, uEmissiveIntensity;
             uniform bool uHasAlbedoMap, uHasNormalMap, uHasOrmMap, uHasEmissiveMap;
+            uniform sampler2D uAOTexture;
+            uniform bool uHasAOTexture;
             uniform int uLightCount, uCsmCascadeCount, uUseShAmbient;
             uniform vec3 uLightDirs[MAX_LIGHTS];
             uniform vec3 uLightColors[MAX_LIGHTS];
@@ -163,6 +199,11 @@ struct PbrRenderer::Impl {
             uniform vec3 uProbePositions[MAX_PROBES];
             uniform float uProbeRadius[MAX_PROBES];
             uniform float uProbeIntensity[MAX_PROBES];
+            // SSAO uniforms
+            uniform sampler2D uAOTex;
+            uniform bool uHasAO;
+            // TAA / motion vector uniforms
+            uniform mat4 uPrevView, uPrevProj;
             // Color grading uniforms
             uniform float uExposure, uContrast, uSaturation, uBrightness;
             uniform float uVignetteStrength, uVignetteRadius;
@@ -262,15 +303,29 @@ struct PbrRenderer::Impl {
                     total_light += (1.0-sh)*(diff+spec)*radiance*NdotL;
                 }
 
-                // ── Ambient (SH irradiance or flat) ──
+                // ── Ambient (SH irradiance or hemispherical) ──
                 vec3 ambient;
+                float occlusion = 1.0;
+                if (uHasAOTexture) {
+                    occlusion = texture(uAOTexture, vUV).r;
+                }
                 if (uUseShAmbient == 1) {
                     float shc[SH_COEFFS];
                     for (int i = 0; i < SH_COEFFS; ++i) shc[i] = uShCoeffs[i];
-                    ambient = alb * sh_eval(N, shc);
+                    ambient = alb * sh_eval(N, shc) * occlusion;
                 } else {
-                    ambient = alb * uAmbientStrength;
+                    float hemisphere = 0.5 + 0.5 * N.y;
+                    vec3 hemi_color = mix(uAmbientGroundColor, uAmbientSkyColor, hemisphere);
+                    ambient = alb * uAmbientStrength * hemi_color * occlusion;
                 }
+
+                // SSAO factor — reduces ambient in occluded areas
+                float ao_factor = 1.0;
+                if (uHasAO) {
+                    ao_factor = 1.0 - texture(uAOTex, vUV).r;
+                    ao_factor = clamp(ao_factor, 0.0, 1.0);
+                }
+                ambient *= ao_factor;
 
                 // ── IBL / reflection probes ──
                 vec3 ibl_reflection = vec3(0.0);
@@ -357,6 +412,10 @@ struct PbrRenderer::Impl {
         u_metallic  = backend->get_uniform_location(pbr_shader, "uMetallic");
         u_roughness = backend->get_uniform_location(pbr_shader, "uRoughness");
         u_ambient   = backend->get_uniform_location(pbr_shader, "uAmbientStrength");
+        u_ambient_sky = backend->get_uniform_location(pbr_shader, "uAmbientSkyColor");
+        u_ambient_ground = backend->get_uniform_location(pbr_shader, "uAmbientGroundColor");
+        u_ao_tex = backend->get_uniform_location(pbr_shader, "uAOTexture");
+        u_has_ao = backend->get_uniform_location(pbr_shader, "uHasAOTexture");
         u_has_albedo= backend->get_uniform_location(pbr_shader, "uHasAlbedoMap");
         u_has_normal= backend->get_uniform_location(pbr_shader, "uHasNormalMap");
         u_has_orm   = backend->get_uniform_location(pbr_shader, "uHasOrmMap");
@@ -412,6 +471,14 @@ struct PbrRenderer::Impl {
         u_aerial_fog_density = backend->get_uniform_location(pbr_shader, "uAerialFogDensity");
         u_fog_color = backend->get_uniform_location(pbr_shader, "uFogColor");
 
+        // SSAO uniforms
+        u_ao_tex = backend->get_uniform_location(pbr_shader, "uAOTex");
+        u_has_ao = backend->get_uniform_location(pbr_shader, "uHasAO");
+
+        // TAA / motion vector uniforms
+        u_prev_view = backend->get_uniform_location(pbr_shader, "uPrevView");
+        u_prev_proj = backend->get_uniform_location(pbr_shader, "uPrevProj");
+
         std::memcpy(view, identity_matrix(), 64);
         std::memcpy(proj, identity_matrix(), 64);
         return true;
@@ -433,6 +500,10 @@ struct PbrRenderer::Impl {
         std::memcpy(proj, p, 64);
         std::memcpy(cam_pos, cp, 12);
         shadow_pass = sp;
+
+        // TAA jitter — produce a jittered projection for this frame
+        float jitter_xy[2] = {};
+        taa_.jitter_projection(proj, frame_index_, 1920, 1080, jittered_proj_, jitter_xy);
     }
 
     void submit(const PbrDrawCall& dc) {
@@ -440,11 +511,17 @@ struct PbrRenderer::Impl {
         backend->use_shader(pbr_shader);
         glBindVertexArray(vao);
 
-        // Per-frame uniforms
+        // Per-frame uniforms — use jittered projection for TAA
         glUniformMatrix4fv(u_view, 1, GL_FALSE, view);
-        glUniformMatrix4fv(u_projection, 1, GL_FALSE, proj);
+        glUniformMatrix4fv(u_projection, 1, GL_FALSE, jittered_proj_);
+
+        // TAA motion vector uniforms (prev frame view/proj)
+        glUniformMatrix4fv(u_prev_view, 1, GL_FALSE, taa_.prev_view());
+        glUniformMatrix4fv(u_prev_proj, 1, GL_FALSE, taa_.prev_proj());
         glUniform3fv(u_view_pos, 1, cam_pos);
         glUniform1f(u_ambient, lights[0].ambient);
+        glUniform3fv(u_ambient_sky, 1, ambient_sky_color_);
+        glUniform3fv(u_ambient_ground, 1, ambient_ground_color_);
 
         // Multi-light uniforms — upload as flat arrays
         glUniform1i(u_light_count, light_count);
@@ -543,6 +620,14 @@ struct PbrRenderer::Impl {
         if (has_orm) { backend->bind_texture(dc.orm_map, 2); glUniform1i(u_orm_tex, 2); }
         if (has_ems) { backend->bind_texture(dc.emissive_map, 5); glUniform1i(u_emissive_tex, 5); }
 
+        // AO texture
+        bool has_ao = ao_texture_.id != 0;
+        glUniform1i(u_has_ao, has_ao ? 1 : 0);
+        if (has_ao) {
+            backend->bind_texture(ao_texture_, 4);
+            glUniform1i(u_ao_tex, 4);
+        }
+
         // Emissive
         glUniform3fv(u_emissive_color, 1, dc.emissive_color);
         glUniform1f(u_emissive_intensity, dc.emissive_intensity);
@@ -551,6 +636,15 @@ struct PbrRenderer::Impl {
         glUniform1i(u_use_sh_ambient, use_sh_ambient_ ? 1 : 0);
         if (use_sh_ambient_) {
             glUniform1fv(u_sh_coeffs, kShCoeffCount, sh_coeffs_);
+        }
+
+        // SSAO — bind AO texture if available and enabled
+        if (ssao_enabled_ && ao_texture_.id != 0) {
+            backend->bind_texture(ao_texture_, 4);
+            glUniform1i(u_ao_tex, 4);
+            glUniform1i(u_has_ao, 1);
+        } else {
+            glUniform1i(u_has_ao, 0);
         }
 
         // Color grading
@@ -638,6 +732,8 @@ struct PbrRenderer::Impl {
     }
 
     void shutdown() {
+        ssao_pass_.shutdown();
+        taa_.shutdown();
         if (vao != 0) {
             glDeleteVertexArrays(1, &vao);
             vao = 0;
@@ -648,7 +744,27 @@ struct PbrRenderer::Impl {
         }
     }
 
-    void end_frame() {}
+    void end_frame() {
+        // Store current view/proj as previous for next frame's motion vectors
+        taa_.store_prev_matrices(view, proj);
+        ++frame_index_;
+    }
+
+    void set_ssao_enabled(bool enabled) {
+        ssao_enabled_ = enabled;
+    }
+
+    void set_ao_texture(TextureHandle texture) {
+        ao_texture_ = texture;
+    }
+
+    void set_frame_index(int index) {
+        frame_index_ = index;
+    }
+
+    const float* jittered_projection() const {
+        return jittered_proj_;
+    }
 };
 
 PbrRenderer::PbrRenderer() : impl_(std::make_unique<Impl>()) {}
@@ -658,11 +774,29 @@ void PbrRenderer::shutdown() { impl_->shutdown(); }
 void PbrRenderer::set_lights(const PbrLight* lights, int count) { impl_->set_lights(lights, count); }
 void PbrRenderer::set_cascade_splits(const float* splits) { impl_->set_cascade_splits(splits); }
 void PbrRenderer::set_ambient_sh(const float* coeffs) { impl_->set_ambient_sh(coeffs); }
+void PbrRenderer::set_ambient_sky_ground(const float sky[3], const float ground[3]) {
+    impl_->set_ambient_sky_ground(sky, ground);
+}
 void PbrRenderer::set_reflection_probes(const ReflectionProbe* probes, int count) { impl_->set_reflection_probes(probes, count); }
+void PbrRenderer::set_ao_texture(TextureHandle tex) {
+    impl_->set_ao_texture(tex);
+}
 void PbrRenderer::set_color_grading(const ColorGradingParams& params) { impl_->set_color_grading(params); }
 void PbrRenderer::set_fog(const FogParams& params) { impl_->set_fog(params); }
+void PbrRenderer::set_ssao_enabled(bool enabled) {
+    impl_->set_ssao_enabled(enabled);
+}
+void PbrRenderer::set_ao_texture(TextureHandle texture) {
+    impl_->set_ao_texture(texture);
+}
+void PbrRenderer::set_frame_index(int index) {
+    impl_->set_frame_index(index);
+}
 void PbrRenderer::begin_frame(const float* v, const float* p, const float* c, ShadowPass* s) { impl_->begin_frame(v, p, c, s); }
 void PbrRenderer::submit(const PbrDrawCall& dc) { impl_->submit(dc); }
+const float* PbrRenderer::jittered_projection() const {
+    return impl_->jittered_projection();
+}
 void PbrRenderer::end_frame() { impl_->end_frame(); }
 
 } // namespace ae::render

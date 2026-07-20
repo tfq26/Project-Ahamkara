@@ -309,6 +309,42 @@ if(TARGET ae_render)
     )
 
     add_test(NAME ahamkara_lod_batching_tests COMMAND ahamkara_lod_batching_tests)
+
+    add_executable(ahamkara_ibl_tests
+        src/ibl_tests.cpp
+    )
+
+    target_compile_features(ahamkara_ibl_tests PRIVATE cxx_std_20)
+
+    target_link_libraries(ahamkara_ibl_tests
+
+    add_executable(ahamkara_ssao_tests
+        src/ssao_tests.cpp
+    )
+
+    target_compile_features(ahamkara_ssao_tests PRIVATE cxx_std_20)
+
+    target_link_libraries(ahamkara_ssao_tests
+        PRIVATE
+            ae_render
+    )
+
+    add_test(NAME ahamkara_ibl_tests COMMAND ahamkara_ibl_tests)
+
+    add_test(NAME ahamkara_ssao_tests COMMAND ahamkara_ssao_tests)
+
+    add_executable(ahamkara_color_grading_tests
+        src/color_grading_tests.cpp
+    )
+
+    target_compile_features(ahamkara_color_grading_tests PRIVATE cxx_std_20)
+
+    target_link_libraries(ahamkara_color_grading_tests
+        PRIVATE
+            ae_render
+    )
+
+    add_test(NAME ahamkara_color_grading_tests COMMAND ahamkara_color_grading_tests)
 endif()
 
 add_executable(ahamkara_reliable_channel_tests

@@ -9,16 +9,33 @@ uniform sampler2D uAlbedoMap;
 uniform sampler2D uNormalMap;
 uniform sampler2D uOrmMap;
 uniform sampler2D uShadowMap;
+uniform sampler2D uEmissiveMap;
+uniform sampler2D uAOTexture;
 uniform vec3 uLightDir;
 uniform vec3 uLightColor;
 uniform vec3 uViewPos;
 uniform vec3 uAlbedo;
+uniform vec3 uEmissiveColor;
+uniform vec3 uAmbientSkyColor;
+uniform vec3 uAmbientGroundColor;
 uniform float uMetallic;
 uniform float uRoughness;
 uniform float uAmbientStrength;
+uniform float uEmissiveIntensity;
 uniform bool uHasAlbedoMap;
 uniform bool uHasNormalMap;
 uniform bool uHasOrmMap;
+uniform bool uHasEmissiveMap;
+uniform bool uHasAOTexture;
+
+// SSAO uniforms
+uniform sampler2D uAOTex;
+uniform bool uHasAO;
+
+// Color grading uniforms
+uniform float uExposure, uContrast, uSaturation, uBrightness;
+uniform float uVignetteStrength, uVignetteRadius;
+uniform int uTonemapMode;
 
 out vec4 fragColor;
 
@@ -96,9 +113,52 @@ void main() {
     float NdotL = max(dot(N, L), 0.0);
     vec3 diffuse = kD * albedo / PI;
 
+    // ── Ambient (hemispherical) ──
+    float hemisphere = 0.5 + 0.5 * N.y;
+    vec3 ambient_color = mix(uAmbientGroundColor, uAmbientSkyColor, hemisphere);
+    float occlusion = 1.0;
+    if (uHasAOTexture) {
+        occlusion = texture(uAOTexture, vTexCoord).r;
+    }
+    vec3 ambient = ambient_color * uAmbientStrength * albedo * occlusion;
+
     float shadow = shadowCalculation(vLightSpacePos);
-    vec3 ambient = albedo * uAmbientStrength;
     vec3 lighting = ambient + (1.0 - shadow) * (diffuse + specular) * uLightColor * NdotL;
+
+    // ── Emissive ──
+    vec3 emissive = uEmissiveColor * uEmissiveIntensity;
+    if (uHasEmissiveMap) {
+        emissive += texture(uEmissiveMap, vTexCoord).rgb * uEmissiveIntensity;
+    }
+    lighting += emissive;
+
+    // ── SSAO factor ──
+    float ao_factor = 1.0;
+    if (uHasAO) {
+        ao_factor = 1.0 - texture(uAOTex, vTexCoord).r;
+        ao_factor = clamp(ao_factor, 0.0, 1.0);
+    }
+    lighting *= ao_factor;
+
+    // ── Color grading ──
+    lighting *= uExposure;
+    lighting = (lighting - 0.5) * uContrast + 0.5;
+    float lum = dot(lighting, vec3(0.299, 0.587, 0.114));
+    lighting = mix(vec3(lum), lighting, uSaturation);
+    lighting += uBrightness;
+
+    if (uTonemapMode == 1) {
+        lighting = lighting / (lighting + vec3(1.0));
+    } else if (uTonemapMode == 2) {
+        vec3 a = lighting * (lighting + 0.0245786) - 0.000090537;
+        vec3 b = lighting * (0.983729 * lighting + 0.4329510) + 0.238081;
+        lighting = a / b;
+    }
+
+    vec2 uv_center = vTexCoord - 0.5;
+    float vignette = 1.0 - dot(uv_center, uv_center) * uVignetteStrength;
+    vignette = clamp(vignette, 0.0, 1.0);
+    lighting *= smoothstep(uVignetteRadius, 1.0, vignette);
 
     fragColor = vec4(lighting, 1.0);
 }
