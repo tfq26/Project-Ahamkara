@@ -114,6 +114,58 @@ jobs:
           name: ahamkara-package
           path: build/package/*.tar.gz
 
+  engine-sdk:
+    name: Engine SDK
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure engine-only (debug)
+        run: cmake --preset engine-only
+
+      - name: Build engine-only
+        run: cmake --build --preset engine-only
+
+      - name: Install SDK to temp prefix
+        run: |
+          rm -rf /tmp/ahamkara-sdk-ci
+          cmake --install build/engine-only --prefix /tmp/ahamkara-sdk-ci
+
+      - name: Verify install boundary (no Flashback/Wish leaks)
+        run: |
+          LEAKS=0
+          for PRODUCT_DIR in game wish samples flashback; do
+            if [ -d "/tmp/ahamkara-sdk-ci/include/${PRODUCT_DIR}" ]; then
+              echo "LEAK: /tmp/ahamkara-sdk-ci/include/${PRODUCT_DIR}"
+              LEAKS=1
+            fi
+          done
+          if [ -d "/tmp/ahamkara-sdk-ci/include/ae/collision" ] || [ -d "/tmp/ahamkara-sdk-ci/include/ae/physics" ]; then
+            echo "LEAK: collision or physics headers present in engine-only install"
+            LEAKS=1
+          fi
+          if [ "$LEAKS" -eq 1 ]; then
+            echo "Install boundary check: FAIL"
+            exit 1
+          fi
+          echo "Install boundary check: PASS"
+
+      - name: Configure out-of-tree consumer
+        run: |
+          rm -rf /tmp/ahamkara-consumer-ci
+          cmake -S tests/out_of_tree_consumer \
+                -B /tmp/ahamkara-consumer-ci \
+                -DCMAKE_PREFIX_PATH=/tmp/ahamkara-sdk-ci \
+                -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build consumer
+        run: cmake --build /tmp/ahamkara-consumer-ci
+
+      - name: Run consumer
+        run: /tmp/ahamkara-consumer-ci/ahamkara_consumer
+
   auto-merge:
     needs: build-and-test
     if: |
