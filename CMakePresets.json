@@ -69,6 +69,31 @@
         "AHAMKARA_BUILD_SAMPLES": "OFF",
         "AHAMKARA_BUILD_TESTS": "OFF"
       }
+    },
+    {
+      "name": "engine-only",
+      "displayName": "Engine Only",
+      "description": "Pure engine SDK (core/network/runtime) without game, Wish, client, or server",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/engine-only",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "AHAMKARA_ENGINE_ONLY": "ON",
+        "AHAMKARA_BUILD_TESTS": "OFF"
+      }
+    },
+    {
+      "name": "engine-only-release",
+      "displayName": "Engine Only Release",
+      "description": "Pure engine SDK, release configuration",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/engine-only-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "AHAMKARA_ENGINE_ONLY": "ON",
+        "AHAMKARA_BUILD_TESTS": "OFF"
+      }
     }
   ],
   "buildPresets": [
@@ -97,6 +122,14 @@
     {
       "name": "wish-standalone",
       "configurePreset": "wish-standalone"
+    },
+    {
+      "name": "engine-only",
+      "configurePreset": "engine-only"
+    },
+    {
+      "name": "engine-only-release",
+      "configurePreset": "engine-only-release"
     }
   ],
   "packagePresets": [
@@ -115,6 +148,22 @@
       "generators": ["TGZ", "ZIP"],
       "configurations": ["Debug"],
       "configurePreset": "package-debug-headless"
+    },
+    {
+      "name": "package-engine-only",
+      "displayName": "Package engine-only",
+      "description": "Package the engine-only build into a TGZ/ZIP archive",
+      "generators": ["TGZ", "ZIP"],
+      "configurations": ["Debug"],
+      "configurePreset": "engine-only"
+    },
+    {
+      "name": "package-engine-only-release",
+      "displayName": "Package engine-only release",
+      "description": "Package the engine-only release build into a TGZ/ZIP archive",
+      "generators": ["TGZ", "ZIP"],
+      "configurations": ["Release"],
+      "configurePreset": "engine-only-release"
     }
   ]
 }
