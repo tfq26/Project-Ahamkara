@@ -666,3 +666,44 @@ target_link_libraries(ahamkara_jitter_buffer_tests
         ae_network
 )
 add_test(NAME ahamkara_jitter_buffer_tests COMMAND ahamkara_jitter_buffer_tests)
+
+# ── E2E Client-Server Integration Test ─────────────────────────────────────
+# Launches a dedicated server subprocess and exercises the full client-server
+# protocol (handshake → input → snapshot).  Only built when the server target
+# exists (i.e. AHAMKARA_BUILD_SERVER=ON).
+if(TARGET ahamkara_server)
+    add_executable(ahamkara_e2e_client_server_tests
+        src/e2e_client_server.cpp
+    )
+
+    target_compile_features(ahamkara_e2e_client_server_tests PRIVATE cxx_std_20)
+
+    target_include_directories(ahamkara_e2e_client_server_tests
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/..
+            ${CMAKE_SOURCE_DIR}/game/include
+            ${CMAKE_SOURCE_DIR}/wish/include
+    )
+
+    target_compile_definitions(ahamkara_e2e_client_server_tests
+        PRIVATE
+            AHAMKARA_SERVER_PATH="$<TARGET_FILE:ahamkara_server>"
+    )
+
+    target_link_libraries(ahamkara_e2e_client_server_tests
+        PRIVATE
+            ae_network
+    )
+
+    add_test(
+        NAME ahamkara_e2e_client_server
+        COMMAND ahamkara_e2e_client_server_tests
+    )
+
+    # The E2E test has a built-in 30-second timeout via internal timeouts, but
+    # ctest should also guard against indefinite hangs.
+    set_tests_properties(ahamkara_e2e_client_server
+        PROPERTIES
+            TIMEOUT 45
+    )
+endif()
