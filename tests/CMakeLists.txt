@@ -666,3 +666,34 @@ target_link_libraries(ahamkara_jitter_buffer_tests
         ae_network
 )
 add_test(NAME ahamkara_jitter_buffer_tests COMMAND ahamkara_jitter_buffer_tests)
+
+# ── Network integration (E2E) test ─────────────────────────────────────────
+# Only add the E2E network test when both the server and client are built.
+if(TARGET ahamkara_server AND TARGET ahamkara_client)
+    add_test(
+        NAME ahamkara_network_integration_test
+        COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/network_integration/e2e_network_test.py
+            --build-dir ${CMAKE_BINARY_DIR}
+            --num-clients 2
+            --duration 15
+            --tick-rate 30
+    )
+    set_tests_properties(ahamkara_network_integration_test
+        PROPERTIES
+            TIMEOUT 120
+            ENVIRONMENT "AHAMKARA_CMAKE_PRESET=$<CONFIG>"
+            LABELS "integration;network;e2e"
+    )
+
+    # Add a convenience target to run just this test
+    add_custom_target(run-network-integration-test
+        COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/network_integration/e2e_network_test.py
+            --build-dir ${CMAKE_BINARY_DIR}
+            --num-clients 2
+            --duration 15
+        COMMENT "Running network integration E2E test"
+        USES_TERMINAL
+    )
+endif()

@@ -348,7 +348,19 @@ int run_network_client(const std::string& server_ip, int argc, char** argv) {
         return 1;
     }
 
-    const ae::NetAddress server_address {server_ip, 7777};
+    // Parse optional --server-port from CLI; default to 7777.
+    ae::u16 server_port = 7777;
+    for (int i = 1; i < argc - 1; ++i) {
+        if (std::strcmp(argv[i], "--server-port") == 0) {
+            const int parsed = std::atoi(argv[i + 1]);
+            if (parsed > 0 && parsed <= 65535) {
+                server_port = static_cast<ae::u16>(parsed);
+            }
+            break;
+        }
+    }
+
+    const ae::NetAddress server_address {server_ip, server_port};
 
     // ── Simulator config from CLI ─────────────────────────────────────────
     ae::SimulatorConfig sim_config = ae::build_sim_config(argc, argv);

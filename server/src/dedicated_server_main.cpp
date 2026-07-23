@@ -147,7 +147,17 @@ int main(int argc, char** argv) {
     ae::u32 heartbeat_tick_interval = static_cast<ae::u32>(tick_rate); // 1 Hz
 
     // ── Packet buffers ────────────────────────────────────────────────────
-    ahamkara::game::PlayerInputPacketBuffer packet_buffer {};
+    // Use a buffer large enough for the largest incoming packet (ClientHello
+    // can carry an auth token up to kMaxAuthTokenLength bytes). The original
+    // PlayerInputPacketBuffer (54 bytes) is too small to receive hello
+    // packets; without a larger buffer the leading bytes are truncated and
+    // all handshake attempts fail.
+    constexpr ae::usize kRecvBufferSize =
+        (ahamkara::game::client_hello_packet_size() >
+         ahamkara::game::server_snapshot_packet_size())
+            ? ahamkara::game::client_hello_packet_size()
+            : ahamkara::game::server_snapshot_packet_size();
+    std::array<std::byte, kRecvBufferSize> recv_buffer {};
     ahamkara::game::ServerWelcomePacketBuffer welcome_buffer {};
     ahamkara::game::ServerRejectPacketBuffer reject_buffer {};
 
@@ -234,22 +244,41 @@ int main(int argc, char** argv) {
         // ── Receive packets ───────────────────────────────────────────
         while (true) {
             ae::NetAddress from {};
-            const ae::i32 received = sim.receive_from(from, packet_buffer.data(), packet_buffer.size());
+            const ae::i32 received = sim.receive_from(from, recv_buffer.data(), recv_buffer.size());
             if (received <= 0)
                 break;
 
             const auto packet_span = std::span<const std::byte>(
-                packet_buffer.data(), static_cast<ae::usize>(received));
+                recv_buffer.data(), static_cast<ae::usize>(received));
 
-            // Register peer activity via ConnectionManager.
+            // Read the packet type from the wire header to dispatch correctly.
+            // This avoids misrouting based on size heuristics (e.g. a 52-byte
+            // PlayerInput packet also satisfies the ClientHello minimum size check).
+            ahamkara::game::detail::ByteReader type_reader(packet_span);
+            ae::u32 magic = 0;
+            ae::u16 version = 0;
+            ae::u16 wire_type = 0;
+            bool header_readable = type_reader.read(magic) && type_reader.read(version) && type_reader.read(wire_type);
+            if (!header_readable || magic != ahamkara::game::kPacketMagic ||
+                version != ahamkara::game::kProtocolVersion) {
+                // Malformed or unknown packet — skip.
+                continue;
+            }
+            const auto packet_type = static_cast<ahamkara::game::PacketType>(wire_type);
+
+            // Register peer activity via ConnectionManager (creates or
+            // touches the peer in Handshaking / Connected state).
             ae::PeerConnection& peer_conn = conn_manager.connect_request(from, frame_now);
 
-            // ── Handshake (ClientHello) ────────────────────────────────
-            if (received >= static_cast<ae::i32>(ahamkara::game::kMinClientHelloWireSize)) {
+            // ── Dispatch by type ──────────────────────────────────────────
+            switch (packet_type) {
+
+            // ── ClientHello (handshake) ───────────────────────────────────
+            case ahamkara::game::PacketType::ClientHello: {
                 ahamkara::game::ClientHelloPacket hello {};
                 ahamkara::game::PacketEnvelope in_envelope {};
                 if (!ahamkara::game::deserialize_client_hello_packet(packet_span, in_envelope, hello)) {
-                    ae::log_warning("Dedicated server rejected an invalid handshake packet.");
+                    ae::log_warning("Dedicated server rejected an invalid ClientHello packet.");
                     continue;
                 }
 
@@ -324,8 +353,8 @@ int main(int argc, char** argv) {
                 continue;
             }
 
-            // ── Heartbeat pong from client ───────────────────────────
-            if (received == static_cast<ae::i32>(ahamkara::game::heartbeat_packet_size())) {
+            // ── Heartbeat pong from client ─────────────────────────────
+            case ahamkara::game::PacketType::Heartbeat: {
                 ahamkara::game::PacketEnvelope hb_envelope {};
                 ahamkara::game::HeartbeatPacket hb_packet {};
                 if (ahamkara::game::deserialize_heartbeat_packet(packet_span, hb_envelope, hb_packet)) {
@@ -334,8 +363,8 @@ int main(int argc, char** argv) {
                 continue;
             }
 
-            // ── ClientReconnect ───────────────────────────────────────
-            if (received == static_cast<ae::i32>(ahamkara::game::client_reconnect_packet_size())) {
+            // ── ClientReconnect ─────────────────────────────────────────
+            case ahamkara::game::PacketType::ClientReconnect: {
                 ahamkara::game::PacketEnvelope rc_envelope {};
                 ahamkara::game::ClientReconnectPacket rc_packet {};
                 if (ahamkara::game::deserialize_client_reconnect_packet(packet_span, rc_envelope, rc_packet)) {
@@ -351,24 +380,20 @@ int main(int argc, char** argv) {
                 continue;
             }
 
-            // ── Input packets ──────────────────────────────────────────
-            if (received != static_cast<ae::i32>(packet_buffer.size())) {
-                // Unknown packet size — could be activity-specific.
-                continue;
-            }
+            // ── PlayerInput ────────────────────────────────────────────
+            case ahamkara::game::PacketType::PlayerInput: {
+                if (peer_conn.state != ae::ConnectionState::Connected) {
+                    ae::log_warning("Dedicated server received input before handshake completion.");
+                    continue;
+                }
 
-            if (peer_conn.state != ae::ConnectionState::Connected) {
-                ae::log_warning("Dedicated server received input before handshake completion.");
-                continue;
-            }
-
-            // ── Deserialize input ──────────────────────────────────────
-            ahamkara::game::PlayerInputCommand command {};
-            ahamkara::game::PacketEnvelope in_envelope {};
-            if (!ahamkara::game::deserialize_player_input_packet(packet_span, in_envelope, command)) {
-                ae::log_warning("Dedicated server rejected an invalid input packet.");
-                continue;
-            }
+                // ── Deserialize input ──────────────────────────────────
+                ahamkara::game::PlayerInputCommand command {};
+                ahamkara::game::PacketEnvelope in_envelope {};
+                if (!ahamkara::game::deserialize_player_input_packet(packet_span, in_envelope, command)) {
+                    ae::log_warning("Dedicated server rejected an invalid input packet.");
+                    continue;
+                }
 
             auto& ss = session_states[peer_conn.session_id];
 
@@ -440,7 +465,16 @@ int main(int argc, char** argv) {
             }
 
             conn_manager.touch(from, frame_now);
+            continue;
         }
+
+            // ── Unhandled packet type ──────────────────────────────────
+            default:
+                // Silently ignore unknown packet types so the server
+                // continues processing without logging excessive warnings.
+                continue;
+        } // switch (packet_type)
+        } // while (true) receive loop
 
         // ── State machine tick & peer pruning ──────────────────────────
         // ConnectionManager handles timeouts: Handshaking→removed,
