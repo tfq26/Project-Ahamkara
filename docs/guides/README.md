@@ -7,6 +7,7 @@ Ahamkara during the repository split.
 
 - [Agent handoff](agent-handoff.md)
 - [Building](building.md)
+- [Testing and code coverage](testing.md)
 - [Maintenance and error repair](maintenance.md)
 - [Remote agent workflow](remote-agent-workflow.md)
 

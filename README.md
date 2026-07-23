@@ -1,5 +1,8 @@
 # Ahamkara
 
+[![CI](https://github.com/tfq26/Project-Ahamkara/actions/workflows/ci.yml/badge.svg)](https://github.com/tfq26/Project-Ahamkara/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-N/A-lightgrey?logo=codecov)](https://github.com/tfq26/Project-Ahamkara/actions/workflows/ci.yml)
+
 A custom C++20 game engine and multiplayer tech demo built from scratch.
 
 ## Current Milestone

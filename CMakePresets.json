@@ -69,6 +69,16 @@
         "AHAMKARA_BUILD_SAMPLES": "OFF",
         "AHAMKARA_BUILD_TESTS": "OFF"
       }
+    },
+    {
+      "name": "coverage",
+      "displayName": "Coverage",
+      "description": "Debug build with code coverage instrumentation enabled (GCC/Clang)",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/build/coverage",
+      "cacheVariables": {
+        "CODE_COVERAGE": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -97,6 +107,10 @@
     {
       "name": "wish-standalone",
       "configurePreset": "wish-standalone"
+    },
+    {
+      "name": "coverage",
+      "configurePreset": "coverage"
     }
   ],
   "packagePresets": [

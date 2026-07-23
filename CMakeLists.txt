@@ -9,6 +9,10 @@ project(Ahamkara VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
+# Code coverage instrumentation (opt-in via -DCODE_COVERAGE=ON or coverage preset)
+include(cmake/CodeCoverage.cmake)
+setup_coverage()
+
 if(WIN32)
     add_compile_definitions(NOMINMAX)
     # Force all targets to use dynamic CRT (MD/MDd) to avoid RuntimeLibrary

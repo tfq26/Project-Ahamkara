@@ -93,6 +93,73 @@ jobs:
         if: matrix.preset == 'debug-headless'
         run: ctest --test-dir build/debug-headless --output-on-failure
 
+  coverage:
+    name: Coverage
+    runs-on: [self-hosted, linux]
+    needs: lint
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure (coverage preset)
+        run: cmake --preset coverage
+
+      - name: Build (coverage)
+        run: cmake --build --preset coverage
+
+      - name: Run tests
+        run: ctest --test-dir build/coverage --output-on-failure
+
+      - name: Install gcovr
+        run: pip install gcovr
+
+      - name: Generate coverage reports
+        env:
+          GCOVR_ARGS: >-
+            --root "${{ github.workspace }}"
+            --gcov-ignore-parse-errors=negative_hits.warn
+            --filter 'engine/'
+            --filter 'client/'
+            --filter 'server/'
+            --filter 'game/'
+            --filter 'wish/'
+            --filter 'tests/'
+            --exclude 'tests/wish_consumer/'
+            --exclude 'tests/out_of_tree_consumer/'
+        run: |
+          mkdir -p build/coverage/coverage-reports
+          gcovr $GCOVR_ARGS \
+            --html --html-details \
+            --output build/coverage/coverage-reports/coverage.html
+
+          gcovr $GCOVR_ARGS \
+            --xml \
+            --output build/coverage/coverage-reports/coverage.xml
+
+      - name: Print coverage summary
+        env:
+          GCOVR_ARGS: >-
+            --root "${{ github.workspace }}"
+            --gcov-ignore-parse-errors=negative_hits.warn
+            --filter 'engine/'
+            --filter 'client/'
+            --filter 'server/'
+            --filter 'game/'
+            --filter 'wish/'
+            --filter 'tests/'
+            --exclude 'tests/wish_consumer/'
+            --exclude 'tests/out_of_tree_consumer/'
+        run: |
+          gcovr $GCOVR_ARGS --print-summary
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahamkara-coverage-report
+          path: build/coverage/coverage-reports/
+          if-no-files-found: error
+
   package:
     name: Package
     runs-on: [self-hosted, linux]
