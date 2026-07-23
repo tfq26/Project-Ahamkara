@@ -188,6 +188,39 @@ if(AHAMKARA_BUILD_GAME AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/wish-test-c
 endif()
 
 # ---------------------------------------------------------------------------
+# API Documentation (Doxygen)
+# ---------------------------------------------------------------------------
+find_package(Doxygen QUIET)
+
+if(Doxygen_FOUND)
+    # Detect whether Graphviz (dot) is available for diagrams
+    find_program(DOXYGEN_DOT_EXECUTABLE NAMES dot)
+    if(DOXYGEN_DOT_EXECUTABLE)
+        set(DOXYGEN_HAVE_DOT YES)
+    else()
+        set(DOXYGEN_HAVE_DOT NO)
+    endif()
+
+    # Configure the Doxyfile from the version-controlled template
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
+        ${CMAKE_CURRENT_BINARY_DIR}/docs/doxygen/Doxyfile
+        @ONLY
+    )
+
+    # Custom target: cmake --build . --target doc
+    # Also works with Ninja/Make: ninja doc  or  make doc
+    add_custom_target(doc
+        COMMAND ${DOXYGEN_EXECUTABLE}
+                ${CMAKE_CURRENT_BINARY_DIR}/docs/doxygen/Doxyfile
+        COMMENT "Generating API documentation with Doxygen"
+        MAIN_DEPENDENCY
+            ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
+        VERBATIM
+    )
+endif()
+
+# ---------------------------------------------------------------------------
 # Packaging
 # ---------------------------------------------------------------------------
 set(CPACK_PACKAGE_NAME "Ahamkara")
