@@ -114,6 +114,33 @@ jobs:
           name: ahamkara-package
           path: build/package/*.tar.gz
 
+  fuzz-sanity:
+    name: Fuzz Sanity (Clang)
+    runs-on: [self-hosted, linux]
+    needs: lint
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure with Clang + fuzz targets
+        run: >
+          cmake --preset debug
+          -DAHAMKARA_BUILD_FUZZ_TESTS=ON
+          -DCMAKE_CXX_COMPILER=clang++-21
+
+      - name: Build fuzz targets
+        run: >
+          cmake --build build/debug
+          --target ahamkara_fuzz_udp_packet_parse
+          --target ahamkara_fuzz_game_state_serialization
+
+      - name: Run fuzz sanity checks (5 s each)
+        run: >
+          ctest --test-dir build/debug
+          -R ahamkara_fuzz
+          --output-on-failure
+
   auto-merge:
     needs: build-and-test
     if: |

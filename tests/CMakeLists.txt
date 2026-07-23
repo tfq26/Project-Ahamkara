@@ -666,3 +666,11 @@ target_link_libraries(ahamkara_jitter_buffer_tests
         ae_network
 )
 add_test(NAME ahamkara_jitter_buffer_tests COMMAND ahamkara_jitter_buffer_tests)
+
+# ── Fuzz tests ─────────────────────────────────────────────────────────────────
+# Uses libFuzzer when compiled with Clang + -fsanitize=fuzzer support;
+# falls back to a standalone driver for other compilers / CI.
+option(AHAMKARA_BUILD_FUZZ_TESTS "Build fuzz testing targets" OFF)
+if(AHAMKARA_BUILD_FUZZ_TESTS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/fuzz/CMakeLists.txt")
+    add_subdirectory(fuzz)
+endif()
