@@ -1,0 +1,69 @@
+# Dependabot configuration for automated dependency updates.
+#
+# Ecosystems tracked:
+#   - docker  → Dockerfile, Dockerfile.build (base image and system packages)
+#   - github-actions → CI workflow actions (GitHub-hosted actions and
+#     third-party actions used in .github/workflows/)
+#
+# What Dependabot does NOT cover:
+#   - CMake FetchContent dependencies (JoltPhysics, GLM, EnTT, miniaudio,
+#     Lua, sol2) — these must be updated manually. See docs/guides/dependencies.md
+#     for the manual update workflow.
+#   - System packages installed via apt-get in Dockerfiles — Dependabot tracks
+#     base image digests but not individual apt packages.
+#
+# For each ecosystem, Dependabot opens pull requests against the `develop`
+# branch (the project's integration branch).  PRs include release notes, a
+# changelog summary, and a compatibility score when available.
+# Maintainers review and merge through the normal PR workflow.
+
+version: 2
+updates:
+  # ── Docker ──────────────────────────────────────────────────────────
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    target-branch: develop
+    labels:
+      - dependencies
+      - docker
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    # Group patch-level updates together to reduce noise.
+    groups:
+      docker-base:
+        patterns:
+          - "ubuntu:*"
+        update-types:
+          - "patch"
+          - "minor"
+
+  # ── GitHub Actions ──────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    target-branch: develop
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    groups:
+      actions:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
