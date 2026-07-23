@@ -1,0 +1,43 @@
+# UndefinedBehaviorSanitizer suppression file
+#
+# Suppressions for known UB reports in third-party code that we cannot
+# fix upstream.  Each entry is a "SrcFile:Pattern" or a "Function:Name"
+# line (see https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html#suppression-format).
+#
+# NOTE: UBSan suppressions are a last resort — prefer addressing the root
+# cause when the code is under our control.
+
+# ---------------------------------------------------------------------------
+# JoltPhysics — uses memcpy on non-trivially-copyable types (suppressed at
+# compile time via -Wno-nontrivial-memcall on AppleClang); also performs
+# unaligned loads on packed structs.
+# ---------------------------------------------------------------------------
+alignment:Jolt*
+
+# ---------------------------------------------------------------------------
+# GLM — uses type-punning through unions for swizzle helpers which is
+# well-defined in C++ but UBSan flags it.
+# ---------------------------------------------------------------------------
+vla-bound:glm
+pointer-overflow:glm
+
+# ---------------------------------------------------------------------------
+# EnTT — uses pointer arithmetic on storage iterators that triggers
+# -fsanitize=pointer-overflow in some configurations.
+# ---------------------------------------------------------------------------
+pointer-overflow:entt
+
+# ---------------------------------------------------------------------------
+# Miniaudio — performs implementation-defined shifts and unaligned accesses
+# in its decoder back-ends.
+# ---------------------------------------------------------------------------
+shift-exponent:miniaudio
+alignment:miniaudio
+
+# ---------------------------------------------------------------------------
+# Standard library / platform headers (implementation-defined behaviour
+# outside our control).
+# ---------------------------------------------------------------------------
+vptr:std::
+alignment:*cxa*
+function:typeinfo

@@ -1,0 +1,23 @@
+# LeakSanitizer suppression file
+#
+# Suppressions for known memory leaks in third-party libraries that are
+# outside our control.  Entries are plain function-name or source-location
+# patterns.
+
+# ---------------------------------------------------------------------------
+# GLFW / OpenGL — driver-level allocations that are never freed (benign).
+# ---------------------------------------------------------------------------
+leak:glfw
+leak:libGL
+leak:libGLX
+leak:libEGL
+
+# ---------------------------------------------------------------------------
+# JoltPhysics — arena-style allocator that does not free on shutdown.
+# ---------------------------------------------------------------------------
+leak:Jolt
+
+# ---------------------------------------------------------------------------
+# System allocator hooks / CRT
+# ---------------------------------------------------------------------------
+leak:__GI_

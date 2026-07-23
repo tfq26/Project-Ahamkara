@@ -69,6 +69,26 @@
         "AHAMKARA_BUILD_SAMPLES": "OFF",
         "AHAMKARA_BUILD_TESTS": "OFF"
       }
+    },
+    {
+      "name": "debug-asan",
+      "displayName": "Debug (ASan + UBSan)",
+      "description": "Debug build with AddressSanitizer and UndefinedBehaviorSanitizer enabled",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/build/debug-asan",
+      "cacheVariables": {
+        "AHAMKARA_ENABLE_SANITIZE": "ON"
+      }
+    },
+    {
+      "name": "debug-headless-asan",
+      "displayName": "Debug Headless (ASan + UBSan)",
+      "description": "Headless debug build with AddressSanitizer and UndefinedBehaviorSanitizer enabled",
+      "inherits": "debug-headless",
+      "binaryDir": "${sourceDir}/build/debug-headless-asan",
+      "cacheVariables": {
+        "AHAMKARA_ENABLE_SANITIZE": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -97,6 +117,14 @@
     {
       "name": "wish-standalone",
       "configurePreset": "wish-standalone"
+    },
+    {
+      "name": "debug-asan",
+      "configurePreset": "debug-asan"
+    },
+    {
+      "name": "debug-headless-asan",
+      "configurePreset": "debug-headless-asan"
     }
   ],
   "packagePresets": [

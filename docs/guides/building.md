@@ -81,6 +81,86 @@ Alternatively, invoke `ninja` directly inside the build directory:
 ninja -C build/debug
 ```
 
+## Sanitizer Builds
+
+The project supports building with **AddressSanitizer (ASan)** and
+**UndefinedBehaviorSanitizer (UBSan)** enabled to catch memory errors and
+undefined behaviour at runtime.
+
+### Prerequisites
+
+Sanitizer builds require a Clang or GCC compiler that supports
+`-fsanitize=address,undefined`.  The sanitizer run-time libraries must also
+be installed:
+
+```sh
+# Ubuntu
+sudo apt install -y libasan6 libubsan1
+
+# macOS — Xcode Clang includes the sanitizer runtimes out of the box
+```
+
+### Configure and Build
+
+Two convenience presets are available:
+
+```sh
+# Debug + ASan + UBSan (full client, tests)
+cmake --preset debug-asan
+cmake --build --preset debug-asan
+
+# Headless debug + ASan + UBSan (no GLFW/OpenGL client, server + tests)
+cmake --preset debug-headless-asan
+cmake --build --preset debug-headless-asan
+```
+
+### Run Tests Under Sanitizers
+
+```sh
+ctest --test-dir build/debug-asan --output-on-failure
+ctest --test-dir build/debug-headless-asan --output-on-failure
+```
+
+### Customising Sanitizer Options
+
+Set the `ASAN_OPTIONS` and `UBSAN_OPTIONS` environment variables to tune
+behaviour:
+
+```sh
+# Halt on the first error and include a stack trace for every allocation
+ASAN_OPTIONS=halt_on_error=1:detect_leaks=1 \
+UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+ctest --test-dir build/debug-asan --output-on-failure
+```
+
+### Suppression Files
+
+Known false positives in third-party dependencies (JoltPhysics, GLM, EnTT,
+miniaudio, GLFW) are suppressed via files in `.sanitizer/`:
+
+| File              | Purpose                                    |
+|-------------------|--------------------------------------------|
+| `.sanitizer/asan.supp`  | AddressSanitizer leak/interceptor suppressions |
+| `.sanitizer/ubsan.supp` | UndefinedBehaviorSanitiser type/alignment suppressions |
+| `.sanitizer/lsan.supp`  | LeakSanitizer known-leak suppressions      |
+
+To use them locally:
+
+```sh
+export ASAN_OPTIONS="suppressions=$(pwd)/.sanitizer/asan.supp:detect_leaks=1"
+export UBSAN_OPTIONS="suppressions=$(pwd)/.sanitizer/ubsan.supp:halt_on_error=1"
+ctest --test-dir build/debug-asan --output-on-failure
+```
+
+### Adding a New Suppression
+
+1. Reproduce the issue under the sanitizer build.
+2. Identify the offending function or source file from the sanitizer report.
+3. Add an entry to the appropriate `.sanitizer/*.supp` file (see existing
+   entries for the format).
+4. Open a GitHub issue linking to the upstream dependency so the suppression
+   can be removed when the dependency is updated.
+
 ## Run
 
 ### Universal Launcher

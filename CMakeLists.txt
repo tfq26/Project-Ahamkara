@@ -18,6 +18,21 @@ endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# ---------------------------------------------------------------------------
+# Sanitizers (AddressSanitizer + UndefinedBehaviorSanitizer)
+# ---------------------------------------------------------------------------
+option(AHAMKARA_ENABLE_SANITIZE "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+
+if(AHAMKARA_ENABLE_SANITIZE)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,undefined")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address,undefined")
+    else()
+        message(WARNING "AHAMKARA_ENABLE_SANITIZE is ON but the compiler (${CMAKE_CXX_COMPILER_ID}) does not support -fsanitize. Ignoring.")
+    endif()
+endif()
+
 include(FetchContent)
 # Do not recursively install FetchContent dependencies with cmake --install.
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY ON)

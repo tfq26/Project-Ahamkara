@@ -1,0 +1,24 @@
+# AddressSanitizer suppression file
+#
+# Suppressions for known false positives in third-party code and system
+# libraries. Each entry names a specific interceptor or call-stack pattern
+# that ASan should not report.
+#
+# Format: one interceptor name per line, optionally preceded by a
+# stack-frame pattern (see https://clang.llvm.org/docs/AddressSanitizer.html#suppressing-reports)
+
+# ---------------------------------------------------------------------------
+# GLFW / OpenGL driver stack (known leak on context creation/destruction)
+# ---------------------------------------------------------------------------
+leak:glfw
+leak:libGL
+
+# ---------------------------------------------------------------------------
+# JoltPhysics internal allocations (managed by its own allocator)
+# ---------------------------------------------------------------------------
+leak:Jolt
+
+# ---------------------------------------------------------------------------
+# System / CRT startup
+# ---------------------------------------------------------------------------
+interceptor_via_fun:__interceptor_malloc
