@@ -105,6 +105,32 @@ endif()
 add_library(miniaudio_lib INTERFACE)
 target_include_directories(miniaudio_lib INTERFACE ${miniaudio_SOURCE_DIR})
 
+# ---------------------------------------------------------------------------
+# Sanitizer support
+# ---------------------------------------------------------------------------
+option(AHAMKARA_SANITIZE_ADDRESS "Enable AddressSanitizer (detect memory errors)" OFF)
+option(AHAMKARA_SANITIZE_UNDEFINED "Enable UndefinedBehaviorSanitizer (detect undefined behaviour)" OFF)
+
+if(AHAMKARA_SANITIZE_ADDRESS)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+        message(STATUS "AddressSanitizer enabled")
+        add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+        add_link_options(-fsanitize=address)
+    else()
+        message(WARNING "AddressSanitizer not supported for compiler ${CMAKE_CXX_COMPILER_ID}; ignoring")
+    endif()
+endif()
+
+if(AHAMKARA_SANITIZE_UNDEFINED)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+        message(STATUS "UndefinedBehaviorSanitizer enabled")
+        add_compile_options(-fsanitize=undefined)
+        add_link_options(-fsanitize=undefined)
+    else()
+        message(WARNING "UndefinedBehaviorSanitizer not supported for compiler ${CMAKE_CXX_COMPILER_ID}; ignoring")
+    endif()
+endif()
+
 option(AHAMKARA_BUILD_CLIENT "Build the Ahamkara client" ON)
 option(AHAMKARA_BUILD_SERVER "Build the Ahamkara dedicated server" ON)
 option(AHAMKARA_BUILD_TESTS "Build the Ahamkara test targets" ON)

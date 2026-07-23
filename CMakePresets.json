@@ -69,6 +69,26 @@
         "AHAMKARA_BUILD_SAMPLES": "OFF",
         "AHAMKARA_BUILD_TESTS": "OFF"
       }
+    },
+    {
+      "name": "debug-asan",
+      "displayName": "Debug (ASan)",
+      "description": "Debug build with AddressSanitizer for memory error detection",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/build/debug-asan",
+      "cacheVariables": {
+        "AHAMKARA_SANITIZE_ADDRESS": "ON"
+      }
+    },
+    {
+      "name": "debug-ubsan",
+      "displayName": "Debug (UBSan)",
+      "description": "Debug build with UndefinedBehaviorSanitizer for undefined behaviour detection",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/build/debug-ubsan",
+      "cacheVariables": {
+        "AHAMKARA_SANITIZE_UNDEFINED": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -97,6 +117,14 @@
     {
       "name": "wish-standalone",
       "configurePreset": "wish-standalone"
+    },
+    {
+      "name": "debug-asan",
+      "configurePreset": "debug-asan"
+    },
+    {
+      "name": "debug-ubsan",
+      "configurePreset": "debug-ubsan"
     }
   ],
   "packagePresets": [
