@@ -68,6 +68,23 @@ if(NOT AHAMKARA_ENGINE_ONLY)
     FetchContent_MakeAvailable(jolt)
 endif()
 
+# Google Benchmark (optional) — used only when AHAMKARA_BUILD_BENCHMARKS is ON.
+# Benchmarks are built separately from the normal test suite and do NOT run
+# as part of ctest by default.  Enable by passing -DAHAMKARA_BUILD_BENCHMARKS=ON
+# at configure time.
+if(AHAMKARA_BUILD_BENCHMARKS)
+    set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+    set(BENCHMARK_ENABLE_EXCEPTIONS OFF CACHE BOOL "" FORCE)
+    set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+    set(BENCHMARK_DOWNLOAD_DEPENDENCIES ON CACHE BOOL "" FORCE)
+    FetchContent_Declare(
+        googlebenchmark
+        GIT_REPOSITORY https://github.com/google/benchmark.git
+        GIT_TAG        v1.8.3
+    )
+    FetchContent_MakeAvailable(googlebenchmark)
+endif()
+
 # Force-fix Jolt CRT on Windows in case its internal CMake overrode our setting
 if(WIN32 AND TARGET Jolt)
     set_property(TARGET Jolt PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
@@ -108,6 +125,7 @@ target_include_directories(miniaudio_lib INTERFACE ${miniaudio_SOURCE_DIR})
 option(AHAMKARA_BUILD_CLIENT "Build the Ahamkara client" ON)
 option(AHAMKARA_BUILD_SERVER "Build the Ahamkara dedicated server" ON)
 option(AHAMKARA_BUILD_TESTS "Build the Ahamkara test targets" ON)
+option(AHAMKARA_BUILD_BENCHMARKS "Build the Ahamkara benchmark targets (Google Benchmark)" OFF)
 option(AHAMKARA_BUILD_SAMPLES "Build sample games that consume the engine" ON)
 option(AHAMKARA_BUILD_WISH "Build Wish backend modules (not part of pure engine package)" ON)
 option(AHAMKARA_BUILD_GAME "Build Flashback/gameplay library (not part of pure engine package)" ON)
@@ -181,6 +199,11 @@ endif()
 
 if(AHAMKARA_BUILD_TESTS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt")
     add_subdirectory(tests)
+endif()
+
+# Benchmarks — only built when explicitly enabled (not part of normal CI/test).
+if(AHAMKARA_BUILD_BENCHMARKS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/CMakeLists.txt")
+    add_subdirectory(benchmarks)
 endif()
 
 if(AHAMKARA_BUILD_GAME AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/wish-test-client/CMakeLists.txt")
