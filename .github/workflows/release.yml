@@ -1,0 +1,244 @@
+# Release workflow
+#
+# Triggered by pushing a version tag (vX.Y.Z).  Builds all CMake presets,
+# runs tests, packages archives (TGZ, ZIP) via CPack, generates release
+# notes from the commit log, updates CHANGELOG.md, and publishes a GitHub
+# Release with the packaged artifacts.
+#
+# Usage
+# -----
+#   git tag v1.2.3
+#   git push origin v1.2.3
+#
+# The CHANGELOG update is committed back to the main branch after the
+# release is published.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
+  issues: write
+
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 4
+
+jobs:
+  # ------------------------------------------------------------------
+  # Build & test every preset (mirrors ci.yml)
+  # ------------------------------------------------------------------
+  build-and-test:
+    name: ${{ matrix.preset }}
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [debug, release, debug-headless]
+
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      - name: Run tests (debug only)
+        if: matrix.preset == 'debug'
+        run: ctest --test-dir build/${{ matrix.preset }} --output-on-failure
+
+      - name: Run tests (debug-headless only)
+        if: matrix.preset == 'debug-headless'
+        run: ctest --test-dir build/debug-headless --output-on-failure
+
+  # ------------------------------------------------------------------
+  # Package archives with CPack (both standard and headless)
+  # ------------------------------------------------------------------
+  package:
+    name: Package
+    runs-on: [self-hosted, linux]
+    needs: [build-and-test]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Package (standard)
+        run: |
+          cmake --preset package
+          cmake --build --preset package
+          cpack --preset package
+
+      - name: Package (headless)
+        run: |
+          cmake --preset package-debug-headless
+          cmake --build --preset package-debug-headless
+          cpack --preset package-debug-headless
+
+      - name: Collect packages
+        run: |
+          mkdir -p dist
+          cp build/package/*.tar.gz  dist/ 2>/dev/null || true
+          cp build/package/*.zip     dist/ 2>/dev/null || true
+          cp build/package-debug-headless/*.tar.gz dist/ 2>/dev/null || true
+          cp build/package-debug-headless/*.zip    dist/ 2>/dev/null || true
+          echo "=== Packages in dist/ ==="
+          ls -lh dist/
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahamkara-release-packages
+          path: dist/
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------
+  # Generate release notes, update CHANGELOG, create GitHub Release
+  # ------------------------------------------------------------------
+  release:
+    name: Create Release
+    runs-on: [self-hosted, linux]
+    needs: [package]
+    if: success()
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: ahamkara-release-packages
+          path: dist/
+
+      - name: Derive version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
+      - name: Generate release notes
+        id: notes
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          # Find the previous tag that looks like vX.Y.Z
+          PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -2 | tail -1 || true)
+
+          NOTES=$(mktemp)
+          {
+            echo "## Ahamkara ${{ steps.version.outputs.version }}"
+            echo ""
+            echo "Release generated from tag \`${TAG}\`."
+            echo ""
+            if [ -n "${PREV_TAG}" ]; then
+              echo "Changes since ${PREV_TAG}:"
+              echo ""
+              git log --oneline --no-decorate "${PREV_TAG}..${TAG}" 2>/dev/null || \
+              git log --oneline --no-decorate "${TAG}" | head -50
+            else
+              git log --oneline --no-decorate "${TAG}" | head -50
+            fi
+            echo ""
+          } > "${NOTES}"
+
+          # Store for the CHANGELOG update step
+          cp "${NOTES}" release-notes.md
+          # Also store as a single-line output for the release body
+          {
+            echo "notes<<EOF"
+            cat "${NOTES}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Update CHANGELOG.md
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Build the new changelog entry
+          NEW_ENTRY=$(mktemp)
+          cat > "${NEW_ENTRY}" <<- CHANGELOG_EOF
+          ## [${VERSION}] - $(date +%Y-%m-%d)
+
+          ### Release
+
+          - Automated release build for \`${TAG}\`.
+          - See the GitHub Release for the full list of changes.
+
+          CHANGELOG_EOF
+
+          # Prepend the new version entry after the file header but before the
+          # first ##-heading (i.e., before the "## Unreleased" section).
+          HEADER=$(mktemp)
+          BODY=$(mktemp)
+          awk '/^## / { exit } { print }' CHANGELOG.md > "${HEADER}"
+          awk '/^## / { found=1 } found { print }' CHANGELOG.md > "${BODY}"
+          {
+            cat "${HEADER}"
+            echo ""
+            cat "${NEW_ENTRY}"
+            echo ""
+            cat "${BODY}"
+          } > CHANGELOG.md.new
+          mv CHANGELOG.md.new CHANGELOG.md
+          echo "=== CHANGELOG.md updated ==="
+          head -20 CHANGELOG.md
+
+      - name: Commit CHANGELOG update to main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "Ahamkara Release Bot"
+          git config user.email "release-bot@ahamkara.dev"
+
+          # Fetch the latest main and checkout a working branch
+          git fetch origin main
+          git checkout main
+          git pull origin main
+
+          # Re-apply the CHANGELOG change (cherry-pick the file from the tag checkout)
+          git checkout "${GITHUB_REF_NAME}" -- CHANGELOG.md
+
+          if git diff --cached --quiet; then
+            echo "No CHANGELOG changes to commit."
+          else
+            git commit -m "Update CHANGELOG for ${GITHUB_REF_NAME} [skip ci]"
+            git push origin main
+            echo "CHANGELOG update pushed to main."
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          # Collect all package files
+          PACKAGES=()
+          for pkg in dist/*.tar.gz dist/*.zip; do
+            [ -f "${pkg}" ] && PACKAGES+=("${pkg}")
+          done
+
+          # Create the release with notes and packages
+          gh release create \
+            "${TAG}" \
+            --title "Ahamkara ${{ steps.version.outputs.version }}" \
+            --notes-file release-notes.md \
+            "${PACKAGES[@]}"
+
+          echo "Release ${TAG} created successfully."
