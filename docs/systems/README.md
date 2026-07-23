@@ -6,6 +6,7 @@ mechanisms live in [`../design/`](../design/README.md).
 
 ## System Docs
 
+- [Building](building.md) — Build prerequisites, presets, and known platform-specific issues
 - [Architecture](architecture.md)
 - [Networking](networking.md)
 - [Asset pipeline](asset_pipeline.md)

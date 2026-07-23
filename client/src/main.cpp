@@ -8,7 +8,10 @@
 #include <string>
 #include <vector>
 
-#if defined(__APPLE__)
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#elif defined(__APPLE__)
 #include <mach-o/dyld.h>
 #include <unistd.h>
 #elif defined(__linux__)
@@ -25,7 +28,18 @@ constexpr const char* kClientConfigRelativePath = "client/config/ahamkara.cfg";
 constexpr const char* kControllerBindingsRelativePath = "client/config/controller_bindings.cfg";
 
 std::optional<std::filesystem::path> current_executable_path(const char* argv0) {
-#if defined(__APPLE__)
+#if defined(_WIN32)
+    std::vector<wchar_t> buffer(MAX_PATH);
+    DWORD length = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+    while (length == buffer.size() && GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+        buffer.resize(buffer.size() * 2);
+        length = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+    }
+    if (length > 0) {
+        buffer.resize(length);
+        return std::filesystem::weakly_canonical(std::filesystem::path(buffer.begin(), buffer.end()));
+    }
+#elif defined(__APPLE__)
     uint32_t buffer_size = 0;
     _NSGetExecutablePath(nullptr, &buffer_size);
     if (buffer_size > 0) {

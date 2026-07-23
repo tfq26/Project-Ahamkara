@@ -1,7 +1,8 @@
 # CI workflow
 #
 # Builds all CMake presets (debug, release, debug-headless) and runs tests
-# for presets that support them. Runs on self-hosted Linux runner (servlenovo1).
+# for presets that support them. Runs on Linux (self-hosted), macOS (GitHub
+# hosted), and Windows (GitHub hosted).
 # Agent branches auto-merge only when they explicitly opt in through the
 # agent/automerge/** namespace; ordinary agent branches are PR-only.
 
@@ -65,8 +66,11 @@ jobs:
           path: build/lint/
           if-no-files-found: warn
 
+  # ── Linux build (self-hosted) ────────────────────────────────────────────
+  # Kept separate so that package and auto-merge can depend on it without
+  # waiting for Windows/macOS hosted runners.
   build-and-test:
-    name: ${{ matrix.preset }} (self-hosted)
+    name: ${{ matrix.preset }} (Linux)
     needs: lint
     strategy:
       fail-fast: false
@@ -93,6 +97,73 @@ jobs:
         if: matrix.preset == 'debug-headless'
         run: ctest --test-dir build/debug-headless --output-on-failure
 
+  # ── macOS build (GitHub-hosted) ──────────────────────────────────────────
+  build-macos:
+    name: ${{ matrix.preset }} (macOS)
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [debug, release]
+
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew update >/dev/null
+          brew install ninja glfw
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      - name: Run tests
+        if: matrix.preset == 'debug'
+        run: ctest --test-dir build/${{ matrix.preset }} --output-on-failure
+
+  # ── Windows build (GitHub-hosted) ────────────────────────────────────────
+  build-windows:
+    name: ${{ matrix.preset }} (Windows)
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [debug, release]
+
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          choco install ninja --no-progress -y
+          # vcpkg is pre-installed on windows-latest runners.
+          # Install glfw3 so CMake's find_package(glfw3) succeeds.
+          vcpkg install glfw3 --triplet x64-windows
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          cmake --preset ${{ matrix.preset }} `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake"
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      - name: Run tests
+        if: matrix.preset == 'debug'
+        run: ctest --test-dir build/${{ matrix.preset }} --output-on-failure
+
+  # ── Package (Linux only) ─────────────────────────────────────────────────
   package:
     name: Package
     runs-on: [self-hosted, linux]
@@ -114,6 +185,7 @@ jobs:
           name: ahamkara-package
           path: build/package/*.tar.gz
 
+  # ── Auto-merge (Linux build required; Windows/macOS informational) ───────
   auto-merge:
     needs: build-and-test
     if: |
