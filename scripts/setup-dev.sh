@@ -9,16 +9,18 @@ PRESET="${AHAMKARA_CMAKE_PRESET:-debug}"
 print_usage() {
     cat <<'EOF'
 Usage:
-  ./scripts/setup-dev.sh [--preset <name>] [--skip-configure]
+  ./scripts/setup-dev.sh [--preset <name>] [--skip-configure] [--install-hook]
 
 Options:
   --preset <name>     CMake preset to configure (default: debug)
   --skip-configure    Only verify dependencies and environment
+  --install-hook      Install the pre-commit lint hook (opt-in)
   --help              Show this help
 EOF
 }
 
 SKIP_CONFIGURE=0
+INSTALL_HOOK=0
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -32,6 +34,10 @@ while [ "$#" -gt 0 ]; do
             ;;
         --skip-configure)
             SKIP_CONFIGURE=1
+            shift
+            ;;
+        --install-hook)
+            INSTALL_HOOK=1
             shift
             ;;
         --help)
@@ -87,3 +93,13 @@ fi
 echo "Configuring preset: $PRESET"
 cmake --preset "$PRESET"
 echo "Setup complete for preset: $PRESET"
+
+# ---- pre-commit hook (opt-in) --------------------------------------------
+if [ "$INSTALL_HOOK" -eq 1 ]; then
+    if [ -f "$SCRIPT_DIR/install-pre-commit-hook.sh" ]; then
+        echo ""
+        "$SCRIPT_DIR/install-pre-commit-hook.sh"
+    else
+        echo "Warning: install-pre-commit-hook.sh not found, skipping." >&2
+    fi
+fi

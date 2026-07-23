@@ -186,6 +186,41 @@ build and tests before commit.
 - do not rewrite history
 - always summarize changed files and commands run
 
+### Pre-commit Hook (Opt-in)
+
+The repository includes an optional pre-commit hook that runs the full lint
+suite (clang-format, clang-tidy, ruff, shellcheck, cmake-lint, actionlint,
+and repository hygiene) on staged changes before each commit.
+
+**Install:**
+
+```sh
+# Option A — through setup-dev
+./scripts/setup-dev.sh --install-hook
+
+# Option B — directly
+./scripts/install-pre-commit-hook.sh
+```
+
+Once installed, the hook runs automatically on `git commit`. It checks only
+the staged version of each file (unstaged changes are temporarily stashed),
+so partial commits are validated correctly.
+
+**Skip for a single commit:**
+
+```sh
+git commit --no-verify
+```
+
+**Uninstall:**
+
+```sh
+rm .git/hooks/pre-commit
+```
+
+The hook is **opt-in by design** — it is never auto-installed by `setup-dev.sh`
+unless the `--install-hook` flag is explicitly passed.
+
 ### Sync, Diff, Commit, Push
 
 Safe sync for a clean workspace:
