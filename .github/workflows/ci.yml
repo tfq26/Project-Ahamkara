@@ -1,7 +1,11 @@
 # CI workflow
 #
 # Builds all CMake presets (debug, release, debug-headless) and runs tests
-# for presets that support them. Runs on self-hosted Linux runner (servlenovo1).
+# for presets that support them. Runs Valgrind memcheck on the headless
+# test targets to detect memory leaks and invalid accesses. The Valgrind
+# job is currently non-blocking (continue-on-error: true) and should be
+# made required once all known leaks are fixed.
+# Runs on self-hosted Linux runner (servlenovo1).
 # Agent branches auto-merge only when they explicitly opt in through the
 # agent/automerge/** namespace; ordinary agent branches are PR-only.
 
@@ -92,6 +96,64 @@ jobs:
       - name: Run tests (debug-headless only)
         if: matrix.preset == 'debug-headless'
         run: ctest --test-dir build/debug-headless --output-on-failure
+
+  valgrind:
+    name: Valgrind memcheck
+    runs-on: [self-hosted, linux]
+    needs: lint
+    # Initially non-blocking — allows CI to pass while leaks are fixed.
+    # Remove continue-on-error once all known leaks are resolved.
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Valgrind
+        run: |
+          if command -v apt-get &>/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq valgrind
+          elif command -v dnf &>/dev/null; then
+            sudo dnf install -y valgrind
+          else
+            echo "WARNING: no package manager found — assuming valgrind is pre-installed"
+          fi
+          valgrind --version
+
+      - name: Run tests under Valgrind
+        id: valgrind_run
+        env:
+          CMAKE_BUILD_PARALLEL_LEVEL: 4
+        run: |
+          ./scripts/valgrind-tests.sh --preset debug-headless --build 2>&1 | tee build/valgrind-run.log
+
+      - name: Summarize Valgrind results
+        if: always()
+        run: |
+          {
+            echo "## Valgrind Memcheck Results" >> "${GITHUB_STEP_SUMMARY}"
+            echo "" >> "${GITHUB_STEP_SUMMARY}"
+            if grep -q "❌ FAIL" build/valgrind-run.log 2>/dev/null; then
+              echo "**FAILED** — memory issues detected" >> "${GITHUB_STEP_SUMMARY}"
+              grep -B2 "❌ FAIL" build/valgrind-run.log >> "${GITHUB_STEP_SUMMARY}" || true
+            else
+              if grep -q "✅ PASS" build/valgrind-run.log 2>/dev/null; then
+                PASS=$(grep -c "✅ PASS" build/valgrind-run.log)
+                echo "**PASSED** — ${PASS} tests clean" >> "${GITHUB_STEP_SUMMARY}"
+              fi
+            fi
+            # Append the Valgrind test summary
+            sed -n '/Valgrind Test Summary/,/^$/p' build/valgrind-run.log >> "${GITHUB_STEP_SUMMARY}" || true
+          } || true
+
+      - name: Upload Valgrind logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahamkara-valgrind-logs
+          path: build/debug-headless/valgrind-*.log
+          if-no-files-found: warn
 
   package:
     name: Package

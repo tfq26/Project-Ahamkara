@@ -1,0 +1,199 @@
+# Ahamkara Valgrind Suppression File
+# ===================================
+#
+# Suppressions for known false positives in third-party dependencies
+# and platform libraries. Add project-specific suppressions above the
+# marker line.
+#
+# Usage:
+#   valgrind --suppressions=scripts/valgrind-suppressions.txt <test_binary>
+#
+# See also: scripts/valgrind-tests.sh
+#
+# WARNING: Suppressions hide real leaks. Only add entries here after
+# confirming the leak originates from code OUTSIDE this project's
+# control and does NOT indicate a bug in our usage of that library.
+
+# ---------------------------------------------------------------
+# Project-specific suppressions — add entries above this section
+# ---------------------------------------------------------------
+
+# ---------------------------------------------------------------
+# Third-party library suppressions
+# ---------------------------------------------------------------
+
+# JoltPhysics internal allocations
+# Jolt maintains internal caches and pools that are intentionally
+# never freed during normal process lifetime.
+{
+   <jolt-physics-persistent-allocations>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   ...
+   obj:*Jolt*
+}
+
+# GLM detail/internal allocations (header-only math library)
+# GLM may perform small internal allocations for static data.
+{
+   <glm-internal-allocation>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   ...
+   obj:*glm*
+}
+
+# EnTT internal metadata allocations
+# EnTT uses type-index metadata that may be allocated once and never freed.
+{
+   <entt-metadata-allocations>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   ...
+   obj:*entt*
+}
+
+# miniaudio library internal state
+# miniaudio allocates device context and encoder/decoder state that
+# persists for the application lifetime.
+{
+   <miniaudio-device-state>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   fun:calloc
+   ...
+   obj:*miniaudio*
+}
+
+# OpenGL driver allocations
+# GPU driver memory allocated during context creation may not be
+# tracked by the driver's deinit path under Valgrind.
+{
+   <opengl-driver-allocations>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   fun:calloc
+   fun:realloc
+   ...
+   obj:*libGL*
+}
+
+# GLFW window/context allocations
+# GLFW allocates internal window system resources that are released
+# on glfwTerminate() but may still appear reachable at exit.
+{
+   <glfw-internal-allocations>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   fun:calloc
+   ...
+   obj:*glfw*
+}
+
+# X11 / Wayland display allocations
+# The display server protocol libraries may allocate per-connection
+# state that is intentionally never freed on disconnect.
+{
+   <x11-display-allocations>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   fun:calloc
+   ...
+   obj:*libX11*
+}
+{
+   <wayland-display-allocations>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   fun:calloc
+   ...
+   obj:*libwayland*
+}
+
+# ALSA / PulseAudio allocations
+# Audio subsystem allocations that persist for the application lifetime.
+{
+   <alsa-audio-allocations>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   fun:calloc
+   ...
+   obj:*libasound*
+}
+{
+   <pulseaudio-allocations>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   fun:calloc
+   ...
+   obj:*libpulse*
+}
+
+# libstdc++ / libc++ static allocations
+# Standard library implementations may allocate persistent singleton
+# or locale data that is intentionally never freed.
+{
+   <libstdcpp-internal-allocations>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   fun:calloc
+   ...
+   obj:*libstdc++*
+}
+{
+   <libcxx-internal-allocations>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   fun:calloc
+   ...
+   obj:*libc++*
+}
+
+# dlopen / loader allocations
+# The dynamic linker allocates memory for loaded shared objects that
+# may persist until process exit.
+{
+   <ld-loader-allocations>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   fun:calloc
+   ...
+   obj:*ld-*
+}
+
+# ---------------------------------------------------------------
+# Lua / sol2 library allocations (used when AHAMKARA_BUILD_WISH_ADMIN=ON)
+# ---------------------------------------------------------------
+{
+   <lua-gc-allocations>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   fun:calloc
+   fun:realloc
+   ...
+   obj:*liblua*
+}
+{
+   <sol2-internal-allocations>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possibly-lost
+   fun:malloc
+   fun:calloc
+   fun:realloc
+   ...
+   obj:*sol2*
+}
