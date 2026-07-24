@@ -70,3 +70,83 @@ target_link_libraries(session_group_tests
 )
 
 add_test(NAME session_group_tests COMMAND session_group_tests)
+
+# ── Identity service tests ────────────────────────────────────────────────
+add_executable(identity_service_tests
+    core/tests/identity_service_tests.cpp
+)
+
+target_compile_features(identity_service_tests PRIVATE cxx_std_20)
+
+target_include_directories(identity_service_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_link_libraries(identity_service_tests
+    PRIVATE
+        wish_engine
+)
+
+add_test(NAME identity_service_tests COMMAND identity_service_tests)
+
+# ── Roster service tests ──────────────────────────────────────────────────
+add_executable(roster_service_tests
+    core/tests/roster_service_tests.cpp
+)
+
+target_compile_features(roster_service_tests PRIVATE cxx_std_20)
+
+target_include_directories(roster_service_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_link_libraries(roster_service_tests
+    PRIVATE
+        wish_engine
+)
+
+add_test(NAME roster_service_tests COMMAND roster_service_tests)
+
+# ── Invite service tests ──────────────────────────────────────────────────
+add_executable(invite_service_tests
+    core/tests/invite_service_tests.cpp
+)
+
+target_compile_features(invite_service_tests PRIVATE cxx_std_20)
+
+target_include_directories(invite_service_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_link_libraries(invite_service_tests
+    PRIVATE
+        wish_engine
+)
+
+add_test(NAME invite_service_tests COMMAND invite_service_tests)
+
+# ── Validation telemetry tests ────────────────────────────────────────────
+add_executable(validation_telemetry_tests
+    core/tests/validation_telemetry_tests.cpp
+)
+
+target_compile_features(validation_telemetry_tests PRIVATE cxx_std_20)
+
+target_include_directories(validation_telemetry_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_link_libraries(validation_telemetry_tests
+    PRIVATE
+        wish_engine
+)
+
+add_test(NAME validation_telemetry_tests COMMAND validation_telemetry_tests)
