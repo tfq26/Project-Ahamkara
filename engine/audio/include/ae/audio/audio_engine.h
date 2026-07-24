@@ -81,10 +81,26 @@ public:
     /// Mark a playing sound as occluded (sets occlusion factor, applied as volume reduction).
     void set_occluded(int handle, float occlusion);
 
+    // --- Occlusion ---
+    /// Callback type: perform a raycast from (ox,oy,oz) along normalized
+    /// (dx,dy,dz) up to max_dist.  Returns true and sets out_hit_dist if
+    /// an occluding surface was hit before max_dist.
+    using RaycastCallback = bool (*)(float ox, float oy, float oz,
+                                     float dx, float dy, float dz,
+                                     float max_dist, float& out_hit_dist);
+
+    /// Register a raycast callback for occlusion queries.
+    /// If no callback is set, check_occlusion always returns 0.0 (open).
+    void set_occlusion_raycast(RaycastCallback cb);
+
+    /// Compute occlusion factor between source and listener positions.
+    /// Uses the registered raycast callback if available.
+    /// Returns 0.0 (no occlusion) to 1.0 (fully occluded).
+    float check_occlusion(float ox, float oy, float oz,
+                          float lx, float ly, float lz);
+
     // --- Utility ---
     static float distance_attenuation(float distance, float min_dist, float max_dist, float rolloff);
-    static float check_occlusion(float ox, float oy, float oz,
-                                 float lx, float ly, float lz);  // stub
 
 private:
     struct Impl;

@@ -46,6 +46,7 @@ struct AudioEngine::Impl {
     std::unordered_map<int, std::string> loaded_sounds;
     std::unordered_map<int, SoundSpatialInfo> spatial_infos;
     float master_vol = 1.0F;
+    RaycastCallback raycast_cb = nullptr;
     // Per-bus volumes, indexed by AudioBus.
     float bus_volumes_[static_cast<int>(AudioBus::Count)] = {
         1.0F,  // Master
@@ -275,7 +276,19 @@ void AudioEngine::set_listener(float x,float y,float z,float fx,float fy,float f
     impl_->set_listener(x,y,z,fx,fy,fz,ux,uy,uz);
 }
 void AudioEngine::set_master_volume(float v) { impl_->set_master(v); }
-void AudioEngine::set_category_volume(const std::string&, float) {}
+void AudioEngine::set_category_volume(const std::string& category, float vol) {
+    // Map string category names to AudioBus enum values.
+    if (category == "master")   impl_->set_bus_vol(AudioBus::Master, vol);
+    else if (category == "sfx")   impl_->set_bus_vol(AudioBus::SFX, vol);
+    else if (category == "weapon") impl_->set_bus_vol(AudioBus::Weapon, vol);
+    else if (category == "foley")  impl_->set_bus_vol(AudioBus::Foley, vol);
+    else if (category == "ambience") impl_->set_bus_vol(AudioBus::Ambience, vol);
+    else if (category == "music")  impl_->set_bus_vol(AudioBus::Music, vol);
+    else if (category == "ui")     impl_->set_bus_vol(AudioBus::UI, vol);
+    else {
+        log_warning_cat(AE_LOG_CATEGORY, "set_category_volume: unknown category '" + category + "'");
+    }
+}
 
 // --- Bus system ---
 void AudioEngine::set_bus_volume(AudioBus bus, float vol) { impl_->set_bus_vol(bus, vol); }
@@ -292,6 +305,31 @@ void AudioEngine::set_occluded(int handle, float occlusion) {
     impl_->set_occluded(handle, occlusion);
 }
 
+// --- Occlusion ---
+void AudioEngine::set_occlusion_raycast(RaycastCallback cb) {
+    impl_->raycast_cb = cb;
+}
+
+float AudioEngine::check_occlusion(float ox, float oy, float oz,
+                                    float lx, float ly, float lz) {
+    if (!impl_->raycast_cb) return 0.0F;
+
+    float dx = lx - ox, dy = ly - oy, dz = lz - oz;
+    const float dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+    if (dist < 0.001F) return 0.0F;
+
+    // Normalize direction.
+    const float inv = 1.0F / dist;
+    dx *= inv; dy *= inv; dz *= inv;
+
+    float hit_dist = 0.0F;
+    if (impl_->raycast_cb(ox, oy, oz, dx, dy, dz, dist, hit_dist)) {
+        // Occlusion grows as hit moves closer to the source.
+        return 1.0F - (hit_dist / dist);
+    }
+    return 0.0F;
+}
+
 // --- Utility ---
 float AudioEngine::distance_attenuation(float distance, float min_dist, float max_dist, float rolloff) {
     if (distance <= min_dist) return 1.0F;
@@ -299,12 +337,6 @@ float AudioEngine::distance_attenuation(float distance, float min_dist, float ma
     // Inverse distance attenuation (matching miniaudio's default model).
     const float clamped = std::max(distance, min_dist);
     return min_dist / (min_dist + rolloff * (clamped - min_dist));
-}
-
-float AudioEngine::check_occlusion(float /*ox*/, float /*oy*/, float /*oz*/,
-                                    float /*lx*/, float /*ly*/, float /*lz*/) {
-    // Stub — real occlusion requires physics raycasts.
-    return 0.0F;
 }
 
 } // namespace ae::audio

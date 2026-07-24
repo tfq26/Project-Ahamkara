@@ -317,6 +317,9 @@ if(TARGET ae_render)
     target_compile_features(ahamkara_ibl_tests PRIVATE cxx_std_20)
 
     target_link_libraries(ahamkara_ibl_tests
+        PRIVATE
+            ae_render
+    )
 
     add_executable(ahamkara_ssao_tests
         src/ssao_tests.cpp
@@ -574,6 +577,34 @@ target_link_libraries(ahamkara_animation_headless_tests
         ae_core
 )
 add_test(NAME ahamkara_animation_headless_tests COMMAND ahamkara_animation_headless_tests)
+
+# Expanded animation state machine, IK, weapon layer, and blend space tests.
+add_executable(ahamkara_animation_sm_tests
+    src/animation_state_machine_tests.cpp
+)
+target_link_libraries(ahamkara_animation_sm_tests
+    PRIVATE
+        ae_animation
+        ae_skeleton
+        ae_core
+)
+add_test(NAME ahamkara_animation_sm_tests COMMAND ahamkara_animation_sm_tests)
+
+# Audio engine tests (occlusion, bus volume, category mapping).
+if(TARGET ae_audio)
+    add_executable(ahamkara_audio_engine_tests
+        src/audio_engine_tests.cpp
+    )
+    target_compile_features(ahamkara_audio_engine_tests PRIVATE cxx_std_20)
+    target_link_libraries(ahamkara_audio_engine_tests
+        PRIVATE
+            ae_audio
+            ae_core
+            miniaudio_lib
+            miniaudio
+    )
+    add_test(NAME ahamkara_audio_engine_tests COMMAND ahamkara_audio_engine_tests)
+endif()
 
 # Out-of-tree package consumer smoke (engine package boundary).
 # Builds a tiny external project against an installed Ahamkara package prefix.
