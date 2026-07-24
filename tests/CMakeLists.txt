@@ -273,6 +273,7 @@ if(TARGET ae_render)
     target_compile_definitions(ahamkara_asset_pipeline_tests
         PRIVATE
             AHAMKARA_ASSET_IMPORTER_PATH="$<TARGET_FILE:ahamkara_asset_importer>"
+            AHAMKARA_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
     )
 
     target_link_libraries(ahamkara_asset_pipeline_tests
@@ -317,6 +318,9 @@ if(TARGET ae_render)
     target_compile_features(ahamkara_ibl_tests PRIVATE cxx_std_20)
 
     target_link_libraries(ahamkara_ibl_tests
+        PRIVATE
+            ae_render
+    )
 
     add_executable(ahamkara_ssao_tests
         src/ssao_tests.cpp

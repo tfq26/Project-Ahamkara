@@ -81,7 +81,6 @@ public:
 
     // SSAO
     void set_ssao_enabled(bool enabled);
-    void set_ao_texture(TextureHandle texture);
 
     // TAA
     void set_frame_index(int index);
