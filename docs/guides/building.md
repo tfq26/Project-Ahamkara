@@ -33,6 +33,35 @@ Homebrew):
 xcode-select --install
 ```
 
+### Installing on Windows
+
+Requires Visual Studio 2022 with the "Desktop development with C++" workload
+(provides MSVC and the Windows SDK).
+
+```powershell
+# Install package managers if not already present
+wing install Microsoft.VisualStudio.2022.BuildTools --quiet --wait
+wing install Ninja-build.Ninja
+
+# Install GLFW3 via vcpkg (pre-installed with Visual Studio)
+vcpkg install glfw3 --triplet x64-windows
+```
+
+If `vcpkg` is not available, install it first:
+
+```powershell
+git clone https://github.com/Microsoft/vcpkg.git
+.\vcpkg\bootstrap-vcpkg.bat
+```
+
+Then configure the toolchain:
+
+```powershell
+cmake --preset debug `
+    -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+    -DVCPKG_TARGET_TRIPLET=x64-windows
+```
+
 ---
 
 ## Configure
@@ -258,8 +287,25 @@ movement.
 above.
 
 **`CMake Error: Could not find Ninja`**
-→ Install `ninja-build` (Ubuntu) or `ninja` (Homebrew) and verify `ninja
---version` works.
+→ Install `ninja-build` (Ubuntu), `ninja` (Homebrew), or `ninja` (Windows:
+`winget install Ninja-build.Ninja` or `choco install ninja`).
+
+**`CMAKE_C_COMPILER not found` or `CMAKE_CXX_COMPILER not found` (Windows)**
+→ Run from a Visual Studio Developer Command Prompt, or use the
+`ilammy/msvc-dev-cmd` action in CI. The MSVC compiler (`cl.exe`) must be
+on `PATH` for the Ninja generator.
+
+**`Could not find a package configuration file provided by "glfw3"` (Windows)**
+→ Install GLFW3 via vcpkg and pass the toolchain file at configure time:
+```powershell
+vcpkg install glfw3 --triplet x64-windows
+cmake --preset debug -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+```
+
+**`_aligned_malloc` / `_aligned_free` link errors (Windows)**
+→ These are MSVC-specific intrinsics that require no extra library.
+If the linker cannot find them, ensure you are using the MSVC toolchain
+(`cl.exe`) and not MinGW or Clang for Windows.
 
 **Linker errors about unresolved symbols**
 → Make sure you are building with a C++20-capable compiler. Run `cmake
@@ -274,8 +320,9 @@ Local testing against `127.0.0.1` does not usually require firewall changes,
 but remote clients do require that UDP port `7777` is reachable.
 
 **`glfw3`: package not found (CMake configure)**
-→ Install the GLFW3 development package: `libglfw3-dev` on Ubuntu or
-`glfw` via Homebrew on macOS. See the install instructions above.
+→ Install the GLFW3 development package: `libglfw3-dev` on Ubuntu,
+`glfw` via Homebrew on macOS, or `glfw3` via vcpkg on Windows.
+See the install instructions above.
 
 **Window opens but shows a blank / black surface**
 → This is expected. The current client has no renderer — the window exists

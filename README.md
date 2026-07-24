@@ -46,8 +46,9 @@ ahamkara/
 
 - **CMake ≥ 3.20**
 - **Ninja** (build tool)
-- **C++20 compiler** (GCC 11+, Clang 14+, or Apple Clang 14+)
-- **GLFW 3.3+** (`libglfw3-dev` on Ubuntu, `glfw` via Homebrew on macOS)
+- **C++20 compiler** (GCC 11+, Clang 14+, Apple Clang 14+, or MSVC 2022 17+)
+- **GLFW 3.3+** (`libglfw3-dev` on Ubuntu, `glfw` via Homebrew on macOS,
+  `glfw3` via vcpkg on Windows)
 
 See [`docs/guides/building.md`](docs/guides/building.md) for per-OS install instructions.
 

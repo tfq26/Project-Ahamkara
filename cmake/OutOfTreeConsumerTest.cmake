@@ -36,8 +36,14 @@ if(NOT build_rc EQUAL 0)
     message(FATAL_ERROR "Failed to build out-of-tree consumer (rc=${build_rc})")
 endif()
 
+# Locate the consumer executable (handles .exe suffix on Windows)
+set(consumer_exe "${CONSUMER_BUILD}/ahamkara_consumer")
+if(NOT EXISTS "${consumer_exe}" AND EXISTS "${consumer_exe}.exe")
+    set(consumer_exe "${consumer_exe}.exe")
+endif()
+
 execute_process(
-    COMMAND "${CONSUMER_BUILD}/ahamkara_consumer"
+    COMMAND "${consumer_exe}"
     RESULT_VARIABLE run_rc
     OUTPUT_VARIABLE run_out
     ERROR_VARIABLE run_err
