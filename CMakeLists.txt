@@ -200,6 +200,66 @@ set(CPACK_GENERATOR "TGZ;ZIP")
 
 set(CPACK_ARCHIVE_COMPONENT_INSTALL OFF)
 
+# ── Artifact manifest generation ────────────────────────────────────────
+
+# Capture git commit at configure time
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    OUTPUT_VARIABLE _git_sha
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    TIMEOUT 5
+)
+if(NOT _git_sha)
+    set(_git_sha "unknown")
+endif()
+
+# Build date (UTC)
+string(TIMESTAMP _build_date "%Y-%m-%dT%H:%M:%SZ" UTC)
+
+# Compiler info
+set(_compiler_id  "${CMAKE_CXX_COMPILER_ID}")
+set(_compiler_ver "${CMAKE_CXX_COMPILER_VERSION}")
+set(_cxx_std      "${CMAKE_CXX_STANDARD}")
+
+# Ahamkara engine manifest
+set(_product   "Ahamkara")
+set(_version   "${PROJECT_VERSION}")
+set(_abi_level "1")
+set(_namespace "ae")
+set(AHAMKARA_MANIFEST "${CMAKE_BINARY_DIR}/ahamkara-manifest.json")
+configure_file(
+    "${CMAKE_SOURCE_DIR}/cmake/manifest.json.in"
+    "${AHAMKARA_MANIFEST}"
+    @ONLY
+)
+
+install(
+    FILES "${AHAMKARA_MANIFEST}"
+    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/ae"
+    COMPONENT Ahamkara
+)
+
+# Wish engine manifest (only when Wish is built)
+if(TARGET wish_engine)
+    set(_product   "Wish")
+    set(_version   "0.1.0")
+    set(_abi_level "1")
+    set(_namespace "wish")
+    set(WISH_MANIFEST "${CMAKE_BINARY_DIR}/wish-manifest.json")
+    configure_file(
+        "${CMAKE_SOURCE_DIR}/cmake/manifest.json.in"
+        "${WISH_MANIFEST}"
+        @ONLY
+    )
+    install(
+        FILES "${WISH_MANIFEST}"
+        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/wish"
+        COMPONENT Ahamkara
+    )
+endif()
+
 include(CPack)
 
 # Install rules (libraries, headers, binaries)

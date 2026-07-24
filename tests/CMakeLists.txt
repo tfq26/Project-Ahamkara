@@ -566,6 +566,9 @@ add_test(
             --config $<CONFIG>
             --prefix ${CMAKE_BINARY_DIR}/test-install
 )
+set_tests_properties(ahamkara_install_rules_smoke PROPERTIES
+    FIXTURES_SETUP install_fixture
+)
 
 add_executable(ahamkara_animation_headless_tests
     src/animation_headless_tests.cpp
@@ -666,3 +669,19 @@ target_link_libraries(ahamkara_jitter_buffer_tests
         ae_network
 )
 add_test(NAME ahamkara_jitter_buffer_tests COMMAND ahamkara_jitter_buffer_tests)
+
+# Cross-product compatibility smoke (clean-room — no producer source checkout).
+# Builds a consumer against installed Ahamkara + Wish package artifacts.
+# Requires the install-rules smoke fixture to have populated the test-install
+# prefix first.
+add_test(
+    NAME ahamkara_cross_product_compatibility_smoke
+    COMMAND ${CMAKE_COMMAND}
+        -DCONSUMER_SRC=${CMAKE_SOURCE_DIR}/tests/compatibility_consumer
+        -DPREFIX=${CMAKE_BINARY_DIR}/test-install
+        -DBUILD_DIR=${CMAKE_BINARY_DIR}/compatibility-smoke
+        -P ${CMAKE_SOURCE_DIR}/cmake/CompatibilitySmokeTest.cmake
+)
+set_tests_properties(ahamkara_cross_product_compatibility_smoke PROPERTIES
+    FIXTURES_REQUIRED "install_fixture"
+)
