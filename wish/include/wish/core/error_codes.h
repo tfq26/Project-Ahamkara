@@ -14,6 +14,7 @@ struct WishDomain {
     static constexpr const char* kCapacity = "CAP"; // Capacity & rate limiting
     static constexpr const char* kProtocol = "PRO"; // Protocol & versioning
     static constexpr const char* kBackend = "BAK";  // Backend availability
+    static constexpr const char* kPersist = "PER"; // Persistence/storage
     static constexpr const char* kInternal = "INT"; // Internal/system
 };
 
@@ -38,6 +39,15 @@ enum class WishErrorCode : std::uint32_t {
     // --- Backend (BAK) ---
     kBackendUnavailable = 5001, // Backend service unavailable
     kBackendTimeout = 5002,     // Backend request timeout
+
+    // --- Persistence (PER) ---
+    kPersistenceNotFound = 6001,         // Document not found
+    kPersistenceConflict = 6002,         // Version conflict (stale version)
+    kPersistencePermissionDenied = 6003, // Operation not permitted
+    kPersistenceQuotaExceeded = 6004,    // Storage quota exceeded
+    kPersistencePayloadTooLarge = 6005,  // Single document exceeds size limit
+    kPersistenceMalformedPayload = 6006, // Invalid/corrupt document data
+    kPersistenceBackendUnavailable = 6007, // Storage backend unavailable
 
     // --- Internal (INT) ---
     kInternalError = 9001, // Internal/system error
@@ -64,6 +74,14 @@ enum class WishErrorCode : std::uint32_t {
     case WishErrorCode::kBackendUnavailable:
     case WishErrorCode::kBackendTimeout:
         return WishDomain::kBackend;
+    case WishErrorCode::kPersistenceNotFound:
+    case WishErrorCode::kPersistenceConflict:
+    case WishErrorCode::kPersistencePermissionDenied:
+    case WishErrorCode::kPersistenceQuotaExceeded:
+    case WishErrorCode::kPersistencePayloadTooLarge:
+    case WishErrorCode::kPersistenceMalformedPayload:
+    case WishErrorCode::kPersistenceBackendUnavailable:
+        return WishDomain::kPersist;
     case WishErrorCode::kInternalError:
         return WishDomain::kInternal;
     default:
