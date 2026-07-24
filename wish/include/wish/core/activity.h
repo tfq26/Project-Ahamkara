@@ -1,6 +1,7 @@
 #pragma once
 
 #include "wish/types.h"
+#include "wish/core/modifier_types.h"
 #include "wish/core/session_services.h"
 #include "wish/session/session_model.h"
 
@@ -8,6 +9,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace wish::core {
 
@@ -40,6 +42,11 @@ struct ActivityConfig {
     float            tick_rate {60.0F};
     std::string_view map_path {};
     bool             allow_spectators {false};
+
+    /// Data-driven modifiers that can alter activity behaviour at runtime.
+    std::vector<ModifierConfig> modifiers {};
+    /// If true, active modifiers rotate on a timer instead of all being active.
+    bool modifier_rotation_enabled {false};
 };
 
 /// Non-templated base so ActivityManager can store any activity type.

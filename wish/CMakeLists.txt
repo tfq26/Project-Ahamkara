@@ -5,6 +5,7 @@ add_library(wish_engine STATIC
     core/src/activity_loader.cpp
     core/src/error_envelope.cpp
     core/src/error_catalog.cpp
+    core/src/live_content_hooks.cpp
     core/src/log.cpp
     core/src/sequence_tracker.cpp
     net/src/transport_config.cpp
@@ -50,6 +51,26 @@ target_link_libraries(wish_heartbeat_tests
 )
 
 add_test(NAME wish_heartbeat_tests COMMAND wish_heartbeat_tests)
+
+# ── Modifier types & live content hooks tests ──────────────────────────
+add_executable(wish_modifier_tests
+    core/tests/modifier_types_tests.cpp
+)
+
+target_compile_features(wish_modifier_tests PRIVATE cxx_std_20)
+
+target_include_directories(wish_modifier_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_link_libraries(wish_modifier_tests
+    PRIVATE
+        wish_engine
+)
+
+add_test(NAME wish_modifier_tests COMMAND wish_modifier_tests)
 
 # SessionGroup unit tests (standalone, no engine deps)
 add_executable(session_group_tests

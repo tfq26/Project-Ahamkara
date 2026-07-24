@@ -2,11 +2,14 @@
 
 #include "ahamkara/game/net_types.h"
 #include "ahamkara/game/components.h"
+#include "wish/core/modifier_types.h"
+#include "wish/core/activity.h"
 
 #include <vector>
 #include <string>
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 
 namespace ahamkara::game {
 
@@ -271,5 +274,50 @@ struct ReplayFrameHeader {
     int input_command_count {0};
     int event_count {0};
 };
+
+// --- Live-Content Modifier Helpers -----------------------------------------
+// These helpers allow game-layer code to check Wish modifier state
+// from an ActivityConfig. They are the game-level read path for
+// data-driven content toggles configured via JSON.
+//
+
+/// Check whether an activity config has an active modifier of the given type.
+inline bool has_active_modifier(const wish::core::ActivityConfig& cfg,
+                                wish::core::ModifierType type) {
+    for (const auto& m : cfg.modifiers) {
+        if (m.type == type && wish::core::is_modifier_active(m)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// Get the parameter value of the first active modifier of the given type.
+inline std::string_view get_modifier_value(const wish::core::ActivityConfig& cfg,
+                                            wish::core::ModifierType type,
+                                            std::string_view key) {
+    for (const auto& m : cfg.modifiers) {
+        if (m.type == type && wish::core::is_modifier_active(m)) {
+            auto val = wish::core::find_modifier_param(m, key);
+            if (!val.empty()) return val;
+        }
+    }
+    return {};
+}
+
+/// Parse a float modifier parameter from the activity config.
+/// Returns default_val if the modifier or key is not found.
+inline float get_modifier_float(const wish::core::ActivityConfig& cfg,
+                                wish::core::ModifierType type,
+                                std::string_view key,
+                                float default_val = 0.0F) {
+    std::string_view sv = get_modifier_value(cfg, type, key);
+    if (sv.empty()) return default_val;
+    std::string tmp(sv);
+    char* end = nullptr;
+    float result = std::strtof(tmp.c_str(), &end);
+    if (end == tmp.c_str()) return default_val;
+    return result;
+}
 
 } // namespace ahamkara::game
