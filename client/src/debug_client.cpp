@@ -30,7 +30,8 @@ int run_local_client(
     ahamkara::client::ClientConfig& client_config,
     const ahamkara::client::ControllerBindings& controller_bindings,
     const char* level_path,
-    const ahamkara::client::PlaytestScenario* autoplay_scenario) {
+    const ahamkara::client::PlaytestScenario* autoplay_scenario,
+    ae::IGameModule* game_module) {
 
     ae::init_file_logging("logs");
 
@@ -61,6 +62,13 @@ int run_local_client(
 
     // ── Application + renderer ──────────────────────────────────────────
     ae::Application application(ae::RuntimeMode::Client);
+    if (game_module != nullptr) {
+        // The Application takes ownership of the module via set_game_module,
+        // which accepts a unique_ptr. The caller passes a raw pointer; we wrap
+        // it here. (Passing nullptr retains the default null module.)
+        application.set_game_module(
+            std::unique_ptr<ae::IGameModule>(game_module));
+    }
     (void)application.start();
 
     ae::render::DebugRenderer renderer;

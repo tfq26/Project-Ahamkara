@@ -81,7 +81,7 @@ public:
 
     // SSAO
     void set_ssao_enabled(bool enabled);
-    void set_ao_texture(TextureHandle texture);
+    // set_ao_texture shared with Ambient/IBL (above)
 
     // TAA
     void set_frame_index(int index);
