@@ -20,6 +20,8 @@ void ThreadedLocalRuntime::ThreadSafeInputProvider::set_input(const ahamkara::ga
     command_.sprint_held = command.sprint_held;
     command_.slide_pressed = command_.slide_pressed || command.slide_pressed;
     command_.fire_held = command.fire_held;
+    command_.aim_held = command.aim_held;
+    command_.weapon_slot = command.weapon_slot;
     command_.reload_pressed = command_.reload_pressed || command.reload_pressed;
     command_.ability_pressed = command_.ability_pressed || command.ability_pressed;
     command_.interact_pressed = command_.interact_pressed || command.interact_pressed;

@@ -233,10 +233,10 @@ void WeaponAnimationController::update_weapon(float dt,
     local = local * bob_offset;
     local = local * recoil_offset;
 
-    // ── ADS position (bring weapon closer) ────────────────────
-    float ads_z = anim_state_.ads_blend * (-0.15F);
-    float ads_y = anim_state_.ads_blend * (-0.02F);
-    local = local * ae::skeleton::Mat4::translation(0.0F, ads_y, ads_z);
+    // Note: ADS position offset is handled by the per-weapon viewmodel
+    // offset blend in client_frame_pipeline.cpp (hip + ADS transform data).
+    // The animation controller handles only procedural motion (sway, bob, recoil).
+    // See WeaponAdsTransform/kWeaponAdsTransforms in weapon_viewmodel_data.h.
 
     // --- Reload (phase-driven animation) ---
     // Phase timing:

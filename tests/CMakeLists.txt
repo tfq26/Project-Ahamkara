@@ -227,6 +227,26 @@ add_executable(ahamkara_weapon_loader_tests
     src/weapon_loader_tests.cpp
 )
 
+add_executable(ahamkara_ads_tests
+    src/ads_tests.cpp
+)
+
+target_compile_features(ahamkara_ads_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_ads_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../client/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+)
+
+target_link_libraries(ahamkara_ads_tests
+    PRIVATE
+        ahamkara_game
+)
+
+add_test(NAME ahamkara_ads_tests COMMAND ahamkara_ads_tests
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..)
+
 target_compile_features(ahamkara_weapon_loader_tests PRIVATE cxx_std_20)
 target_include_directories(ahamkara_weapon_loader_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../game/include)
 
@@ -317,6 +337,9 @@ if(TARGET ae_render)
     target_compile_features(ahamkara_ibl_tests PRIVATE cxx_std_20)
 
     target_link_libraries(ahamkara_ibl_tests
+        PRIVATE
+            ae_render
+    )
 
     add_executable(ahamkara_ssao_tests
         src/ssao_tests.cpp
