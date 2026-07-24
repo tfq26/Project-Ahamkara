@@ -238,6 +238,96 @@ target_link_libraries(ahamkara_weapon_loader_tests
 add_test(NAME ahamkara_weapon_loader_tests COMMAND ahamkara_weapon_loader_tests
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
+# ---------------------------------------------------------------------------
+# Weapon viewmodel data tests — validate transforms, grip sockets, reload
+# phases, ADS data, and mesh paths for all authored weapons.
+# Headless-compatible (no render dependencies).
+# ---------------------------------------------------------------------------
+add_executable(ahamkara_weapon_viewmodel_data_tests
+    src/weapon_viewmodel_data_tests.cpp
+)
+
+target_compile_features(ahamkara_weapon_viewmodel_data_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_weapon_viewmodel_data_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../client/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+)
+
+target_link_libraries(ahamkara_weapon_viewmodel_data_tests
+    PRIVATE
+        ahamkara_game
+)
+
+add_test(NAME ahamkara_weapon_viewmodel_data_tests COMMAND ahamkara_weapon_viewmodel_data_tests)
+
+# ---------------------------------------------------------------------------
+# Weapon animation layer tests — deterministic headless tests for the
+# procedural weapon animation layers: sway, bob, recoil kick.
+# Links ae_animation which is available in headless mode.
+# ---------------------------------------------------------------------------
+add_executable(ahamkara_weapon_animation_layer_tests
+    src/weapon_animation_layer_tests.cpp
+)
+
+target_compile_features(ahamkara_weapon_animation_layer_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_weapon_animation_layer_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/animation/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/skeleton/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+)
+
+target_link_libraries(ahamkara_weapon_animation_layer_tests
+    PRIVATE
+        ae_animation
+        ae_skeleton
+        ae_core
+)
+
+add_test(NAME ahamkara_weapon_animation_layer_tests COMMAND ahamkara_weapon_animation_layer_tests)
+
+# ---------------------------------------------------------------------------
+# Weapon animation controller + presentation tests — exercises the full
+# WeaponAnimationController lifecycle, ADS, reload phases, melee, and the
+# viewmodel arm IK solver.
+#
+# Requires ae_render (GUI builds only) because the controller header
+# transitively includes ae/render/debug_renderer.h.
+# ---------------------------------------------------------------------------
+if(TARGET ae_render)
+    add_executable(ahamkara_weapon_animation_controller_tests
+        src/weapon_animation_controller_tests.cpp
+        ../client/src/weapon_animation_controller.cpp
+        ../client/src/weapon_presentation.cpp
+    )
+
+    target_compile_features(ahamkara_weapon_animation_controller_tests PRIVATE cxx_std_20)
+
+    target_include_directories(ahamkara_weapon_animation_controller_tests
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/../client/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/../engine/animation/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/../engine/skeleton/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/../engine/render/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/../engine/platform/include
+    )
+
+    target_link_libraries(ahamkara_weapon_animation_controller_tests
+        PRIVATE
+            ahamkara_game
+            ae_render
+            ae_animation
+            ae_skeleton
+            ae_core
+            ae_platform
+    )
+
+    add_test(NAME ahamkara_weapon_animation_controller_tests COMMAND ahamkara_weapon_animation_controller_tests)
+endif()
+
 add_test(
     NAME agent_runner_python_tests
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/agent-runner/tests/test_agent_runner.py
@@ -317,6 +407,9 @@ if(TARGET ae_render)
     target_compile_features(ahamkara_ibl_tests PRIVATE cxx_std_20)
 
     target_link_libraries(ahamkara_ibl_tests
+        PRIVATE
+            ae_render
+    )
 
     add_executable(ahamkara_ssao_tests
         src/ssao_tests.cpp
