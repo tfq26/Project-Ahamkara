@@ -1,5 +1,7 @@
+#define WISH_LOG_CATEGORY "ErrorEnv"
 #include "wish/core/error_envelope.h"
 #include "wish/core/error_catalog.h"
+#include "wish/log.h"
 
 #include <algorithm>
 #include <cstring>
@@ -86,6 +88,7 @@ bool ErrorEnvelope::valid() const {
 
 std::string serialize_envelope(const ErrorEnvelope& envelope) {
     if (!envelope.valid()) {
+        wish::log_warning_cat(WISH_LOG_CATEGORY, "serialize_envelope called with invalid envelope");
         return {};
     }
 

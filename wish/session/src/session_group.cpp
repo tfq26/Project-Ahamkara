@@ -1,4 +1,6 @@
+#define WISH_LOG_CATEGORY "SessionGroup"
 #include "wish/session/session_group.h"
+#include "wish/log.h"
 
 namespace wish::session {
 
@@ -18,6 +20,7 @@ ClientSession* SessionGroup::add_client(const wish::NetAddress& addr, time_point
     }
 
     if (is_full()) {
+        wish::log_warning_cat(WISH_LOG_CATEGORY, "Group full, rejecting client " + addr.ip);
         return nullptr;
     }
 
@@ -27,6 +30,11 @@ ClientSession* SessionGroup::add_client(const wish::NetAddress& addr, time_point
     client.identity = addr.ip + ":" + std::to_string(addr.port);
     client.connection_state = ClientConnectionState::PendingAdmission;
     client.last_seen = now;
+
+    wish::log_debug_cat(WISH_LOG_CATEGORY,
+        "Client added: " + client.identity +
+        " (group=" + std::to_string(group_id_) +
+        ", count=" + std::to_string(clients_.size()) + ")");
     return &client;
 }
 
@@ -39,7 +47,13 @@ bool SessionGroup::remove_client(const wish::NetAddress& addr) {
         return false;
     }
 
+    const std::string id = it->identity;
     clients_.erase(it);
+
+    wish::log_debug_cat(WISH_LOG_CATEGORY,
+        "Client removed: " + id +
+        " (group=" + std::to_string(group_id_) +
+        ", count=" + std::to_string(clients_.size()) + ")");
     return true;
 }
 
@@ -65,15 +79,21 @@ bool SessionGroup::is_full() const {
 }
 
 void SessionGroup::tick(time_point now) {
+    const auto before = clients_.size();
     clients_.erase(std::remove_if(clients_.begin(), clients_.end(), [&](ClientSession& client) {
                        if (now - client.last_seen <= disconnect_timeout_) {
                            return false;
                        }
-
                        client.connection_state = ClientConnectionState::TimedOut;
                        return true;
                    }),
                    clients_.end());
+    const auto pruned = before - clients_.size();
+    if (pruned > 0) {
+        wish::log_info_cat(WISH_LOG_CATEGORY,
+            "Pruned " + std::to_string(pruned) + " timed-out client(s) from group " +
+            std::to_string(group_id_));
+    }
 }
 
 } // namespace wish::session

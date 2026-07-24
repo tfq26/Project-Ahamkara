@@ -1,5 +1,7 @@
+#define WISH_LOG_CATEGORY "ErrorCat"
 #include "wish/core/error_catalog.h"
 #include "wish/core/error_codes.h"
+#include "wish/log.h"
 
 #include <mutex>
 

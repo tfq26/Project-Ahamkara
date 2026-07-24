@@ -1,3 +1,4 @@
+#define WISH_LOG_CATEGORY "Nakama"
 #include "wish/types.h"
 #include "wish/log.h"
 #include "wish/integrations/nakama/nakama_bridge.h"
@@ -397,6 +398,14 @@ wish::core::AuthResult perform_account_lookup(const BridgeSettings& settings, co
 
 }  // namespace
 
+std::string describe_bridge(const BridgeSettings& settings) {
+    std::ostringstream description;
+    description << (settings.use_tls ? "https://" : "http://")
+                << settings.host << ':' << settings.port << settings.account_path
+                << " (timeout=" << settings.timeout_ms << "ms)";
+    return description.str();
+}
+
 bool is_enabled(const BridgeSettings& settings) noexcept {
     return settings.enabled;
 }
@@ -433,15 +442,10 @@ BridgeSettings load_bridge_settings(int argc, char** argv) {
         settings.timeout_ms = 1500;
     }
 
+    wish::log_info_cat(WISH_LOG_CATEGORY,
+        "Nakama bridge settings: " + describe_bridge(settings) +
+        " enabled=" + (settings.enabled ? "true" : "false"));
     return settings;
-}
-
-std::string describe_bridge(const BridgeSettings& settings) {
-    std::ostringstream description;
-    description << (settings.use_tls ? "https://" : "http://")
-                << settings.host << ':' << settings.port << settings.account_path
-                << " (timeout=" << settings.timeout_ms << "ms)";
-    return description.str();
 }
 
 NakamaHttpAuthValidator::NakamaHttpAuthValidator(BridgeSettings settings)
@@ -449,13 +453,24 @@ NakamaHttpAuthValidator::NakamaHttpAuthValidator(BridgeSettings settings)
 }
 
 wish::core::AuthResult NakamaHttpAuthValidator::validate(const wish::core::AuthRequest& request) const {
-    return perform_account_lookup(settings_, request);
+    wish::log_debug_cat(WISH_LOG_CATEGORY, "Validating auth request for player...");
+    const auto result = perform_account_lookup(settings_, request);
+    if (result.accepted) {
+        wish::log_info_cat(WISH_LOG_CATEGORY,
+            "Auth accepted for player_id=" + result.player_id);
+    } else {
+        wish::log_warning_cat(WISH_LOG_CATEGORY,
+            "Auth rejected: " + result.error_message);
+    }
+    return result;
 }
 
 std::unique_ptr<wish::core::AuthValidator> make_auth_validator(const BridgeSettings& settings) {
     if (is_enabled(settings)) {
+        wish::log_info_cat(WISH_LOG_CATEGORY, "Nakama auth validator created");
         return std::make_unique<NakamaHttpAuthValidator>(settings);
     }
+    wish::log_info_cat(WISH_LOG_CATEGORY, "Nakama auth disabled — using no-op validator");
     return std::make_unique<NoopAuthValidator>();
 }
 

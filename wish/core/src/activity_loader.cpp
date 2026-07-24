@@ -1,3 +1,4 @@
+#define WISH_LOG_CATEGORY "ActivityLoader"
 #include "wish/core/activity_loader.h"
 #include "wish/log.h"
 
@@ -81,7 +82,7 @@ ActivityCategory parse_category(std::string_view cat) {
 bool ActivityLoader::parse_one(std::string_view json, ActivityConfig& cfg) {
     std::string_view name = extract_string(json, "name");
     if (name.empty()) {
-        wish::log_warning("ActivityLoader: missing 'name' field in activity config.");
+        wish::log_warning_cat(WISH_LOG_CATEGORY, "missing 'name' field in activity config.");
         return false;
     }
 
@@ -94,7 +95,7 @@ bool ActivityLoader::parse_one(std::string_view json, ActivityConfig& cfg) {
     cfg.map_path    = extract_string(json, "map");
 
     if (cfg.id == 0) {
-        wish::log_warning("ActivityLoader: activity '" + std::string(cfg.name) + "' has id=0, skipping.");
+        wish::log_warning_cat(WISH_LOG_CATEGORY, "activity '" + std::string(cfg.name) + "' has id=0, skipping.");
         return false;
     }
 
@@ -131,7 +132,7 @@ wish::u32 ActivityLoader::load_directory(std::string_view path,
     // The server can call this at startup to auto-discover activity configs.
     (void)path;
     (void)out_configs;
-    wish::log_info("ActivityLoader::load_directory is a stub — use register_template() programmatically.");
+    wish::log_info_cat(WISH_LOG_CATEGORY, "load_directory is a stub — use register_template() programmatically.");
     return 0;
 }
 

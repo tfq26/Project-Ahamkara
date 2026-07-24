@@ -1,3 +1,4 @@
+#define WISH_LOG_CATEGORY "SeqTracker"
 #include "wish/types.h"
 #include "wish/log.h"
 
@@ -20,7 +21,7 @@ void SequenceTracker::process_incoming(const PacketEnvelope& envelope) {
         latest_received_ = seq;
         ack_bitfield_ = 0;
         have_first_ = true;
-        log_info("SequenceTracker initialized with seq=" + std::to_string(seq));
+        log_info_cat(WISH_LOG_CATEGORY, "initialized with seq=" + std::to_string(seq));
         return;
     }
 
@@ -38,7 +39,7 @@ void SequenceTracker::ack_sequence(u16 sequence) {
     if (delta <= 32768) {
         const u32 gap = delta - 1;
         if (gap > 0) {
-            log_warning("SequenceTracker: gap of " + std::to_string(gap) +
+            log_warning_cat(WISH_LOG_CATEGORY, "gap of " + std::to_string(gap) +
                         " packets (seq=" + std::to_string(sequence) + ")");
         }
         lost_count_ += gap;

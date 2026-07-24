@@ -1,3 +1,4 @@
+#define WISH_LOG_CATEGORY "Heartbeat"
 #include "wish/admin/heartbeat_service.h"
 #include "wish/log.h"
 
@@ -66,8 +67,8 @@ void HeartbeatService::prune_dead_servers() {
     }
 
     if (erased > 0) {
-        wish::log_info(std::string("HeartbeatService: pruned ") +
-                       std::to_string(erased) + " dead server(s).");
+        wish::log_info_cat(WISH_LOG_CATEGORY,
+            "pruned " + std::to_string(erased) + " dead server(s).");
     }
 }
 
