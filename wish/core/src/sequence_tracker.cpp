@@ -1,3 +1,5 @@
+#define WISH_LOG_CATEGORY "SequenceTracker"
+
 #include "wish/types.h"
 #include "wish/log.h"
 
@@ -9,6 +11,8 @@ PacketEnvelope SequenceTracker::prepare_outgoing() {
     env.ack_sequence = latest_received_;
     env.ack_bitfield = ack_bitfield_;
     ++sent_count_;
+    log_trace_cat(WISH_LOG_CATEGORY, "Prepared outgoing seq=" + std::to_string(env.sequence) +
+                  " (sent=" + std::to_string(sent_count_) + ")");
     return env;
 }
 
@@ -16,11 +20,14 @@ void SequenceTracker::process_incoming(const PacketEnvelope& envelope) {
     const u16 seq = envelope.sequence;
     ++received_count_;
 
+    log_trace_cat(WISH_LOG_CATEGORY, "Processing incoming seq=" + std::to_string(seq) +
+                  " (received=" + std::to_string(received_count_) + ")");
+
     if (!have_first_) {
         latest_received_ = seq;
         ack_bitfield_ = 0;
         have_first_ = true;
-        log_info("SequenceTracker initialized with seq=" + std::to_string(seq));
+        log_info_cat(WISH_LOG_CATEGORY, "Initialized with seq=" + std::to_string(seq));
         return;
     }
 
@@ -38,8 +45,8 @@ void SequenceTracker::ack_sequence(u16 sequence) {
     if (delta <= 32768) {
         const u32 gap = delta - 1;
         if (gap > 0) {
-            log_warning("SequenceTracker: gap of " + std::to_string(gap) +
-                        " packets (seq=" + std::to_string(sequence) + ")");
+            log_warning_cat(WISH_LOG_CATEGORY, "Gap of " + std::to_string(gap) +
+                            " packets (seq=" + std::to_string(sequence) + ")");
         }
         lost_count_ += gap;
 

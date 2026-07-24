@@ -1,5 +1,8 @@
+#define WISH_LOG_CATEGORY "ErrorEnvelope"
+
 #include "wish/core/error_envelope.h"
 #include "wish/core/error_catalog.h"
+#include "wish/log.h"
 
 #include <algorithm>
 #include <cstring>
@@ -86,6 +89,8 @@ bool ErrorEnvelope::valid() const {
 
 std::string serialize_envelope(const ErrorEnvelope& envelope) {
     if (!envelope.valid()) {
+        wish::log_warning_cat(WISH_LOG_CATEGORY, std::string("Attempted to serialize invalid envelope ") +
+                              "(code=" + std::to_string(envelope.error_code) + ")");
         return {};
     }
 
@@ -96,7 +101,10 @@ std::string serialize_envelope(const ErrorEnvelope& envelope) {
     os << kFieldMessageKey << envelope.message_key << '\n';
     os << kFieldRetryable << (envelope.retryable ? "1" : "0") << '\n';
     os << kFieldRetryAfter << envelope.retry_after_seconds << '\n';
-    return os.str();
+    const std::string result = os.str();
+    wish::log_trace_cat(WISH_LOG_CATEGORY, "Serialized envelope (code=" + std::to_string(envelope.error_code) +
+                        ", size=" + std::to_string(result.size()) + " bytes)");
+    return result;
 }
 
 std::optional<ErrorEnvelope> deserialize_envelope(std::string_view data) {
@@ -145,13 +153,20 @@ std::optional<ErrorEnvelope> deserialize_envelope(std::string_view data) {
     }
 
     if (!has_version || !has_code) {
+        wish::log_debug_cat(WISH_LOG_CATEGORY, "Deserialization failed: missing version or code field");
         return std::nullopt;
     }
 
     if (!envelope.valid()) {
+        wish::log_warning_cat(WISH_LOG_CATEGORY, std::string("Deserialized envelope failed validation ") +
+                              "(code=" + std::to_string(envelope.error_code) +
+                              ", version=" + std::to_string(envelope.version) + ")");
         return std::nullopt;
     }
 
+    wish::log_trace_cat(WISH_LOG_CATEGORY, "Deserialized envelope (code=" +
+                        std::to_string(envelope.error_code) +
+                        ", incident=" + envelope.incident_id + ")");
     return envelope;
 }
 

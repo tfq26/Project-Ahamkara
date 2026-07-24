@@ -1,3 +1,5 @@
+#define WISH_LOG_CATEGORY "NakamaBridge"
+
 #include "wish/types.h"
 #include "wish/log.h"
 #include "wish/integrations/nakama/nakama_bridge.h"
@@ -296,10 +298,12 @@ wish::core::AuthResult reject_result(std::string message) {
 
 wish::core::AuthResult perform_account_lookup(const BridgeSettings& settings, const wish::core::AuthRequest& request) {
     if (request.token.empty()) {
+        wish::log_error_cat(WISH_LOG_CATEGORY, "Auth request missing session token");
         return reject_result("missing Nakama session token");
     }
 
     if (settings.use_tls) {
+        wish::log_warning_cat(WISH_LOG_CATEGORY, "https Nakama URLs are not yet supported by the built-in Wish bridge");
         return reject_result("https Nakama URLs are not yet supported by the built-in Wish bridge");
     }
 
@@ -310,7 +314,9 @@ wish::core::AuthResult perform_account_lookup(const BridgeSettings& settings, co
     addrinfo* resolved = nullptr;
     const std::string port_text = std::to_string(settings.port);
     if (const int rc = ::getaddrinfo(settings.host.c_str(), port_text.c_str(), &hints, &resolved); rc != 0) {
-        return reject_result(std::string("failed to resolve Nakama host: ") + ::gai_strerror(rc));
+        const std::string err = std::string("failed to resolve Nakama host: ") + ::gai_strerror(rc);
+        wish::log_error_cat(WISH_LOG_CATEGORY, err);
+        return reject_result(err);
     }
 
     const std::unique_ptr<addrinfo, void (*)(addrinfo*)> resolved_guard(resolved, ::freeaddrinfo);
@@ -342,6 +348,7 @@ wish::core::AuthResult perform_account_lookup(const BridgeSettings& settings, co
     }
 
     if (!SOCKET_IS_VALID(sock)) {
+        wish::log_error_cat(WISH_LOG_CATEGORY, "Failed to connect to Nakama at " + settings.host + ":" + std::to_string(settings.port));
         return reject_result("failed to connect to Nakama");
     }
 
@@ -353,11 +360,13 @@ wish::core::AuthResult perform_account_lookup(const BridgeSettings& settings, co
             static_cast<int>(request_text.size() - total_sent), 0);
         if (sent <= 0) {
             const std::string error_message = SOCKET_ERRMSG(SOCKET_ERRNO);
+            wish::log_error_cat(WISH_LOG_CATEGORY, "Failed to send Nakama validation request: " + error_message);
             CLOSE_SOCKET(sock);
             return reject_result("failed to send Nakama validation request: " + error_message);
         }
         total_sent += static_cast<std::size_t>(sent);
     }
+    wish::log_trace_cat(WISH_LOG_CATEGORY, "Sent " + std::to_string(total_sent) + " bytes to Nakama");
 
     std::string response;
     std::array<char, 2048> buffer {};
@@ -368,6 +377,7 @@ wish::core::AuthResult perform_account_lookup(const BridgeSettings& settings, co
         }
         if (received < 0) {
             const std::string error_message = SOCKET_ERRMSG(SOCKET_ERRNO);
+            wish::log_error_cat(WISH_LOG_CATEGORY, "Failed to read Nakama validation response: " + error_message);
             CLOSE_SOCKET(sock);
             return reject_result("failed to read Nakama validation response: " + error_message);
         }
@@ -375,8 +385,11 @@ wish::core::AuthResult perform_account_lookup(const BridgeSettings& settings, co
     }
     CLOSE_SOCKET(sock);
 
+    wish::log_trace_cat(WISH_LOG_CATEGORY, "Received " + std::to_string(response.size()) + " bytes from Nakama");
+
     const int status_code = parse_http_status(response);
     if (status_code != 200) {
+        wish::log_warning_cat(WISH_LOG_CATEGORY, "Nakama validation rejected session token (HTTP " + std::to_string(status_code) + ")");
         std::ostringstream message;
         message << "Nakama validation rejected session token (HTTP " << status_code << ")";
         return reject_result(message.str());
@@ -388,6 +401,8 @@ wish::core::AuthResult perform_account_lookup(const BridgeSettings& settings, co
         return reject_result("Nakama account lookup succeeded but no player id was returned");
     }
 
+    wish::log_info_cat(WISH_LOG_CATEGORY, "Nakama authentication succeeded for player " + player_id);
+
     wish::core::AuthResult result {};
     result.accepted = true;
     result.player_id = player_id;
@@ -398,7 +413,9 @@ wish::core::AuthResult perform_account_lookup(const BridgeSettings& settings, co
 }  // namespace
 
 bool is_enabled(const BridgeSettings& settings) noexcept {
-    return settings.enabled;
+    const bool enabled = settings.enabled;
+    wish::log_debug_cat(WISH_LOG_CATEGORY, "Bridge " + std::string(enabled ? "is enabled" : "is disabled"));
+    return enabled;
 }
 
 BridgeSettings load_bridge_settings(int argc, char** argv) {
@@ -433,6 +450,12 @@ BridgeSettings load_bridge_settings(int argc, char** argv) {
         settings.timeout_ms = 1500;
     }
 
+    wish::log_info_cat(WISH_LOG_CATEGORY, "Bridge settings loaded: enabled=" +
+                       std::string(settings.enabled ? "true" : "false") +
+                       ", host=" + settings.host + ":" + std::to_string(settings.port) +
+                       ", path=" + settings.account_path +
+                       ", timeout=" + std::to_string(settings.timeout_ms) + "ms");
+
     return settings;
 }
 
@@ -441,7 +464,9 @@ std::string describe_bridge(const BridgeSettings& settings) {
     description << (settings.use_tls ? "https://" : "http://")
                 << settings.host << ':' << settings.port << settings.account_path
                 << " (timeout=" << settings.timeout_ms << "ms)";
-    return description.str();
+    const std::string desc = description.str();
+    wish::log_debug_cat(WISH_LOG_CATEGORY, "Bridge description: " + desc);
+    return desc;
 }
 
 NakamaHttpAuthValidator::NakamaHttpAuthValidator(BridgeSettings settings)
@@ -454,8 +479,10 @@ wish::core::AuthResult NakamaHttpAuthValidator::validate(const wish::core::AuthR
 
 std::unique_ptr<wish::core::AuthValidator> make_auth_validator(const BridgeSettings& settings) {
     if (is_enabled(settings)) {
+        wish::log_info_cat(WISH_LOG_CATEGORY, "Creating NakamaHttpAuthValidator");
         return std::make_unique<NakamaHttpAuthValidator>(settings);
     }
+    wish::log_info_cat(WISH_LOG_CATEGORY, "Creating NoopAuthValidator (Nakama bridge disabled)");
     return std::make_unique<NoopAuthValidator>();
 }
 

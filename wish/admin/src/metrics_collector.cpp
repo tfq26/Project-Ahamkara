@@ -1,4 +1,7 @@
+#define WISH_LOG_CATEGORY "MetricsCollector"
+
 #include "wish/admin/metrics_collector.h"
+#include "wish/log.h"
 
 #include <sstream>
 

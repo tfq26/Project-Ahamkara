@@ -1,5 +1,8 @@
+#define WISH_LOG_CATEGORY "ErrorCatalog"
+
 #include "wish/core/error_catalog.h"
 #include "wish/core/error_codes.h"
+#include "wish/log.h"
 
 #include <mutex>
 
@@ -125,6 +128,7 @@ const ErrorCatalogEntry* ErrorCatalog::find(WishErrorCode code) const {
             return &kEntries_[i];
         }
     }
+    wish::log_trace_cat(WISH_LOG_CATEGORY, "Error code " + std::to_string(num) + " not found in catalog");
     return nullptr;
 }
 

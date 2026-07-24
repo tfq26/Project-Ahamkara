@@ -1,3 +1,5 @@
+#define WISH_LOG_CATEGORY "AdminServer"
+
 #include "wish/admin/admin_server.h"
 #include "wish/admin/metrics_collector.h"
 #include "wish/log.h"
@@ -84,13 +86,13 @@ bool HttpAdminServer::start(wish::u16 port, StatusProvider provider, HeartbeatSe
 
     listen_fd_ = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (!socket_is_valid(listen_fd_)) {
-        wish::log_error("Failed to create admin HTTP socket.");
+        wish::log_error_cat(WISH_LOG_CATEGORY, "Failed to create admin HTTP socket.");
         return false;
     }
 
     const int reuse = 1;
     if (::setsockopt(listen_fd_, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&reuse), sizeof(reuse)) < 0) {
-        wish::log_error("Failed to enable SO_REUSEADDR for admin HTTP socket.");
+        wish::log_error_cat(WISH_LOG_CATEGORY, "Failed to enable SO_REUSEADDR for admin HTTP socket.");
         close_socket(listen_fd_);
         listen_fd_ = socket_invalid();
         return false;
@@ -102,20 +104,21 @@ bool HttpAdminServer::start(wish::u16 port, StatusProvider provider, HeartbeatSe
     address.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if (::bind(listen_fd_, reinterpret_cast<sockaddr*>(&address), sizeof(address)) < 0) {
-        wish::log_error("Failed to bind admin HTTP socket.");
+        wish::log_error_cat(WISH_LOG_CATEGORY, "Failed to bind admin HTTP socket.");
         close_socket(listen_fd_);
         listen_fd_ = socket_invalid();
         return false;
     }
 
     if (::listen(listen_fd_, 16) < 0) {
-        wish::log_error("Failed to listen on admin HTTP socket.");
+        wish::log_error_cat(WISH_LOG_CATEGORY, "Failed to listen on admin HTTP socket.");
         close_socket(listen_fd_);
         listen_fd_ = socket_invalid();
         return false;
     }
 
     running_ = true;
+    wish::log_info_cat(WISH_LOG_CATEGORY, "Admin HTTP server started on port " + std::to_string(port_));
     thread_ = std::thread(&HttpAdminServer::serve, this);
     return true;
 }
@@ -165,7 +168,7 @@ void HttpAdminServer::serve() {
                 continue;
             }
             if (socket_errno() != SOCKET_EBADF) {
-                wish::log_error("Admin HTTP select loop failed.");
+                wish::log_error_cat(WISH_LOG_CATEGORY, "Admin HTTP select loop failed.");
             }
             break;
         }
@@ -183,7 +186,7 @@ void HttpAdminServer::serve() {
         const SocketHandle client_fd = ::accept(listen_fd_, reinterpret_cast<sockaddr*>(&client_address), &client_length);
         if (!socket_is_valid(client_fd)) {
             if (socket_errno() != SOCKET_EINTR && socket_errno() != SOCKET_EBADF) {
-                wish::log_warning("Admin HTTP accept failed.");
+                wish::log_warning_cat(WISH_LOG_CATEGORY, "Admin HTTP accept failed.");
             }
             continue;
         }

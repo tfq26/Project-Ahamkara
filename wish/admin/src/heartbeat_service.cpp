@@ -1,3 +1,5 @@
+#define WISH_LOG_CATEGORY "HeartbeatService"
+
 #include "wish/admin/heartbeat_service.h"
 #include "wish/log.h"
 
@@ -18,6 +20,7 @@ void HeartbeatService::report_heartbeat(const std::string& server_id,
         it->second.port = port;
         it->second.last_heartbeat = now;
         it->second.alive = true;
+        wish::log_debug_cat(WISH_LOG_CATEGORY, "Updated heartbeat for server '" + server_id + "' at " + address + ":" + std::to_string(port));
     } else {
         servers_[server_id] = ServerInfo {
             .id = server_id,
@@ -25,6 +28,7 @@ void HeartbeatService::report_heartbeat(const std::string& server_id,
             .port = port,
             .last_heartbeat = now,
             .alive = true};
+        wish::log_info_cat(WISH_LOG_CATEGORY, "Registered new server '" + server_id + "' at " + address + ":" + std::to_string(port));
     }
 }
 
@@ -45,10 +49,13 @@ std::vector<ServerInfo> HeartbeatService::get_servers() const {
 bool HeartbeatService::is_alive(const std::string& server_id) const {
     const auto it = servers_.find(server_id);
     if (it == servers_.end()) {
+        wish::log_trace_cat(WISH_LOG_CATEGORY, "is_alive('" + server_id + "'): unknown server");
         return false;
     }
     const auto now = clock::now();
-    return (now - it->second.last_heartbeat) <= timeout_;
+    const bool alive = (now - it->second.last_heartbeat) <= timeout_;
+    wish::log_trace_cat(WISH_LOG_CATEGORY, "is_alive('" + server_id + "'): " + std::string(alive ? "yes" : "no"));
+    return alive;
 }
 
 void HeartbeatService::prune_dead_servers() {
@@ -66,8 +73,7 @@ void HeartbeatService::prune_dead_servers() {
     }
 
     if (erased > 0) {
-        wish::log_info(std::string("HeartbeatService: pruned ") +
-                       std::to_string(erased) + " dead server(s).");
+        wish::log_info_cat(WISH_LOG_CATEGORY, "Pruned " + std::to_string(erased) + " dead server(s).");
     }
 }
 

@@ -30,6 +30,26 @@ if(WIN32)
     target_link_libraries(wish_engine PRIVATE ws2_32)
 endif()
 
+# ── Log unit tests ──────────────────────────────────────────────────────
+add_executable(wish_log_tests
+    core/tests/log_tests.cpp
+)
+
+target_compile_features(wish_log_tests PRIVATE cxx_std_20)
+
+target_include_directories(wish_log_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_link_libraries(wish_log_tests
+    PRIVATE
+        wish_engine
+)
+
+add_test(NAME wish_log_tests COMMAND wish_log_tests)
+
 # ── Heartbeat tests ─────────────────────────────────────────────────────
 enable_testing()
 add_executable(wish_heartbeat_tests
