@@ -317,6 +317,9 @@ if(TARGET ae_render)
     target_compile_features(ahamkara_ibl_tests PRIVATE cxx_std_20)
 
     target_link_libraries(ahamkara_ibl_tests
+        PRIVATE
+            ae_render
+    )
 
     add_executable(ahamkara_ssao_tests
         src/ssao_tests.cpp
@@ -663,3 +666,41 @@ target_link_libraries(ahamkara_jitter_buffer_tests
         ae_network
 )
 add_test(NAME ahamkara_jitter_buffer_tests COMMAND ahamkara_jitter_buffer_tests)
+
+# Add network harness tests (exit gate 3: reproducible network harness)
+add_executable(ahamkara_network_harness_tests
+    src/network_harness_tests.cpp
+)
+target_compile_features(ahamkara_network_harness_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_network_harness_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+        ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/network/include
+)
+target_link_libraries(ahamkara_network_harness_tests
+    PRIVATE
+        ae_network
+        ahamkara_game
+)
+add_test(NAME ahamkara_network_harness_tests COMMAND ahamkara_network_harness_tests)
+
+# Add headless cross-product smoke tests (exit gate 4: distinct client identities)
+add_executable(ahamkara_headless_cross_product_tests
+    src/headless_cross_product_tests.cpp
+)
+target_compile_features(ahamkara_headless_cross_product_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_headless_cross_product_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+        ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/network/include
+)
+target_link_libraries(ahamkara_headless_cross_product_tests
+    PRIVATE
+        ae_network
+        ahamkara_game
+)
+add_test(NAME ahamkara_headless_cross_product_tests COMMAND ahamkara_headless_cross_product_tests)
