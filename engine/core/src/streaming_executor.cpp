@@ -20,10 +20,7 @@ namespace ae::core {
 StreamingExecutor::StreamingExecutor(IStreamingLoader* loader,
                                      IStreamingStorage* storage,
                                      IStreamingScheduler* scheduler)
-    : loader_(loader)
-    , storage_(storage)
-    , scheduler_(scheduler)
-{
+    : loader_(loader), storage_(storage), scheduler_(scheduler) {
 }
 
 // ---------------------------------------------------------------------------
@@ -32,14 +29,16 @@ StreamingExecutor::StreamingExecutor(IStreamingLoader* loader,
 
 StreamingExecutor::Entry* StreamingExecutor::find(int region_id) {
     for (auto& e : entries_) {
-        if (e.region_id == region_id) return &e;
+        if (e.region_id == region_id)
+            return &e;
     }
     return nullptr;
 }
 
 StreamingExecutor::Entry* StreamingExecutor::find_or_create(int region_id) {
     Entry* e = find(region_id);
-    if (e) return e;
+    if (e)
+        return e;
     entries_.push_back({region_id, {}, RegionLoadState::None, 0, {}});
     return &entries_.back();
 }
@@ -54,7 +53,7 @@ void StreamingExecutor::request_load(int region_id, RegionCoord coord) {
     case RegionLoadState::Resident:
     case RegionLoadState::Loading:
     case RegionLoadState::Requested:
-        return;  // no‑op
+        return; // no‑op
     default:
         break;
     }
@@ -69,7 +68,8 @@ void StreamingExecutor::request_load(int region_id, RegionCoord coord) {
 
 void StreamingExecutor::request_unload(int region_id) {
     Entry* entry = find(region_id);
-    if (!entry) return;
+    if (!entry)
+        return;
     if (entry->state == RegionLoadState::None ||
         entry->state == RegionLoadState::Evicting) {
         return;
@@ -90,7 +90,8 @@ void StreamingExecutor::request_unload(int region_id) {
                                [region_id](const Entry& pe) {
                                    return pe.region_id == region_id;
                                });
-        if (it != pending_.end()) pending_.erase(it);
+        if (it != pending_.end())
+            pending_.erase(it);
         entry->state = RegionLoadState::Cancelled;
         emit_diagnostic(region_id, RegionLoadState::Cancelled,
                         "unloaded before start");
@@ -121,7 +122,7 @@ void StreamingExecutor::commit() {
     for (const auto& r : ready_for_commit_) {
         Entry* entry = find(r.region_id);
         if (!entry || entry->state != RegionLoadState::Loading) {
-            continue;  // was cancelled between callback and commit
+            continue; // was cancelled between callback and commit
         }
 
         if (storage_->store(r.region_id, r.data, r.size)) {
@@ -145,13 +146,14 @@ void StreamingExecutor::commit() {
 
 void StreamingExecutor::cancel(int region_id) {
     Entry* entry = find(region_id);
-    if (!entry) return;
+    if (!entry)
+        return;
     switch (entry->state) {
     case RegionLoadState::None:
     case RegionLoadState::Resident:
     case RegionLoadState::Evicting:
     case RegionLoadState::Cancelled:
-        return;  // no‑op
+        return; // no‑op
     default:
         break;
     }
@@ -168,7 +170,8 @@ void StreamingExecutor::cancel(int region_id) {
                                [region_id](const Entry& pe) {
                                    return pe.region_id == region_id;
                                });
-        if (it != pending_.end()) pending_.erase(it);
+        if (it != pending_.end())
+            pending_.erase(it);
     }
 
     emit_diagnostic(region_id, RegionLoadState::Cancelled,
@@ -184,7 +187,8 @@ void StreamingExecutor::cancel_all() {
             ids.push_back(e.region_id);
         }
     }
-    for (int id : ids) cancel(id);
+    for (int id : ids)
+        cancel(id);
 }
 
 // ---------------------------------------------------------------------------
@@ -193,7 +197,8 @@ void StreamingExecutor::cancel_all() {
 
 RegionLoadState StreamingExecutor::state(int region_id) const {
     for (const auto& e : entries_) {
-        if (e.region_id == region_id) return e.state;
+        if (e.region_id == region_id)
+            return e.state;
     }
     return RegionLoadState::None;
 }
@@ -201,7 +206,8 @@ RegionLoadState StreamingExecutor::state(int region_id) const {
 int StreamingExecutor::failed_count() const {
     int n = 0;
     for (const auto& e : entries_) {
-        if (e.state == RegionLoadState::Failed) ++n;
+        if (e.state == RegionLoadState::Failed)
+            ++n;
     }
     return n;
 }
@@ -209,7 +215,8 @@ int StreamingExecutor::failed_count() const {
 int StreamingExecutor::cancelled_count() const {
     int n = 0;
     for (const auto& e : entries_) {
-        if (e.state == RegionLoadState::Cancelled) ++n;
+        if (e.state == RegionLoadState::Cancelled)
+            ++n;
     }
     return n;
 }
@@ -217,7 +224,8 @@ int StreamingExecutor::cancelled_count() const {
 int StreamingExecutor::resident_count() const {
     int n = 0;
     for (const auto& e : entries_) {
-        if (e.state == RegionLoadState::Resident) ++n;
+        if (e.state == RegionLoadState::Resident)
+            ++n;
     }
     return n;
 }
@@ -242,33 +250,37 @@ std::vector<LoadResult> StreamingExecutor::consume_completed() {
 // ---------------------------------------------------------------------------
 
 void StreamingExecutor::try_start_load(Entry& entry) {
-    if (in_flight_count_ >= budget_.max_in_flight) return;
-    if (storage_->stored_bytes() >= budget_.max_storage_bytes) return;
+    if (in_flight_count_ >= budget_.max_in_flight)
+        return;
+    if (storage_->stored_bytes() >= budget_.max_storage_bytes)
+        return;
 
     entry.state = RegionLoadState::Loading;
     ++in_flight_count_;
 
     int rid = entry.region_id;
     loader_->start_load(rid,
-        [this, rid](int region_id, bool ok, const void* data, std::size_t sz) {
-            // Thread‑safe: push result to mutex‑protected queue.
-            (void)rid;
-            std::lock_guard<std::mutex> lock(completed_mutex_);
-            completed_.push_back({region_id, ok, data, sz});
-        });
+                        [this, rid](int region_id, bool ok, const void* data, std::size_t sz) {
+                            // Thread‑safe: push result to mutex‑protected queue.
+                            (void)rid;
+                            std::lock_guard<std::mutex> lock(completed_mutex_);
+                            completed_.push_back({region_id, ok, data, sz});
+                        });
 }
 
 void StreamingExecutor::process_completions() {
     std::vector<LoadResult> batch;
     {
         std::lock_guard<std::mutex> lock(completed_mutex_);
-        if (completed_.empty()) return;
+        if (completed_.empty())
+            return;
         batch.swap(completed_);
     }
 
     for (const auto& r : batch) {
         Entry* entry = find(r.region_id);
-        if (!entry) continue;
+        if (!entry)
+            continue;
         if (entry->state != RegionLoadState::Loading) {
             // Cancelled after callback — decrement in‑flight and skip.
             continue;
@@ -300,7 +312,7 @@ void StreamingExecutor::process_pending() {
     for (auto& pe : pending_) {
         Entry* entry = find(pe.region_id);
         if (!entry || entry->state != RegionLoadState::Requested) {
-            continue;  // state changed since queued
+            continue; // state changed since queued
         }
 
         // Check budgets.
@@ -323,4 +335,4 @@ void StreamingExecutor::emit_diagnostic(int region_id, RegionLoadState st,
     diagnostics_.push_back({region_id, st, msg});
 }
 
-}  // namespace ae::core
+} // namespace ae::core

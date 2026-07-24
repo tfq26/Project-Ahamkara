@@ -8,15 +8,18 @@
 #include <vector>
 
 // Simple test framework macros (matching console_tests.cpp style)
-#define TEST(name)                                   \
-    do {                                             \
-        printf("  TEST: %s ... ", name);              \
+#define TEST(name)                       \
+    do {                                 \
+        printf("  TEST: %s ... ", name); \
         fflush(stdout);
 
-#define END_TEST(result)                             \
-        printf(result ? "PASSED\n" : "FAILED\n");    \
-        if (!(result)) { failures++; }               \
-    } while(0)
+#define END_TEST(result)                      \
+    printf(result ? "PASSED\n" : "FAILED\n"); \
+    if (!(result)) {                          \
+        failures++;                           \
+    }                                         \
+    }                                         \
+    while (0)
 
 static int failures = 0;
 
@@ -68,10 +71,10 @@ static void test_stub_command_not_silent() {
 
     // Register a stub command like the reload_shaders pattern.
     console.register_command("test_stub", "A stub for testing",
-        [](const std::vector<std::string>&, ae::Console& self) {
-            self.print_tagged("Console",
-                "Error: test_stub is not yet implemented — no contract exists.");
-        });
+                             [](const std::vector<std::string>&, ae::Console& self) {
+                                 self.print_tagged("Console",
+                                                   "Error: test_stub is not yet implemented — no contract exists.");
+                             });
 
     console.execute("test_stub");
 

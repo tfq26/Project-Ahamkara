@@ -38,7 +38,7 @@ namespace ae::core {
 
 /// Interface for asynchronous loading of region data.
 class IStreamingLoader {
-public:
+  public:
     /// Signature invoked when an async load completes.
     /// @param region_id  The region that was loading.
     /// @param success    true if the load succeeded.
@@ -66,7 +66,7 @@ public:
 
 /// Interface for storage and eviction of resident data.
 class IStreamingStorage {
-public:
+  public:
     virtual ~IStreamingStorage() = default;
 
     /// Store loaded data under the given region id.  Returns false if
@@ -85,7 +85,7 @@ public:
 
 /// Scheduling interface that wraps ae::JobSystem (or a test stub).
 class IStreamingScheduler {
-public:
+  public:
     virtual ~IStreamingScheduler() = default;
 
     /// Schedule a job for asynchronous execution on a worker thread.
@@ -98,28 +98,28 @@ public:
 
 /// Per‑region load state.
 enum class RegionLoadState : std::uint8_t {
-    None = 0,       ///< Not requested or fully evicted.
-    Requested,      ///< Load requested, waiting for budget availability.
-    Loading,        ///< Async load dispatched and in‑flight.
-    Resident,       ///< Loaded and committed to simulation.
-    Failed,         ///< Load failed after exhausting retries.
-    Cancelled,      ///< Load cancelled before becoming resident.
-    Evicting,       ///< Eviction dispatched.
+    None = 0,  ///< Not requested or fully evicted.
+    Requested, ///< Load requested, waiting for budget availability.
+    Loading,   ///< Async load dispatched and in‑flight.
+    Resident,  ///< Loaded and committed to simulation.
+    Failed,    ///< Load failed after exhausting retries.
+    Cancelled, ///< Load cancelled before becoming resident.
+    Evicting,  ///< Eviction dispatched.
 };
 
 /// A diagnostic record produced on failure or cancellation.
 struct StreamingDiagnostic {
-    int region_id{0};
-    RegionLoadState state{RegionLoadState::None};
+    int region_id {0};
+    RegionLoadState state {RegionLoadState::None};
     std::string message;
 };
 
 /// A raw load result produced by the loader callback.
 struct LoadResult {
-    int region_id{0};
-    bool success{false};
-    const void* data{nullptr};
-    std::size_t size{0};
+    int region_id {0};
+    bool success {false};
+    const void* data {nullptr};
+    std::size_t size {0};
 };
 
 // ---------------------------------------------------------------------------
@@ -142,11 +142,11 @@ struct LoadResult {
 /// fire on any thread; it enqueues results via a mutex‑protected queue
 /// that is drained during update().
 class StreamingExecutor {
-public:
+  public:
     struct Budget {
-        std::size_t max_storage_bytes{256U * 1024U * 1024U};  // 256 MB
-        int max_in_flight{4};    ///< Max concurrent async loads.
-        int max_retries{2};      ///< Retry attempts before marking Failed.
+        std::size_t max_storage_bytes {256U * 1024U * 1024U}; // 256 MB
+        int max_in_flight {4};                                ///< Max concurrent async loads.
+        int max_retries {2};                                  ///< Retry attempts before marking Failed.
     };
 
     /// All three injected interfaces are required and must remain alive
@@ -161,8 +161,12 @@ public:
 
     // -- Configuration --
 
-    void set_budget(const Budget& budget) { budget_ = budget; }
-    [[nodiscard]] const Budget& budget() const { return budget_; }
+    void set_budget(const Budget& budget) {
+        budget_ = budget;
+    }
+    [[nodiscard]] const Budget& budget() const {
+        return budget_;
+    }
 
     // -- Lifecycle --
 
@@ -201,10 +205,14 @@ public:
     [[nodiscard]] RegionLoadState state(int region_id) const;
 
     /// Number of loads currently in flight.
-    [[nodiscard]] int in_flight_count() const { return in_flight_count_; }
+    [[nodiscard]] int in_flight_count() const {
+        return in_flight_count_;
+    }
 
     /// Number of pending (not yet dispatched) loads.
-    [[nodiscard]] int pending_count() const { return static_cast<int>(pending_.size()); }
+    [[nodiscard]] int pending_count() const {
+        return static_cast<int>(pending_.size());
+    }
 
     /// Total stored bytes (delegated to storage interface).
     [[nodiscard]] std::size_t storage_used_bytes() const {
@@ -226,12 +234,12 @@ public:
     /// Drain completed results (for test inspection).
     [[nodiscard]] std::vector<LoadResult> consume_completed();
 
-private:
+  private:
     struct Entry {
-        int region_id{0};
-        RegionCoord coord{};
-        RegionLoadState state{RegionLoadState::None};
-        int retry_count{0};
+        int region_id {0};
+        RegionCoord coord {};
+        RegionLoadState state {RegionLoadState::None};
+        int retry_count {0};
         std::string error_message;
     };
 
@@ -249,10 +257,10 @@ private:
     IStreamingScheduler* scheduler_;
 
     Budget budget_;
-    int in_flight_count_{0};
+    int in_flight_count_ {0};
 
     std::vector<Entry> entries_;
-    std::vector<Entry> pending_;         // FIFO queue of requested loads
+    std::vector<Entry> pending_; // FIFO queue of requested loads
 
     // Thread‑safe: loader callback pushes, update() drains.
     std::mutex completed_mutex_;
@@ -264,4 +272,4 @@ private:
     std::vector<StreamingDiagnostic> diagnostics_;
 };
 
-}  // namespace ae::core
+} // namespace ae::core

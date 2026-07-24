@@ -22,11 +22,11 @@
 /// A fake loader that doesn't do I/O.  The test controls when loads
 /// complete by calling complete_load().
 class FakeLoader : public ae::core::IStreamingLoader {
-public:
+  public:
     struct PendingLoad {
         int region_id;
         Callback callback;
-        bool cancelled{false};
+        bool cancelled {false};
     };
 
     void start_load(int region_id, Callback callback) override {
@@ -49,7 +49,8 @@ public:
     bool complete_load(int region_id, bool success,
                        const void* data = nullptr, std::size_t size = 0) {
         auto it = pending_.find(region_id);
-        if (it == pending_.end()) return false;
+        if (it == pending_.end())
+            return false;
         if (it->second.cancelled) {
             pending_.erase(it);
             return false;
@@ -61,9 +62,13 @@ public:
     }
 
     /// Number of pending (in-flight) loads.
-    int pending_count() const { return static_cast<int>(pending_.size()); }
+    int pending_count() const {
+        return static_cast<int>(pending_.size());
+    }
 
-    void set_last_error(const std::string& err) { last_error_ = err; }
+    void set_last_error(const std::string& err) {
+        last_error_ = err;
+    }
 
     /// Complete loads in a specified order, regardless of start order.
     /// Used for deterministic-ordering tests.
@@ -74,22 +79,24 @@ public:
         }
     }
 
-private:
+  private:
     std::map<int, PendingLoad> pending_;
     std::string last_error_;
 };
 
 /// A fake storage that tracks stored byte count.
 class FakeStorage : public ae::core::IStreamingStorage {
-public:
+  public:
     struct RegionData {
-        const void* data{nullptr};
-        std::size_t size{0};
+        const void* data {nullptr};
+        std::size_t size {0};
     };
 
     bool store(int region_id, const void* data, std::size_t size) override {
-        if (reject_store_) return false;
-        if (stored_bytes_ + size > capacity_bytes_) return false;
+        if (reject_store_)
+            return false;
+        if (stored_bytes_ + size > capacity_bytes_)
+            return false;
         stored_[region_id] = {data, size};
         stored_bytes_ += size;
         return true;
@@ -103,28 +110,38 @@ public:
         }
     }
 
-    std::size_t stored_bytes() const override { return stored_bytes_; }
-    std::size_t capacity_bytes() const override { return capacity_bytes_; }
+    std::size_t stored_bytes() const override {
+        return stored_bytes_;
+    }
+    std::size_t capacity_bytes() const override {
+        return capacity_bytes_;
+    }
 
-    void set_capacity(std::size_t cap) { capacity_bytes_ = cap; }
-    void set_reject_store(bool reject) { reject_store_ = reject; }
+    void set_capacity(std::size_t cap) {
+        capacity_bytes_ = cap;
+    }
+    void set_reject_store(bool reject) {
+        reject_store_ = reject;
+    }
 
     bool has(int region_id) const {
         return stored_.find(region_id) != stored_.end();
     }
 
-    int stored_count() const { return static_cast<int>(stored_.size()); }
+    int stored_count() const {
+        return static_cast<int>(stored_.size());
+    }
 
-private:
+  private:
     std::map<int, RegionData> stored_;
-    std::size_t stored_bytes_{0};
-    std::size_t capacity_bytes_{256U * 1024U * 1024U};
-    bool reject_store_{false};
+    std::size_t stored_bytes_ {0};
+    std::size_t capacity_bytes_ {256U * 1024U * 1024U};
+    bool reject_store_ {false};
 };
 
 /// A fake scheduler that immediately runs the job synchronously.
 class FakeScheduler : public ae::core::IStreamingScheduler {
-public:
+  public:
     void schedule(std::function<void()> job) override {
         // For deterministic testing, run inline.
         job();
@@ -162,7 +179,7 @@ int check_state(ae::core::StreamingExecutor& ex, int region_id,
     return 0;
 }
 
-}  // namespace
+} // namespace
 
 // ---------------------------------------------------------------------------
 // Basic success
@@ -224,7 +241,7 @@ int test_cancel_prevents_late_completion() {
     ae::core::StreamingExecutor ex(&loader, &storage, &scheduler);
 
     ex.request_load(1);
-    ex.update();  // → Loading
+    ex.update(); // → Loading
 
     // Cancel while in-flight.
     ex.cancel(1);
@@ -264,12 +281,12 @@ int test_load_failure_retry() {
     ex.set_budget(budget);
 
     ex.request_load(7);
-    ex.update();  // → Loading
+    ex.update(); // → Loading
 
     // Fail the load (retry 1).
     loader.set_last_error("disk read error");
     loader.complete_load(7, false);
-    ex.update();  // retried and immediately dispatched → Loading
+    ex.update(); // retried and immediately dispatched → Loading
 
     if (int rc = check_state(ex, 7, ae::core::RegionLoadState::Loading,
                              "after first failure retry"))
@@ -277,7 +294,7 @@ int test_load_failure_retry() {
 
     // Fail again (retry 2).
     loader.complete_load(7, false);
-    ex.update();  // retried and dispatched → Loading
+    ex.update(); // retried and dispatched → Loading
 
     if (int rc = check_state(ex, 7, ae::core::RegionLoadState::Loading,
                              "after second failure retry"))
@@ -285,7 +302,7 @@ int test_load_failure_retry() {
 
     // Fail third time — exhausted retries.
     loader.complete_load(7, false);
-    ex.update();  // → Failed
+    ex.update(); // → Failed
 
     if (int rc = check_state(ex, 7, ae::core::RegionLoadState::Failed,
                              "after exhausting retries"))
@@ -300,7 +317,8 @@ int test_load_failure_retry() {
             break;
         }
     }
-    if (!found_failed) return fail("expected failed diagnostic for region 7");
+    if (!found_failed)
+        return fail("expected failed diagnostic for region 7");
 
     return 0;
 }
@@ -381,7 +399,7 @@ int test_memory_budget() {
     ae::core::StreamingExecutor ex(&loader, &storage, &scheduler);
 
     ae::core::StreamingExecutor::Budget budget;
-    budget.max_storage_bytes = 100;  // tiny budget
+    budget.max_storage_bytes = 100; // tiny budget
     budget.max_in_flight = 10;
     ex.set_budget(budget);
     storage.set_capacity(100);
@@ -441,7 +459,7 @@ int test_deterministic_ordering() {
     ae::core::StreamingExecutor ex(&loader, &storage, &scheduler);
 
     ae::core::StreamingExecutor::Budget budget;
-    budget.max_in_flight = 10;  // allow all in parallel
+    budget.max_in_flight = 10; // allow all in parallel
     ex.set_budget(budget);
 
     // Request 5 regions.
@@ -555,7 +573,7 @@ int test_cancel_during_load() {
     ae::core::StreamingExecutor ex(&loader, &storage, &scheduler);
 
     ex.request_load(1);
-    ex.update();  // → Loading
+    ex.update(); // → Loading
 
     ex.cancel(1);
     if (int rc = check_state(ex, 1, ae::core::RegionLoadState::Cancelled,
@@ -589,7 +607,7 @@ int test_cancel_all() {
 
     ex.request_load(1);
     ex.request_load(2);
-    ex.update();  // both → Loading
+    ex.update(); // both → Loading
 
     int data = 0;
     ex.cancel_all();
@@ -615,7 +633,7 @@ int test_idempotent_request() {
     ae::core::StreamingExecutor ex(&loader, &storage, &scheduler);
 
     ex.request_load(1);
-    ex.request_load(1);  // duplicate
+    ex.request_load(1); // duplicate
 
     ex.update();
     if (int rc = check_eq(loader.pending_count(), 1,
@@ -636,7 +654,7 @@ int test_budget_pressure_retries() {
     ae::core::StreamingExecutor ex(&loader, &storage, &scheduler);
 
     ae::core::StreamingExecutor::Budget budget;
-    budget.max_retries = 0;  // no retries
+    budget.max_retries = 0; // no retries
     ex.set_budget(budget);
 
     ex.request_load(99);
@@ -644,7 +662,7 @@ int test_budget_pressure_retries() {
 
     loader.set_last_error("i/o timeout");
     loader.complete_load(99, false);
-    ex.update();  // Should go directly to Failed (no retries).
+    ex.update(); // Should go directly to Failed (no retries).
 
     if (int rc = check_state(ex, 99, ae::core::RegionLoadState::Failed,
                              "should fail immediately with 0 retries"))
@@ -668,7 +686,7 @@ int test_repeated_randomized_order() {
     ae::core::StreamingExecutor ex(&loader, &storage, &scheduler);
 
     ae::core::StreamingExecutor::Budget budget;
-    budget.max_in_flight = 20;  // let them all fly
+    budget.max_in_flight = 20; // let them all fly
     ex.set_budget(budget);
 
     // Request 10 regions.
@@ -680,7 +698,8 @@ int test_repeated_randomized_order() {
 
     // Build reverse order.
     std::vector<int> order;
-    for (int i = N; i >= 1; --i) order.push_back(i);
+    for (int i = N; i >= 1; --i)
+        order.push_back(i);
 
     // Complete in reverse order.
     int data = 0;
@@ -703,54 +722,67 @@ int test_repeated_randomized_order() {
 
 int main() {
     // Basic success
-    if (int rc = test_successful_load()) return rc;
+    if (int rc = test_successful_load())
+        return rc;
     std::cout << "  PASSED test_successful_load\n";
 
     // Cancellation
-    if (int rc = test_cancel_prevents_late_completion()) return rc;
+    if (int rc = test_cancel_prevents_late_completion())
+        return rc;
     std::cout << "  PASSED test_cancel_prevents_late_completion\n";
 
     // Failure and retry
-    if (int rc = test_load_failure_retry()) return rc;
+    if (int rc = test_load_failure_retry())
+        return rc;
     std::cout << "  PASSED test_load_failure_retry\n";
 
     // Budget enforcement
-    if (int rc = test_in_flight_budget()) return rc;
+    if (int rc = test_in_flight_budget())
+        return rc;
     std::cout << "  PASSED test_in_flight_budget\n";
 
-    if (int rc = test_memory_budget()) return rc;
+    if (int rc = test_memory_budget())
+        return rc;
     std::cout << "  PASSED test_memory_budget\n";
 
     // Deterministic ordering
-    if (int rc = test_deterministic_ordering()) return rc;
+    if (int rc = test_deterministic_ordering())
+        return rc;
     std::cout << "  PASSED test_deterministic_ordering\n";
 
     // Commit boundary
-    if (int rc = test_commit_boundary()) return rc;
+    if (int rc = test_commit_boundary())
+        return rc;
     std::cout << "  PASSED test_commit_boundary\n";
 
     // Eviction
-    if (int rc = test_eviction()) return rc;
+    if (int rc = test_eviction())
+        return rc;
     std::cout << "  PASSED test_eviction\n";
 
     // Cancel during load
-    if (int rc = test_cancel_during_load()) return rc;
+    if (int rc = test_cancel_during_load())
+        return rc;
     std::cout << "  PASSED test_cancel_during_load\n";
 
     // Cancel all
-    if (int rc = test_cancel_all()) return rc;
+    if (int rc = test_cancel_all())
+        return rc;
     std::cout << "  PASSED test_cancel_all\n";
 
     // Idempotent request
-    if (int rc = test_idempotent_request()) return rc;
+    if (int rc = test_idempotent_request())
+        return rc;
     std::cout << "  PASSED test_idempotent_request\n";
 
     // Budget pressure: no retries
-    if (int rc = test_budget_pressure_retries()) return rc;
+    if (int rc = test_budget_pressure_retries())
+        return rc;
     std::cout << "  PASSED test_budget_pressure_retries\n";
 
     // Randomized order
-    if (int rc = test_repeated_randomized_order()) return rc;
+    if (int rc = test_repeated_randomized_order())
+        return rc;
     std::cout << "  PASSED test_repeated_randomized_order\n";
 
     std::cout << "streaming_executor_tests: all 12 tests passed\n";

@@ -67,7 +67,7 @@ int ConfigRegistry::reload_from_file(const std::string& path) {
         // No known vars were updated — the file may have only unknown keys.
         // This is suspicious; restore snapshot to avoid accidental mutation.
         log_warning_cat(AE_LOG_CATEGORY,
-            std::to_string(unknown) + " unknown key(s) found and no known vars updated.");
+                        std::to_string(unknown) + " unknown key(s) found and no known vars updated.");
         log_warning_cat(AE_LOG_CATEGORY, "Restoring previous valid configuration.");
         restore_snapshot();
     } else if (updated > 0) {

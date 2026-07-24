@@ -144,20 +144,20 @@ ClientFramePipeline::ClientFramePipeline(
     // Register a custom console command to reload shaders.
     // Returns a precise unsupported/error result until a renderer reload contract exists.
     console_.register_command("reload_shaders", "Reload GPU shaders from disk",
-        [](const std::vector<std::string>&, ae::Console& self) {
-            self.print_tagged("Console",
-                "Error: reload_shaders is not yet implemented — "
-                "requires a renderer shader-reload contract.");
-        });
+                              [](const std::vector<std::string>&, ae::Console& self) {
+                                  self.print_tagged("Console",
+                                                    "Error: reload_shaders is not yet implemented — "
+                                                    "requires a renderer shader-reload contract.");
+                              });
 
     // Register a custom console command to show debug render stats.
     // Returns a precise unsupported/error result until a debug renderer contract exists.
     console_.register_command("show_collision", "Toggle collision debug geometry",
-        [](const std::vector<std::string>&, ae::Console& self) {
-            self.print_tagged("Console",
-                "Error: show_collision is not yet implemented — "
-                "requires a debug renderer collision contract.");
-        });
+                              [](const std::vector<std::string>&, ae::Console& self) {
+                                  self.print_tagged("Console",
+                                                    "Error: show_collision is not yet implemented — "
+                                                    "requires a debug renderer collision contract.");
+                              });
 
     // ── Authoring: File Watcher ─────────────────────────────────────────
     // Watch the config file for live-reload.
