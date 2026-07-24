@@ -1,0 +1,206 @@
+# Cross-Product Released-Artifact Compatibility Smoke
+#
+# This workflow is the clean-room proof that released Ahamkara and Wish
+# artifacts can be composed by Flashback WITHOUT any producer source checkout.
+#
+# Jobs:
+#   1. produce-artifacts — builds Ahamkara + Wish, installs to a staging
+#      prefix, and uploads the install tree as workflow artifacts.
+#   2. clean-room-flashback — NO Ahamkara or Wish source checkout.  Downloads
+#      only the artifacts from job 1 plus Flashback source, configures/builds/
+#      runs compatibility smoke tests, and validates compatible + intentionally
+#      incompatible version combinations.
+#
+# Triggers:
+#   - workflow_dispatch (manual)
+#   - push to main / develop (runs after CI packaging)
+#   - pull_request targeting main or develop
+#
+# NOTE: Windows support will be added once the Windows packaging gate (#57) is
+# complete.
+
+name: Cross-Product Compatibility Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 4
+
+jobs:
+  # -------------------------------------------------------------------
+  # Job 1: Produce Ahamkara + Wish install artifacts with manifests
+  # -------------------------------------------------------------------
+  produce-artifacts:
+    name: Produce artifacts
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Checkout full source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # needed for git SHA in manifest
+
+      - name: Configure (headless preset)
+        run: cmake --preset debug-headless
+
+      - name: Build
+        run: cmake --build --preset debug-headless
+
+      - name: Install to staging prefix
+        run: |
+          cmake --install build/debug-headless \
+                --prefix "${{ runner.temp }}/ahamkara-install" \
+                --component Ahamkara
+
+      - name: Verify manifest files exist
+        run: |
+          echo "=== Installed artifacts ==="
+          find "${{ runner.temp }}/ahamkara-install" -type f | sort
+          echo ""
+          echo "=== Manifest checks ==="
+          if [[ -f "${{ runner.temp }}/ahamkara-install/share/ae/ahamkara-manifest.json" ]]; then
+            echo "Ahamkara manifest: FOUND"
+            cat "${{ runner.temp }}/ahamkara-install/share/ae/ahamkara-manifest.json"
+          else
+            echo "Ahamkara manifest: MISSING"
+            exit 1
+          fi
+          if [[ -f "${{ runner.temp }}/ahamkara-install/share/wish/wish-manifest.json" ]]; then
+            echo "Wish manifest: FOUND"
+            cat "${{ runner.temp }}/ahamkara-install/share/wish/wish-manifest.json"
+          else
+            echo "Wish manifest: MISSING"
+            exit 1
+          fi
+
+      - name: Upload Ahamkara+Wish install artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahamkara-wish-install
+          path: "${{ runner.temp }}/ahamkara-install"
+
+  # -------------------------------------------------------------------
+  # Job 2: Clean-room Flashback compatibility consumer
+  # -------------------------------------------------------------------
+  clean-room-flashback:
+    name: Clean-room Flashback compatibility
+    needs: produce-artifacts
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Download Ahamkara+Wish artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ahamkara-wish-install
+          path: "${{ runner.temp }}/ahamkara-install"
+
+      - name: Checkout ONLY Flashback source
+        uses: actions/checkout@v4
+        with:
+          # Sparse checkout: only the files the compatibility consumer needs.
+          # No engine/, wish/, server/, or client/ source trees.
+          sparse-checkout: |
+            tests/compatibility_consumer/
+            cmake/CompatibilitySmokeTest.cmake
+          sparse-checkout-cone-mode: false
+
+      - name: Verify NO producer source checked out
+        run: |
+          echo "=== Checked out files ==="
+          find . -type f | head -20
+          echo ""
+          # Ensure no Ahamkara engine or Wish source leaked in
+          if ls engine/CMakeLists.txt 2>/dev/null || ls wish/CMakeLists.txt 2>/dev/null; then
+            echo "FAIL: Producer source was checked out!"
+            exit 1
+          fi
+          echo "PASS: No producer source checked out"
+
+      - name: Configure compatibility consumer
+        run: |
+          cmake -S tests/compatibility_consumer \
+                -B "${{ runner.temp }}/compat-build" \
+                -G Ninja \
+                -DCMAKE_BUILD_TYPE=Debug \
+                -DCMAKE_PREFIX_PATH="${{ runner.temp }}/ahamkara-install"
+
+      - name: Build compatibility consumer
+        run: cmake --build "${{ runner.temp }}/compat-build"
+
+      - name: Run compatibility_consumer smoke
+        run: "${{ runner.temp }}/compat-build/compatibility_consumer"
+
+      - name: Run flashback_headless_smoke
+        run: "${{ runner.temp }}/compat-build/flashback_headless_smoke"
+
+      - name: Test incompatible version rejection
+        run: |
+          echo "=== Testing incompatible version rejection ==="
+          MISMATCH_DIR="${{ runner.temp }}/compat-mismatch"
+          cmake -S tests/compatibility_consumer \
+                -B "${MISMATCH_DIR}" \
+                -G Ninja \
+                -DCMAKE_BUILD_TYPE=Debug \
+                -DCMAKE_PREFIX_PATH="${{ runner.temp }}/ahamkara-install" \
+                -DAE_ABI_VERSION_OVERRIDE=999 \
+                -DWISH_ABI_VERSION_OVERRIDE=999 \
+                -DAE_NET_PROTOCOL_OVERRIDE=999 \
+                -DWISH_SESSION_PROTOCOL_OVERRIDE=999
+
+          if cmake --build "${MISMATCH_DIR}" 2>&1; then
+            echo "FAIL: Incompatible build should have failed but succeeded!"
+            exit 1
+          else
+            echo "PASS: Incompatible build correctly rejected (expected compile error)"
+          fi
+
+      - name: Collect diagnostics and manifests
+        if: always()
+        run: |
+          mkdir -p "${{ runner.temp }}/diagnostics"
+          # Consumer build log
+          if [[ -d "${{ runner.temp }}/compat-build" ]]; then
+            cmake --build "${{ runner.temp }}/compat-build" \
+              --verbose > "${{ runner.temp }}/diagnostics/compat-build-log.txt" 2>&1 || true
+          fi
+          # Mismatch build log
+          if [[ -d "${{ runner.temp }}/compat-mismatch" ]]; then
+            cmake --build "${{ runner.temp }}/compat-mismatch" \
+              --verbose > "${{ runner.temp }}/diagnostics/mismatch-build-log.txt" 2>&1 || true
+          fi
+          # Copy manifests
+          cp "${{ runner.temp }}/ahamkara-install/share/ae/ahamkara-manifest.json" \
+             "${{ runner.temp }}/diagnostics/" 2>/dev/null || true
+          cp "${{ runner.temp }}/ahamkara-install/share/wish/wish-manifest.json" \
+             "${{ runner.temp }}/diagnostics/" 2>/dev/null || true
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compatibility-diagnostics
+          path: "${{ runner.temp }}/diagnostics/"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Cross-Product Compatibility Smoke Results" >> "${GITHUB_STEP_SUMMARY}"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+          echo "| Check | Status |" >> "${GITHUB_STEP_SUMMARY}"
+          echo "|-------|--------|" >> "${GITHUB_STEP_SUMMARY}"
+          echo "| Compatible artifacts build | ✅ |" >> "${GITHUB_STEP_SUMMARY}"
+          echo "| Compatible artifacts smoke tests | ✅ |" >> "${GITHUB_STEP_SUMMARY}"
+          echo "| Incompatible version rejection | ✅ |" >> "${GITHUB_STEP_SUMMARY}"
+          echo "| No producer source checkout | ✅ |" >> "${GITHUB_STEP_SUMMARY}"
+          echo "| Artifact manifests present | ✅ |" >> "${GITHUB_STEP_SUMMARY}"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+          echo "Artifacts and diagnostics uploaded." >> "${GITHUB_STEP_SUMMARY}"

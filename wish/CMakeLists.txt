@@ -21,14 +21,52 @@ target_compile_features(wish_engine PUBLIC cxx_std_20)
 
 target_include_directories(wish_engine
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/..
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
 )
 
 if(WIN32)
     target_link_libraries(wish_engine PRIVATE ws2_32)
 endif()
+
+# ── Package / Export support ─────────────────────────────────────────────
+# Export wish_engine so external consumers can find_package(Wish CONFIG).
+install(TARGETS wish_engine
+    EXPORT WishTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Ahamkara
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Ahamkara
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(EXPORT WishTargets
+    FILE WishTargets.cmake
+    NAMESPACE Wish::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Wish
+    COMPONENT Ahamkara
+)
+
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/WishConfigVersion.cmake"
+    VERSION "0.1.0"
+    COMPATIBILITY SameMajorVersion
+)
+
+configure_package_config_file(
+    "${CMAKE_SOURCE_DIR}/cmake/WishConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/WishConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Wish
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/WishConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/WishConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Wish
+    COMPONENT Ahamkara
+)
 
 # ── Heartbeat tests ─────────────────────────────────────────────────────
 enable_testing()

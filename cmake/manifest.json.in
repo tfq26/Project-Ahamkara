@@ -1,0 +1,19 @@
+{
+  "manifest_version": 1,
+  "product": "@_product@",
+  "version": "@_version@",
+  "codename": "",
+  "commit": "@_git_sha@",
+  "build_date": "@_build_date@",
+  "toolchain": {
+    "compiler_id": "@_compiler_id@",
+    "compiler_version": "@_compiler_ver@",
+    "cxx_standard": "@_cxx_std@"
+  },
+  "abi": {
+    "level": @_abi_level@,
+    "compatibility": "SameMajorVersion"
+  },
+  "contents": [
+  ]
+}
