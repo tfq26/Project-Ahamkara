@@ -195,6 +195,20 @@ target_link_libraries(ahamkara_logging_tests
 
 add_test(NAME ahamkara_logging_tests COMMAND ahamkara_logging_tests)
 
+add_executable(ahamkara_cli_tests
+    src/cli_tests.cpp
+)
+
+target_compile_features(ahamkara_cli_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_cli_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+
+target_link_libraries(ahamkara_cli_tests
+    PRIVATE
+        ae_core
+)
+
+add_test(NAME ahamkara_cli_tests COMMAND ahamkara_cli_tests)
+
 add_executable(ahamkara_core_tests
     src/core_tests.cpp
 )
@@ -317,6 +331,9 @@ if(TARGET ae_render)
     target_compile_features(ahamkara_ibl_tests PRIVATE cxx_std_20)
 
     target_link_libraries(ahamkara_ibl_tests
+        PRIVATE
+            ae_render
+    )
 
     add_executable(ahamkara_ssao_tests
         src/ssao_tests.cpp
