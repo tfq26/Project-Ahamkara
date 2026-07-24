@@ -7,6 +7,9 @@ endif()
 
 project(Ahamkara VERSION 0.1.0 LANGUAGES CXX)
 
+# NEGATIVE TEST — deliberately broken to prove branch protection works
+broken_command_that_does_not_exist()
+
 set(CMAKE_CXX_STANDARD 20)
 
 if(WIN32)
