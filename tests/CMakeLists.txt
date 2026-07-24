@@ -317,6 +317,9 @@ if(TARGET ae_render)
     target_compile_features(ahamkara_ibl_tests PRIVATE cxx_std_20)
 
     target_link_libraries(ahamkara_ibl_tests
+        PRIVATE
+            ae_render
+    )
 
     add_executable(ahamkara_ssao_tests
         src/ssao_tests.cpp
