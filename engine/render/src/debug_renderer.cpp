@@ -1022,6 +1022,7 @@ struct DebugRenderer::Impl {
     bool has_level_env {false};
     float level_sky[3] {0.3F, 0.4F, 0.6F};
     float level_ambient[3] {0.05F, 0.05F, 0.1F};
+    float level_fog_density {-1.0F}; // < 0 = use day/night default
     ShaderHandle shader_program;
     ShaderHandle depth_program;  // depth-only pre-pass shader
     int u_color_loc {-1};
@@ -2039,7 +2040,9 @@ void DebugRenderer::render(DebugScene& scene, const std::function<void()>& draw_
     // --- Set fog uniforms for main shader (backend) ---
     if (impl_->shader_program) {
         impl_->backend->use_shader(impl_->shader_program);
-        float fog_density = 0.0008F + (1.0F - static_cast<float>(day_factor)) * 0.0015F;
+        float fog_density = (impl_->has_level_env && impl_->level_fog_density >= 0.0F)
+            ? impl_->level_fog_density
+            : (0.0008F + (1.0F - static_cast<float>(day_factor)) * 0.0015F);
         impl_->backend->set_uniform_vec3(impl_->u_fog_color_loc, cr, cg, cb);
         impl_->backend->set_uniform_vec2(impl_->u_fog_params_loc, fog_density, 0.0F);
         impl_->backend->set_uniform_vec3(impl_->u_camera_pos_loc, scene.camera_position.x, scene.camera_position.y, scene.camera_position.z);
@@ -2309,7 +2312,8 @@ void DebugRenderer::set_auto_present(bool enabled) {
 }
 
 void DebugRenderer::set_level_environment(float sky_r, float sky_g, float sky_b,
-                                          float ambient_r, float ambient_g, float ambient_b) {
+                                          float ambient_r, float ambient_g, float ambient_b,
+                                          float fog_density) {
     if (impl_ == nullptr) {
         return;
     }
@@ -2319,6 +2323,7 @@ void DebugRenderer::set_level_environment(float sky_r, float sky_g, float sky_b,
     impl_->level_ambient[0] = ambient_r;
     impl_->level_ambient[1] = ambient_g;
     impl_->level_ambient[2] = ambient_b;
+    impl_->level_fog_density = fog_density;
     impl_->has_level_env = true;
 }
 

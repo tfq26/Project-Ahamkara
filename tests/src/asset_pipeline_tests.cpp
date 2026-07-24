@@ -434,6 +434,7 @@ int test_compiled_level_roundtrip() {
     source.ambient_r = 0.02F;
     source.ambient_g = 0.03F;
     source.ambient_b = 0.04F;
+    source.fog_density = 0.0018F;
     source.gravity = 22.0F;
     source.skybox_material = "materials/skybox";
     source.ground_material = "materials/ground";
@@ -519,6 +520,7 @@ int test_compiled_level_roundtrip() {
         !float_equal(loaded.ambient_r, source.ambient_r) ||
         !float_equal(loaded.ambient_g, source.ambient_g) ||
         !float_equal(loaded.ambient_b, source.ambient_b) ||
+        !float_equal(loaded.fog_density, source.fog_density) ||
         !float_equal(loaded.gravity, source.gravity)) {
         return fail("level world settings mismatch");
     }
@@ -590,6 +592,35 @@ int test_compiled_level_roundtrip() {
     return 0;
 }
 
+int test_compiled_level_fog_default_roundtrip() {
+    // Verify that a LevelAsset with default fog_density (-1.0) roundtrips
+    // correctly — the sentinel value is preserved through save/load.
+    ae::render::LevelAsset source;
+    source.name = "FogDefaultTest";
+    source.fog_density = -1.0F; // default sentinel
+
+    const auto output_path = std::filesystem::temp_directory_path() / "ahamkara_fog_default_roundtrip.aelevel";
+    std::string error;
+    if (!ae::render::save_compiled_level(output_path.string(), source, error)) {
+        return fail("save_compiled_level failed for fog default: " + error);
+    }
+
+    ae::render::CompiledLevelLoader loader;
+    ae::render::LevelAsset loaded;
+    if (!loader.load(output_path.string(), loaded)) {
+        std::filesystem::remove(output_path);
+        return fail("CompiledLevelLoader failed for fog default: " + loader.last_error());
+    }
+
+    std::filesystem::remove(output_path);
+
+    if (!float_equal(loaded.fog_density, -1.0F)) {
+        return fail("default fog_density was not preserved through roundtrip");
+    }
+
+    return 0;
+}
+
 int test_compiled_level_rejects_bad_magic() {
     const auto output_path = std::filesystem::temp_directory_path() / "ahamkara_level_bad_magic.aelevel";
     {
@@ -632,6 +663,7 @@ int test_level_import_roundtrip() {
         source_file << "name=TestImport\n";
         source_file << "sky_color=0.2 0.3 0.7\n";
         source_file << "ambient=0.01 0.02 0.03\n";
+        source_file << "fog_density=0.0022\n";
         source_file << "gravity=18.0\n";
         source_file << "skybox_material=materials/sky\n";
         source_file << "\n";
@@ -678,6 +710,7 @@ int test_level_import_roundtrip() {
         !float_equal(level.ambient_r, 0.01F) ||
         !float_equal(level.ambient_g, 0.02F) ||
         !float_equal(level.ambient_b, 0.03F) ||
+        !float_equal(level.fog_density, 0.0022F) ||
         !float_equal(level.gravity, 18.0F)) {
         return fail("level world settings were unexpected");
     }
@@ -926,6 +959,10 @@ int main() {
     }
 
     if (const int result = test_compiled_level_roundtrip(); result != 0) {
+        return result;
+    }
+
+    if (const int result = test_compiled_level_fog_default_roundtrip(); result != 0) {
         return result;
     }
 

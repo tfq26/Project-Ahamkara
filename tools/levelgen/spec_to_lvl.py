@@ -61,6 +61,9 @@ def spec_to_lvl_text(spec: dict, source_name: str = "") -> str:
     lines.append(f"sky_color={_num(sky[0])} {_num(sky[1])} {_num(sky[2])}")
     amb = spec.get("ambient", [0.05, 0.05, 0.1])
     lines.append(f"ambient={_num(amb[0])} {_num(amb[1])} {_num(amb[2])}")
+    fog_density = spec.get("fog_density")
+    if fog_density is not None:
+        lines.append(f"fog_density={_num(fog_density)}")
     lines.append(f"gravity={_num(spec.get('gravity', 20.0))}")
     if spec.get("skybox_material"):
         lines.append(f"skybox_material={spec['skybox_material']}")
@@ -133,6 +136,8 @@ def parse_lvl(text: str) -> dict:
             val = val.strip()
             if key in ("sky_color", "ambient"):
                 out[key] = [float(x) for x in val.split()]
+            elif key == "fog_density":
+                out[key] = float(val)
             elif key == "gravity":
                 out[key] = float(val)
             else:
@@ -194,6 +199,11 @@ def selftest(spec_path: Path) -> int:
 
     if parsed.get("name") != spec.get("name", "Level"):
         failures.append("name mismatch")
+    if "fog_density" in spec:
+        got_fog = parsed.get("fog_density")
+        want_fog = spec["fog_density"]
+        if got_fog is None or not _close(got_fog, want_fog):
+            failures.append("fog_density mismatch")
     if not _close(parsed.get("gravity", 20.0), spec.get("gravity", 20.0)):
         failures.append("gravity mismatch")
 

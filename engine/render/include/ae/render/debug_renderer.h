@@ -241,11 +241,13 @@ class DebugRenderer {
 
     RenderBackend* backend();
 
-    /// Drive sky/clear/fog color and ambient lighting from a loaded level's
-    /// environment settings. Call once after loading a level. Without it, the
-    /// renderer uses its built-in day/night palette.
+    /// Drive sky/clear/fog color, ambient lighting, and fog density from a
+    /// loaded level's environment settings. Call once after loading a level.
+    /// Pass fog_density < 0 to use the built-in day/night default.
+    /// Without this call the renderer uses its built-in day/night palette.
     void set_level_environment(float sky_r, float sky_g, float sky_b,
-                               float ambient_r, float ambient_g, float ambient_b);
+                               float ambient_r, float ambient_g, float ambient_b,
+                               float fog_density = -1.0F);
     /// Revert to the built-in day/night environment.
     void clear_level_environment();
 

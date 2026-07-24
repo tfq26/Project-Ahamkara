@@ -20,6 +20,7 @@ bool write_world_settings(std::ofstream& file, const LevelAsset& level, std::str
         !write_value(file, level.ambient_r) ||
         !write_value(file, level.ambient_g) ||
         !write_value(file, level.ambient_b) ||
+        !write_value(file, level.fog_density) ||
         !write_value(file, level.gravity) ||
         !write_string(file, level.skybox_material) ||
         !write_string(file, level.ground_material)) {
@@ -56,6 +57,7 @@ bool read_world_settings(std::ifstream& file, LevelAsset& level, std::string& er
         !read_value(file, level.ambient_r) ||
         !read_value(file, level.ambient_g) ||
         !read_value(file, level.ambient_b) ||
+        !read_value(file, level.fog_density) ||
         !read_value(file, level.gravity)) {
         error = "Failed to read world settings scalars";
         return false;

@@ -2,6 +2,7 @@
   "name": "Prototype Box Showcase",
   "sky_color": [0.3, 0.4, 0.6],
   "ambient": [0.06, 0.06, 0.12],
+  "fog_density": 0.0015,
   "gravity": 20.0,
   "spawns": [
     {"pos": [-6.0, 1.5, 0.0], "yaw": 90.0, "team": 1}

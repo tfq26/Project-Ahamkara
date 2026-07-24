@@ -2,6 +2,7 @@
   "name": "Textured Showcase",
   "sky_color": [0.3, 0.4, 0.6],
   "ambient": [0.08, 0.08, 0.12],
+  "fog_density": 0.0015,
   "gravity": 20.0,
   "spawns": [
     {"pos": [0.0, 1.5, 4.0], "yaw": 180.0, "team": 1}

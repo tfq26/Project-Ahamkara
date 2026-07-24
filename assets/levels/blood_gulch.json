@@ -3,6 +3,7 @@
     "kind": "level_spec",
     "sky_color": [0.55, 0.65, 0.85],
     "ambient": [0.10, 0.12, 0.15],
+    "fog_density": 0.0010,
     "gravity": 20.0,
     "spawns": [
         {"pos": [-22, 1.5, 0],  "yaw": 90,  "team": 0},

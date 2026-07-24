@@ -2,6 +2,7 @@
   "name": "Prototype Arena",
   "sky_color": [0.3, 0.4, 0.6],
   "ambient": [0.05, 0.05, 0.1],
+  "fog_density": 0.0020,
   "gravity": 20.0,
   "spawns": [
     {"pos": [-8.0, 1.5, 0.0], "yaw": 0.0, "team": 1},

@@ -136,6 +136,11 @@ bool load_level_source(const std::filesystem::path& path, ae::render::LevelAsset
                 if (!parse_float3(value, level.ambient_r, level.ambient_g, level.ambient_b, error, "ambient")) {
                     return false;
                 }
+            } else if (key == "fog_density") {
+                if (!parse_float_token(value, level.fog_density)) {
+                    error = "fog_density expects a float";
+                    return false;
+                }
             } else if (key == "gravity") {
                 if (!parse_float_token(value, level.gravity)) {
                     error = "gravity expects a float";

@@ -49,6 +49,7 @@ struct LevelAsset {
     float ambient_r {0.05F};
     float ambient_g {0.05F};
     float ambient_b {0.1F};
+    float fog_density {-1.0F};       // -1 = use day/night default; >= 0 = explicit density
     float gravity {20.0F};
     std::string skybox_material {};
     std::string ground_material {};
@@ -59,7 +60,7 @@ struct LevelAsset {
 
 struct CompiledLevelFormat {
     static constexpr std::uint32_t magic = 0x5654454C;  // "LEVEL"
-    static constexpr std::uint32_t version = 1;
+    static constexpr std::uint32_t version = 2;
 };
 
 [[nodiscard]] bool save_compiled_level(const std::string& path, const LevelAsset& level, std::string& error);

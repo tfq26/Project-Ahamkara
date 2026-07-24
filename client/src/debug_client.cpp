@@ -97,7 +97,8 @@ int run_local_client(
             level_scene.build(loaded_level_asset, *renderer.backend(), "");
             renderer.set_level_environment(
                 loaded_level_asset.sky_color_r, loaded_level_asset.sky_color_g, loaded_level_asset.sky_color_b,
-                loaded_level_asset.ambient_r, loaded_level_asset.ambient_g, loaded_level_asset.ambient_b);
+                loaded_level_asset.ambient_r, loaded_level_asset.ambient_g, loaded_level_asset.ambient_b,
+                loaded_level_asset.fog_density);
             ae::log_info("Loaded level '" + loaded_level_asset.name + "' from " +
                 std::string(level_path) + " (" +
                 std::to_string(loaded_level_asset.mesh_instances.size()) + " mesh instances in spec, " +
