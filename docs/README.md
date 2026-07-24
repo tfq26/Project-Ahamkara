@@ -28,6 +28,8 @@ rationale independently of that issue.
    propagation, recovery, telemetry, and extension rules.
 7. [Error-code operations](operations/error-codes.md) — initial code catalog
    and support workflow.
+8. [Main branch protection](operations/main-branch-protection.md) — ruleset,
+   required checks, negative-test procedure, and emergency bypass.
 
 ## Documentation layout
 

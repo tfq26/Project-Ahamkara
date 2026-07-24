@@ -4,6 +4,25 @@
 # for presets that support them. Runs on self-hosted Linux runner (servlenovo1).
 # Agent branches auto-merge only when they explicitly opt in through the
 # agent/automerge/** namespace; ordinary agent branches are PR-only.
+#
+# ═══════════════════════════════════════════════════════════════════════════
+# MAIN BRANCH PROTECTION
+#
+# The `main` branch is protected by a GitHub ruleset ("Main Protection") AND
+# legacy branch-protection rules.  Together they enforce:
+#
+#   - All merges MUST go through a pull request.
+#   - Every PR MUST have 1+ approving review AND pass every required status
+#     check (Lint, debug, release, debug-headless, Package).
+#   - Branches MUST be up-to-date with `main` before merging
+#     (strict_required_status_checks_policy).
+#   - Force pushes and branch deletions are blocked at the API level.
+#   - Bypass actors are empty — even administrators cannot skip these rules.
+#
+# These file-level checks are SECONDARY; the primary gate is the ruleset.
+# Do not rely solely on `[skip ci]` to bypass — the ruleset enforces checks
+# regardless of workflow-level skip optimisations.
+# ═══════════════════════════════════════════════════════════════════════════
 
 name: CI
 
@@ -24,8 +43,29 @@ env:
   CMAKE_BUILD_PARALLEL_LEVEL: 4
 
 jobs:
+  # ── Guard: reject [skip ci] on main pushes ──────────────────────────
+  # This is a safety net. Even if someone bypasses the PR-only rule and
+  # pushes directly to main with [skip ci], this job runs first and fails,
+  # preventing the required status checks from being satisfied.
+  guard-main-no-skip:
+    name: Guard main
+    runs-on: [self-hosted, linux]
+    if: github.ref_name == 'main'
+    steps:
+      - name: Block [skip ci] on main
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message || '' }}
+        run: |
+          if echo "$COMMIT_MSG" | grep -qi '\[skip ci\]'; then
+            echo "::error::Commit to main contains '[skip ci]' which would bypass"
+            echo "::error::required status checks.  Remove [skip ci] and re-push."
+            exit 1
+          fi
+          echo "✅ No skip-ci marker found."
+
   lint:
     name: Lint
+    needs: [guard-main-no-skip]
     runs-on: [self-hosted, linux]
 
     steps:
