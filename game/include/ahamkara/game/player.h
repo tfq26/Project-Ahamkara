@@ -164,6 +164,11 @@ class Player {
         weapon_runtime_.notify_fired();
     }
 
+    /// Fire mode-aware trigger pull check.
+    bool trigger_pull(bool held) { return weapon_runtime_.trigger_pull(held); }
+    /// Combined can_fire + trigger_pull check.
+    bool try_fire(bool held) { return weapon_runtime_.try_fire(held); }
+
     [[nodiscard]] int get_ammo_current() const {
         return weapon_runtime_.state().ammo_in_magazine;
     }

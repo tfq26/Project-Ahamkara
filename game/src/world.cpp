@@ -350,9 +350,14 @@ void World::apply_input(ae::u32 player_index, float delta_seconds, const PlayerI
         }
     }
 
-    if (input.fire_held) {
+    // Fire control: use weapon runtime's try_fire() which handles
+    // fire mode edge detection (Single/Burst/Auto), burst timing,
+    // ammo, reload, and cooldown in one call.
+    if (players_[player_index].try_fire(input.fire_held)) {
         const auto& def = get_active_weapon_def();
-        if (def.fire_mode == FireMode::Hitscan || def.fire_mode == FireMode::Automatic) {
+        // Hit detection method: Primary/Secondary use hitscan,
+        // Melee slot uses projectile (rocket launcher).
+        if (def.slot == WeaponSlot::Primary || def.slot == WeaponSlot::Secondary) {
             fire_hitscan(*this, input);
         } else {
             spawn_projectile(input);

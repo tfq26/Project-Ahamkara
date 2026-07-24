@@ -175,10 +175,17 @@ enum class WeaponSlot : int {
 };
 
 enum class FireMode : int {
-    Hitscan = 0,
-    Projectile = 1,
-    Burst = 2,
-    Automatic = 3
+    // Normalized fire trigger modes
+    Single = 0,  ///< Semi-automatic: one shot per trigger press
+    Burst = 1,   ///< Burst fire: fixed N rounds per trigger press
+    Auto = 2,    ///< Full-automatic: continuous fire while trigger is held
+
+    // Legacy aliases — map old names to normalized values.
+    // Hit detection method (hitscan vs projectile) is determined separately
+    // by the weapon slot and projectile_type field, not by FireMode.
+    Hitscan = Single,
+    Automatic = Auto,
+    Projectile = Single,
 };
 
 struct RecoilEntry {
@@ -190,12 +197,23 @@ struct WeaponDefinition {
     int magazine_size {30};
     float base_damage {25.0F};
     float headshot_multiplier {2.0F};
-    FireMode fire_mode {FireMode::Hitscan};
+    FireMode fire_mode {FireMode::Single};
     WeaponSlot slot {WeaponSlot::Primary};
     float rpm {400.0F};             ///< Rounds per minute — used to derive fire cooldown.
     float reload_time_s {2.0F};     ///< Reload duration in seconds.
     int reserve_ammo_max {150};     ///< Max reserve ammo (0 = use 3x magazine as default).
+
+    /// Recoil pattern: sequence of (yaw, pitch) offsets per shot.
     std::vector<RecoilEntry> recoil_pattern {};
+
+    /// Burst fire configuration (used when fire_mode == Burst).
+    int burst_rounds {3};           ///< Number of rounds fired per burst trigger pull.
+    float burst_interval {0.0F};    ///< Seconds between rounds within a burst (0 = use fire_interval).
+
+    /// Spread configuration for bullet/pellet dispersion.
+    float spread_angle {0.0F};      ///< Base spread angle in degrees (0 = no spread).
+    float spread_per_shot {0.0F};   ///< Additional spread per consecutive shot (degrees).
+    float spread_recovery {0.0F};   ///< Spread recovery per second back toward base.
 
     /// Seconds between shots derived from RPM.
     [[nodiscard]] float fire_interval() const { return 60.0F / std::max(rpm, 1.0F); }
@@ -211,12 +229,32 @@ struct WeaponState {
     float fire_cooldown {0.0F};
     int definition_index {0};
 
+    /// Burst fire tracking
+    int burst_rounds_fired {0};     ///< Rounds fired so far in the current burst.
+    int burst_rounds_total {3};     ///< Total rounds in a burst (from definition).
+    float burst_timer {0.0F};       ///< Timer between rounds within a burst.
+
+    /// Recoil/spread tracking
+    int recoil_seed {0};            ///< Monotonic shot counter for deterministic pattern indexing.
+    float current_spread {0.0F};    ///< Current accumulated spread angle.
+    float spread_angle_base {0.0F}; ///< Base spread angle from definition.
+
     bool can_fire() const {
         return ammo_in_magazine > 0 && !is_reloading && !is_equipping && !is_charging && fire_cooldown <= 0.0F;
     }
 
     bool can_reload() const {
         return ammo_in_magazine < magazine_capacity && reserve_ammo > 0 && !is_reloading && !is_equipping;
+    }
+
+    /// Whether a burst is in progress.
+    bool is_bursting() const {
+        return burst_rounds_fired > 0 && burst_rounds_fired < burst_rounds_total;
+    }
+
+    /// Whether the burst is complete (all rounds fired).
+    bool is_burst_complete() const {
+        return burst_rounds_fired >= burst_rounds_total && burst_rounds_total > 0;
     }
 };
 

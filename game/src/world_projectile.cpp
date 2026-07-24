@@ -137,8 +137,10 @@ void fire_projectile(World& world, const PlayerInputCommand& input) {
 
     // Projectile weapon classification: rocket launcher uses slot Melee.
     const bool is_rocket = (def.slot == WeaponSlot::Melee);
-    // Shotgun check: Secondary slot with projectile fire mode.
-    const bool is_shotgun_proj = (def.slot == WeaponSlot::Secondary && def.fire_mode == FireMode::Projectile);
+    // Shotgun projectile spread is determined by slot-based hit detection
+    // in the caller (world.cpp), not by fire_mode. No secondary projectile
+    // weapons currently exist, so this is always false.
+    const bool is_shotgun_proj = false;
 
     // For shotgun: fire multiple pellets
     const int pellets = is_shotgun_proj ? static_cast<int>(kShotgunPelletCount) : 1;

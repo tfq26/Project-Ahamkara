@@ -65,6 +65,68 @@ public:
     /// Called by the firing system after consume_ammo() succeeds.
     void notify_fired() { on_fire(); }
 
+    /// --- Fire mode helpers ---
+
+    /// Get the current fire mode of the active weapon.
+    [[nodiscard]] FireMode fire_mode() const;
+
+    /// Whether the trigger should fire this frame based on fire mode
+    /// and previous trigger state.  For Single/Burst modes this handles
+    /// edge detection (only fire on rising edge).
+    /// Call once per frame from the firing system.
+    /// @param trigger_held  true if the fire button/trigger is currently held.
+    /// @return true if the weapon should fire this frame.
+    bool trigger_pull(bool trigger_held);
+
+    /// Combined can_fire + trigger_pull check.
+    /// Returns true if the weapon can fire AND the trigger logic says to fire.
+    /// This is the main entry point the firing system should use.
+    /// @param trigger_held  true if the fire button/trigger is currently held.
+    /// @return true if the weapon should fire this frame.
+    bool try_fire(bool trigger_held);
+
+    /// --- Burst fire ---
+
+    /// Start a burst sequence (for Burst fire mode).
+    void start_burst();
+
+    /// Advance burst fire state.  Called from tick().
+    void tick_burst(float delta_seconds);
+
+    /// Whether a burst sequence is in progress.
+    [[nodiscard]] bool is_bursting() const { return state_.is_bursting(); }
+
+    /// How many rounds remain in the current burst.
+    [[nodiscard]] int burst_rounds_remaining() const {
+        return state_.burst_rounds_total - state_.burst_rounds_fired;
+    }
+
+    /// --- Deterministic recoil/spread generation ---
+
+    /// Get a deterministic recoil offset for the current shot.
+    /// Returns the (yaw, pitch) offset from the weapon's pattern.
+    [[nodiscard]] RecoilEntry generate_recoil();
+
+    /// Get a deterministic spread offset for a given pellet index.
+    /// Used by shotguns and multi-pellet weapons.
+    /// @param pellet_index   Index of the pellet within the shot (0 = first).
+    /// @param pellet_count   Total pellets in this shot.
+    [[nodiscard]] float generate_spread(int pellet_index, int pellet_count) const;
+
+    /// Advance the recoil seed by one shot (called after generating recoil).
+    void advance_recoil_seed();
+
+    /// Current accumulated spread angle (degrees).
+    [[nodiscard]] float current_spread() const { return state_.current_spread; }
+
+    /// Reset recoil seed (called on weapon switch).
+    void reset_recoil_seed() { state_.recoil_seed = 0; }
+
+    /// --- Trigger state tracking ---
+    /// Set to true when the trigger was pressed last frame (for edge detection).
+    void set_trigger_was_pressed(bool pressed) { trigger_was_pressed_ = pressed; }
+    [[nodiscard]] bool trigger_was_pressed() const { return trigger_was_pressed_; }
+
 protected:
     // -- Subclass hooks (default no-op) --
 
@@ -82,6 +144,9 @@ protected:
     /// alt-ammo consumption, or spread accumulation.
     virtual void on_fire() {}
 
+    /// Called when a burst sequence finishes (all rounds fired or interrupted).
+    virtual void on_burst_finished() {}
+
     /// Read the active WeaponDefinition from subclass hooks without
     /// going through the public API.
     [[nodiscard]] const WeaponDefinition& current_def() const {
@@ -96,6 +161,11 @@ private:
 
     WeaponState state_ {};
     float reload_timer_ {0.0F};
+    bool trigger_was_pressed_ {false};
+    bool pending_burst_round_ {false};  ///< Set by tick_burst when next burst round is ready.
+
+    /// Deterministic hash for recoil/spread generation.
+    static int hash_seed(int seed, int index);
 };
 
 }  // namespace ahamkara::game
