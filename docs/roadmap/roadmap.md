@@ -26,7 +26,9 @@ Exit gates:
 
 ## Stage 2 — Make Ahamkara a real engine product
 
-Exit gates:
+Status: **Complete** — all exit gates have been satisfied.
+
+Exit gates (all met):
 
 - engine-only configure/build/install requires no Flashback or Wish source;
 - exported namespaced package targets are consumable out of tree;
@@ -34,6 +36,9 @@ Exit gates:
 - the runtime hosts a game through a documented module contract;
 - stable errors, logs, telemetry, crash data, and diagnostic bundles form one
   operational path.
+
+Phase 1 implementation issues #53, #54, #55, #58, #62, #14, #18, #16, #17,
+#37, #20-#27, and #10 are all closed.
 
 ## Stage 3 — Make Flashback a real game product
 

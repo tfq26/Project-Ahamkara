@@ -141,6 +141,16 @@ three repositories fail independently. The required sequence and exit gates
 are documented in [repository-split.md](repository-split.md); work status stays
 in [GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues).
 
+### Progress
+
+- **Ahamkara engine-boundary work (Phase 1):** Complete. Architecture boundaries
+  (#53, #54, #55, #58), error foundation (#62, #14), network contracts
+  (#18, #16, #17), and runtime budgets (#37, #20-#27) are all closed.
+  See the [backlog index](https://github.com/tfq26/Project-Ahamkara/issues/61)
+  for current state.
+- **Render/animation cycle:** Broken — pose ownership is one-way (see above).
+- **Physics/collision ownership:** Unified — ownership is one-directional.
+
 
 ## Render / Animation Dependency
 

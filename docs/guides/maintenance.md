@@ -58,9 +58,10 @@ CI currently builds debug, release, and debug-headless across its platform
 matrix and runs tests for debug/headless jobs.
 [src: file: .github/workflows/ci.yml:22-67]
 
-The build matrix itself is under active repair; check
-[#39](https://github.com/tfq26/Project-Ahamkara/issues/39) rather than copying
-its mutable status into this guide.
+The build matrix was stabilized in
+[#39](https://github.com/tfq26/Project-Ahamkara/issues/39) (closed). Check
+GitHub Issues for any new build-matrix work rather than copying
+mutable status into this guide.
 
 ## Diagnose using existing facilities
 

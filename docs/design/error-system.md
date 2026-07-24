@@ -1,11 +1,11 @@
 # Extensible error identity and handling
 
-Status: Foundation implemented in ae_core (AE-* catalog + Result/report APIs); product adapters still pending
+Status: Foundation implemented in ae_core (AE-* catalog + Result/report APIs); Wish envelope and Flashback presentation complete
 
-Implementation is sequenced through
-[Ahamkara foundation #62](https://github.com/tfq26/Project-Ahamkara/issues/62),
-[Wish envelope #63](https://github.com/tfq26/Project-Ahamkara/issues/63), and
-[Flashback presentation #64](https://github.com/tfq26/Project-Ahamkara/issues/64).
+Implementation was sequenced through
+[Ahamkara foundation #62](https://github.com/tfq26/Project-Ahamkara/issues/62) (closed),
+[Wish envelope #63](https://github.com/tfq26/Project-Ahamkara/issues/63) (closed), and
+[Flashback presentation #64](https://github.com/tfq26/Project-Ahamkara/issues/64) (closed).
 The design remains authoritative for semantics; the issues own mutable work
 state and acceptance progress.
 

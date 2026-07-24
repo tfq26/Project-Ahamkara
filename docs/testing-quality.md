@@ -50,8 +50,8 @@ for debug and debug-headless jobs, and has a separate package job.
 [src: file: .github/workflows/ci.yml:22-88]
 
 The existence of a CI job is not proof that the current branch is green. The
-mutable build-matrix status is tracked in
-[#39](https://github.com/tfq26/Project-Ahamkara/issues/39).
+build-matrix was stabilized in
+[#39](https://github.com/tfq26/Project-Ahamkara/issues/39) (closed).
 
 ## Completion bar
 
