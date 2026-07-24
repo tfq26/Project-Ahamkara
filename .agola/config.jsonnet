@@ -7,7 +7,7 @@
           name: "lint",
           runtime: {
             arch: "amd64",
-            containers: [{ image: "debian:bookworm-slim" }],
+            containers: [{ image: "debian:bookworm" }],
           },
           environment: { DEBIAN_FRONTEND: "noninteractive" },
           steps: [
@@ -22,7 +22,7 @@
           name: "build-debug",
           runtime: {
             arch: "amd64",
-            containers: [{ image: "debian:bookworm-slim" }],
+            containers: [{ image: "debian:bookworm" }],
           },
           environment: { DEBIAN_FRONTEND: "noninteractive" },
           steps: [
@@ -36,7 +36,7 @@
           depends: ["build-debug"],
           runtime: {
             arch: "amd64",
-            containers: [{ image: "debian:bookworm-slim" }],
+            containers: [{ image: "debian:bookworm" }],
           },
           environment: { DEBIAN_FRONTEND: "noninteractive" },
           steps: [
@@ -49,7 +49,7 @@
           name: "build-debug-headless",
           runtime: {
             arch: "amd64",
-            containers: [{ image: "debian:bookworm-slim" }],
+            containers: [{ image: "debian:bookworm" }],
           },
           environment: { DEBIAN_FRONTEND: "noninteractive" },
           steps: [
@@ -63,7 +63,7 @@
           depends: ["build-debug-headless"],
           runtime: {
             arch: "amd64",
-            containers: [{ image: "debian:bookworm-slim" }],
+            containers: [{ image: "debian:bookworm" }],
           },
           environment: { DEBIAN_FRONTEND: "noninteractive" },
           steps: [
