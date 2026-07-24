@@ -1,0 +1,109 @@
+# Issue triage workflow
+#
+# Auto-triages newly created and reopened issues: assigns labels for
+# priority, product, and subsystem based on structured issue bodies
+# and title patterns. Runs only on issue events, not PRs.
+#
+# Labels applied by this workflow:
+#   priority: priority-critical, priority-high, priority-normal, priority-low
+#   product:  product:ahamkara, product:flashback, product:wish, product:cross-product
+#   state:    open, task
+
+name: Triage
+
+on:
+  issues:
+    types: [opened, reopened, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  triage:
+    name: Auto-triage issue
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Triage issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { issue } = context.payload;
+            const labelsToAdd = [];
+
+            // Always add 'task' for structured TASK- prefixed titles
+            if (/^TASK-/i.test(issue.title)) {
+              labelsToAdd.push('task');
+            }
+
+            // --- Priority detection ---
+            const body = (issue.body || '').toLowerCase();
+            const title = (issue.title || '').toLowerCase();
+
+            if (/priority.*critical/i.test(body) || /priority.*critical/i.test(title)) {
+              labelsToAdd.push('priority-critical');
+            } else if (/priority.*high/i.test(body) || /priority.*high/i.test(title)) {
+              labelsToAdd.push('priority-high');
+            } else if (/priority.*normal/i.test(body) || /priority.*normal/i.test(title)) {
+              labelsToAdd.push('priority-normal');
+            } else if (/priority.*low/i.test(body) || /priority.*low/i.test(title)) {
+              labelsToAdd.push('priority-low');
+            }
+
+            // --- Product detection ---
+            if (/product owner.*ahamkara|product:ahamkara/i.test(body)) {
+              labelsToAdd.push('product:ahamkara');
+            }
+            if (/product owner.*flashback|product:flashback/i.test(body)) {
+              labelsToAdd.push('product:flashback');
+            }
+            if (/product owner.*wish|product:wish/i.test(body)) {
+              labelsToAdd.push('product:wish');
+            }
+            if (/product owner.*cross.?product|product:cross.?product/i.test(body)) {
+              labelsToAdd.push('product:cross-product');
+            }
+
+            // --- Subsystem detection (via title/body keywords) ---
+            const subsystemMap = [
+              { pattern: /engine.*core|engine\/core|engine.*runtime/i, label: 'engine/core' },
+              { pattern: /engine.*render|engine\/render|rendering|graphics|shader/i, label: 'engine/render' },
+              { pattern: /engine.*network|engine\/network|netcode/i, label: 'engine/network' },
+              { pattern: /engine.*audio|engine\/audio|sound|music/i, label: 'engine/audio' },
+              { pattern: /engine.*collision|engine\/collision/i, label: 'engine/collision' },
+              { pattern: /client|ui|hud/i, label: 'client' },
+              { pattern: /server|dedicated/i, label: 'server' },
+              { pattern: /game|gameplay|weapon|combat|player|npc|ai/i, label: 'game' },
+              { pattern: /tools?|tooling|editor|pipeline|importer/i, label: 'tools' },
+              { pattern: /asset|model|texture|material|level/i, label: 'assets' },
+              { pattern: /wish|backend|service|session|identity/i, label: 'wish' },
+              { pattern: /docs?|documentation/i, label: 'docs' },
+            ];
+
+            for (const { pattern, label } of subsystemMap) {
+              if (pattern.test(body) || pattern.test(title)) {
+                labelsToAdd.push(label);
+              }
+            }
+
+            // --- Add labels if any were detected ---
+            if (labelsToAdd.length > 0) {
+              const unique = [...new Set(labelsToAdd)];
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: unique,
+              });
+            }
+
+            // --- Add a triage comment for pipeline issues ---
+            if (/^TASK-/i.test(issue.title) && labelsToAdd.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `<!-- TRIAGE_DONE -->\nAuto-triage applied: ${unique.join(', ')}.`,
+              });
+            }

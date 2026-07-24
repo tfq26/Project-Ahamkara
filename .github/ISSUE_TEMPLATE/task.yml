@@ -1,0 +1,121 @@
+name: Task
+description: File a new implementation task for the autonomous pipeline.
+title: "TASK-YYYYMMDD-HHMM-<product>-<short-description>"
+labels: ["task", "open"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Agent Execution Contract
+
+        Fill out the fields below to create a pipeline-runnable task.
+
+  - type: input
+    id: product
+    attributes:
+      label: Product owner
+      description: Which product owns this work?
+      placeholder: "Ahamkara / Flashback / Wish / Cross-product"
+    validations:
+      required: true
+
+  - type: input
+    id: sequence
+    attributes:
+      label: Sequence
+      description: Milestone or phase name.
+      placeholder: "e.g. 1 — Ahamkara engine, 2 — Flashback game"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How critical is this work?
+      options:
+        - Critical
+        - High
+        - Normal
+        - Low
+      default: 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: readiness
+    attributes:
+      label: Readiness
+      description: Is this issue ready to work?
+      options:
+        - Ready
+        - Blocked by #...
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What needs to change and why?
+      placeholder: "The current system lacks X, which means Y is impossible. We need Z."
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope-in
+    attributes:
+      label: "In scope"
+      description: What is included in this work?
+      placeholder: |
+        - Feature A
+        - API endpoint B
+        - Tests for C
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope-out
+    attributes:
+      label: "Out of scope"
+      description: What is explicitly excluded?
+      placeholder: |
+        - Feature D (follow-up task)
+        - Refactoring E
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: Observable, falsifiable outcomes.
+      placeholder: |
+        - [ ] Feature works
+        - [ ] All tests pass
+        - [ ] No regressions
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: Exact commands to verify the work.
+      placeholder: |
+        cmake --build --preset debug
+        ctest --test-dir build/debug --output-on-failure
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and Sequence
+      description: List blocking issues or follow-ups.
+      placeholder: |
+        - Blocked by #...
+        - Depends on PR #...
+    validations:
+      required: false

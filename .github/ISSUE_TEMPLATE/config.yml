@@ -1,0 +1,8 @@
+# Ahamkara issue template configuration
+# See https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+
+blank_issues_enabled: true
+contact_links:
+  - name: Ahamkara Documentation
+    url: https://github.com/tfq26/Project-Ahamkara/blob/main/docs/README.md
+    about: Read the docs before filing an issue.
