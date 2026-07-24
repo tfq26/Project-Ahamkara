@@ -116,6 +116,10 @@ int LocalPlaySimulation::get_active_weapon_index() const {
     return world_.get_active_weapon_index();
 }
 
+bool LocalPlaySimulation::get_is_reloading() const {
+    return world_.get_weapon_state().is_reloading;
+}
+
 const ahamkara::game::TargetDummyState* LocalPlaySimulation::get_dummies() const {
     return world_.get_dummies();
 }

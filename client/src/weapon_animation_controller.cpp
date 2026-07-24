@@ -52,6 +52,7 @@ WeaponAnimProfile WeaponAnimationController::make_ar15_profile() {
     p.anim_config.recoil.ads_kick_multiplier = 0.6F;
     p.anim_config.recoil.recoil_joint = 0;
     p.reload_duration = 2.0F;
+    p.reload_data = weapon_reload_data(kArWeaponIndex);
     p.melee_duration = 0.6F;
     p.melee_reach = 1.5F;
     p.melee_damage = 35.0F;
@@ -83,6 +84,7 @@ WeaponAnimProfile WeaponAnimationController::make_shotgun_profile() {
     p.anim_config.recoil.ads_kick_multiplier = 0.7F;
     p.anim_config.recoil.recoil_joint = 0;
     p.reload_duration = 3.5F;
+    p.reload_data = weapon_reload_data(kShotgunWeaponIndex);
     p.melee_duration = 0.7F;
     p.melee_reach = 1.6F;
     p.melee_damage = 40.0F;
@@ -244,7 +246,12 @@ void WeaponAnimationController::update_weapon(float dt,
     //   RemoveMag:    hand holds magazine, weapon tilts to expose magwell
     //   InsertMag:    hand inserts new magazine, weapon returns from tilt
     //   ReturnToGrip: hand moves back from magazine to grip
-    if (!reload_active_ && input.reload_pressed && snapshot.ammo_current < snapshot.ammo_max && snapshot.reserve_ammo > 0) {
+    //
+    // The animation is triggered by either the input edge (reload_pressed) or
+    // by the runtime's reload state (snapshot.is_reloading). The runtime sync
+    // ensures the animation stays aligned with WeaponRuntime::reload_timer()
+    // even when input edges are missed or the runtime finishes early.
+    if (!reload_active_ && (input.reload_pressed || snapshot.is_reloading) && snapshot.ammo_current < snapshot.ammo_max && snapshot.reserve_ammo > 0) {
         reload_active_ = true;
         reload_timer_ = profile.reload_duration;
         reload_phase_ = ReloadPhase::GrabMag;
@@ -327,7 +334,7 @@ void WeaponAnimationController::update_weapon(float dt,
 
         local = local * reload_pose;
 
-        if (reload_timer_ <= 0.0F) {
+        if (reload_timer_ <= 0.0F || !snapshot.is_reloading) {
             reload_active_ = false;
             reload_phase_ = ReloadPhase::Idle;
             reload_normalized_ = 0.0F;

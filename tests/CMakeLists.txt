@@ -238,6 +238,26 @@ target_link_libraries(ahamkara_weapon_loader_tests
 add_test(NAME ahamkara_weapon_loader_tests COMMAND ahamkara_weapon_loader_tests
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
+# Weapon animation controller tests (client-dependent, not available headless)
+if(TARGET ahamkara_client_lib)
+    add_executable(ahamkara_weapon_animation_controller_tests
+        src/weapon_animation_controller_tests.cpp
+    )
+    target_compile_features(ahamkara_weapon_animation_controller_tests PRIVATE cxx_std_20)
+    target_include_directories(ahamkara_weapon_animation_controller_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../client/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/animation/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/skeleton/include
+    )
+    target_link_libraries(ahamkara_weapon_animation_controller_tests
+        PRIVATE
+            ahamkara_client_lib
+    )
+    add_test(NAME ahamkara_weapon_animation_controller_tests
+        COMMAND ahamkara_weapon_animation_controller_tests)
+endif()
+
 add_test(
     NAME agent_runner_python_tests
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/agent-runner/tests/test_agent_runner.py
@@ -317,6 +337,11 @@ if(TARGET ae_render)
     target_compile_features(ahamkara_ibl_tests PRIVATE cxx_std_20)
 
     target_link_libraries(ahamkara_ibl_tests
+        PRIVATE
+            ae_render
+    )
+
+    add_test(NAME ahamkara_ibl_tests COMMAND ahamkara_ibl_tests)
 
     add_executable(ahamkara_ssao_tests
         src/ssao_tests.cpp
@@ -328,8 +353,6 @@ if(TARGET ae_render)
         PRIVATE
             ae_render
     )
-
-    add_test(NAME ahamkara_ibl_tests COMMAND ahamkara_ibl_tests)
 
     add_test(NAME ahamkara_ssao_tests COMMAND ahamkara_ssao_tests)
 

@@ -18,6 +18,7 @@ struct ClientSimulationSnapshot {
     float ammo_current {0.0F};
     float ammo_max {0.0F};
     int weapon_index {0};
+    bool is_reloading {false};
     int reserve_ammo {150};
     float hitmarker_time {0.0F};
     bool hitmarker_is_critical {false};

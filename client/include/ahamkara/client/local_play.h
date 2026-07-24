@@ -54,6 +54,7 @@ public:
     [[nodiscard]] int get_ammo_max() const;
     [[nodiscard]] int get_reserve_ammo() const;
     [[nodiscard]] int get_active_weapon_index() const;
+    [[nodiscard]] bool get_is_reloading() const;
 
     [[nodiscard]] const ahamkara::game::TargetDummyState* get_dummies() const;
     [[nodiscard]] int get_dummy_count() const;

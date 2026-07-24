@@ -166,6 +166,7 @@ ClientSimulationSnapshot ThreadedLocalRuntime::build_snapshot_locked() const {
     snapshot.ammo_current = static_cast<float>(simulation_.get_ammo_current());
     snapshot.ammo_max = static_cast<float>(simulation_.get_ammo_max());
     snapshot.weapon_index = simulation_.get_active_weapon_index();
+    snapshot.is_reloading = simulation_.get_is_reloading();
     snapshot.reserve_ammo = simulation_.get_reserve_ammo();
     snapshot.hitmarker_time = simulation_.get_hitmarker_time();
     snapshot.hitmarker_is_critical = simulation_.get_hitmarker_is_critical();
