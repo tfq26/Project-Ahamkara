@@ -24,6 +24,8 @@ add_library(ahamkara_game STATIC
     ../engine/render/src/compiled_level.cpp
     src/animation_adapter.cpp
     src/rewind.cpp
+    src/adapters/progression_adapter.cpp
+    src/adapters/reward_manager.cpp
 )
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/gameplay_types.cpp")

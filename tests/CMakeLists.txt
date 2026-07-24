@@ -148,6 +148,26 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../game/include/ahamkara/game/gameplay_ty
     add_test(NAME ahamkara_gameplay_tests COMMAND ahamkara_gameplay_tests)
 endif()
 
+# ── Progression adapter tests (Flashback ↔ Wish persistence boundary) ────
+add_executable(ahamkara_progression_adapter_tests
+    src/progression_adapter_tests.cpp
+)
+
+target_compile_features(ahamkara_progression_adapter_tests PRIVATE cxx_std_20)
+
+target_include_directories(ahamkara_progression_adapter_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../wish/include
+)
+
+target_link_libraries(ahamkara_progression_adapter_tests
+    PRIVATE
+        ahamkara_game
+)
+
+add_test(NAME ahamkara_progression_adapter_tests COMMAND ahamkara_progression_adapter_tests)
+
 add_executable(ahamkara_session_tests
     src/session_runtime_tests.cpp
 )
@@ -317,6 +337,9 @@ if(TARGET ae_render)
     target_compile_features(ahamkara_ibl_tests PRIVATE cxx_std_20)
 
     target_link_libraries(ahamkara_ibl_tests
+        PRIVATE
+            ae_render
+    )
 
     add_executable(ahamkara_ssao_tests
         src/ssao_tests.cpp
