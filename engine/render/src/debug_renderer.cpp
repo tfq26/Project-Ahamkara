@@ -316,6 +316,40 @@ void draw_world_vertices(const WorldVertex* vertices, int count, GLenum mode) {
     glBindVertexArray(0);
     glUseProgram(0);
 }
+
+// --- Static resource cleanup -------------------------------------------------
+
+void destroy_overlay_resources() {
+    auto& res = overlay_resources();
+    if (res.shader != 0) {
+        glDeleteProgram(res.shader);
+        res.shader = 0;
+    }
+    if (res.vao != 0) {
+        glDeleteVertexArrays(1, &res.vao);
+        res.vao = 0;
+    }
+    if (res.vbo != 0) {
+        glDeleteBuffers(1, &res.vbo);
+        res.vbo = 0;
+    }
+}
+
+void destroy_world_resources() {
+    auto& res = world_resources();
+    if (res.shader != 0) {
+        glDeleteProgram(res.shader);
+        res.shader = 0;
+    }
+    if (res.vao != 0) {
+        glDeleteVertexArrays(1, &res.vao);
+        res.vao = 0;
+    }
+    if (res.vbo != 0) {
+        glDeleteBuffers(1, &res.vbo);
+        res.vbo = 0;
+    }
+}
 }  // namespace
 
 namespace ae::render {
@@ -1405,6 +1439,13 @@ void DebugRenderer::shutdown() {
     impl_->backend->destroy_gpu_model(impl_->humanoid_vbo);
     impl_->backend->destroy_gpu_model(impl_->humanoid_vbo_lod1);
     impl_->backend->destroy_gpu_model(impl_->humanoid_vbo_lod2);
+
+    // Destroy static overlay / world / font resources while the GL context is
+    // still current.  These are function-local singletons that are otherwise
+    // never cleaned up.
+    destroy_overlay_resources();
+    destroy_world_resources();
+    shared_ui_font_atlas().shutdown();
 
     ae::gl_compat::shutdown();
 

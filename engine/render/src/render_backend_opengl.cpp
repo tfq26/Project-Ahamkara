@@ -83,6 +83,7 @@ public:
             buffers_.clear();
             shaders_.clear();
             queries_.clear();
+            textures_.clear();
             glfwMakeContextCurrent(nullptr);
             window_ = nullptr;
         }
