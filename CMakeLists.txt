@@ -140,6 +140,11 @@ endif()
 
 # Product modules live outside the pure Ahamkara engine package.
 if(AHAMKARA_BUILD_WISH)
+    # Propagate test setting to Wish subdirectory so in-tree Wish tests
+    # (heartbeat, session_group, etc.) are built alongside the library.
+    if(NOT DEFINED WISH_BUILD_TESTS AND AHAMKARA_BUILD_TESTS)
+        set(WISH_BUILD_TESTS ON)
+    endif()
     add_subdirectory(wish)
 endif()
 

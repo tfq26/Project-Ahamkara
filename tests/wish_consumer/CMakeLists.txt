@@ -4,12 +4,9 @@ add_executable(wish_consumer
 
 target_compile_features(wish_consumer PRIVATE cxx_std_20)
 
-target_include_directories(wish_consumer
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/../..
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../wish/include
-)
-
+# No repo-root or Ahamkara include paths — this fixture proves Wish
+# builds and links independently of engine/, game/, client/, server/,
+# and samples/flashback/ source trees.
 target_link_libraries(wish_consumer
     PRIVATE
         wish_engine
