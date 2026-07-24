@@ -10,6 +10,8 @@ add_library(wish_engine STATIC
     net/src/transport_config.cpp
     session/src/session_model.cpp
     session/src/session_group.cpp
+    session/src/activity_session.cpp
+    session/src/activity_router.cpp
     replication/src/replication_frame.cpp
     admin/src/admin_command.cpp
     admin/src/heartbeat_service.cpp
@@ -70,3 +72,43 @@ target_link_libraries(session_group_tests
 )
 
 add_test(NAME session_group_tests COMMAND session_group_tests)
+
+# ActivitySession unit tests
+add_executable(activity_session_tests
+    session/tests/activity_session_tests.cpp
+)
+
+target_compile_features(activity_session_tests PRIVATE cxx_std_20)
+
+target_include_directories(activity_session_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_link_libraries(activity_session_tests
+    PRIVATE
+        wish_engine
+)
+
+add_test(NAME activity_session_tests COMMAND activity_session_tests)
+
+# ActivityRouter unit tests
+add_executable(activity_router_tests
+    session/tests/activity_router_tests.cpp
+)
+
+target_compile_features(activity_router_tests PRIVATE cxx_std_20)
+
+target_include_directories(activity_router_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_link_libraries(activity_router_tests
+    PRIVATE
+        wish_engine
+)
+
+add_test(NAME activity_router_tests COMMAND activity_router_tests)
