@@ -769,14 +769,16 @@ add_test(NAME ahamkara_failure_path_tests COMMAND ahamkara_failure_path_tests)
 
 # --- re-applied from PR branch during auto-rebase ---
 
-add_executable(ahamkara_viewmodel_ik_tests
-    src/viewmodel_ik_tests.cpp
+add_executable(ahamkara_pickup_model_tests
+    src/pickup_model_tests.cpp
 )
-target_compile_features(ahamkara_viewmodel_ik_tests PRIVATE cxx_std_20)
-target_include_directories(ahamkara_viewmodel_ik_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-target_link_libraries(ahamkara_viewmodel_ik_tests
+target_compile_features(ahamkara_pickup_model_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_pickup_model_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+)
+target_link_libraries(ahamkara_pickup_model_tests
     PRIVATE
-        ae_skeleton
-        ae_core
+        ahamkara_game
 )
-add_test(NAME ahamkara_viewmodel_ik_tests COMMAND ahamkara_viewmodel_ik_tests)
+add_test(NAME ahamkara_pickup_model_tests COMMAND ahamkara_pickup_model_tests)
