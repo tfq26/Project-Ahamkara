@@ -728,3 +728,41 @@ add_test(
 # Label these so CI can target them specifically
 set_tests_properties(ahamkara_benchmark_tests PROPERTIES LABELS "benchmark")
 set_tests_properties(ahamkara_benchmark_regression_fixture PROPERTIES LABELS "benchmark;regression")
+
+# --- re-applied from PR branch during auto-rebase ---
+
+add_executable(ahamkara_observability_tests
+    src/observability_tests.cpp
+)
+target_compile_features(ahamkara_observability_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_observability_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_observability_tests
+    PRIVATE
+        wish_engine
+)
+add_test(NAME ahamkara_observability_tests COMMAND ahamkara_observability_tests)
+
+add_executable(ahamkara_version_compatibility_tests
+    src/version_compatibility_tests.cpp
+)
+target_compile_features(ahamkara_version_compatibility_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_version_compatibility_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_version_compatibility_tests PRIVATE wish_engine)
+add_test(NAME ahamkara_version_compatibility_tests COMMAND ahamkara_version_compatibility_tests)
+
+add_executable(ahamkara_support_bundle_tests
+    src/support_bundle_tests.cpp
+)
+target_compile_features(ahamkara_support_bundle_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_support_bundle_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_support_bundle_tests PRIVATE wish_engine)
+add_test(NAME ahamkara_support_bundle_tests COMMAND ahamkara_support_bundle_tests)
+
+add_executable(ahamkara_failure_path_tests
+    src/failure_path_tests.cpp
+)
+target_compile_features(ahamkara_failure_path_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_failure_path_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(ahamkara_failure_path_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../wish/include)
+target_link_libraries(ahamkara_failure_path_tests PRIVATE wish_engine)
+add_test(NAME ahamkara_failure_path_tests COMMAND ahamkara_failure_path_tests)

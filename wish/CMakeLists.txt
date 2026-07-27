@@ -5,8 +5,11 @@ add_library(wish_engine STATIC
     core/src/activity_loader.cpp
     core/src/error_envelope.cpp
     core/src/error_catalog.cpp
+    core/src/observability.cpp
     core/src/log.cpp
     core/src/sequence_tracker.cpp
+    core/src/support_bundle.cpp
+    core/src/version_compatibility.cpp
     net/src/transport_config.cpp
     session/src/session_model.cpp
     session/src/session_group.cpp
@@ -15,6 +18,7 @@ add_library(wish_engine STATIC
     admin/src/heartbeat_service.cpp
     admin/src/metrics_collector.cpp
     integrations/nakama/src/nakama_bridge.cpp
+    integrations/flashback/src/game_session_adapter.cpp
 )
 
 target_compile_features(wish_engine PUBLIC cxx_std_20)
@@ -70,3 +74,23 @@ target_link_libraries(session_group_tests
 )
 
 add_test(NAME session_group_tests COMMAND session_group_tests)
+
+# ── Flashback adapter tests ──────────────────────────────────────────────
+add_executable(flashback_adapter_tests
+    integrations/flashback/tests/flashback_adapter_tests.cpp
+)
+
+target_compile_features(flashback_adapter_tests PRIVATE cxx_std_20)
+
+target_include_directories(flashback_adapter_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_link_libraries(flashback_adapter_tests
+    PRIVATE
+        wish_engine
+)
+
+add_test(NAME flashback_adapter_tests COMMAND flashback_adapter_tests)
