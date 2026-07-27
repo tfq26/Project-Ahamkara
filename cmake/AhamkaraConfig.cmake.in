@@ -4,17 +4,25 @@ include(CMakeFindDependencyMacro)
 find_dependency(Threads)
 include("${CMAKE_CURRENT_LIST_DIR}/AhamkaraTargets.cmake")
 
+# ── Component aliases ───────────────────────────────────────────────────
+# These alias targets let consumers write find_package(Ahamkara CONFIG
+# COMPONENTS Core Runtime) and then link against Ahamkara::Core / Runtime.
+# Each alias is registered as a found component for check_required_components.
+
 if(TARGET Ahamkara::ae_core AND NOT TARGET Ahamkara::Core)
     add_library(Ahamkara::Core INTERFACE IMPORTED)
     set_target_properties(Ahamkara::Core PROPERTIES INTERFACE_LINK_LIBRARIES Ahamkara::ae_core)
+    set(Ahamkara_Core_FOUND TRUE)
 endif()
 if(TARGET Ahamkara::ae_runtime AND NOT TARGET Ahamkara::Runtime)
     add_library(Ahamkara::Runtime INTERFACE IMPORTED)
     set_target_properties(Ahamkara::Runtime PROPERTIES INTERFACE_LINK_LIBRARIES Ahamkara::ae_runtime)
+    set(Ahamkara_Runtime_FOUND TRUE)
 endif()
 if(TARGET Ahamkara::ae_network AND NOT TARGET Ahamkara::Network)
     add_library(Ahamkara::Network INTERFACE IMPORTED)
     set_target_properties(Ahamkara::Network PROPERTIES INTERFACE_LINK_LIBRARIES Ahamkara::ae_network)
+    set(Ahamkara_Network_FOUND TRUE)
 endif()
 
 check_required_components(Ahamkara)
