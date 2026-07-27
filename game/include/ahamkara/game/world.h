@@ -237,6 +237,11 @@ public:
     [[nodiscard]] HistoricalState get_historical_state(ae::u32 target_tick) const;
 
     [[nodiscard]] float get_damage_feedback_timer() const { return damage_feedback_timer_; }
+
+    /// Access the authoritative VFX feedback payload for snapshot creation.
+    /// The presentation layer reads this once per snapshot via the event_id
+    /// to avoid replay on rollback or stale snapshot interpolation.
+    [[nodiscard]] const VfxFeedback& get_vfx_feedback() const { return vfx_feedback_; }
     void apply_damage_to_player(ae::u32 player_index, float damage, const Vec3& attacker_pos);
     [[nodiscard]] bool is_player_alive(ae::u32 index = 0) const;
     void respawn_player(ae::u32 index = 0);
@@ -375,11 +380,8 @@ private:
     float match_time_ {0.0F};
     bool match_over_ {false};
     float damage_feedback_timer_ {0.0F};
-
-    // -- Navigation grid (lazily built from colliders) --
-    std::optional<ai::NavGridBuildResult> nav_grid_;
-    ai::NavSpace nav_space_ {};
-    bool nav_grid_dirty_ {true};
+    VfxFeedback vfx_feedback_ {};
+    ae::u32 vfx_feedback_event_id_ {0};
 };
 
 }  // namespace ahamkara::game

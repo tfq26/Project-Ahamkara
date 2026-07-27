@@ -209,6 +209,7 @@ ClientSimulationSnapshot ThreadedLocalRuntime::build_snapshot_locked() const {
     snapshot.match_over = simulation_.is_match_over();
     snapshot.player_alive = simulation_.is_player_alive();
     snapshot.damage_feedback_timer = simulation_.get_damage_feedback_timer();
+    snapshot.vfx_feedback = simulation_.get_vfx_feedback();
     snapshot.team_score_red = 0;
     snapshot.team_score_blue = simulation_.get_player_kills();
 

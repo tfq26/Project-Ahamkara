@@ -45,6 +45,7 @@ struct DeathmatchSnapshot {
     ae::u16 individual_score {0};
     ae::u8 remote_player_count {0};
     RemotePlayerSnapshot remote_players[4] {};
+    VfxFeedback vfx_feedback {};
 };
 
 /// Serialize a deathmatch snapshot payload into a ByteWriter.
@@ -76,11 +77,14 @@ inline bool write_deathmatch_snapshot(detail::ByteWriter& writer, const Deathmat
             return false;
     }
 
-    return writer.write(snap.match_phase)
-        && writer.write(snap.match_time)
-        && writer.write(snap.team_score_red)
-        && writer.write(snap.team_score_blue)
-        && writer.write(snap.individual_score);
+    if (!writer.write(snap.match_phase)
+        || !writer.write(snap.match_time)
+        || !writer.write(snap.team_score_red)
+        || !writer.write(snap.team_score_blue)
+        || !writer.write(snap.individual_score))
+        return false;
+
+    return write_vfx_feedback(writer, snap.vfx_feedback);
 }
 
 /// Per-player session inside a deathmatch activity.

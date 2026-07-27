@@ -177,7 +177,20 @@ void World::advance_sim(float delta_seconds) {
 
     if (damage_feedback_timer_ > 0.0F) {
         damage_feedback_timer_ = std::max(0.0F, damage_feedback_timer_ - delta_seconds);
+        if (damage_feedback_timer_ <= 0.0F) {
+            // Clear the VFX envelope once the feedback timer expires.
+            vfx_feedback_.screen_shake_intensity = 0.0F;
+            vfx_feedback_.screen_shake_duration = 0.0F;
+            vfx_feedback_.damage_flash_intensity = 0.0F;
+            vfx_feedback_.damage_flash_duration = 0.0F;
+        }
     }
+
+    // VFX feedback envelope values persist in the snapshot as invariant
+    // parameters (intensity, duration). The presentation layer drives
+    // its own local animation from these envelope parameters and uses
+    // event_id to detect new events and prevent replay on rollback.
+    // No decay here: the envelope stays constant for the event lifetime.
 
     if (!is_client_) {
         tick_dummies(registry_, delta_seconds);
@@ -810,6 +823,15 @@ void World::apply_damage_to_player(ae::u32 player_index, float damage, const Vec
 
     damage_feedback_timer_ = 0.3F;
 
+    // Emit authoritative VFX feedback for the snapshot chain.
+    // The screen_shake_intensity scales with damage, up to a cap of 1.0.
+    ++vfx_feedback_event_id_;
+    vfx_feedback_.screen_shake_intensity = std::min(1.0F, actual_damage / 30.0F);
+    vfx_feedback_.screen_shake_duration = 0.3F;
+    vfx_feedback_.damage_flash_intensity = std::min(0.4F, actual_damage / 50.0F);
+    vfx_feedback_.damage_flash_duration = 0.4F;
+    vfx_feedback_.event_id = vfx_feedback_event_id_;
+
     // Spawn damage number at player position
     Vec3 num_pos = players_[player_index].state().position;
     num_pos.y += 1.8F;
@@ -870,6 +892,8 @@ void World::restart_match() {
     match_over_ = false;
     respawn_timer_ = 0.0F;
     damage_feedback_timer_ = 0.0F;
+    vfx_feedback_ = {};
+    vfx_feedback_event_id_ = 0;
     interaction_attempt_count_ = 0;
     interaction_success_count_ = 0;
     last_interaction_succeeded_ = false;

@@ -220,6 +220,22 @@ inline bool read_player_state(ByteReader& reader, ReplicatedPlayerState& state) 
     return true;
 }
 
+inline bool write_vfx_feedback(ByteWriter& writer, const VfxFeedback& feedback) {
+    return writer.write(feedback.screen_shake_intensity)
+        && writer.write(feedback.screen_shake_duration)
+        && writer.write(feedback.damage_flash_intensity)
+        && writer.write(feedback.damage_flash_duration)
+        && writer.write(feedback.event_id);
+}
+
+inline bool read_vfx_feedback(ByteReader& reader, VfxFeedback& feedback) {
+    return reader.read(feedback.screen_shake_intensity)
+        && reader.read(feedback.screen_shake_duration)
+        && reader.read(feedback.damage_flash_intensity)
+        && reader.read(feedback.damage_flash_duration)
+        && reader.read(feedback.event_id);
+}
+
 inline bool write_snapshot(ByteWriter& writer, const ServerSnapshot& snapshot) {
     if (!writer.write(snapshot.server_tick) || !writer.write(snapshot.last_processed_input) || !write_player_state(writer, snapshot.local_player) || !writer.write(snapshot.projectile_count))
         return false;
@@ -242,6 +258,8 @@ inline bool write_snapshot(ByteWriter& writer, const ServerSnapshot& snapshot) {
         if (!writer.write(rp.player_id) || !write_vec3(writer, rp.position) || !writer.write(rp.yaw) || !writer.write(rp.health))
             return false;
     }
+    if (!write_vfx_feedback(writer, snapshot.vfx_feedback))
+        return false;
     return true;
 }
 
@@ -271,6 +289,8 @@ inline bool read_snapshot(ByteReader& reader, ServerSnapshot& snapshot) {
         if (!reader.read(rp.player_id) || !read_vec3(reader, rp.position) || !reader.read(rp.yaw) || !reader.read(rp.health))
             return false;
     }
+    if (!read_vfx_feedback(reader, snapshot.vfx_feedback))
+        return false;
     return true;
 }
 
@@ -337,7 +357,7 @@ inline bool read_client_reconnect(ByteReader& reader, ClientReconnectPacket& pac
 // Wire size constants (at ahamkara::game scope, not detail)
 constexpr ae::usize kProjectileStateWireSize = sizeof(float) * 3 + sizeof(float) * 3 + sizeof(float) + sizeof(ae::u8) + sizeof(ae::u32);
 constexpr ae::usize kDummyStateWireSize = sizeof(ae::u32) + sizeof(float) * 3 + sizeof(float) + sizeof(float) + sizeof(ae::u8);
-constexpr ae::usize kMaxSnapshotWireSize = sizeof(ae::u32) * 2 + sizeof(ReplicatedPlayerState) + sizeof(ae::u8) + kProjectileStateWireSize * 8 + sizeof(ae::u8) + kDummyStateWireSize * 4 + sizeof(ae::u8) + sizeof(float) + sizeof(ae::u32) * 2 + sizeof(ae::u16) + sizeof(ae::u8) + (sizeof(ae::u32) + sizeof(float) * 3 + sizeof(float) + sizeof(float)) * 4;
+constexpr ae::usize kMaxSnapshotWireSize = sizeof(ae::u32) * 2 + sizeof(ReplicatedPlayerState) + sizeof(ae::u8) + kProjectileStateWireSize * 8 + sizeof(ae::u8) + kDummyStateWireSize * 4 + sizeof(ae::u8) + sizeof(float) + sizeof(ae::u32) * 2 + sizeof(ae::u16) + sizeof(ae::u8) + (sizeof(ae::u32) + sizeof(float) * 3 + sizeof(float) + sizeof(float)) * 4 + sizeof(VfxFeedback);
 
 // Delta compression functions
 inline bool write_snapshot_delta(detail::ByteWriter& writer, const SnapshotDelta& d) {
@@ -412,7 +432,7 @@ constexpr ae::usize player_input_packet_size() {
 }
 
 constexpr ae::usize server_snapshot_packet_size() {
-    return kEnvelopeWireSize + sizeof(ae::u32) + sizeof(ae::u32) + sizeof(ReplicatedPlayerState) + sizeof(ae::u8) + kProjectileStateWireSize * 8 + sizeof(ae::u8) + kDummyStateWireSize * 4 + sizeof(ae::u8) + sizeof(float) + sizeof(ae::u32) * 2 + sizeof(ae::u16) + sizeof(ae::u8) + (sizeof(ae::u32) + sizeof(float) * 3 + sizeof(float) + sizeof(float)) * 4 + sizeof(ae::u32) + sizeof(ae::u16) * 2 + sizeof(ae::u16); // header
+    return kEnvelopeWireSize + sizeof(ae::u32) + sizeof(ae::u32) + sizeof(ReplicatedPlayerState) + sizeof(ae::u8) + kProjectileStateWireSize * 8 + sizeof(ae::u8) + kDummyStateWireSize * 4 + sizeof(ae::u8) + sizeof(float) + sizeof(ae::u32) * 2 + sizeof(ae::u16) + sizeof(ae::u8) + (sizeof(ae::u32) + sizeof(float) * 3 + sizeof(float) + sizeof(float)) * 4 + sizeof(ae::u32) + sizeof(ae::u16) * 2 + sizeof(ae::u16) + sizeof(VfxFeedback); // header + vfx
 }
 
 inline bool serialize_player_input_packet(
