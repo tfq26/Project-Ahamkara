@@ -43,7 +43,6 @@ private:
     bool show_entity_tree_ {true};
     bool show_performance_ {false};
     bool show_weapon_details_ {false};
-    bool show_collision_debug_ {false};
 };
 
 }  // namespace ahamkara::client
