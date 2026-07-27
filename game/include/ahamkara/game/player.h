@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ahamkara/game/gameplay_types.h"
+#include "ahamkara/game/inventory.h"
 #include "ahamkara/game/net_types.h"
 #include "ahamkara/game/weapon_runtime.h"
 #include "ahamkara/game/worlds/world_definition.h"
@@ -80,8 +81,8 @@ struct AbilityState {
 /// accesses weapon state through read-only accessors on `Player` — it NEVER
 /// holds a mutable reference to `WeaponRuntime` or `WeaponState`.
 ///
-/// Intentionally does not own buffs, debuffs, quests, or meta/progression
-/// stats.
+/// Owns inventory, progression, and currency state alongside the existing
+/// weapon and ability runtime.  Does not own buffs, debuffs, or quests.
 class Player {
   public:
     Player();
@@ -218,12 +219,29 @@ class Player {
     /// Apply damage and return the actual health damage taken after armor.
     float apply_damage(float damage);
 
+    // -- Inventory, Progression, Currency ------------------------------------
+
+    /// Mutable reference to the player's item inventory.
+    [[nodiscard]] Inventory& inventory() { return inventory_; }
+    [[nodiscard]] const Inventory& inventory() const { return inventory_; }
+
+    /// Mutable reference to the player's progression (level / XP).
+    [[nodiscard]] ProgressionState& progression() { return progression_; }
+    [[nodiscard]] const ProgressionState& progression() const { return progression_; }
+
+    /// Mutable reference to the player's currency wallet.
+    [[nodiscard]] CurrencyState& currency() { return currency_; }
+    [[nodiscard]] const CurrencyState& currency() const { return currency_; }
+
   private:
     ReplicatedPlayerState state_ {};
     Loadout loadout_ {};
     ArmorConfig armor_config_ {};
     WeaponRuntime weapon_runtime_ {};
     AbilityState ability_state_ {};
+    Inventory inventory_ {};
+    ProgressionState progression_ {};
+    CurrencyState currency_ {};
     ae::u32 kills_ {0};
     ae::u32 deaths_ {0};
 };
