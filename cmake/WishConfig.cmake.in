@@ -2,11 +2,13 @@
 
 include(CMakeFindDependencyMacro)
 
-# Wish has no external CMake dependencies beyond the C++ standard library.
-# When consumed as a standalone package, the consumer must provide C++20.
+# Wish has no external dependencies beyond standard libraries.
+# Threads is required for the admin server thread pool.
+find_dependency(Threads)
 
 include("${CMAKE_CURRENT_LIST_DIR}/WishTargets.cmake")
 
+# Convenience aliases
 if(TARGET Wish::wish_engine AND NOT TARGET Wish::Engine)
     add_library(Wish::Engine INTERFACE IMPORTED)
     set_target_properties(Wish::Engine PROPERTIES

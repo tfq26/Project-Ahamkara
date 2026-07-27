@@ -731,30 +731,15 @@ set_tests_properties(ahamkara_benchmark_regression_fixture PROPERTIES LABELS "be
 
 # --- re-applied from PR branch during auto-rebase ---
 
-# --- VFX Feedback Contract Tests ---
-# Headless tests covering the entire simulation-to-presentation VFX feedback
-# payload chain: type contract, serialization, World emission, one-shot
-# consumption via event_id, rollback non-replay, frame-rate determinism,
-# zero/invalid safety, and scene-reset cleanup.
-add_executable(ahamkara_vfx_feedback_tests
-    src/vfx_feedback_tests.cpp
+# Out-of-tree Wish SDK consumer smoke (Wish standalone package boundary).
+# Builds a tiny external project against an installed Wish SDK prefix.
+# This proves Wish builds, installs, and can be consumed without any
+# Ahamkara or Flashback source.
+add_test(
+    NAME wish_out_of_tree_package_consumer
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -DBINARY_DIR=${CMAKE_BINARY_DIR}
+        -DCONSUMER_SRC=${CMAKE_SOURCE_DIR}/tests/wish_out_of_tree_consumer
+        -P ${CMAKE_SOURCE_DIR}/cmake/WishOutOfTreeConsumerTest.cmake
 )
-
-target_compile_features(ahamkara_vfx_feedback_tests PRIVATE cxx_std_20)
-
-target_include_directories(ahamkara_vfx_feedback_tests
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/..
-        ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/network/include
-)
-
-target_link_libraries(ahamkara_vfx_feedback_tests
-    PRIVATE
-        ahamkara_game
-        ae_core
-        ae_network
-)
-
-add_test(NAME ahamkara_vfx_feedback_tests COMMAND ahamkara_vfx_feedback_tests)
