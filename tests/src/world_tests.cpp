@@ -1,5 +1,5 @@
 #include "ahamkara/game/world.h"
-#include "ahamkara/game/encounter_scripting.h"
+#include "ahamkara/game/destination_metadata.h"
 #include "ahamkara/game/game_module.h"
 #include "ahamkara/game/client_prediction.h"
 #include "ahamkara/game/net_types.h"
@@ -421,102 +421,138 @@ void test_movement_config_wiring() {
     std::cout << "test_movement_config_wiring passed.\n";
 }
 
-// --- Encounter integration tests ---
+// ---------------------------------------------------------------------------
+// Destination metadata — World integration
+// ---------------------------------------------------------------------------
 
-void test_world_encounter_manager_accessible() {
-    ahamkara::game::World world;
-    const auto& mgr = world.encounter_manager();
-    assert(mgr.encounter_count() == 0);
-    std::cout << "test_world_encounter_manager_accessible passed.\n";
+// Reuse the static Ancient Forest destination from destination_metadata_tests.
+namespace {
+constexpr ahamkara::game::AmbientPopulationSpawn kTestPopulation[] = {
+    {"npc_dreg", 2, 5, 30.0F, 15.0F, "group_forest_common"},
+};
+constexpr ahamkara::game::LandingZoneDefinition kTestLandingZones[] = {
+    {"landing_main", "Main Landing", 0.0F, 0.0F, 0.0F, 0.0F, true, false, ""},
+};
+constexpr ahamkara::game::RegionDescriptor kTestRegions[] = {
+    {
+        "region_test_area",
+        "Test Area",
+        ahamkara::game::RegionType::Hub,
+        {-50.0F, -50.0F, 50.0F, 50.0F, -100.0F, 100.0F},
+        "A test region for unit tests",
+        1, 10,
+        false,  // is_combat_zone
+        true,   // is_landing_allowed
+        nullptr, 0,
+        kTestLandingZones, 1
+    },
+};
+constexpr ahamkara::game::DestinationMetadata kTestDestination = {
+    "destination_test",
+    "Test Destination",
+    "A destination for world integration tests",
+    -100.0F, -100.0F, 100.0F, 100.0F,
+    2, 2, 100.0F,
+    kTestRegions, 1,
+    kTestLandingZones, 1,
+    kTestPopulation, 1
+};
+}  // namespace
+
+void test_world_with_destination_metadata() {
+    using namespace ahamkara::game;
+    const MapDefinition empty_map {"test_map", "Test Map", MapCategory::Sandbox, nullptr, 0};
+    const WorldDefinition definition {
+        "test_world_with_dest",
+        "Test World With Dest",
+        &empty_map,
+        {{0.0F, 0.0F, 0.0F}, 0.0F},
+        nullptr, 0,
+        nullptr, 0,
+        &kTestDestination
+    };
+    World world(definition);
+
+    // Verify destination is stored and accessible.
+    const auto* dest = world.get_destination();
+    assert(dest != nullptr);
+    assert(dest->id == std::string("destination_test"));
+    assert(dest->display_name == std::string("Test Destination"));
+    assert(dest->region_count == 1);
+    assert(dest->landing_zone_count == 1);
+    assert(dest->default_population_count == 1);
+
+    // Verify region data through destination.
+    assert(dest->regions[0].id == std::string("region_test_area"));
+    assert(dest->regions[0].type == RegionType::Hub);
+    assert(dest->regions[0].bounds.min_x == -50.0F);
+    assert(dest->regions[0].bounds.max_x == 50.0F);
+
+    // Verify landing zone through destination.
+    assert(dest->landing_zones[0].id == std::string("landing_main"));
+    assert(dest->landing_zones[0].is_primary);
+
+    std::cout << "test_world_with_destination_metadata passed.\n";
 }
 
-void test_world_add_encounter() {
-    ahamkara::game::World world;
-    ahamkara::game::EncounterDef def;
-    def.id = "world_test_encounter";
-    def.label = "World Test Encounter";
-    def.origin_x = 5.0F;
-    def.origin_z = 10.0F;
+void test_world_without_destination_returns_null() {
+    using namespace ahamkara::game;
+    // Default world (debug_javelin4) has no destination.
+    World default_world;
+    assert(default_world.get_destination() == nullptr);
+    assert(default_world.find_region_at(0.0F, 0.0F) == nullptr);
 
-    ahamkara::game::SpawnWaveDef wave;
-    wave.id = "wave_1";
-    wave.groups.push_back({ahamkara::game::ai::CombatArchetype::Grunt, 3, 5.0F});
-    def.waves.push_back(wave);
+    // Explicit definition without destination.
+    const MapDefinition empty_map {"test_map", "Test Map", MapCategory::Sandbox, nullptr, 0};
+    const WorldDefinition no_dest_def {
+        "test_no_dest", "No Dest", &empty_map,
+        {{0.0F, 0.0F, 0.0F}, 0.0F},
+        nullptr, 0, nullptr, 0, nullptr
+    };
+    World no_dest_world(no_dest_def);
+    assert(no_dest_world.get_destination() == nullptr);
+    assert(no_dest_world.find_region_at(0.0F, 0.0F) == nullptr);
 
-    world.add_encounter(def);
-    assert(world.encounter_manager().encounter_count() == 1);
-    const auto* state = world.encounter_state("world_test_encounter");
-    assert(state != nullptr);
-    assert(state->phase == ahamkara::game::EncounterPhase::Inactive);
-    std::cout << "test_world_add_encounter passed.\n";
+    std::cout << "test_world_without_destination_returns_null passed.\n";
 }
 
-void test_world_start_encounter() {
-    ahamkara::game::World world;
-    ahamkara::game::EncounterDef def;
-    def.id = "world_start_test";
-    def.waves.push_back({"wave_1", {{ahamkara::game::ai::CombatArchetype::Grunt, 4, 5.0F}}, 0.5F, 0.0F, false, "Wave 1"});
-    world.add_encounter(def);
+void test_world_find_region_at() {
+    using namespace ahamkara::game;
+    const MapDefinition empty_map {"test_map", "Test Map", MapCategory::Sandbox, nullptr, 0};
+    const WorldDefinition definition {
+        "test_world_find_region",
+        "Test World Find Region",
+        &empty_map,
+        {{0.0F, 0.0F, 0.0F}, 0.0F},
+        nullptr, 0,
+        nullptr, 0,
+        &kTestDestination
+    };
+    World world(definition);
 
-    bool started = world.start_encounter("world_start_test");
-    assert(started);
-    const auto* state = world.encounter_state("world_start_test");
-    assert(state != nullptr);
-    assert(state->phase == ahamkara::game::EncounterPhase::Active);
-    std::cout << "test_world_start_encounter passed.\n";
-}
+    // Point inside the test region.
+    const auto* r1 = world.find_region_at(0.0F, 0.0F);
+    assert(r1 != nullptr);
+    assert(r1->id == std::string("region_test_area"));
 
-void test_world_encounter_tick_integration() {
-    ahamkara::game::World world;
-    ahamkara::game::EncounterDef def;
-    def.id = "tick_test";
-    def.waves.push_back({"wave_tick", {{ahamkara::game::ai::CombatArchetype::Grunt, 6, 5.0F}}, 0.5F, 1.0F, false, "Wave tick"});
-    world.add_encounter(def);
-    world.start_encounter("tick_test");
+    // Point inside the test region (edge).
+    const auto* r2 = world.find_region_at(49.0F, 49.0F);
+    assert(r2 != nullptr);
+    assert(r2->id == std::string("region_test_area"));
 
-    // Tick the world (should also tick the encounter manager)
-    ahamkara::game::PlayerInputCommand input {};
-    // Tick for 3 seconds - enough to finish the delay and spawn some enemies
-    for (int i = 0; i < 180; ++i) {
-        world.tick(1.0F / 60.0F, input);
-    }
+    // Point outside all regions.
+    const auto* r3 = world.find_region_at(999.0F, 999.0F);
+    assert(r3 == nullptr);
 
-    const auto* state = world.encounter_state("tick_test");
-    assert(state != nullptr);
-    assert(state->started);
-    // After 3s, the wave should be active
-    bool any_wave_active = false;
-    for (const auto& ws : state->waves) {
-        if (ws.active) { any_wave_active = true; break; }
-    }
-    assert(any_wave_active);
-    std::cout << "test_world_encounter_tick_integration passed.\n";
-}
+    // Vec3 overload.
+    const auto* r4 = world.find_region_at(Vec3{25.0F, 0.0F, -25.0F});
+    assert(r4 != nullptr);
+    assert(r4->id == std::string("region_test_area"));
 
-void test_world_encounter_accessors() {
-    ahamkara::game::World world;
-    ahamkara::game::EncounterDef def;
-    def.id = "accessor_test";
-    def.origin_x = 100.0F;
-    def.origin_z = 200.0F;
-    world.add_encounter(def);
+    const auto* r5 = world.find_region_at(Vec3{999.0F, 0.0F, 999.0F});
+    assert(r5 == nullptr);
 
-    // Test mutable encounter_manager
-    auto& mgr = world.encounter_manager();
-    assert(mgr.encounter_count() == 1);
-
-    // Test const encounter_manager
-    const auto& const_world = world;
-    assert(const_world.encounter_manager().encounter_count() == 1);
-
-    // Test encounter_state accessor
-    const auto* state = world.encounter_state("accessor_test");
-    assert(state != nullptr);
-    assert(state->id == "accessor_test");
-
-    // Test with non-existent encounter
-    assert(world.encounter_state("nonexistent") == nullptr);
-    std::cout << "test_world_encounter_accessors passed.\n";
+    std::cout << "test_world_find_region_at passed.\n";
 }
 
 } // namespace
@@ -540,11 +576,9 @@ int main() {
     test_prediction_reconcile_and_replay_determinism();
     test_buffered_input_replay_under_latency();
     test_movement_config_wiring();
-    test_world_encounter_manager_accessible();
-    test_world_add_encounter();
-    test_world_start_encounter();
-    test_world_encounter_tick_integration();
-    test_world_encounter_accessors();
+    test_world_with_destination_metadata();
+    test_world_without_destination_returns_null();
+    test_world_find_region_at();
     std::cout << "All world tests passed!\n";
     return 0;
 }
