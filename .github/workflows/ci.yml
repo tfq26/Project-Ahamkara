@@ -93,6 +93,20 @@ jobs:
         if: matrix.preset == 'debug-headless'
         run: ctest --test-dir build/debug-headless --output-on-failure
 
+      - name: Run benchmarks (debug-headless only)
+        if: matrix.preset == 'debug-headless'
+        run: ctest --test-dir build/debug-headless --output-on-failure -L benchmark -V
+
+      - name: Upload benchmark results
+        if: matrix.preset == 'debug-headless'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahamkara-benchmark-results-${{ matrix.preset }}
+          path: |
+            build/debug-headless/benchmark_results.json*
+            build/debug-headless/benchmark_regression_results.json*
+          if-no-files-found: warn
+
   package:
     name: Package
     runs-on: [self-hosted, linux]
