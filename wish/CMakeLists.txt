@@ -1,6 +1,7 @@
 add_library(wish_engine STATIC
     core/src/engine_identity.cpp
     core/src/match_runtime.cpp
+    core/src/matchmaking_service.cpp
     core/src/activity_manager.cpp
     core/src/activity_loader.cpp
     core/src/error_envelope.cpp
@@ -8,11 +9,11 @@ add_library(wish_engine STATIC
     core/src/observability.cpp
     core/src/log.cpp
     core/src/sequence_tracker.cpp
-    core/src/support_bundle.cpp
-    core/src/version_compatibility.cpp
+    core/src/session_orchestrator.cpp
     net/src/transport_config.cpp
     session/src/session_model.cpp
     session/src/session_group.cpp
+    session/src/party.cpp
     replication/src/replication_frame.cpp
     admin/src/admin_command.cpp
     admin/src/heartbeat_service.cpp
@@ -56,6 +57,26 @@ target_link_libraries(wish_heartbeat_tests
 
 add_test(NAME wish_heartbeat_tests COMMAND wish_heartbeat_tests)
 
+# Party unit tests
+add_executable(party_tests
+    session/tests/party_tests.cpp
+)
+
+target_compile_features(party_tests PRIVATE cxx_std_20)
+
+target_include_directories(party_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_link_libraries(party_tests
+    PRIVATE
+        wish_engine
+)
+
+add_test(NAME party_tests COMMAND party_tests)
+
 # SessionGroup unit tests (standalone, no engine deps)
 add_executable(session_group_tests
     session/tests/session_group_tests.cpp
@@ -76,22 +97,22 @@ target_link_libraries(session_group_tests
 
 add_test(NAME session_group_tests COMMAND session_group_tests)
 
-# ── Flashback adapter tests ──────────────────────────────────────────────
-add_executable(flashback_adapter_tests
-    integrations/flashback/tests/flashback_adapter_tests.cpp
+# SessionOrchestrator unit tests
+add_executable(session_orchestrator_tests
+    core/tests/session_orchestrator_tests.cpp
 )
 
-target_compile_features(flashback_adapter_tests PRIVATE cxx_std_20)
+target_compile_features(session_orchestrator_tests PRIVATE cxx_std_20)
 
-target_include_directories(flashback_adapter_tests
+target_include_directories(session_orchestrator_tests
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
-target_link_libraries(flashback_adapter_tests
+target_link_libraries(session_orchestrator_tests
     PRIVATE
         wish_engine
 )
 
-add_test(NAME flashback_adapter_tests COMMAND flashback_adapter_tests)
+add_test(NAME session_orchestrator_tests COMMAND session_orchestrator_tests)

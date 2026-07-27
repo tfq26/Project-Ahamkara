@@ -183,6 +183,114 @@ void test_multiple_client_lifecycle_in_one_group() {
     assert(new_client->address == new_addr);
 }
 
+// ---- New tests for enhanced SessionGroup features ----
+
+void test_group_state_default_is_lobby() {
+    wish::session::SessionGroup group(11, 4);
+    assert(group.state() == wish::session::GroupState::Lobby);
+}
+
+void test_group_state_transitions() {
+    wish::session::SessionGroup group(12, 4);
+    assert(group.state() == wish::session::GroupState::Lobby);
+
+    group.set_state(wish::session::GroupState::Active);
+    assert(group.state() == wish::session::GroupState::Active);
+
+    group.set_state(wish::session::GroupState::Ended);
+    assert(group.state() == wish::session::GroupState::Ended);
+}
+
+void test_activity_id_binding() {
+    wish::session::SessionGroup group(13, 4);
+    assert(group.activity_id() == 0);
+
+    group.set_activity_id(42);
+    assert(group.activity_id() == 42);
+
+    group.set_activity_id(0);
+    assert(group.activity_id() == 0);
+}
+
+void test_owner_address() {
+    wish::session::SessionGroup group(14, 4);
+    const wish::NetAddress owner {"192.168.1.1", 30001};
+
+    // Default owner is empty
+    assert(group.owner_address().ip.empty());
+
+    group.set_owner_address(owner);
+    assert(group.owner_address() == owner);
+    assert(group.owner_address().ip == "192.168.1.1");
+    assert(group.owner_address().port == 30001);
+}
+
+void test_fireteam_id() {
+    wish::session::SessionGroup group(15, 4);
+    assert(group.fireteam_id() == 0);
+
+    group.set_fireteam_id(100);
+    assert(group.fireteam_id() == 100);
+
+    group.set_fireteam_id(0);
+    assert(group.fireteam_id() == 0);
+}
+
+void test_created_ended_timestamps() {
+    wish::session::SessionGroup group(16, 4);
+    using time_point = wish::session::SessionGroup::time_point;
+
+    const auto start = time_point {};
+    group.set_created_at(start);
+    assert(group.created_at() == start);
+
+    const auto end = start + std::chrono::seconds(300);
+    group.set_ended_at(end);
+    assert(group.ended_at() == end);
+}
+
+void test_full_lifecycle_with_new_fields() {
+    // Simulate a full lifecycle of a session group with all new fields
+    const auto now = wish::session::SessionGroup::clock::time_point {};
+    const wish::NetAddress owner_addr {"10.0.0.1", 7777};
+    const wish::NetAddress member_addr {"10.0.0.2", 7778};
+
+    wish::session::SessionGroup group(17, 4);
+    group.set_activity_id(99);
+    group.set_fireteam_id(42);
+    group.set_owner_address(owner_addr);
+    group.set_created_at(now);
+
+    assert(group.state() == wish::session::GroupState::Lobby);
+    assert(group.activity_id() == 99);
+    assert(group.fireteam_id() == 42);
+    assert(group.owner_address() == owner_addr);
+    assert(group.created_at() == now);
+
+    // Add owner and member
+    auto* owner = group.add_client(owner_addr, now);
+    assert(owner != nullptr);
+    assert(group.client_count() == 1);
+
+    auto* member = group.add_client(member_addr, now + std::chrono::milliseconds(50));
+    assert(member != nullptr);
+    assert(group.client_count() == 2);
+
+    // Transition to active
+    group.set_state(wish::session::GroupState::Active);
+    assert(group.state() == wish::session::GroupState::Active);
+
+    // Remove a member
+    assert(group.remove_client(member_addr));
+    assert(group.client_count() == 1);
+
+    // End the group
+    group.set_state(wish::session::GroupState::Ended);
+    group.set_ended_at(now + std::chrono::seconds(600));
+    assert(group.state() == wish::session::GroupState::Ended);
+    assert(group.ended_at() == now + std::chrono::seconds(600));
+}
+
 } // namespace
 
 int main() {
@@ -196,5 +304,12 @@ int main() {
     test_add_client_twice_updates_last_seen();
     test_for_each_client_enumerates_all();
     test_multiple_client_lifecycle_in_one_group();
+    test_group_state_default_is_lobby();
+    test_group_state_transitions();
+    test_activity_id_binding();
+    test_owner_address();
+    test_fireteam_id();
+    test_created_ended_timestamps();
+    test_full_lifecycle_with_new_fields();
     return 0;
 }
