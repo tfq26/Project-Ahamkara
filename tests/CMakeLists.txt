@@ -769,21 +769,14 @@ add_test(NAME ahamkara_failure_path_tests COMMAND ahamkara_failure_path_tests)
 
 # --- re-applied from PR branch during auto-rebase ---
 
-# ── Session adapter integration tests (Flashback-owned) ─────────────────
-add_executable(ahamkara_session_adapter_tests
-    src/session_adapter_integration_tests.cpp
+add_executable(ahamkara_viewmodel_ik_tests
+    src/viewmodel_ik_tests.cpp
 )
-
-target_compile_features(ahamkara_session_adapter_tests PRIVATE cxx_std_20)
-target_include_directories(ahamkara_session_adapter_tests
+target_compile_features(ahamkara_viewmodel_ik_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_viewmodel_ik_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(ahamkara_viewmodel_ik_tests
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/..
-        ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+        ae_skeleton
+        ae_core
 )
-target_link_libraries(ahamkara_session_adapter_tests
-    PRIVATE
-        ahamkara_game
-        wish_engine
-)
-
-add_test(NAME ahamkara_session_adapter_tests COMMAND ahamkara_session_adapter_tests)
+add_test(NAME ahamkara_viewmodel_ik_tests COMMAND ahamkara_viewmodel_ik_tests)
