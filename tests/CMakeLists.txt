@@ -454,6 +454,24 @@ target_link_libraries(ahamkara_streaming_residency_tests
 
 add_test(NAME ahamkara_streaming_residency_tests COMMAND ahamkara_streaming_residency_tests)
 
+add_executable(ahamkara_streaming_executor_tests
+    src/streaming_executor_tests.cpp
+)
+
+target_compile_features(ahamkara_streaming_executor_tests PRIVATE cxx_std_20)
+
+target_include_directories(ahamkara_streaming_executor_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+)
+
+target_link_libraries(ahamkara_streaming_executor_tests
+    PRIVATE
+        ae_runtime
+)
+
+add_test(NAME ahamkara_streaming_executor_tests COMMAND ahamkara_streaming_executor_tests)
+
 # --- Destination Metadata ---
 add_executable(ahamkara_destination_metadata_tests
     src/destination_metadata_tests.cpp
