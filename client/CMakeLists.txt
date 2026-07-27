@@ -1,6 +1,12 @@
 # Reusable client runtime (everything except the executable entry point).
 # Demos (samples/flashback) and tests link this so they ride the real engine,
 # game, and client stack and inherit engine improvements automatically.
+#
+# NOTE: ahamkara_game is intentionally PUBLIC here because several public
+# headers (playtest_harness.h, local_play.h, debug_scene_bridge.h, ...) expose
+# ahamkara::game types.  Once those headers are decoupled (e.g. via forward
+# declarations or a game-agnostic snapshot API) this can become PRIVATE,
+# which is the upstream goal for the Ahamkara package boundary.
 add_library(ahamkara_client_lib STATIC
     src/client_config.cpp
     src/client_frame_pipeline.cpp
