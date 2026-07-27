@@ -3,6 +3,7 @@
 #include "ahamkara/game/audio_events.h"
 #include "ahamkara/game/camera_anchor.h"
 #include "ahamkara/game/debug_map.h"
+#include "ahamkara/game/encounter_scripting.h"
 #include "ahamkara/game/movement.h"
 #include "ahamkara/game/net_types.h"
 #include "ahamkara/game/player.h"
@@ -253,6 +254,25 @@ public:
     void set_is_server(bool is_server) { is_server_ = is_server; }
     [[nodiscard]] bool is_server() const { return is_server_; }
 
+    // -- Encounter scripting integration --
+
+    /// Access the encounter manager (mutable).
+    [[nodiscard]] EncounterManager& encounter_manager() { return encounters_; }
+
+    /// Access the encounter manager (const).
+    [[nodiscard]] const EncounterManager& encounter_manager() const { return encounters_; }
+
+    /// Add an encounter definition to the world.
+    void add_encounter(const EncounterDef& def) { encounters_.add_encounter(def); }
+
+    /// Start an encounter by ID.
+    bool start_encounter(const std::string& id) { return encounters_.start_encounter(id); }
+
+    /// Get read-only encounter state, or nullptr if not found.
+    [[nodiscard]] const EncounterState* encounter_state(const std::string& id) const {
+        return encounters_.get_state(id);
+    }
+
 private:
     void apply_world_definition(const WorldDefinition& definition);
     void reset_player_to_spawn();
@@ -329,6 +349,8 @@ private:
     float match_time_ {0.0F};
     bool match_over_ {false};
     float damage_feedback_timer_ {0.0F};
+
+    EncounterManager encounters_ {};
 };
 
 }  // namespace ahamkara::game

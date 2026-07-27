@@ -197,6 +197,17 @@ void World::advance_sim(float delta_seconds) {
     update_particles(delta_seconds);
     update_decals(delta_seconds);
 
+    // Tick encounter scripting
+    encounters_.tick(delta_seconds);
+
+    // Check player position against encounter trigger volumes
+    if (!players_.empty()) {
+        const auto& player_pos = players_[0].state().position;
+        for (const auto& es : encounters_.all_states()) {
+            encounters_.check_player_volume(es.id, player_pos.x, player_pos.y, player_pos.z);
+        }
+    }
+
     HistoricalState hist {};
     hist.tick = current_tick_;
     hist.player_position = players_.empty() ? Vec3 {} : players_[0].state().position;
@@ -804,7 +815,10 @@ void World::on_dummy_killed(ae::u32 dummy_id, const Vec3& death_pos) {
         match_over_ = true;
     }
 
-    (void)dummy_id;
+    // Notify encounter scripting system
+    encounters_.notify_enemy_killed(
+        "dummy_" + std::to_string(dummy_id),
+        ai::CombatArchetype::Grunt);
 }
 
 void World::restart_match() {
