@@ -31,20 +31,30 @@ int ConfigRegistry::reload_from_file(const std::string& path) {
     log_info_cat(AE_LOG_CATEGORY, "Reloading config from " + path);
     std::ifstream file(path);
     if (!file.is_open()) {
-        log_warning_cat(AE_LOG_CATEGORY, "Could not open config file: " + path);
+        log_warning_cat(AE_LOG_CATEGORY, "Could not open config file: " + path +
+            " — last valid configuration preserved.");
         return 0;
     }
 
     int updated = 0;
     int unknown = 0;
+    int malformed = 0;
+    int line_no = 0;
     std::string line;
     while (std::getline(file, line)) {
+        ++line_no;
         const std::string_view trimmed = ae::trim(line);
 
         if (trimmed.empty() || trimmed[0] == '#') continue;
 
         const auto eq = trimmed.find('=');
-        if (eq == std::string_view::npos) continue;
+        if (eq == std::string_view::npos) {
+            ++malformed;
+            log_warning_cat(AE_LOG_CATEGORY,
+                "Malformed config line " + std::to_string(line_no) + " in " + path +
+                " (missing '='): '" + std::string(trimmed) + "' — line skipped, previous value preserved.");
+            continue;
+        }
 
         const std::string_view key = ae::trim(trimmed.substr(0, eq));
         const std::string_view value = ae::trim(trimmed.substr(eq + 1));
@@ -61,10 +71,16 @@ int ConfigRegistry::reload_from_file(const std::string& path) {
 
     if (updated > 0) {
         log_info_cat(AE_LOG_CATEGORY, std::to_string(updated) + " config variable(s) reloaded from " + path);
-    } else if (unknown > 0) {
-        log_debug_cat(AE_LOG_CATEGORY, std::to_string(unknown) + " unknown key(s) in " + path + " (no registered var)");
-    } else {
-        log_debug_cat(AE_LOG_CATEGORY, "No config variables updated from " + path);
+    }
+    if (unknown > 0) {
+        log_warning_cat(AE_LOG_CATEGORY, std::to_string(unknown) + " unknown key(s) in " + path + " (no registered var) — skipped.");
+    }
+    if (malformed > 0) {
+        log_warning_cat(AE_LOG_CATEGORY, std::to_string(malformed) +
+            " malformed line(s) in " + path + " — skipped, previous values preserved.");
+    }
+    if (updated == 0 && unknown == 0 && malformed == 0) {
+        log_debug_cat(AE_LOG_CATEGORY, "No config variables updated from " + path + " (file empty or all-comment).");
     }
 
     return updated;
