@@ -1,0 +1,94 @@
+{
+  "budgets": [
+    {
+      "name": "frame_allocator_throughput",
+      "unit": "allocations/sec",
+      "type": "absolute",
+      "warn_threshold": 1000000.0,
+      "fail_threshold": 100000.0,
+      "expected": 0.0,
+      "k_factor": 2.0,
+      "percentile_p": 95.0
+    },
+    {
+      "name": "frame_allocator_latency",
+      "unit": "ms",
+      "type": "absolute",
+      "warn_threshold": 0.0,
+      "fail_threshold": 1.0,
+      "expected": 0.0,
+      "k_factor": 2.0,
+      "percentile_p": 95.0
+    },
+    {
+      "name": "job_system_throughput",
+      "unit": "jobs/sec",
+      "type": "absolute",
+      "warn_threshold": 10000.0,
+      "fail_threshold": 1000.0,
+      "expected": 0.0,
+      "k_factor": 2.0,
+      "percentile_p": 95.0
+    },
+    {
+      "name": "job_system_latency",
+      "unit": "ms",
+      "type": "absolute",
+      "warn_threshold": 0.0,
+      "fail_threshold": 5.0,
+      "expected": 0.0,
+      "k_factor": 2.0,
+      "percentile_p": 95.0
+    },
+    {
+      "name": "residency_update_throughput",
+      "unit": "updates/sec",
+      "type": "absolute",
+      "warn_threshold": 100.0,
+      "fail_threshold": 10.0,
+      "expected": 0.0,
+      "k_factor": 2.0,
+      "percentile_p": 95.0
+    },
+    {
+      "name": "frame_pacer_overhead",
+      "unit": "ms",
+      "type": "absolute",
+      "warn_threshold": 0.0,
+      "fail_threshold": 1.0,
+      "expected": 0.0,
+      "k_factor": 2.0,
+      "percentile_p": 95.0
+    },
+    {
+      "name": "memory_budget_overhead",
+      "unit": "ms",
+      "type": "absolute",
+      "warn_threshold": 0.0,
+      "fail_threshold": 1.0,
+      "expected": 0.0,
+      "k_factor": 2.0,
+      "percentile_p": 95.0
+    },
+    {
+      "name": "network_snapshot_overhead",
+      "unit": "ms",
+      "type": "absolute",
+      "warn_threshold": 0.0,
+      "fail_threshold": 1.0,
+      "expected": 0.0,
+      "k_factor": 2.0,
+      "percentile_p": 95.0
+    },
+    {
+      "name": "streaming_residency_overhead",
+      "unit": "ms",
+      "type": "absolute",
+      "warn_threshold": 0.0,
+      "fail_threshold": 5.0,
+      "expected": 0.0,
+      "k_factor": 2.0,
+      "percentile_p": 95.0
+    }
+  ]
+}
