@@ -34,6 +34,9 @@ struct RegionCoord {
 
 inline bool operator==(RegionCoord a, RegionCoord b) noexcept { return a.cx == b.cx && a.cy == b.cy; }
 inline bool operator!=(RegionCoord a, RegionCoord b) noexcept { return !(a == b); }
+inline bool operator<(RegionCoord a, RegionCoord b) noexcept {
+    return (a.cy < b.cy) || (a.cy == b.cy && a.cx < b.cx);
+}
 
 /// A single load or unload transition for a region boundary crossing.
 /// Consumers (e.g. a streaming system) consume these via consume_pending()
