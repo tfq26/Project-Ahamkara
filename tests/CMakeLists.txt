@@ -317,6 +317,9 @@ if(TARGET ae_render)
     target_compile_features(ahamkara_ibl_tests PRIVATE cxx_std_20)
 
     target_link_libraries(ahamkara_ibl_tests
+        PRIVATE
+            ae_render
+    )
 
     add_executable(ahamkara_ssao_tests
         src/ssao_tests.cpp
@@ -663,3 +666,48 @@ target_link_libraries(ahamkara_jitter_buffer_tests
         ae_network
 )
 add_test(NAME ahamkara_jitter_buffer_tests COMMAND ahamkara_jitter_buffer_tests)
+
+# =============================================================================
+# Performance regression benchmark suite
+# =============================================================================
+
+add_executable(ahamkara_benchmark_tests
+    src/benchmark_tests.cpp
+    ../engine/core/src/benchmark_harness.cpp
+    ../engine/core/src/budget_config.cpp
+)
+
+target_compile_features(ahamkara_benchmark_tests PRIVATE cxx_std_20)
+
+target_include_directories(ahamkara_benchmark_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+)
+
+target_link_libraries(ahamkara_benchmark_tests
+    PRIVATE
+        ae_core
+)
+
+add_test(
+    NAME ahamkara_benchmark_tests
+    COMMAND ahamkara_benchmark_tests
+        --budgets ${CMAKE_SOURCE_DIR}/benchmarks/budgets/loose.json
+        --output ${CMAKE_BINARY_DIR}/benchmark_results.json
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
+# Regression fixture (separate test for clarity)
+add_test(
+    NAME ahamkara_benchmark_regression_fixture
+    COMMAND ahamkara_benchmark_tests
+        --regression-only
+        --budgets ${CMAKE_SOURCE_DIR}/benchmarks/budgets/regression_test.json
+        --output ${CMAKE_BINARY_DIR}/benchmark_regression_results.json
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
+# Label these so CI can target them specifically
+set_tests_properties(ahamkara_benchmark_tests PROPERTIES LABELS "benchmark")
+set_tests_properties(ahamkara_benchmark_regression_fixture PROPERTIES LABELS "benchmark;regression")
