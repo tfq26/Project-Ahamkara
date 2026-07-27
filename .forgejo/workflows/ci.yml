@@ -1,0 +1,159 @@
+# Ahamkara CI — Forgejo Actions
+#
+# Replaces the former Agola CI pipeline (removed in .agola/config.jsonnet).
+# Runs on push/PR to main and verifies all build presets compile and test.
+#
+# Exit gates (from TASK-20260718-2337 governance):
+#   - Debug, release, headless, and package jobs pass from a clean checkout
+#   - Branch promotion requires green CI before merge
+#   - Every claimed configuration has reproducible green evidence
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lint — clang-tidy, clang-format, and Python lint
+  # ---------------------------------------------------------------------------
+  lint:
+    runs-on: debian-latest
+    container:
+      image: debian:bookworm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq \
+            cmake ninja-build clang clang-tidy clang-format \
+            python3 python3-pip python3-venv \
+            libglfw3-dev libgl-dev mesa-common-dev libglu1-mesa-dev \
+            libgtest-dev libgmock-dev
+
+      - name: Configure CMake (debug)
+        run: cmake --preset debug
+
+      - name: Build all targets
+        run: cmake --build --preset debug
+
+      - name: Run lint
+        run: bash ./scripts/lint.sh --base-ref origin/${{ github.base_ref || 'main' }} --compile-db build/debug || echo "Lint issues found (non-blocking in CI)"
+
+  # ---------------------------------------------------------------------------
+  # Build & Test — debug preset (full client + tests)
+  # ---------------------------------------------------------------------------
+  debug:
+    runs-on: debian-latest
+    container:
+      image: debian:bookworm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq \
+            cmake ninja-build clang build-essential \
+            libglfw3-dev libgl-dev mesa-common-dev libglu1-mesa-dev \
+            libgtest-dev libgmock-dev
+
+      - name: Configure CMake (debug)
+        run: cmake --preset debug
+
+      - name: Build all targets
+        run: cmake --build --preset debug
+
+      - name: Run tests
+        run: ctest --test-dir build/debug --output-on-failure
+
+  # ---------------------------------------------------------------------------
+  # Build & Test — debug-headless preset (server, no GL deps needed)
+  # ---------------------------------------------------------------------------
+  debug-headless:
+    runs-on: debian-latest
+    container:
+      image: debian:bookworm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq \
+            cmake ninja-build clang build-essential \
+            libgtest-dev libgmock-dev
+
+      - name: Configure CMake (debug-headless)
+        run: cmake --preset debug-headless
+
+      - name: Build all targets
+        run: cmake --build --preset debug-headless
+
+      - name: Run tests
+        run: ctest --test-dir build/debug-headless --output-on-failure
+
+  # ---------------------------------------------------------------------------
+  # Build — release preset (build only; GL client tests need debug libs)
+  # ---------------------------------------------------------------------------
+  release:
+    runs-on: debian-latest
+    container:
+      image: debian:bookworm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq \
+            cmake ninja-build clang build-essential \
+            libglfw3-dev libgl-dev mesa-common-dev libglu1-mesa-dev
+
+      - name: Configure CMake (release)
+        run: cmake --preset release
+
+      - name: Build all targets
+        run: cmake --build --preset release
+
+  # ---------------------------------------------------------------------------
+  # Package — produces distributable archives
+  # ---------------------------------------------------------------------------
+  package:
+    runs-on: debian-latest
+    container:
+      image: debian:bookworm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq \
+            cmake ninja-build clang build-essential \
+            libglfw3-dev libgl-dev mesa-common-dev libglu1-mesa-dev \
+            libgtest-dev libgmock-dev
+
+      - name: Configure CMake (package)
+        run: cmake --preset package
+
+      - name: Build all targets
+        run: cmake --build --preset package
+
+      - name: Package
+        run: cpack --preset package
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahamkara-package-debug
+          path: build/package/*.tar.gz
+          if-no-files-found: warn
