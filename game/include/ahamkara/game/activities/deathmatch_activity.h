@@ -173,12 +173,16 @@ public:
     /// Overwrites any previously loaded map data.
     bool load_map(const std::string& path);
 
-    /// Get the first slot (for single-player local test).
-    PlayerSlot* first_slot();
+    /// Look up a player slot by session ID (exact mapping, no first-slot shortcut).
+    /// Returns nullptr if the session is not found.
+    PlayerSlot* find_slot_by_session_id(wish::session::SessionId sid);
+
+    /// Look up a player slot by network address.
+    /// Returns nullptr if the address is not found.
+    PlayerSlot* find_slot_by_address(const wish::NetAddress& addr);
 
 private:
     PlayerSlot* find_slot(wish::session::SessionId sid);
-    PlayerSlot* find_slot_by_address(const wish::NetAddress& addr);
     void build_snapshot_for_slot(PlayerSlot& slot);
     void apply_anti_cheat(PlayerSlot& slot, const PlayerInputCommand& cmd);
 

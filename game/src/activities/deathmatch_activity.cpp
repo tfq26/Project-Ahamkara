@@ -62,7 +62,26 @@ bool DeathmatchActivity::admit_player(const wish::core::SessionAdmissionRequest&
     }
 
     PlayerSlot slot {};
+
+    // Always assign our own session_id. The request's session_id field
+    // is a string (from auth) and is not used as the numeric slot identity.
     slot.session_id.value = next_session_id_.value++;
+
+    // Parse the remote_endpoint to set the slot's address so it can be
+    // looked up immediately after admission without a first-slot shortcut.
+    const auto colon_pos = req.remote_endpoint.find(':');
+    if (colon_pos != std::string::npos) {
+        slot.address.ip = req.remote_endpoint.substr(0, colon_pos);
+        try {
+            slot.address.port = static_cast<wish::u16>(
+                std::stoul(std::string(req.remote_endpoint.substr(colon_pos + 1))));
+        } catch (...) {
+            slot.address.port = 0;
+        }
+    } else {
+        slot.address.ip = req.remote_endpoint;
+    }
+
     slot.player_index = world_.add_player();
     slot.network_object_id = world_.players()[slot.player_index].network_object_id();
     slot.connected = true;
@@ -139,9 +158,11 @@ void DeathmatchActivity::simulate_input(wish::session::SessionId sid,
     apply_anti_cheat(*slot, cmd);
 }
 
-PlayerSlot* DeathmatchActivity::first_slot() {
-    if (slots_.empty()) return nullptr;
-    return &slots_.front();
+PlayerSlot* DeathmatchActivity::find_slot_by_session_id(wish::session::SessionId sid) {
+    for (auto& s : slots_) {
+        if (s.session_id.value == sid.value) return &s;
+    }
+    return nullptr;
 }
 
 void DeathmatchActivity::for_each_connected_snapshot(

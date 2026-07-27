@@ -23,6 +23,7 @@ add_library(ahamkara_game STATIC
     src/encounter_scripting.cpp
     ../engine/render/src/compiled_level.cpp
     src/animation_adapter.cpp
+    src/adapters/wish_session_adapter.cpp
     src/rewind.cpp
 )
 

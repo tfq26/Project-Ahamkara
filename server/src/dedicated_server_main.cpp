@@ -415,8 +415,10 @@ int main(int argc, char** argv) {
                     continue;
                 }
 
-                // Get the player slot.
-                auto* slot = dm->first_slot();
+                // Look up the player slot by address (no first-slot shortcut).
+                // The slot was just created by admit_player() above.
+                auto* slot = dm->find_slot_by_address(
+                    wish::NetAddress{from.ip, from.port});
                 if (slot) {
                     slot->address = wish::NetAddress {from.ip, from.port};
                     ss.session_id = slot->session_id;
