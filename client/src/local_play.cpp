@@ -287,6 +287,10 @@ float LocalPlaySimulation::get_damage_feedback_timer() const {
     return world_.get_damage_feedback_timer();
 }
 
+const ahamkara::game::VfxFeedback& LocalPlaySimulation::get_vfx_feedback() const {
+    return world_.get_vfx_feedback();
+}
+
 const ahamkara::game::AbilityState& LocalPlaySimulation::get_ability_state() const {
     return world_.ability_state();
 }

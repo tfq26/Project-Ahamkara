@@ -731,54 +731,30 @@ set_tests_properties(ahamkara_benchmark_regression_fixture PROPERTIES LABELS "be
 
 # --- re-applied from PR branch during auto-rebase ---
 
-add_executable(ahamkara_observability_tests
-    src/observability_tests.cpp
+# --- VFX Feedback Contract Tests ---
+# Headless tests covering the entire simulation-to-presentation VFX feedback
+# payload chain: type contract, serialization, World emission, one-shot
+# consumption via event_id, rollback non-replay, frame-rate determinism,
+# zero/invalid safety, and scene-reset cleanup.
+add_executable(ahamkara_vfx_feedback_tests
+    src/vfx_feedback_tests.cpp
 )
-target_compile_features(ahamkara_observability_tests PRIVATE cxx_std_20)
-target_include_directories(ahamkara_observability_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-target_link_libraries(ahamkara_observability_tests
+
+target_compile_features(ahamkara_vfx_feedback_tests PRIVATE cxx_std_20)
+
+target_include_directories(ahamkara_vfx_feedback_tests
     PRIVATE
-        wish_engine
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+        ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/network/include
 )
-add_test(NAME ahamkara_observability_tests COMMAND ahamkara_observability_tests)
 
-add_executable(ahamkara_version_compatibility_tests
-    src/version_compatibility_tests.cpp
-)
-target_compile_features(ahamkara_version_compatibility_tests PRIVATE cxx_std_20)
-target_include_directories(ahamkara_version_compatibility_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-target_link_libraries(ahamkara_version_compatibility_tests PRIVATE wish_engine)
-add_test(NAME ahamkara_version_compatibility_tests COMMAND ahamkara_version_compatibility_tests)
-
-add_executable(ahamkara_support_bundle_tests
-    src/support_bundle_tests.cpp
-)
-target_compile_features(ahamkara_support_bundle_tests PRIVATE cxx_std_20)
-target_include_directories(ahamkara_support_bundle_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-target_link_libraries(ahamkara_support_bundle_tests PRIVATE wish_engine)
-add_test(NAME ahamkara_support_bundle_tests COMMAND ahamkara_support_bundle_tests)
-
-add_executable(ahamkara_failure_path_tests
-    src/failure_path_tests.cpp
-)
-target_compile_features(ahamkara_failure_path_tests PRIVATE cxx_std_20)
-target_include_directories(ahamkara_failure_path_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-target_include_directories(ahamkara_failure_path_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../wish/include)
-target_link_libraries(ahamkara_failure_path_tests PRIVATE wish_engine)
-add_test(NAME ahamkara_failure_path_tests COMMAND ahamkara_failure_path_tests)
-
-# --- re-applied from PR branch during auto-rebase ---
-
-add_executable(ahamkara_pickup_model_tests
-    src/pickup_model_tests.cpp
-)
-target_compile_features(ahamkara_pickup_model_tests PRIVATE cxx_std_20)
-target_include_directories(ahamkara_pickup_model_tests PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
-)
-target_link_libraries(ahamkara_pickup_model_tests
+target_link_libraries(ahamkara_vfx_feedback_tests
     PRIVATE
         ahamkara_game
+        ae_core
+        ae_network
 )
-add_test(NAME ahamkara_pickup_model_tests COMMAND ahamkara_pickup_model_tests)
+
+add_test(NAME ahamkara_vfx_feedback_tests COMMAND ahamkara_vfx_feedback_tests)

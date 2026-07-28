@@ -93,6 +93,9 @@ ServerSnapshot ClientPredictionManager::capture_prediction_state() const {
     snap.team_score_red = world_->get_team_score_red();
     snap.team_score_blue = world_->get_team_score_blue();
 
+    // VFX feedback
+    snap.vfx_feedback = world_->get_vfx_feedback();
+
     return snap;
 }
 

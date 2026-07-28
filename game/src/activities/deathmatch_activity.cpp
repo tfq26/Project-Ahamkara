@@ -342,6 +342,7 @@ void DeathmatchActivity::build_snapshot_for_slot(PlayerSlot& slot) {
     current_snapshot_.team_score_red = dm_state_.match.team_score_red;
     current_snapshot_.team_score_blue = dm_state_.match.team_score_blue;
     current_snapshot_.individual_score = 0;
+    current_snapshot_.vfx_feedback = world_.get_vfx_feedback();
 
     // History record
     HistoricalState hist {};

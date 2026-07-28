@@ -93,6 +93,29 @@ struct TargetDummyState {
     float respawn_timer {0.0F};
 };
 
+// --- Immutable simulation-to-presentation VFX feedback payload ----------------
+//
+// This struct defines the contract between world simulation and client
+// presentation for screen-shake and damage-flash effects.  A VfxFeedback
+// value travels inside a ServerSnapshot and is consumed at most once per
+// event_id by the presentation layer.
+//
+//  - screen_shake_intensity  : 0..1 amplitude of the shake envelope.
+//  - screen_shake_duration   : seconds the shake should last.
+//  - damage_flash_intensity  : 0..1 opacity of the red vignette overlay.
+//  - damage_flash_duration   : seconds the flash should last.
+//  - event_id                : monotonically increasing; the presentation
+//                              layer tracks the last-consumed event_id
+//                              so that snapshot replays or rollbacks
+//                              never re-trigger a stale envelope.
+struct VfxFeedback {
+    float screen_shake_intensity {0.0F};
+    float screen_shake_duration {0.0F};
+    float damage_flash_intensity {0.0F};
+    float damage_flash_duration {0.0F};
+    ae::u32 event_id {0};
+};
+
 struct ServerSnapshot {
     ae::u32 server_tick {0};
     ae::u32 last_processed_input {0};
@@ -122,6 +145,9 @@ struct ServerSnapshot {
         float health {100};
     };
     RemotePlayer remote_players[4] {};
+
+    // VFX feedback payload (screen shake, damage flash)
+    VfxFeedback vfx_feedback {};
 };
 
 // Delta compression: bitmask indicates which player state fields changed.
@@ -214,6 +240,7 @@ struct DecalState {
 static_assert(std::is_trivially_copyable_v<PlayerInputCommand>);
 static_assert(std::is_trivially_copyable_v<ReplicatedPlayerState>);
 static_assert(std::is_trivially_copyable_v<ServerSnapshot>);
+static_assert(std::is_trivially_copyable_v<VfxFeedback>);
 
 using PacketEnvelope = wish::PacketEnvelope;
 

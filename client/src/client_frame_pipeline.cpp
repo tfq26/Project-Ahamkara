@@ -296,6 +296,7 @@ void ClientFramePipeline::stage_build_scene() {
     static float damage_feedback_timer = 0.0F;
     static float damage_flash_timer = 0.0F;
     static float prev_health = 100.0F;
+    static ae::u32 last_vfx_event_id = 0;
 
     const auto& pacer = frontend_state_.frame_pacer;
     const auto& budget = frontend_state_.budget_tracker;
@@ -438,17 +439,33 @@ void ClientFramePipeline::stage_build_scene() {
                               is_reloading);
     anim_adapter_.set_health(curr_snap_.player_state.health, 100.0F);
 
-    // Detect health drop → trigger hit reaction
+    // Detect health drop → trigger hit reaction (legacy path)
     const float snap_health = curr_snap_.player_state.health;
     if (snap_health < prev_health && snap_health > 0.0F) {
         anim_adapter_.trigger_hit_reaction();
-        damage_feedback_timer = 1.0F;
-        damage_flash_timer = 0.4F;
     }
     prev_health = snap_health;
 
-    // Also check snapshot damage_feedback_timer for hit reaction
-    if (curr_snap_.damage_feedback_timer > 0.0F && damage_feedback_timer <= 0.0F) {
+    // Authoritative VFX feedback from snapshot (one-shot via event_id).
+    // The simulation emits VfxFeedback with invariant envelope parameters and
+    // a monotonic event_id.  We only start a new local animation when the
+    // event_id advances, which prevents replay on rollback/reconciliation.
+    const auto& vfx = curr_snap_.vfx_feedback;
+    if (vfx.event_id != 0 && vfx.event_id != last_vfx_event_id) {
+        last_vfx_event_id = vfx.event_id;
+        anim_adapter_.trigger_hit_reaction();
+        damage_feedback_timer = vfx.screen_shake_duration > 0.0F
+                                    ? vfx.screen_shake_duration
+                                    : curr_snap_.damage_feedback_timer;
+        damage_flash_timer = vfx.damage_flash_duration > 0.0F
+                                 ? vfx.damage_flash_duration
+                                 : 0.4F;
+    }
+
+    // Legacy fallback: check snapshot damage_feedback_timer for hit reaction
+    // when no VfxFeedback event_id is present (older snapshots without VFX).
+    if (vfx.event_id == 0 && curr_snap_.damage_feedback_timer > 0.0F
+        && damage_feedback_timer <= 0.0F && last_vfx_event_id == 0) {
         anim_adapter_.trigger_hit_reaction();
         damage_feedback_timer = 1.0F;
         damage_flash_timer = 0.4F;

@@ -64,6 +64,11 @@ struct ClientSimulationSnapshot {
     bool player_alive {true};
     bool match_over {false};
     float damage_feedback_timer {0.0F};
+
+    // VFX feedback payload from the simulation snapshot.
+    // The presentation layer uses vfx_feedback.event_id to detect new events
+    // and prevent replay during rollback/reconciliation.
+    ahamkara::game::VfxFeedback vfx_feedback {};
 };
 
 struct DebugSceneBuildInputs {
