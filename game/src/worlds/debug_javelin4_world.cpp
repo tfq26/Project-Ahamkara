@@ -80,7 +80,8 @@ const WorldDefinition& debug_javelin4() {
         definition.target_dummies,
         definition.target_dummy_count,
         definition.interaction_targets,
-        definition.interaction_target_count
+        definition.interaction_target_count,
+        nullptr  // destination — no world-scale metadata for the debug world
     };
     return hydrated;
 }

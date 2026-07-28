@@ -132,4 +132,39 @@ inline bool is_valid_region_type(RegionType t) noexcept {
     return t >= RegionType::Combat && t < RegionType::Count;
 }
 
+/// Find the region that contains a given world-space point.
+/// Returns nullptr when the destination has no regions or when the point
+/// falls outside all region bounds.
+inline const RegionDescriptor* find_region_at(
+    const DestinationMetadata& destination,
+    float world_x,
+    float world_z) noexcept {
+    if (destination.regions == nullptr || destination.region_count == 0) {
+        return nullptr;
+    }
+    for (std::size_t i = 0; i < destination.region_count; ++i) {
+        const auto& r = destination.regions[i];
+        if (world_x >= r.bounds.min_x && world_x <= r.bounds.max_x &&
+            world_z >= r.bounds.min_z && world_z <= r.bounds.max_z) {
+            return &r;
+        }
+    }
+    return nullptr;
+}
+
+/// Determine the grid cell coordinate for a world-space position.
+/// Returns the cell (cx, cy) that contains the position, clamped to grid bounds.
+inline void world_to_grid(
+    const DestinationMetadata& destination,
+    float world_x,
+    float world_z,
+    int& out_cx,
+    int& out_cy) noexcept {
+    const float cs = (destination.cell_size > 0.0F) ? destination.cell_size : 1.0F;
+    int cx = static_cast<int>((world_x - destination.world_min_x) / cs);
+    int cy = static_cast<int>((world_z - destination.world_min_z) / cs);
+    out_cx = (cx >= 0) ? (cx < destination.grid_cols ? cx : destination.grid_cols - 1) : 0;
+    out_cy = (cy >= 0) ? (cy < destination.grid_rows ? cy : destination.grid_rows - 1) : 0;
+}
+
 }  // namespace ahamkara::game

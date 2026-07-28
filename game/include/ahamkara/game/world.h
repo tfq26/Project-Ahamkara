@@ -250,6 +250,20 @@ public:
     void restart_match();
     [[nodiscard]] const std::vector<ColliderBox>& get_world_colliders() const { return owned_colliders_; }
 
+    /// Destination metadata accessors.
+    /// Returns nullptr when no destination is set (single-map level path).
+    [[nodiscard]] const DestinationMetadata* get_destination() const { return destination_; }
+
+    /// Query the region descriptor at a world-space position.
+    /// Returns nullptr when no destination is set or when the position falls
+    /// outside all defined regions.
+    [[nodiscard]] const RegionDescriptor* find_region_at(float world_x, float world_z) const;
+
+    /// Convenience: query region by position (Vec3 overload).
+    [[nodiscard]] const RegionDescriptor* find_region_at(const Vec3& position) const {
+        return find_region_at(position.x, position.z);
+    }
+
     void on_dummy_killed(ae::u32 dummy_id, const Vec3& death_pos);
     void set_is_server(bool is_server) { is_server_ = is_server; }
     [[nodiscard]] bool is_server() const { return is_server_; }
@@ -344,6 +358,9 @@ private:
     std::string last_interaction_label_ {};
     int reload_request_count_ {0};
     int ability_use_count_ {0};
+
+    /// Optional destination metadata (non-owning pointer to static data).
+    const DestinationMetadata* destination_ {nullptr};
 
     float respawn_timer_ {0.0F};
     float match_time_ {0.0F};

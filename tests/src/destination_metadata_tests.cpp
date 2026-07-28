@@ -349,6 +349,75 @@ int test_is_valid_region_type() {
     return 0;
 }
 
+// ---------------------------------------------------------------------------
+// Free-function helpers (find_region_at, world_to_grid)
+// ---------------------------------------------------------------------------
+
+int test_free_find_region_at_hit() {
+    // Position inside the hub region should return the hub descriptor.
+    const auto* r = ahamkara::game::find_region_at(kAncientForest, 0.0F, 0.0F);
+    if (r == nullptr) return fail("position (0,0) should be inside a region");
+    if (r->id != std::string("region_crossroads"))
+        return fail("position (0,0) should be in region_crossroads");
+    return 0;
+}
+
+int test_free_find_region_at_temple() {
+    // Position inside the temple region.
+    const auto* r = ahamkara::game::find_region_at(kAncientForest, 100.0F, 20.0F);
+    if (r == nullptr) return fail("position (100,20) should be inside a region");
+    if (r->id != std::string("region_temple_entrance"))
+        return fail("position (100,20) should be in region_temple_entrance");
+    return 0;
+}
+
+int test_free_find_region_at_exploration() {
+    // Position in the outer exploration ring.
+    const auto* r = ahamkara::game::find_region_at(kAncientForest, -130.0F, 90.0F);
+    if (r == nullptr) return fail("position (-130,90) should be inside a region");
+    if (r->type != ahamkara::game::RegionType::Exploration)
+        return fail("position (-130,90) should be Exploration region");
+    return 0;
+}
+
+int test_free_find_region_at_miss() {
+    // Position well outside all region bounds should return nullptr.
+    const auto* r = ahamkara::game::find_region_at(kAncientForest, 999.0F, 999.0F);
+    if (r != nullptr) return fail("position outside bounds should return nullptr");
+    return 0;
+}
+
+int test_free_find_region_at_empty_destination() {
+    constexpr ahamkara::game::DestinationMetadata empty_dest {};
+    const auto* r = ahamkara::game::find_region_at(empty_dest, 0.0F, 0.0F);
+    if (r != nullptr) return fail("empty destination should return nullptr");
+    return 0;
+}
+
+int test_world_to_grid_origin() {
+    int cx, cy;
+    ahamkara::game::world_to_grid(kAncientForest, 0.0F, 0.0F, cx, cy);
+    // Grid origin at (-150, -110) with 100m cells: (0,0) -> (150/100, 110/100) = (1,1)
+    if (cx != 1 || cy != 1) return fail("world origin should map to grid cell (1,1)");
+    return 0;
+}
+
+int test_world_to_grid_corner() {
+    int cx, cy;
+    ahamkara::game::world_to_grid(kAncientForest, -150.0F, -110.0F, cx, cy);
+    if (cx != 0 || cy != 0) return fail("min corner should map to grid cell (0,0)");
+    return 0;
+}
+
+int test_world_to_grid_clamped() {
+    int cx, cy;
+    // Far outside -> clamped to last cell.
+    ahamkara::game::world_to_grid(kAncientForest, 1000.0F, 1000.0F, cx, cy);
+    if (cx != kAncientForest.grid_cols - 1) return fail("x should be clamped to last column");
+    if (cy != kAncientForest.grid_rows - 1) return fail("z should be clamped to last row");
+    return 0;
+}
+
 }  // namespace
 
 int main() {
@@ -375,6 +444,16 @@ int main() {
     // Validation helpers
     if (int rc = test_is_valid_region_type()) return rc;
 
-    std::cout << "destination_metadata_tests: all 13 tests passed\n";
+    // Free-function helpers
+    if (int rc = test_free_find_region_at_hit()) return rc;
+    if (int rc = test_free_find_region_at_temple()) return rc;
+    if (int rc = test_free_find_region_at_exploration()) return rc;
+    if (int rc = test_free_find_region_at_miss()) return rc;
+    if (int rc = test_free_find_region_at_empty_destination()) return rc;
+    if (int rc = test_world_to_grid_origin()) return rc;
+    if (int rc = test_world_to_grid_corner()) return rc;
+    if (int rc = test_world_to_grid_clamped()) return rc;
+
+    std::cout << "destination_metadata_tests: all 21 tests passed\n";
     return 0;
 }

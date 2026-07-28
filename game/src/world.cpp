@@ -122,11 +122,28 @@ void World::apply_world_definition(const WorldDefinition& definition) {
     }
 
     set_interaction_targets(definition.interaction_targets, definition.interaction_target_count);
+
+    // Store optional destination metadata.
+    destination_ = definition.destination;
 }
 
 void World::reset_player_to_spawn() {
     players_[0].reset_to_spawn(player_spawn_);
     movement_controller_.reset_to_spawn(player_spawn_);
+}
+
+const RegionDescriptor* World::find_region_at(float world_x, float world_z) const {
+    if (destination_ == nullptr || destination_->regions == nullptr) {
+        return nullptr;
+    }
+    for (std::size_t i = 0; i < destination_->region_count; ++i) {
+        const auto& r = destination_->regions[i];
+        if (world_x >= r.bounds.min_x && world_x <= r.bounds.max_x &&
+            world_z >= r.bounds.min_z && world_z <= r.bounds.max_z) {
+            return &r;
+        }
+    }
+    return nullptr;
 }
 
 void World::tick(float delta_seconds, const PlayerInputCommand& input) {
