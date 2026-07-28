@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ahamkara/game/ai/ai_combatant.h"
 #include "ahamkara/game/audio_events.h"
 #include "ahamkara/game/camera_anchor.h"
 #include "ahamkara/game/debug_map.h"
@@ -17,6 +18,7 @@
 #include <cstdint>
 #include <deque>
 #include <memory>
+#include <optional>
 #include <vector>
 #include <string>
 
@@ -268,24 +270,31 @@ public:
     void set_is_server(bool is_server) { is_server_ = is_server; }
     [[nodiscard]] bool is_server() const { return is_server_; }
 
-    // -- Encounter scripting integration --
+    // -- AI Combatant management ------------------------------------------------
 
-    /// Access the encounter manager (mutable).
-    [[nodiscard]] EncounterManager& encounter_manager() { return encounters_; }
+    /// Spawn an AI combatant entity in the registry at the given world position
+    /// with the specified archetype. Returns the EnTT entity handle.
+    [[nodiscard]] entt::entity spawn_ai_combatant(const Vec3& position,
+                                                   float yaw,
+                                                   ai::CombatArchetype archetype);
 
-    /// Access the encounter manager (const).
-    [[nodiscard]] const EncounterManager& encounter_manager() const { return encounters_; }
+    /// Remove a specific AI combatant entity from the registry.
+    void despawn_ai_combatant(entt::entity entity);
 
-    /// Add an encounter definition to the world.
-    void add_encounter(const EncounterDef& def) { encounters_.add_encounter(def); }
+    /// Remove all AI combatant entities from the registry.
+    void clear_ai_combatants();
 
-    /// Start an encounter by ID.
-    bool start_encounter(const std::string& id) { return encounters_.start_encounter(id); }
+    /// Populate patrol waypoints for a spawned AI combatant from an array.
+    void set_ai_patrol_waypoints(entt::entity entity,
+                                 const ai::NavVec2* waypoints,
+                                 int count);
 
-    /// Get read-only encounter state, or nullptr if not found.
-    [[nodiscard]] const EncounterState* encounter_state(const std::string& id) const {
-        return encounters_.get_state(id);
-    }
+    /// Access the cached navigation grid (lazily built from colliders).
+    [[nodiscard]] const ai::NavGrid* nav_grid() const { return nav_grid_ ? &nav_grid_->grid : nullptr; }
+    [[nodiscard]] const ai::NavSpace& nav_space() const { return nav_space_; }
+
+    /// Rebuild the navigation grid from the current collider list.
+    void rebuild_nav_grid();
 
 private:
     void apply_world_definition(const WorldDefinition& definition);
@@ -367,7 +376,10 @@ private:
     bool match_over_ {false};
     float damage_feedback_timer_ {0.0F};
 
-    EncounterManager encounters_ {};
+    // -- Navigation grid (lazily built from colliders) --
+    std::optional<ai::NavGridBuildResult> nav_grid_;
+    ai::NavSpace nav_space_ {};
+    bool nav_grid_dirty_ {true};
 };
 
 }  // namespace ahamkara::game

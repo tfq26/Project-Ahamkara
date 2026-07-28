@@ -3,8 +3,8 @@
 // AI combatant types for Phase 8 PvE opponents.
 //
 // Builds on the existing NavAgent / NavGrid / PathFollower infrastructure.
-// Defines combat archetypes, perception state, targeting, and a behavior
-// state machine for AI combatants.
+// Defines combat archetypes, perception state, targeting, behavior
+// state machine, and pathfinding-based movement for AI combatants.
 //
 // Ownership: game layer. The World holds AI combatants via EnTT components
 // and calls the tick_ai_combatant system function each fixed step.
@@ -116,6 +116,20 @@ struct AICombatantComponent {
     float state_timer {0.0F};          // Time in current behavior state
     NavVec2 investigate_point {};
 
+    // -- Movement / Pathfinding --
+    NavVec2 move_velocity {};           // Computed velocity from movement update
+    float move_speed_current {0.0F};    // Current effective movement speed
+    NavVec2 move_target {};             // Current pathfinding destination
+    static constexpr int kMaxPatrolWaypoints = 8;
+    NavVec2 patrol_waypoints[kMaxPatrolWaypoints] {};
+    int patrol_waypoint_count {0};
+    int patrol_index {0};
+    float patrol_wait_timer {0.0F};
+    // Cached path from A*; empty when no path or goal reached.
+    // The path is stored as world-space waypoints (NavVec2).
+    std::vector<NavVec2> path_waypoints {};
+    int path_waypoint_index {0};
+
     // -- Combat --
     float fire_timer {0.0F};
     float burst_timer {0.0F};
@@ -169,5 +183,48 @@ void tick_ai_combatants(entt::registry& registry,
                         const Vec3& player_pos,
                         const std::vector<ColliderBox>& world_colliders,
                         bool is_server);
+
+// -- Pathfinding and movement (World provides the NavGrid) --
+
+/// Plan a path from the combatant's current position to a world-space goal.
+/// Returns true if a walkable path was found. Uses the provided NavGrid and
+/// NavSpace for A* pathfinding, converting the cell path to world-space waypoints.
+[[nodiscard]] bool plan_ai_path(AICombatantComponent& self,
+                                NavVec2 goal_world,
+                                const NavGrid& grid,
+                                NavSpace space,
+                                bool allow_diagonal = true);
+
+/// Advance the combatant along its planned path by up to speed*dt.
+/// Updates self.move_velocity, self.position_2d, and advances waypoint index.
+/// Call each fixed step when a path exists.
+void advance_along_path(AICombatantComponent& self,
+                        float speed, float dt,
+                        float arrive_radius = 0.5F);
+
+/// Build a NavGrid from the world's collider list (walls only).
+/// Grid covers the world-space bounding box of all colliders plus a margin.
+/// Returns a pair of (NavGrid, NavSpace).
+struct NavGridBuildResult {
+    NavGrid grid {1, 1};
+    NavSpace space {};
+};
+[[nodiscard]] NavGridBuildResult build_nav_grid_from_world(
+    const std::vector<ColliderBox>& colliders,
+    float cell_size = 1.0F,
+    float margin = 4.0F);
+
+/// Compute movement velocity/target for one AI combatant based on behavior state.
+/// Uses the NavGrid for pathfinding when moving to a goal location.
+void update_ai_movement(AICombatantComponent& self,
+                        float delta_seconds,
+                        const NavGrid& grid,
+                        NavSpace space);
+
+/// Tick movement for all AI combatants with NavGrid-based pathfinding.
+void tick_ai_combatants_movement(entt::registry& registry,
+                                 float delta_seconds,
+                                 const NavGrid& grid,
+                                 NavSpace space);
 
 }  // namespace ahamkara::game::ai

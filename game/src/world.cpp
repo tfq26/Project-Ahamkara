@@ -1,4 +1,5 @@
 #include "ahamkara/game/world.h"
+#include "ahamkara/game/ai/ai_combatant.h"
 #include "ahamkara/game/movement.h"
 #include "ahamkara/game/game_module.h"
 #include "ahamkara/game/worlds/debug_javelin4_world.h"
@@ -185,8 +186,29 @@ void World::advance_sim(float delta_seconds) {
         sync_dummies_to_jolt(jolt_->collision_world, jolt_->dummy_bodies, registry_);
     }
 
+    // Rebuild navigation grid when colliders change
+    if (nav_grid_dirty_ && !owned_colliders_.empty()) {
+        nav_grid_ = ai::build_nav_grid_from_world(owned_colliders_, 1.0F, 4.0F);
+        if (nav_grid_) {
+            nav_space_ = nav_grid_->space;
+        }
+        nav_grid_dirty_ = false;
+    }
+
     if (!is_client_ && !players_.empty()) {
+        // Tick old-style dummy AI (backward compat)
         tick_dummy_ai(registry_, delta_seconds, players_[0].state().position, owned_colliders_, *this);
+
+        // Tick new AI combatant system
+        ai::tick_ai_combatants(
+            registry_, delta_seconds, players_[0].state().position,
+            owned_colliders_, is_server_);
+
+        // Tick AI movement if nav grid is available
+        if (nav_grid_) {
+            ai::tick_ai_combatants_movement(
+                registry_, delta_seconds, nav_grid_->grid, nav_space_);
+        }
     }
 
     if (hitmarker_timer_ > 0.0F) {
@@ -420,6 +442,7 @@ void World::set_colliders(const ColliderBox* colliders, std::size_t count) {
     colliders_ = colliders;
     collider_count_ = count;
     recreate_physics_colliders();
+    rebuild_nav_grid();
 }
 
 bool World::load_colliders_from_level(const ae::render::LevelAsset& level) {
@@ -449,6 +472,7 @@ bool World::load_colliders_from_level(const ae::render::LevelAsset& level) {
     colliders_ = owned_colliders_.data();
     collider_count_ = owned_colliders_.size();
     recreate_physics_colliders();
+    rebuild_nav_grid();
     return true;
 }
 
@@ -952,6 +976,63 @@ ae::u32 World::get_player_deaths(ae::u32 index) const {
     if (index >= players_.size())
         return 0;
     return players_[index].deaths();
+}
+
+// --- AI Combatant Management -------------------------------------------------
+
+entt::entity World::spawn_ai_combatant(const Vec3& position,
+                                        float yaw,
+                                        ai::CombatArchetype archetype) {
+    auto entity = registry_.create();
+    ai::AICombatantComponent comp;
+    comp.combatant_id = static_cast<ae::u32>(entity);
+    comp.apply_archetype(archetype);
+    comp.position_2d = {position.x, position.z};
+    comp.yaw = yaw;
+    comp.health = comp.max_health;
+
+    registry_.emplace<ai::AICombatantComponent>(entity, std::move(comp));
+
+    // Also add a transform component so physics sync can find it
+    TransformComponent tc;
+    tc.position = position;
+    tc.yaw = yaw;
+    registry_.emplace<TransformComponent>(entity, tc);
+
+    return entity;
+}
+
+void World::despawn_ai_combatant(entt::entity entity) {
+    if (entity != entt::null && registry_.valid(entity)) {
+        registry_.destroy(entity);
+    }
+}
+
+void World::clear_ai_combatants() {
+    auto view = registry_.view<ai::AICombatantComponent>();
+    for (auto entity : view) {
+        registry_.destroy(entity);
+    }
+}
+
+void World::set_ai_patrol_waypoints(entt::entity entity,
+                                     const ai::NavVec2* waypoints,
+                                     int count) {
+    if (entity == entt::null || !registry_.valid(entity)) return;
+    if (!registry_.all_of<ai::AICombatantComponent>(entity)) return;
+
+    auto& comp = registry_.get<ai::AICombatantComponent>(entity);
+    const int n = std::min(count, ai::AICombatantComponent::kMaxPatrolWaypoints);
+    comp.patrol_waypoint_count = n;
+    for (int i = 0; i < n; ++i) {
+        comp.patrol_waypoints[i] = waypoints[i];
+    }
+    comp.patrol_index = 0;
+    comp.patrol_wait_timer = 0.0F;
+}
+
+void World::rebuild_nav_grid() {
+    nav_grid_dirty_ = true;
 }
 
 }  // namespace ahamkara::game
