@@ -646,6 +646,12 @@ void ClientFramePipeline::stage_present() {
 }
 
 void ClientFramePipeline::stage_post_frame() {
+    // Tick the host application (which ticks the game module if one is set).
+    // This is called once per frame after the simulation and scene have been
+    // updated but before the frame ends.  Products that inject their own game
+    // module (e.g. Flashback) get their lifecycle tick called here.
+    (void)application_.tick(smoothed_delta_);
+
     if (ui_actions_.config_applied) {
         if (auto* window_input = dynamic_cast<WindowInputProvider*>(&input_provider_)) {
             window_input->set_mouse_sensitivity(client_config_.mouse_sensitivity);

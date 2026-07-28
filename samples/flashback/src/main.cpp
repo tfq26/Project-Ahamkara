@@ -1,11 +1,9 @@
-// Flashback — engine demo.
+// Flashback — independent game built on the Ahamkara engine.
 //
-// Flashback is intentionally a *thin shell* over the real engine/game/client
-// stack. It boots the same local runtime as `ahamkara_client`
-// (run_local_client: World simulation, ECS entities, level pipeline, mesh +
-// sky/fog rendering, input/camera handling) pointed at a showcase level. Because
-// it links `ahamkara_client_lib` rather than reimplementing gameplay, any engine
-// improvement is reflected here automatically on the next build.
+// Flashback boots the Ahamkara client runtime (window, renderer, input,
+// audio) and injects its own game module via the ae::IGameModule contract.
+// This makes Flashback's identity, lifecycle, and ownership distinct from
+// the "ahamkara_game" library while still consuming shared engine services.
 //
 // Usage (run from the repo root so the level's relative asset paths resolve):
 //   ./build/<preset>/samples/flashback/flashback [--level <path-to.aelevel>]
@@ -14,8 +12,10 @@
 #include "ahamkara/client/client_entry.h"
 #include "ahamkara/client/controller_bindings.h"
 #include "ae/core/log.h"
+#include "flashback/game_module.h"
 
 #include <cstdlib>
+#include <memory>
 #include <string>
 
 namespace {
@@ -50,14 +50,22 @@ int main(int argc, char** argv) {
         ? ahamkara::client::make_default_autoplay_scenario(level_path)
         : ahamkara::client::PlaytestScenario {};
 
-    ae::log_info(std::string("Flashback demo: booting the engine on level '") +
+    ae::log_info(std::string("Flashback: booting the engine on level '") +
                  level_path + "'. (Run from the repo root so assets resolve.)");
+
+    // Inject Flashback's own game module so the runtime lifecycle reflects
+    // Flashback identity instead of the monolithic ahamkara_game library.
+    // Ownership is transferred to the Application inside run_local_client,
+    // so we release our unique_ptr after passing the raw pointer.
+    auto game_module = flashback::create_flashback_game_module();
+    ae::IGameModule* fb_module = game_module.release();
 
     const int result = run_local_client(
         client_config,
         controller_bindings,
         level_path,
-        autoplay ? &autoplay_scenario : nullptr);
+        autoplay ? &autoplay_scenario : nullptr,
+        fb_module);
     ae::shutdown_file_logging();
     return result;
 }

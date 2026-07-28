@@ -106,10 +106,6 @@ struct PbrRenderer::Impl {
         use_sh_ambient_ = false;
     }
 
-    void set_ao_texture(TextureHandle tex) {
-        ao_texture_ = tex;
-    }
-
     void set_reflection_probes(const ReflectionProbe* probes, int count) {
         reflection_probe_count_ = std::min(count, kMaxReflectionProbes);
         for (int i = 0; i < reflection_probe_count_; ++i)
@@ -785,9 +781,6 @@ void PbrRenderer::set_color_grading(const ColorGradingParams& params) { impl_->s
 void PbrRenderer::set_fog(const FogParams& params) { impl_->set_fog(params); }
 void PbrRenderer::set_ssao_enabled(bool enabled) {
     impl_->set_ssao_enabled(enabled);
-}
-void PbrRenderer::set_ao_texture(TextureHandle texture) {
-    impl_->set_ao_texture(texture);
 }
 void PbrRenderer::set_frame_index(int index) {
     impl_->set_frame_index(index);
