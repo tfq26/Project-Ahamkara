@@ -141,6 +141,10 @@ endif()
 # Product modules live outside the pure Ahamkara engine package.
 if(AHAMKARA_BUILD_WISH)
     add_subdirectory(wish)
+    # Create Wish::Engine alias for in-tree consumers
+    if(TARGET wish_engine AND NOT TARGET Wish::Engine)
+        add_library(Wish::Engine ALIAS wish_engine)
+    endif()
 endif()
 
 # Wish consumer fixture — proves Wish builds, links, and runs without Ahamkara or Flashback.
@@ -201,6 +205,9 @@ set(CPACK_GENERATOR "TGZ;ZIP")
 set(CPACK_ARCHIVE_COMPONENT_INSTALL OFF)
 
 include(CPack)
+
+# Make cmake/ modules available for packaging and consumer projects
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # Install rules (libraries, headers, binaries)
 include(cmake/InstallRules.cmake)

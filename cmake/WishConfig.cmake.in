@@ -1,0 +1,17 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# Wish has no external CMake dependencies beyond the C++ standard library.
+# When consumed as a standalone package, the consumer must provide C++20.
+
+include("${CMAKE_CURRENT_LIST_DIR}/WishTargets.cmake")
+
+if(TARGET Wish::wish_engine AND NOT TARGET Wish::Engine)
+    add_library(Wish::Engine INTERFACE IMPORTED)
+    set_target_properties(Wish::Engine PROPERTIES
+        INTERFACE_LINK_LIBRARIES Wish::wish_engine
+    )
+endif()
+
+check_required_components(Wish)

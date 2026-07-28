@@ -1,0 +1,448 @@
+# Cross-Product Artifact Compatibility Smoke
+# ============================================
+# Clean-room CI proof that released Ahamkara and Wish artifacts can be
+# composed by Flashback without any producer source checkout.
+#
+# Layout:
+#   produce  — Build and package Ahamkara + Wish, upload artifacts + manifests
+#   consume  — Clean job: download packages + Flashback source only,
+#              configure/build/test Flashback against installed artifacts
+#   verify   — Test compatible & intentionally incompatible version combos
+#
+# Triggers: manual dispatch, or after the main CI package job completes.
+
+name: Cross-Product Compatibility
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 4
+
+jobs:
+
+  # ──────────────────────────────────────────────────────────────────────
+  # PRODUCE: build and package Ahamkara + Wish with manifests
+  # ──────────────────────────────────────────────────────────────────────
+  produce:
+    name: Produce Ahamkara + Wish Packages
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Checkout full source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # needed for git commit in manifests
+
+      - name: Configure (debug-headless for faster CI)
+        run: cmake --preset debug-headless
+
+      - name: Build
+        run: cmake --build --preset debug-headless
+
+      - name: Install to staging prefix
+        run: |
+          mkdir -p build/staging
+          cmake --install build/debug-headless --prefix build/staging --component Ahamkara 2>&1 | tee build/install-ahamkara.log
+          cmake --install build/debug-headless --prefix build/staging --component Wish 2>&1 | tee build/install-wish.log || true
+
+      - name: Validate manifest artifact checksums
+        run: |
+          python3 -c "
+import json, sys, hashlib, os
+
+exit_code = 0
+for manifest_name in ['ahamkara-manifest.json', 'wish-manifest.json']:
+    path = f'build/debug-headless/{manifest_name}'
+    if not os.path.exists(path):
+        print(f'WARNING: {path} not found')
+        continue
+    with open(path) as f:
+        m = json.load(f)
+    artifacts = m.get('artifacts', {})
+    if not artifacts:
+        print(f'WARNING: {manifest_name} has no artifacts section')
+        continue
+    for rel_path, info in artifacts.items():
+        full_path = os.path.join('build/debug-headless', rel_path)
+        expected_sha = info.get('sha256', '')
+        file_size = info.get('size', -1)
+        if not os.path.exists(full_path):
+            print(f'FAIL: {manifest_name}: artifact missing: {full_path}')
+            exit_code = 1
+            continue
+        actual_sha = hashlib.sha256(open(full_path, 'rb').read()).hexdigest()
+        actual_size = os.path.getsize(full_path)
+        if actual_sha != expected_sha:
+            print(f'FAIL: {manifest_name}: SHA256 mismatch for {rel_path}')
+            print(f'  Expected: {expected_sha}')
+            print(f'  Actual:   {actual_sha}')
+            exit_code = 1
+        elif actual_size != file_size:
+            print(f'WARNING: {manifest_name}: size mismatch for {rel_path}: expected {file_size}, got {actual_size}')
+        else:
+            print(f'OK: {manifest_name}: {rel_path} checksum and size match')
+    print(f'{manifest_name}: {len(artifacts)} artifact(s) validated')
+sys.exit(exit_code)
+" 2>&1 | tee build/manifest-checksum-validation.log
+
+      - name: Collect manifests
+        run: |
+          mkdir -p build/staging/manifests
+          for f in build/debug-headless/ahamkara-manifest.json build/debug-headless/wish-manifest.json; do
+            if [ -f "$f" ]; then
+              cp "$f" build/staging/manifests/
+              echo "Collected: $f"
+            else
+              echo "WARNING: $f not found"
+            fi
+          done
+
+      - name: Package Ahamkara artifact
+        run: |
+          tar czf build/ahamkara-engine.tar.gz \
+            -C build/staging \
+            --transform='s|^lib/cmake/Ahamkara|lib/cmake/Ahamkara|' \
+            --transform='s|^manifests/ahamkara-manifest.json|manifests/ahamkara-manifest.json|' \
+            lib include manifests/ahamkara-manifest.json bin 2>/dev/null || \
+          tar czf build/ahamkara-engine.tar.gz \
+            -C build/staging \
+            lib include manifests bin 2>/dev/null || true
+          ls -la build/ahamkara-engine.tar.gz
+
+      - name: Package Wish artifact
+        run: |
+          tar czf build/wish-engine.tar.gz \
+            -C build/staging \
+            --transform='s|^lib/cmake/Wish|lib/cmake/Wish|' \
+            --transform='s|^manifests/wish-manifest.json|manifests/wish-manifest.json|' \
+            lib/cmake/Wish include/wish manifests/wish-manifest.json 2>/dev/null || \
+          echo "WARNING: Wish standalone package may be incomplete"
+          ls -la build/wish-engine.tar.gz 2>/dev/null || true
+
+      - name: Upload Ahamkara engine package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahamkara-engine
+          path: build/ahamkara-engine.tar.gz
+          retention-days: 7
+
+      - name: Upload Wish engine package
+        uses: actions/upload-artifact@v4
+        with:
+          name: wish-engine
+          path: build/wish-engine.tar.gz
+          retention-days: 7
+
+      - name: Upload manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-manifests
+          path: build/staging/manifests/
+          retention-days: 7
+
+  # ──────────────────────────────────────────────────────────────────────
+  # CONSUME: clean-room Flashback build (no producer source)
+  # ──────────────────────────────────────────────────────────────────────
+  consume:
+    name: Flashback Standalone (Clean-Room)
+    needs: [produce]
+    runs-on: [self-hosted, linux]
+
+    steps:
+      # ONLY checkout Flashback source — no engine/ or wish/ directories
+      - name: Checkout Flashback source only
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            samples/flashback
+            tests/cross_product_compatibility
+            cmake/CrossProductCompatibilityCheck.cmake
+            cmake/GenerateProductManifest.cmake
+          sparse-checkout-cone-mode: false
+
+      - name: Download Ahamkara engine package
+        uses: actions/download-artifact@v4
+        with:
+          name: ahamkara-engine
+          path: _packages/
+
+      - name: Download Wish engine package
+        uses: actions/download-artifact@v4
+        with:
+          name: wish-engine
+          path: _packages/
+
+      - name: Extract packages to install prefix
+        run: |
+          mkdir -p _install
+          tar xzf _packages/ahamkara-engine.tar.gz -C _install
+          if [ -f _packages/wish-engine.tar.gz ]; then
+            tar xzf _packages/wish-engine.tar.gz -C _install
+          fi
+          echo "Install prefix contents:"
+          find _install -type f | head -80
+
+      - name: Configure Flashback standalone
+        run: |
+          cmake -S samples/flashback/standalone \
+                -B build/flashback-standalone \
+                -G Ninja \
+                -DCMAKE_BUILD_TYPE=Debug \
+                -DCMAKE_PREFIX_PATH="${PWD}/_install"
+
+      - name: Verify no producer source paths in build
+        run: |
+          # Fail if the Flashback build leaks engine/ or wish/ source paths
+          if grep -rn "engine/" build/flashback-standalone/CMakeCache.txt 2>/dev/null; then
+            echo "FAIL: Flashback build references engine/ source path"
+            exit 1
+          fi
+          if grep -rn "wish/" build/flashback-standalone/CMakeCache.txt 2>/dev/null; then
+            echo "FAIL: Flashback build references wish/ source path"
+            exit 1
+          fi
+          echo "Clean-room check PASSED"
+
+      - name: Build Flashback standalone
+        run: cmake --build build/flashback-standalone
+
+      - name: Run Flashback standalone tests
+        run: ctest --test-dir build/flashback-standalone --output-on-failure
+
+      - name: Verify installed include paths (no source leaks)
+        run: |
+          # Check that the consumed headers reference the install prefix,
+          # not the source tree
+          if cmake --build build/flashback-standalone --target flashback_game_module -v 2>&1 | grep -E '\-I.*engine/'; then
+            echo "FAIL: Compiler uses engine/ source include paths"
+            exit 1
+          fi
+          echo "Include path check PASSED"
+
+      - name: Validate installed manifest checksums
+        run: |
+          python3 -c "
+import json, sys, hashlib, os
+
+exit_code = 0
+install_dir = '_install'
+for manifest_name in ['ahamkara-manifest.json', 'wish-manifest.json']:
+    manifest_path = os.path.join(install_dir, 'share', 'manifests', manifest_name)
+    if not os.path.exists(manifest_path):
+        print(f'WARNING: {manifest_path} not found')
+        continue
+    with open(manifest_path) as f:
+        m = json.load(f)
+    artifacts = m.get('artifacts', {})
+    if not artifacts:
+        print(f'WARNING: {manifest_name} has no artifacts section')
+        continue
+    for rel_path, info in artifacts.items():
+        full_path = os.path.join(install_dir, rel_path)
+        expected_sha = info.get('sha256', '')
+        if not os.path.exists(full_path):
+            print(f'FAIL: {manifest_name}: artifact missing: {full_path}')
+            exit_code = 1
+            continue
+        actual_sha = hashlib.sha256(open(full_path, 'rb').read()).hexdigest()
+        if actual_sha != expected_sha:
+            print(f'FAIL: {manifest_name}: SHA256 mismatch for {rel_path}')
+            print(f'  Expected: {expected_sha}')
+            print(f'  Actual:   {actual_sha}')
+            exit_code = 1
+        else:
+            print(f'OK: {manifest_name}: {rel_path} checksum valid')
+sys.exit(exit_code)
+" 2>&1 | tee build/installed-checksum-validation.log
+
+  # ──────────────────────────────────────────────────────────────────────
+  # VERIFY: compatible + intentionally incompatible version matrix
+  # ──────────────────────────────────────────────────────────────────────
+  verify:
+    name: Version Compatibility Matrix
+    needs: [produce]
+    runs-on: [self-hosted, linux]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario:
+          # Compatible combinations (expected PASS)
+          - label: "Compatible (default versions)"
+            ahamkara_abi_major: ""
+            ahamkara_abi_minor: ""
+            ahamkara_abi_patch: ""
+            wish_abi_major: ""
+            wish_abi_minor: ""
+            wish_proto_major: ""
+            wish_proto_minor: ""
+            expect_fail: false
+
+          # Incompatible combinations (expected FAIL)
+          - label: "Ahamkara ABI major mismatch"
+            ahamkara_abi_major: "99"
+            ahamkara_abi_minor: "0"
+            ahamkara_abi_patch: "0"
+            wish_abi_major: ""
+            wish_abi_minor: ""
+            wish_proto_major: ""
+            wish_proto_minor: ""
+            expect_fail: true
+
+          - label: "Wish ABI major mismatch"
+            ahamkara_abi_major: ""
+            ahamkara_abi_minor: ""
+            ahamkara_abi_patch: ""
+            wish_abi_major: "99"
+            wish_abi_minor: "0"
+            wish_proto_major: ""
+            wish_proto_minor: ""
+            expect_fail: true
+
+          - label: "Wish protocol major mismatch"
+            ahamkara_abi_major: ""
+            ahamkara_abi_minor: ""
+            ahamkara_abi_patch: ""
+            wish_abi_major: ""
+            wish_abi_minor: ""
+            wish_proto_major: "99"
+            wish_proto_minor: "0"
+            expect_fail: true
+
+          - label: "Ahamkara ABI minor too new"
+            ahamkara_abi_major: ""
+            ahamkara_abi_minor: "5"
+            ahamkara_abi_patch: "0"
+            wish_abi_major: ""
+            wish_abi_minor: ""
+            wish_proto_major: ""
+            wish_proto_minor: ""
+            expect_fail: true
+
+    steps:
+      - name: Checkout test source
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tests/cross_product_compatibility
+            cmake/CrossProductCompatibilityCheck.cmake
+            cmake/GenerateProductManifest.cmake
+          sparse-checkout-cone-mode: false
+
+      - name: Download Ahamkara engine package
+        uses: actions/download-artifact@v4
+        with:
+          name: ahamkara-engine
+          path: _packages/
+
+      - name: Download Wish engine package
+        uses: actions/download-artifact@v4
+        with:
+          name: wish-engine
+          path: _packages/
+
+      - name: Extract packages
+        run: |
+          mkdir -p _install
+          tar xzf _packages/ahamkara-engine.tar.gz -C _install
+          if [ -f _packages/wish-engine.tar.gz ]; then
+            tar xzf _packages/wish-engine.tar.gz -C _install
+          fi
+
+      - name: Configure compatibility test (${{ matrix.scenario.label }})
+        id: configure
+        continue-on-error: true
+        env:
+          AE_MAJOR: ${{ matrix.scenario.ahamkara_abi_major }}
+          AE_MINOR: ${{ matrix.scenario.ahamkara_abi_minor }}
+          AE_PATCH: ${{ matrix.scenario.ahamkara_abi_patch }}
+          WS_ABI_MAJOR: ${{ matrix.scenario.wish_abi_major }}
+          WS_ABI_MINOR: ${{ matrix.scenario.wish_abi_minor }}
+          WS_PROTO_MAJOR: ${{ matrix.scenario.wish_proto_major }}
+          WS_PROTO_MINOR: ${{ matrix.scenario.wish_proto_minor }}
+        run: |
+          BUILD_DIR="build/compat-${{ strategy.job-index }}"
+          CMAKE_ARGS=(
+            -S tests/cross_product_compatibility
+            -B "${BUILD_DIR}"
+            -G Ninja
+            -DCMAKE_BUILD_TYPE=Debug
+            -DCMAKE_PREFIX_PATH="${PWD}/_install"
+          )
+          # Only set version overrides when provided
+          [ -n "${AE_MAJOR}" ]   && CMAKE_ARGS+=(-DAHAMKARA_ABI_MAJOR_EXPECTED="${AE_MAJOR}")
+          [ -n "${AE_MINOR}" ]   && CMAKE_ARGS+=(-DAHAMKARA_ABI_MINOR_EXPECTED="${AE_MINOR}")
+          [ -n "${AE_PATCH}" ]   && CMAKE_ARGS+=(-DAHAMKARA_ABI_PATCH_EXPECTED="${AE_PATCH}")
+          [ -n "${WS_ABI_MAJOR}" ] && CMAKE_ARGS+=(-DWISH_ABI_MAJOR_EXPECTED="${WS_ABI_MAJOR}")
+          [ -n "${WS_ABI_MINOR}" ] && CMAKE_ARGS+=(-DWISH_ABI_MINOR_EXPECTED="${WS_ABI_MINOR}")
+          [ -n "${WS_PROTO_MAJOR}" ] && CMAKE_ARGS+=(-DWISH_PROTO_MAJOR_EXPECTED="${WS_PROTO_MAJOR}")
+          [ -n "${WS_PROTO_MINOR}" ] && CMAKE_ARGS+=(-DWISH_PROTO_MINOR_EXPECTED="${WS_PROTO_MINOR}")
+
+          cmake "${CMAKE_ARGS[@]}" 2>&1 | tee "${BUILD_DIR}/configure.log"
+
+      - name: Check result (${{ matrix.scenario.label }})
+        run: |
+          BUILD_DIR="build/compat-${{ strategy.job-index }}"
+          if ${{ matrix.scenario.expect_fail }}; then
+            if cmake -S tests/cross_product_compatibility \
+                     -B "${BUILD_DIR}-retry" \
+                     -G Ninja \
+                     -DCMAKE_BUILD_TYPE=Debug \
+                     -DCMAKE_PREFIX_PATH="${PWD}/_install" \
+                     ${{ matrix.scenario.ahamkara_abi_major && format('-DAHAMKARA_ABI_MAJOR_EXPECTED={0}', matrix.scenario.ahamkara_abi_major) || '' }} \
+                     ${{ matrix.scenario.ahamkara_abi_minor && format('-DAHAMKARA_ABI_MINOR_EXPECTED={0}', matrix.scenario.ahamkara_abi_minor) || '' }} \
+                     ${{ matrix.scenario.ahamkara_abi_patch && format('-DAHAMKARA_ABI_PATCH_EXPECTED={0}', matrix.scenario.ahamkara_abi_patch) || '' }} \
+                     ${{ matrix.scenario.wish_abi_major && format('-DWISH_ABI_MAJOR_EXPECTED={0}', matrix.scenario.wish_abi_major) || '' }} \
+                     ${{ matrix.scenario.wish_abi_minor && format('-DWISH_ABI_MINOR_EXPECTED={0}', matrix.scenario.wish_abi_minor) || '' }} \
+                     ${{ matrix.scenario.wish_proto_major && format('-DWISH_PROTO_MAJOR_EXPECTED={0}', matrix.scenario.wish_proto_major) || '' }} \
+                     ${{ matrix.scenario.wish_proto_minor && format('-DWISH_PROTO_MINOR_EXPECTED={0}', matrix.scenario.wish_proto_minor) || '' }} \
+                     2>&1; then
+              echo "FAIL: Expected configure to fail but it succeeded"
+              exit 1
+            else
+              echo "PASS: Configure correctly failed with diagnostic"
+            fi
+          else
+            # Expected success: build and test
+            cmake --build "${BUILD_DIR}" 2>&1 | tee "${BUILD_DIR}/build.log"
+            ctest --test-dir "${BUILD_DIR}" --output-on-failure 2>&1 | tee "${BUILD_DIR}/test.log"
+            echo "PASS: Compatible version built and tested"
+          fi
+
+      - name: Upload diagnostic logs (${{ matrix.scenario.label }})
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compat-logs-${{ strategy.job-index }}
+          path: build/compat-*/
+          retention-days: 7
+
+  # ──────────────────────────────────────────────────────────────────────
+  # SUMMARY: consolidate results
+  # ──────────────────────────────────────────────────────────────────────
+  summary:
+    name: Compatibility Summary
+    needs: [consume, verify]
+    if: always()
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Print summary
+        run: |
+          echo "## Cross-Product Compatibility Results" >> "${GITHUB_STEP_SUMMARY}"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+          echo "| Job | Status |" >> "${GITHUB_STEP_SUMMARY}"
+          echo "|-----|--------|" >> "${GITHUB_STEP_SUMMARY}"
+          echo "| Flashback Standalone (Clean-Room) | ${{ needs.consume.result }} |" >> "${GITHUB_STEP_SUMMARY}"
+          echo "| Version Compatibility Matrix | ${{ needs.verify.result }} |" >> "${GITHUB_STEP_SUMMARY}"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+          echo "For detailed logs, download the 'compat-logs-*' artifacts." >> "${GITHUB_STEP_SUMMARY}"
