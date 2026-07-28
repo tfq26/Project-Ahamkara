@@ -15,6 +15,9 @@ void Player::reset() {
     loadout_.weapons[static_cast<int>(WeaponSlot::Secondary)] = 1;
     loadout_.weapons[static_cast<int>(WeaponSlot::Melee)] = 2;
     armor_config_ = {};
+    inventory_.clear();
+    progression_ = {};
+    currency_ = {};
     reset_weapon_runtime(0, 150);
 }
 

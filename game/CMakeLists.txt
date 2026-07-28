@@ -25,7 +25,7 @@ add_library(ahamkara_game STATIC
     src/animation_adapter.cpp
     src/adapters/wish_session_adapter.cpp
     src/rewind.cpp
-    src/pickup_model.cpp
+    src/inventory.cpp
 )
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/gameplay_types.cpp")
