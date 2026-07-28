@@ -3,7 +3,11 @@
 namespace wish::session {
 
 SessionGroup::SessionGroup(wish::u32 group_id, wish::u32 max_clients)
-    : group_id_(group_id), max_clients_(max_clients), disconnect_timeout_(std::chrono::seconds(10)) {
+    : group_id_(group_id), max_clients_(max_clients),
+      state_(GroupState::Lobby), activity_id_(0),
+      fireteam_id_(0), created_at_(clock::time_point{}),
+      ended_at_(clock::time_point{}),
+      disconnect_timeout_(std::chrono::seconds(10)) {
 }
 
 bool SessionGroup::same_address(const wish::NetAddress& lhs, const wish::NetAddress& rhs) {
