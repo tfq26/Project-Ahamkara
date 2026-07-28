@@ -1,5 +1,6 @@
 #include "wish/types.h"
 #include "wish/log.h"
+#include "wish/core/dev_mode.h"
 #include "wish/integrations/nakama/nakama_bridge.h"
 
 #include "wish/integrations/nakama/mock_session_services.h"
@@ -456,7 +457,14 @@ std::unique_ptr<wish::core::AuthValidator> make_auth_validator(const BridgeSetti
     if (is_enabled(settings)) {
         return std::make_unique<NakamaHttpAuthValidator>(settings);
     }
-    return std::make_unique<NoopAuthValidator>();
+
+    // Authentication fails closed outside explicit development mode.
+    // See wish/core/dev_mode.h for the WISH_DEV_MODE contract.
+    if (wish::core::is_dev_mode()) {
+        return std::make_unique<NoopAuthValidator>();
+    }
+
+    return std::make_unique<DenyAllAuthValidator>();
 }
 
 }  // namespace wish::integrations::nakama
