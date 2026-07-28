@@ -778,23 +778,18 @@ add_test(NAME ahamkara_failure_path_tests COMMAND ahamkara_failure_path_tests)
 
 # --- re-applied from PR branch during auto-rebase ---
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../game/include/ahamkara/game/inventory.h")
-    add_executable(ahamkara_inventory_tests
-        src/inventory_tests.cpp
-    )
-
-target_compile_features(ahamkara_inventory_tests PRIVATE cxx_std_20)
-
-target_include_directories(ahamkara_inventory_tests
-        PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
-            ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
-    )
-
-target_link_libraries(ahamkara_inventory_tests
-        PRIVATE
-            ahamkara_game
-    )
-
-add_test(NAME ahamkara_inventory_tests COMMAND ahamkara_inventory_tests)
-endif()
+add_executable(ahamkara_network_boundary_validation_tests
+    src/network_boundary_validation_tests.cpp
+)
+target_compile_features(ahamkara_network_boundary_validation_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_network_boundary_validation_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+        ${CMAKE_CURRENT_SOURCE_DIR}/../game/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/network/include
+)
+target_link_libraries(ahamkara_network_boundary_validation_tests
+    PRIVATE
+        ahamkara_game
+)
+add_test(NAME ahamkara_network_boundary_validation_tests COMMAND ahamkara_network_boundary_validation_tests)
