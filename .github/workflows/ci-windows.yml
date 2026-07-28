@@ -1,0 +1,207 @@
+# CI workflow — Windows (MSVC)
+#
+# Validates the Windows portability of the frame allocator (MSVC _aligned_malloc),
+# runtime metrics (Win32 GetProcessTimes/GetProcessMemoryInfo), UDP socket
+# (Winsock2), and Nakama bridge (Winsock2 socket routines) on GitHub-hosted
+# Windows runners.
+#
+# Supported generator/toolchain assumptions:
+#   - CMake 3.20+, Ninja (pre-installed on the runner)
+#   - Microsoft Visual C++ (MSVC) via "ilammy/msvc-dev-cmd"
+#   - vcpkg for GLFW3 (GUI presets debug/release only)
+#   - Packages: TGZ / ZIP via CPack
+#
+# Agent branches auto-merge only when they explicitly opt in through the
+# agent/automerge/** namespace; ordinary agent branches are PR-only.
+
+name: CI (Windows)
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "agent/automerge/**"
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: write
+  issues: write
+
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 4
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Build and test matrix: debug-headless runs the full test suite; debug
+  # and release prove the GUI-oriented presets configure and compile.
+  # -------------------------------------------------------------------------
+  build-and-test:
+    name: ${{ matrix.preset }} (windows-latest)
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [debug, release, debug-headless]
+
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up MSVC (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      # vcpkg is pre-installed on GitHub Windows runners at C:\vcpkg.
+      # The vcpkg toolchain is passed to CMake so find_package(glfw3)
+      # succeeds for the debug and release presets.
+      - name: Install GLFW3 (vcpkg)
+        if: matrix.preset != 'debug-headless'
+        run: vcpkg install glfw3:x64-windows
+        shell: pwsh
+
+      - name: Configure
+        run: |
+          $extra = ""
+          if ("${{ matrix.preset }}" -ne "debug-headless") {
+            $extra = "-DCMAKE_TOOLCHAIN_FILE=${env:VCPKG_ROOT}\scripts\buildsystems\vcpkg.cmake"
+          }
+          cmake --preset ${{ matrix.preset }} $extra
+        shell: pwsh
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+        shell: pwsh
+
+      - name: Run tests (debug)
+        if: matrix.preset == 'debug'
+        run: ctest --test-dir build/debug --output-on-failure -C Debug
+        shell: pwsh
+
+      - name: Run tests (debug-headless)
+        if: matrix.preset == 'debug-headless'
+        run: ctest --test-dir build/debug-headless --output-on-failure -C Debug
+        shell: pwsh
+
+      - name: Upload CMake configure/build logs
+        if: always()
+        run: |
+          New-Item -ItemType Directory -Force -Path build/logs
+          $dirs = @("build/debug", "build/release", "build/debug-headless")
+          foreach ($d in $dirs) {
+            if (Test-Path $d/CMakeFiles) {
+              Copy-Item "$d/CMakeFiles/*.log" build/logs/ -ErrorAction SilentlyContinue
+            }
+          }
+          Get-ChildItem build/logs/
+        shell: pwsh
+
+      - name: Upload build logs artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahamkara-windows-build-logs-${{ matrix.preset }}
+          path: build/logs/
+          if-no-files-found: warn
+
+  # -------------------------------------------------------------------------
+  # Package — build the package preset and run CPack on Windows.
+  # -------------------------------------------------------------------------
+  package:
+    name: Package (windows-latest)
+    runs-on: windows-latest
+    needs: [build-and-test]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up MSVC (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Configure (package preset)
+        run: cmake --preset package
+        shell: pwsh
+
+      - name: Build
+        run: cmake --build --preset package
+        shell: pwsh
+
+      - name: Package (TGZ + ZIP)
+        run: cpack --preset package
+        working-directory: build/package
+        shell: pwsh
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahamkara-package-windows
+          path: build/package/*.tar.gz
+          if-no-files-found: warn
+
+  # -------------------------------------------------------------------------
+  # Headless package — build and package the headless configuration, then
+  # run the out-of-tree consumer test against the installed prefix.
+  # -------------------------------------------------------------------------
+  package-headless:
+    name: Package headless + consumer (windows-latest)
+    runs-on: windows-latest
+    needs: [build-and-test]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up MSVC (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Configure (package-debug-headless)
+        run: cmake --preset package-debug-headless
+        shell: pwsh
+
+      - name: Build
+        run: cmake --build --preset package-debug-headless
+        shell: pwsh
+
+      - name: Install to prefix
+        run: |
+          cmake --install build/package-debug-headless --prefix "${{ github.workspace }}/_install" --component Ahamkara
+        shell: pwsh
+
+      - name: Configure out-of-tree consumer
+        run: |
+          cmake -S tests/out_of_tree_consumer `
+                -B build/consumer `
+                -G Ninja `
+                -DCMAKE_BUILD_TYPE=Debug `
+                -DCMAKE_PREFIX_PATH="${{ github.workspace }}/_install"
+        shell: pwsh
+
+      - name: Build consumer
+        run: cmake --build build/consumer
+        shell: pwsh
+
+      - name: Run consumer
+        run: build/consumer/ahamkara_consumer.exe
+        shell: pwsh
+
+      - name: Package headless (TGZ + ZIP)
+        run: cpack --preset package-debug-headless
+        working-directory: build/package-debug-headless
+        shell: pwsh
+
+      - name: Upload headless package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahamkara-package-headless-windows
+          path: build/package-debug-headless/*.tar.gz
+          if-no-files-found: warn
+
+
