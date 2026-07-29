@@ -92,6 +92,27 @@ install(FILES
     COMPONENT Wish
 )
 
+# ── Admin info page tests ─────────────────────────────────────────────────
+add_executable(wish_admin_info_page_tests
+    admin/tests/info_page_tests.cpp
+    admin/admin_server.cpp
+)
+
+target_compile_features(wish_admin_info_page_tests PRIVATE cxx_std_20)
+
+target_include_directories(wish_admin_info_page_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_link_libraries(wish_admin_info_page_tests
+    PRIVATE
+        wish_engine
+)
+
+add_test(NAME wish_admin_info_page_tests COMMAND wish_admin_info_page_tests)
+
 # ── Heartbeat tests ─────────────────────────────────────────────────────
 enable_testing()
 add_executable(wish_heartbeat_tests

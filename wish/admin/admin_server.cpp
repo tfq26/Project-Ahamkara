@@ -217,7 +217,12 @@ void HttpAdminServer::handle_client(int client_fd) const {
     std::string_view text = "OK";
 
     if (method == "GET") {
-        if (path == "/health") {
+        if (path == "/" || path == "/index.html") {
+            body = render_info_page(status);
+            const std::string response = make_response(200, "OK", "text/html; charset=utf-8", std::move(body));
+            (void)write_all(client_fd, response);
+            return;
+        } else if (path == "/health") {
             body = render_health(status);
         } else if (path == "/match/status") {
             body = render_match_status(status);
@@ -345,6 +350,94 @@ std::string HttpAdminServer::escape_json(std::string_view text) {
         }
     }
     return escaped;
+}
+
+std::string HttpAdminServer::render_info_page(const ServerStatus& status) {
+    std::ostringstream stream;
+
+    auto fmt_duration = [](float seconds) -> std::string {
+        const int h = static_cast<int>(seconds) / 3600;
+        const int m = (static_cast<int>(seconds) % 3600) / 60;
+        const int s = static_cast<int>(seconds) % 60;
+        if (h > 0) {
+            return std::to_string(h) + "h " + std::to_string(m) + "m " + std::to_string(s) + "s";
+        }
+        if (m > 0) {
+            return std::to_string(m) + "m " + std::to_string(s) + "s";
+        }
+        return std::to_string(s) + "s";
+    };
+
+    stream << "<!DOCTYPE html>\n"
+           << "<html lang=\"en\">\n<head>\n"
+           << "<meta charset=\"UTF-8\">\n"
+           << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+           << "<title>Ahamkara — Server Info</title>\n"
+           << "<style>\n"
+           << "body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;margin:0;padding:20px;background:#0d1117;color:#c9d1d9;line-height:1.5}\n"
+           << "h1{color:#58a6ff;border-bottom:1px solid #30363d;padding-bottom:8px}\n"
+           << "h2{color:#f0883e;margin-top:24px}\n"
+           << "table{border-collapse:collapse;width:100%;max-width:640px}\n"
+           << "td,th{text-align:left;padding:6px 12px;border-bottom:1px solid #21262d}\n"
+           << "th{color:#8b949e;font-weight:600;width:180px}\n"
+           << ".ok{color:#3fb950}\n"
+           << ".warn{color:#d29922}\n"
+           << ".err{color:#f85149}\n"
+           << "a{color:#58a6ff;text-decoration:none}\n"
+           << "a:hover{text-decoration:underline}\n"
+           << "ul{list-style:none;padding:0}\n"
+           << "li{padding:4px 0}\n"
+           << "</style>\n</head>\n<body>\n"
+           << "<h1>\U0001f3ae Ahamkara &mdash; " << escape_json(status.game_name) << "</h1>\n";
+
+    stream << "<h2>Server Status</h2>\n<table>\n"
+           << "<tr><th>Status</th><td class=\"ok\">Running</td></tr>\n"
+           << "<tr><th>Game Port</th><td>" << status.game_port << "</td></tr>\n"
+           << "<tr><th>Admin Port</th><td>" << status.admin_port << "</td></tr>\n"
+           << "<tr><th>Tick Rate</th><td>" << status.tick_rate << " Hz</td></tr>\n"
+           << "<tr><th>Uptime</th><td>" << fmt_duration(status.uptime_seconds) << "</td></tr>\n"
+           << "<tr><th>Server Tick</th><td>" << status.server_tick << "</td></tr>\n"
+           << "<tr><th>Max Players</th><td>" << status.max_players << "</td></tr>\n"
+           << "</table>\n";
+
+    stream << "<h2>Match</h2>\n<table>\n"
+           << "<tr><th>Active</th><td class=\"" << (status.match_active ? "ok" : "err") << "\">"
+           << (status.match_active ? "Yes" : "No") << "</td></tr>\n"
+           << "<tr><th>Elapsed</th><td>" << fmt_duration(status.match_elapsed_seconds) << "</td></tr>\n"
+           << "<tr><th>Duration</th><td>" << fmt_duration(status.match_duration_seconds) << "</td></tr>\n";
+    if (status.match_remaining_seconds.has_value()) {
+        stream << "<tr><th>Remaining</th><td>" << fmt_duration(*status.match_remaining_seconds) << "</td></tr>\n";
+    }
+    stream << "</table>\n";
+
+    stream << "<h2>Players (" << status.players.size() << " connected)</h2>\n";
+    if (status.players.empty()) {
+        stream << "<p>No players connected.</p>\n";
+    } else {
+        stream << "<table>\n<tr><th>Endpoint</th><th>Last Seen</th></tr>\n";
+        for (const auto& player : status.players) {
+            stream << "<tr><td>" << escape_json(player.endpoint) << "</td><td>"
+                   << fmt_duration(player.seconds_since_seen) << " ago</td></tr>\n";
+        }
+        stream << "</table>\n";
+    }
+
+    stream << "<h2>API Endpoints</h2>\n<ul>\n"
+           << "<li><a href=\"/health\">/health</a> &mdash; Health check</li>\n"
+           << "<li><a href=\"/match/status\">/match/status</a> &mdash; Match status</li>\n"
+           << "<li><a href=\"/players\">/players</a> &mdash; Player list</li>\n"
+           << "<li><a href=\"/metrics\">/metrics</a> &mdash; Prometheus metrics</li>\n"
+           << "<li><a href=\"/api/v1/servers\">/api/v1/servers</a> &mdash; Server registry</li>\n"
+           << "<li><a href=\"/api/v1/sessions\">/api/v1/sessions</a> &mdash; Sessions</li>\n"
+           << "<li><a href=\"/api/v1/activities\">/api/v1/activities</a> &mdash; Activities</li>\n"
+           << "</ul>\n";
+
+    stream << "<hr><p><small>Ahamkara Game Engine &mdash; "
+           << "<a href=\"https://git.2helix.org/taufeeq26/Project-Ahamkara\">Repository</a>"
+           << "</small></p>\n"
+           << "</body>\n</html>\n";
+
+    return stream.str();
 }
 
 std::string HttpAdminServer::render_health(const ServerStatus& status) {
