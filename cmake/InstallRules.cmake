@@ -112,47 +112,47 @@ install(FILES
 )
 
 # ── Wish backend separate package ─────────────────────────────────────────
-# Export wish_engine to its own target set so consumer projects can use
-# find_package(Wish CONFIG) independently of the Ahamkara package.
-if(TARGET wish_engine)
-    install(TARGETS wish_engine
-        EXPORT  WishTargets
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Wish
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Wish
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Wish
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    )
-
-    install(EXPORT WishTargets
-        FILE    WishTargets.cmake
-        NAMESPACE Wish::
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Wish
-        COMPONENT Wish
-    )
-
-    write_basic_package_version_file(
-        "${CMAKE_CURRENT_BINARY_DIR}/WishConfigVersion.cmake"
-        VERSION ${PROJECT_VERSION}
-        COMPATIBILITY SameMajorVersion
-    )
-
-    configure_package_config_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/WishConfig.cmake.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/WishConfig.cmake"
-        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Wish
-    )
-
-    install(FILES
-        "${CMAKE_CURRENT_BINARY_DIR}/WishConfig.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/WishConfigVersion.cmake"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Wish
-        COMPONENT Wish
-    )
-
-    if(NOT TARGET Wish::Engine)
-        add_library(Wish::Engine ALIAS wish_engine)
-    endif()
-endif()
+# NOTE: wish_engine install/export rules are now defined in wish/CMakeLists.txt.
+# This block is disabled to avoid duplicate export of the same target.
+# if(TARGET wish_engine)
+#     install(TARGETS wish_engine
+#         EXPORT  WishTargets
+#         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Wish
+#         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Wish
+#         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Wish
+#         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+#     )
+# 
+#     install(EXPORT WishTargets
+#         FILE    WishTargets.cmake
+#         NAMESPACE Wish::
+#         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Wish
+#         COMPONENT Wish
+#     )
+# 
+#     write_basic_package_version_file(
+#         "${CMAKE_CURRENT_BINARY_DIR}/WishConfigVersion.cmake"
+#         VERSION ${PROJECT_VERSION}
+#         COMPATIBILITY SameMajorVersion
+#     )
+# 
+#     configure_package_config_file(
+#         "${CMAKE_CURRENT_SOURCE_DIR}/cmake/WishConfig.cmake.in"
+#         "${CMAKE_CURRENT_BINARY_DIR}/WishConfig.cmake"
+#         INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Wish
+#     )
+# 
+#     install(FILES
+#         "${CMAKE_CURRENT_BINARY_DIR}/WishConfig.cmake"
+#         "${CMAKE_CURRENT_BINARY_DIR}/WishConfigVersion.cmake"
+#         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Wish
+#         COMPONENT Wish
+#     )
+# 
+#     if(NOT TARGET Wish::Engine)
+#         add_library(Wish::Engine ALIAS wish_engine)
+#     endif()
+# endif()
 
 # ── Install product manifests ────────────────────────────────────────────
 include(GenerateProductManifest)
