@@ -61,6 +61,9 @@ public:
     void serve();
     void handle_client(int client_fd) const;
 
+    // Render an HTML info page for the server status.
+    static std::string render_info_page(const ServerStatus& status);
+
 #ifdef _WIN32
     using SocketHandle = unsigned long long;
 #else
