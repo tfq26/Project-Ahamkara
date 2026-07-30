@@ -2,6 +2,9 @@
 
 Status: Current-state description plus accepted target direction
 
+> See the [architecture landing page](README.md) for a high-level layered
+> diagram and layer summary.
+
 ## Product model
 
 The current repository is a transitional monorepo. Its root build adds core

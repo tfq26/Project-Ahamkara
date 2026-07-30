@@ -16,17 +16,19 @@ rationale independently of that issue.
 
 ## Start here
 
-1. [Architecture overview](architecture/overview.md) — current composition,
+1. [Architecture](architecture/README.md) — layered architecture diagram,
+   build system, CI/CD pipeline, deployment model, and key design decisions.
+2. [Architecture overview](architecture/overview.md) — current composition,
    target boundaries, and dependency direction.
-2. [Three-repository destination](architecture/repository-split.md) — what
+3. [Three-repository destination](architecture/repository-split.md) — what
    belongs in Ahamkara, Flashback, and Wish.
-3. [Repository map](repo-map.md) — what each current folder owns.
-4. [Build and test guide](guides/building.md) — supported commands.
-5. [Maintenance guide](guides/maintenance.md) — how to diagnose, repair, and
+4. [Repository map](repo-map.md) — what each current folder owns.
+5. [Build and test guide](guides/building.md) — supported commands.
+6. [Maintenance guide](guides/maintenance.md) — how to diagnose, repair, and
    validate changes.
-6. [Error-system proposal](design/error-system.md) — stable error identities,
+7. [Error-system proposal](design/error-system.md) — stable error identities,
    propagation, recovery, telemetry, and extension rules.
-7. [Error-code operations](operations/error-codes.md) — initial code catalog
+8. [Error-code operations](operations/error-codes.md) — initial code catalog
    and support workflow.
 
 ## Documentation layout

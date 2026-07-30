@@ -3,8 +3,9 @@
 Status: Transitional monorepo implementation
 
 The canonical system-wide boundary and target repository model are documented
-in [the architecture overview](../architecture/overview.md). This file is a
-compact map of current engine modules.
+in [the architecture overview](../architecture/overview.md). The layered
+architecture diagram is at [architecture-overview.svg](../../assets/architecture-overview.svg).
+This file is a compact map of current engine modules.
 
 ## Engine targets
 

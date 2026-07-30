@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 720" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#888"/>
+    </marker>
+    <marker id="arrow-product" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#e67e22"/>
+    </marker>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8f9fa"/>
+      <stop offset="100%" stop-color="#e9ecef"/>
+    </linearGradient>
+    <linearGradient id="g-core" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2c3e50"/>
+      <stop offset="100%" stop-color="#34495e"/>
+    </linearGradient>
+    <linearGradient id="g-engine" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2980b9"/>
+      <stop offset="100%" stop-color="#3498db"/>
+    </linearGradient>
+    <linearGradient id="g-wish" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8e44ad"/>
+      <stop offset="100%" stop-color="#9b59b6"/>
+    </linearGradient>
+    <linearGradient id="g-game" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d35400"/>
+      <stop offset="100%" stop-color="#e67e22"/>
+    </linearGradient>
+    <linearGradient id="g-product" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c0392b"/>
+      <stop offset="100%" stop-color="#e74c3c"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="115%" height="115%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="720" fill="url(#bg)" rx="8"/>
+
+  <!-- Title -->
+  <text x="450" y="36" text-anchor="middle" font-size="20" font-weight="700" fill="#1a1a2e">Ahamkara Engine — Layered Architecture</text>
+
+  <!-- ==================== LAYER 5: PRODUCT ==================== -->
+  <rect x="40" y="620" width="820" height="70" rx="4" fill="url(#g-product)" filter="url(#shadow)"/>
+  <text x="60" y="648" font-size="13" font-weight="700" fill="#fff">PRODUCT LAYER</text>
+  <text x="60" y="668" font-size="11" fill="#ffcdd2">Deployable executables composing engine + game + Wish into a shipped product</text>
+
+  <!-- Product boxes -->
+  <rect x="160" y="630" width="130" height="48" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="225" y="652" text-anchor="middle" font-size="12" font-weight="600" fill="#c0392b">flashback</text>
+  <text x="225" y="667" text-anchor="middle" font-size="10" fill="#666">game executable</text>
+
+  <rect x="320" y="630" width="130" height="48" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="385" y="652" text-anchor="middle" font-size="12" font-weight="600" fill="#c0392b">ahamkara_server</text>
+  <text x="385" y="667" text-anchor="middle" font-size="10" fill="#666">dedicated server</text>
+
+  <rect x="480" y="630" width="130" height="48" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="545" y="652" text-anchor="middle" font-size="12" font-weight="600" fill="#c0392b">wish_test_client</text>
+  <text x="545" y="667" text-anchor="middle" font-size="10" fill="#666">integration test</text>
+
+  <rect x="640" y="630" width="130" height="48" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="705" y="652" text-anchor="middle" font-size="12" font-weight="600" fill="#c0392b">ahamkara_client</text>
+  <text x="705" y="667" text-anchor="middle" font-size="10" fill="#666">playable client</text>
+
+  <!-- ==================== LAYER 4: GAME + COMPOSITION ==================== -->
+  <rect x="40" y="528" width="820" height="75" rx="4" fill="url(#g-game)" filter="url(#shadow)"/>
+  <text x="60" y="552" font-size="13" font-weight="700" fill="#fff">GAME &amp; COMPOSITION LAYER</text>
+  <text x="60" y="568" font-size="11" fill="#ffe0b2">Gameplay rules, world state, activities, client composition, server composition</text>
+
+  <rect x="100" y="578" width="160" height="16" rx="2" fill="#fff" opacity="0.8"/>
+  <text x="180" y="590" text-anchor="middle" font-size="10" font-weight="600" fill="#d35400">ahamkara_game</text>
+
+  <rect x="290" y="578" width="160" height="16" rx="2" fill="#fff" opacity="0.8"/>
+  <text x="370" y="590" text-anchor="middle" font-size="10" font-weight="600" fill="#d35400">ahamkara_client_lib</text>
+
+  <rect x="480" y="578" width="160" height="16" rx="2" fill="#fff" opacity="0.8"/>
+  <text x="560" y="590" text-anchor="middle" font-size="10" font-weight="600" fill="#d35400">ahamkara_server_lib</text>
+
+  <!-- ==================== LAYER 3: WISH ==================== -->
+  <rect x="40" y="465" width="820" height="50" rx="4" fill="url(#g-wish)" filter="url(#shadow)"/>
+  <text x="60" y="486" font-size="13" font-weight="700" fill="#fff">WISH LAYER</text>
+  <text x="60" y="502" font-size="11" fill="#e1bee7">Backend/session/activity platform with protocol and service integrations</text>
+
+  <!-- ==================== LAYER 2: ENGINE SERVICES ==================== -->
+  <rect x="40" y="162" width="820" height="288" rx="4" fill="url(#g-engine)" filter="url(#shadow)"/>
+  <text x="60" y="186" font-size="13" font-weight="700" fill="#fff">ENGINE SERVICE LAYER</text>
+  <text x="60" y="202" font-size="11" fill="#bbdefb">Modular static libraries (ae_*) providing platform, rendering, networking, and runtime services</text>
+
+  <!-- Engine module boxes -->
+  <rect x="75" y="218" width="115" height="46" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="132" y="240" text-anchor="middle" font-size="11" font-weight="600" fill="#2980b9">ae_network</text>
+  <text x="132" y="255" text-anchor="middle" font-size="9" fill="#666">UDP transport,</text>
+  <text x="132" y="264" text-anchor="middle" font-size="9" fill="#666">reliability, interp</text>
+
+  <rect x="210" y="218" width="115" height="46" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="267" y="240" text-anchor="middle" font-size="11" font-weight="600" fill="#2980b9">ae_platform</text>
+  <text x="267" y="255" text-anchor="middle" font-size="9" fill="#666">window, device</text>
+  <text x="267" y="264" text-anchor="middle" font-size="9" fill="#666">integration</text>
+
+  <rect x="345" y="218" width="115" height="46" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="402" y="240" text-anchor="middle" font-size="11" font-weight="600" fill="#2980b9">ae_render</text>
+  <text x="402" y="255" text-anchor="middle" font-size="9" fill="#666">scene, PBR, text</text>
+  <text x="402" y="264" text-anchor="middle" font-size="9" fill="#666">OpenGL backend</text>
+
+  <rect x="480" y="218" width="115" height="46" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="537" y="240" text-anchor="middle" font-size="11" font-weight="600" fill="#2980b9">ae_animation</text>
+  <text x="537" y="255" text-anchor="middle" font-size="9" fill="#666">graphs, IK,</text>
+  <text x="537" y="264" text-anchor="middle" font-size="9" fill="#666">pose evaluation</text>
+
+  <rect x="615" y="218" width="115" height="46" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="672" y="240" text-anchor="middle" font-size="11" font-weight="600" fill="#2980b9">ae_collision</text>
+  <text x="672" y="255" text-anchor="middle" font-size="9" fill="#666">world, shapes</text>
+  <text x="672" y="264" text-anchor="middle" font-size="9" fill="#666">traces, layers</text>
+
+  <!-- Second row of engine services -->
+  <rect x="345" y="280" width="115" height="46" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="402" y="302" text-anchor="middle" font-size="11" font-weight="600" fill="#2980b9">ae_physics</text>
+  <text x="402" y="317" text-anchor="middle" font-size="9" fill="#666">physics world</text>
+  <text x="402" y="326" text-anchor="middle" font-size="9" fill="#666">wrapper</text>
+
+  <rect x="480" y="280" width="115" height="46" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="537" y="302" text-anchor="middle" font-size="11" font-weight="600" fill="#2980b9">ae_input</text>
+  <text x="537" y="317" text-anchor="middle" font-size="9" fill="#666">input mapping</text>
+  <text x="537" y="326" text-anchor="middle" font-size="9" fill="#666">runtime</text>
+
+  <rect x="615" y="280" width="115" height="46" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="672" y="302" text-anchor="middle" font-size="11" font-weight="600" fill="#2980b9">ae_audio</text>
+  <text x="672" y="317" text-anchor="middle" font-size="9" fill="#666">audio runtime</text>
+  <text x="672" y="326" text-anchor="middle" font-size="9" fill="#666">playback</text>
+
+  <rect x="345" y="342" width="115" height="46" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="402" y="364" text-anchor="middle" font-size="11" font-weight="600" fill="#2980b9">ae_ui</text>
+  <text x="402" y="379" text-anchor="middle" font-size="9" fill="#666">menu, HUD</text>
+  <text x="402" y="388" text-anchor="middle" font-size="9" fill="#666">runtime</text>
+
+  <rect x="480" y="342" width="115" height="46" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="537" y="364" text-anchor="middle" font-size="11" font-weight="600" fill="#2980b9">ae_runtime</text>
+  <text x="537" y="379" text-anchor="middle" font-size="9" fill="#666">application mode</text>
+  <text x="537" y="388" text-anchor="middle" font-size="9" fill="#666">lifecycle, camera</text>
+
+  <!-- engine module: ae_skeleton (special, sits between render and animation) -->
+  <rect x="75" y="342" width="115" height="46" rx="3" fill="#fff" opacity="0.9"/>
+  <text x="132" y="364" text-anchor="middle" font-size="11" font-weight="600" fill="#2980b9">ae_skeleton</text>
+  <text x="132" y="379" text-anchor="middle" font-size="9" fill="#666">Mat4, skin, clip</text>
+  <text x="132" y="388" text-anchor="middle" font-size="9" fill="#666">pose contract</text>
+
+  <!-- ==================== LAYER 1: CORE ==================== -->
+  <rect x="40" y="100" width="820" height="48" rx="4" fill="url(#g-core)" filter="url(#shadow)"/>
+  <text x="450" y="122" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">ae_core</text>
+  <text x="450" y="139" text-anchor="middle" font-size="11" fill="#bdc3c7">Config · Diagnostics · Logging · Allocation · Jobs · Memory · Telemetry · Time · Crash handling</text>
+
+  <!-- Arrows from core up to engine services -->
+  <line x1="132" y1="148" x2="132" y2="218" stroke="#95a5a6" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="267" y1="148" x2="267" y2="218" stroke="#95a5a6" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="402" y1="148" x2="402" y2="218" stroke="#95a5a6" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="537" y1="148" x2="537" y2="218" stroke="#95a5a6" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="672" y1="148" x2="672" y2="218" stroke="#95a5a6" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <!-- ae_runtime (special, higher position) -->
+  <line x1="537" y1="218" x2="537" y2="342" stroke="#95a5a6" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arrow)"/>
+
+  <!-- Arrows from engine services up to game/composition -->
+  <line x1="402" y1="388" x2="402" y2="578" stroke="#d35400" stroke-width="1.5" marker-end="url(#arrow-product)"/>
+  <line x1="537" y1="388" x2="537" y2="578" stroke="#d35400" stroke-width="1.5" marker-end="url(#arrow-product)"/>
+  <line x1="672" y1="326" x2="672" y2="578" stroke="#d35400" stroke-width="1.5" marker-end="url(#arrow-product)"/>
+
+  <!-- Arrows from Wish/Wish up to game -->
+  <line x1="560" y1="515" x2="560" y2="578" stroke="#d35400" stroke-width="1.5" marker-end="url(#arrow-product)"/>
+
+  <!-- Arrows from game up to product -->
+  <line x1="385" y1="594" x2="385" y2="630" stroke="#c0392b" stroke-width="1.5" marker-end="url(#arrow-product)"/>
+  <line x1="560" y1="594" x2="560" y2="630" stroke="#c0392b" stroke-width="1.5" marker-end="url(#arrow-product)"/>
+  <line x1="225" y1="594" x2="225" y2="630" stroke="#c0392b" stroke-width="1.5" marker-end="url(#arrow-product)"/>
+
+  <!-- ae_core also goes directly to runtime -->
+  <line x1="450" y1="148" x2="450" y2="218" stroke="#95a5a6" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <rect x="40" y="695" width="12" height="12" rx="2" fill="#2c3e50"/>
+  <text x="58" y="705" font-size="10" fill="#555">Core</text>
+  <rect x="110" y="695" width="12" height="12" rx="2" fill="#2980b9"/>
+  <text x="128" y="705" font-size="10" fill="#555">Engine Services</text>
+  <rect x="220" y="695" width="12" height="12" rx="2" fill="#8e44ad"/>
+  <text x="238" y="705" font-size="10" fill="#555">Wish</text>
+  <rect x="280" y="695" width="12" height="12" rx="2" fill="#d35400"/>
+  <text x="298" y="705" font-size="10" fill="#555">Game/Composition</text>
+  <rect x="400" y="695" width="12" height="12" rx="2" fill="#c0392b"/>
+  <text x="418" y="705" font-size="10" fill="#555">Product</text>
+
+  <line x1="500" y1="700" x2="530" y2="700" stroke="#95a5a6" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="538" y="705" font-size="10" fill="#555">Depends on</text>
+</svg>
