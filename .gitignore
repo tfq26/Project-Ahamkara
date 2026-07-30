@@ -18,3 +18,7 @@ build-issue55/
 build-#55/
 build-engine-only/
 tests/out_of_tree_consumer/build/
+
+# Frontend
+/frontend/node_modules/
+/frontend/dist/

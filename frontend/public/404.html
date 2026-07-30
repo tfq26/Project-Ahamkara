@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ahamkara — Game Engine &amp; Tech Demo</title>
+    <meta name="description" content="Ahamkara is a custom C++20 game engine and multiplayer tech demo." />
+  </head>
+  <body>
+    <script>
+      // SPA routing fallback: redirect all 404s to root so Vue Router
+      // can resolve the route client-side.  The same content is served
+      // as index.html – after the JS boots, the router takes over.
+      sessionStorage.redirect = location.pathname + location.search;
+      location.replace('/');
+    </script>
+  </body>
+</html>

@@ -1,0 +1,93 @@
+# Deploy Frontend to Pages
+#
+# Builds the Vue.js SPA frontend and deploys it to the `pages` branch,
+# which Forgejo/GitHub Pages serves as the project website.
+# SPA routing is handled via a 404.html fallback (same content as index.html).
+#
+# Trigger: push to main (or manual dispatch).
+# Target:  Forgejo Pages (compatible with GitHub Pages/Cloudflare Pages).
+
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: [self-hosted, linux]
+    container:
+      image: node:20-bookworm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+
+      - name: Ensure SPA fallback
+        run: |
+          cp dist/index.html dist/404.html
+        working-directory: frontend
+
+      - name: Deploy to Pages branch
+        env:
+          GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: frontend
+        run: |
+          # Configure git
+          git config user.name "CI Bot"
+          git config user.email "ci@ahamkara.dev"
+
+          # Use token-based auth for push
+          REPO_URL="${{ github.server_url }}/${{ github.repository }}"
+          AUTH_URL="${REPO_URL/https:\/\//https:\/\/ci-bot:${GIT_TOKEN}@}"
+          git remote set-url origin "${AUTH_URL}"
+
+          # BUILD_DIR is frontend/dist relative to workspace root
+          BUILD_DIR="${PWD}/dist"
+          WS_ROOT="${PWD}/.."
+
+          # Fetch the pages branch (or create an orphan if it doesn't exist)
+          cd "${WS_ROOT}"
+          if git ls-remote --exit-code origin pages > /dev/null 2>&1; then
+            git fetch origin pages
+            git checkout -b pages origin/pages
+          else
+            git checkout --orphan pages
+            git rm -rf . > /dev/null 2>&1 || true
+          fi
+
+          # Remove stale content (keep .git)
+          find . -maxdepth 1 -not -path './.git' -not -path '.' -exec rm -rf {} + 2>/dev/null || true
+
+          # Copy the fresh build
+          cp -r "${BUILD_DIR}"/* .
+          cp -r "${BUILD_DIR}"/.* . 2>/dev/null || true
+
+          # Ensure SPA fallback at root of pages branch too
+          if [ ! -f 404.html ]; then
+            cp index.html 404.html 2>/dev/null || true
+          fi
+
+          # Commit and push if there are changes
+          if [ -n "$(git status --porcelain)" ]; then
+            git add -A
+            # Skip CI to avoid re-triggering workflows
+            git commit -m "Deploy frontend to Pages [skip ci]" --allow-empty
+            git push origin pages
+            echo "Deployed successfully to pages branch"
+          else
+            echo "No changes to deploy"
+          fi
