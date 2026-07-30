@@ -1,0 +1,13 @@
+{
+  "name": "ahamkara-monorepo",
+  "private": true,
+  "packageManager": "pnpm@11.18.0",
+  "scripts": {
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:backend": "pnpm --filter backend dev",
+    "build": "pnpm --filter frontend build && pnpm --filter backend build",
+    "lint": "pnpm --filter frontend lint && pnpm --filter backend lint",
+    "format": "pnpm --filter frontend format && pnpm --filter backend format",
+    "typecheck": "pnpm --filter frontend typecheck && pnpm --filter backend typecheck"
+  }
+}

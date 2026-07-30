@@ -20,6 +20,8 @@ ahamkara/
 ├── engine/                 # Engine libraries (12 modules: core, network, collision, etc.)
 ├── client/                 # Playable client library + executable
 ├── server/                 # Headless dedicated server
+├── backend/                # Hono + TypeScript API server
+├── frontend/               # Vue.js 3 + Vite web frontend
 ├── game/                   # Gameplay library (Flashback: movement, weapons, AI)
 ├── wish/                   # Backend/session platform
 ├── samples/flashback/      # Flashback engine demo
@@ -28,8 +30,47 @@ ahamkara/
 ├── assets/                 # Game assets (models, textures, levels, materials)
 ├── scripts/                # Developer convenience scripts (24 scripts)
 ├── docs/                   # Architecture, guides, system docs, reports
-└── cmake/                  # CMake package export and install rules
+├── cmake/                  # CMake package export and install rules
+├── package.json            # pnpm workspace root
+└── pnpm-workspace.yaml     # pnpm workspace definition
 ```
+
+## Web Monorepo (pnpm Workspace)
+
+This project also includes a pnpm workspace with web packages for the info site and API server:
+
+| Package | Path | Stack |
+|---------|------|-------|
+| `frontend` | `frontend/` | Vue.js 3 + Vite + TypeScript |
+| `backend`  | `backend/`  | Hono + TypeScript |
+
+### Prerequisites
+
+- **Node.js ≥ 18** (with corepack enabled)
+- **pnpm** (`npm install -g pnpm`)
+
+### Setup & Run
+
+```sh
+pnpm install
+
+# Start frontend dev server (Vite, default http://localhost:5173)
+pnpm dev:frontend
+
+# Start backend dev server (tsx watch, default http://localhost:3000)
+pnpm dev:backend
+
+# Build all packages
+pnpm build
+
+# Lint all packages
+pnpm lint
+
+# Type-check all packages
+pnpm typecheck
+```
+
+Each package also has its own ESLint, Prettier, and TypeScript configuration.
 
 ## Quick Start
 
