@@ -16,28 +16,19 @@ systems are kept out until the networking and platform foundations are validated
 ```
 ahamkara/
 ├── CMakeLists.txt          # Top-level CMake project
-├── CMakePresets.json       # Build presets (debug / release)
-├── .editorconfig           # Editor settings
-├── assets/                 # Game assets (future)
-├── backend/                # Platform backends (future)
-├── build/                  # Generated build trees (git-ignored)
-├── client/                 # Playable client executable
-│   └── src/client_main.cpp
-├── docs/                   # Guides, system docs, roadmaps, reports, vault
-│   ├── README.md
-│   ├── guides/
-│   ├── systems/
-│   ├── roadmap/
-│   ├── reports/
-│   └── vault/
-├── editor/                 # Editor tooling (future)
-├── engine/                 # Engine libraries (core, network, platform, render, runtime)
-├── game/                   # Game-facing types & logic
-├── scripts/                # Developer convenience scripts
+├── CMakePresets.json       # Build presets (debug, release, headless, package)
+├── engine/                 # Engine libraries (12 modules: core, network, collision, etc.)
+├── client/                 # Playable client library + executable
 ├── server/                 # Headless dedicated server
-│   └── src/dedicated_server_main.cpp
-├── tests/                  # Test targets
-└── tools/                  # Misc tooling
+├── game/                   # Gameplay library (Flashback: movement, weapons, AI)
+├── wish/                   # Backend/session platform
+├── samples/flashback/      # Flashback engine demo
+├── tests/                  # 48+ CTest test targets
+├── tools/                  # Asset importer, lint runner, diagnostic tools
+├── assets/                 # Game assets (models, textures, levels, materials)
+├── scripts/                # Developer convenience scripts (24 scripts)
+├── docs/                   # Architecture, guides, system docs, reports
+└── cmake/                  # CMake package export and install rules
 ```
 
 ## Quick Start
@@ -72,6 +63,35 @@ print tick and position diagnostics to stdout.
 
 For server-only local run and Docker notes, see
 [`docs/wish/local_run.md`](docs/wish/local_run.md).
+
+### Test
+
+```sh
+# Full suite (debug preset)
+ctest --test-dir build/debug --output-on-failure
+
+# Headless preset (no GLFW/OpenGL)
+ctest --test-dir build/debug-headless --output-on-failure
+
+# Specific test
+ctest --test-dir build/debug -R collision_tests --output-on-failure
+
+# Via convenience script
+./scripts/run-tests.sh
+```
+
+### Lint
+
+```sh
+# Setup lint tools once
+./scripts/setup-lint.sh
+
+# Lint branch diff
+./scripts/lint.sh --base-ref origin/main --compile-db build/debug
+
+# Apply safe fixes
+./scripts/lint.sh --base-ref origin/main --compile-db build/debug --fix
+```
 
 ### Universal Start Script
 
