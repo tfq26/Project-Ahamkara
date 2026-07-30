@@ -7,6 +7,7 @@ Ahamkara during the repository split.
 
 - [Agent handoff](agent-handoff.md)
 - [Building](building.md)
+- [Deployment](deployment.md) — local, Docker, CI/CD, packaging, and GitHub Pages
 - [Maintenance and error repair](maintenance.md)
 - [Remote agent workflow](remote-agent-workflow.md)
 

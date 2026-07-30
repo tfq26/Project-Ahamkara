@@ -1,0 +1,5 @@
+# GitHub Pages Jekyll configuration for documentation site
+title: Ahamkara Engine
+description: A custom C++20 game engine and multiplayer tech demo
+markdown: kramdown
+theme: jekyll-theme-cayman
