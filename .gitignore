@@ -18,3 +18,5 @@ build-issue55/
 build-#55/
 build-engine-only/
 tests/out_of_tree_consumer/build/
+node_modules/
+dist/
