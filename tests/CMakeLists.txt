@@ -729,12 +729,7 @@ add_test(
 set_tests_properties(ahamkara_benchmark_tests PROPERTIES LABELS "benchmark")
 set_tests_properties(ahamkara_benchmark_regression_fixture PROPERTIES LABELS "benchmark;regression")
 
-# --- re-applied from PR branch during auto-rebase ---
-
 # Out-of-tree Wish SDK consumer smoke (Wish standalone package boundary).
-# Builds a tiny external project against an installed Wish SDK prefix.
-# This proves Wish builds, installs, and can be consumed without any
-# Ahamkara or Flashback source.
 add_test(
     NAME wish_out_of_tree_package_consumer
     COMMAND ${CMAKE_COMMAND}
@@ -776,8 +771,6 @@ target_include_directories(ahamkara_failure_path_tests PRIVATE ${CMAKE_CURRENT_S
 target_link_libraries(ahamkara_failure_path_tests PRIVATE wish_engine)
 add_test(NAME ahamkara_failure_path_tests COMMAND ahamkara_failure_path_tests)
 
-# --- re-applied from PR branch during auto-rebase ---
-
 add_executable(ahamkara_network_boundary_validation_tests
     src/network_boundary_validation_tests.cpp
 )
@@ -793,3 +786,16 @@ target_link_libraries(ahamkara_network_boundary_validation_tests
         ahamkara_game
 )
 add_test(NAME ahamkara_network_boundary_validation_tests COMMAND ahamkara_network_boundary_validation_tests)
+
+# --- Docs viewer ---
+add_executable(ahamkara_docs_viewer_tests
+    src/docs_viewer_tests.cpp
+)
+
+target_compile_features(ahamkara_docs_viewer_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_docs_viewer_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/ui/include
+)
+
+add_test(NAME ahamkara_docs_viewer_tests COMMAND ahamkara_docs_viewer_tests)

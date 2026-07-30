@@ -25,6 +25,8 @@ ae::ui::MenuScreen ClientMenuState::screen() const {
             return ae::ui::MenuScreen::Settings;
         case ClientMenuMode::Character:
             return ae::ui::MenuScreen::Character;
+        case ClientMenuMode::DocsFromPause:
+            return ae::ui::MenuScreen::Docs;
     }
 
     return ae::ui::MenuScreen::None;
@@ -82,6 +84,11 @@ void ClientMenuState::back_from_settings() {
 
 void ClientMenuState::open_character() {
     mode_ = ClientMenuMode::Character;
+    sync_menu_state();
+}
+
+void ClientMenuState::open_docs() {
+    mode_ = ClientMenuMode::DocsFromPause;
     sync_menu_state();
 }
 

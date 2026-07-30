@@ -11,6 +11,7 @@ enum class ClientMenuMode {
     SettingsFromMainMenu,
     SettingsFromPause,
     Character,
+    DocsFromPause,
 };
 
 // ============================================================================
@@ -52,6 +53,7 @@ public:
     void open_settings();
     void back_from_settings();
     void open_character();
+    void open_docs();
     void back_to_pause();
 
     /// Compatibility wrappers for existing call sites.

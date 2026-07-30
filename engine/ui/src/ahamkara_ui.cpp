@@ -6,6 +6,7 @@
 #include "imgui_impl_opengl3.h"
 
 #include <GLFW/glfw3.h>
+#include <cctype>
 #include <cstdio>
 #include <cmath>
 #include <algorithm>
@@ -771,7 +772,7 @@ bool render_pause_overlay(MenuState& state, bool* quit_to_menu) {
     ImGui::PopStyleColor();
 
     // Center the menu panel
-    float panel_w = 340.0F, panel_h = 300.0F;
+    float panel_w = 340.0F, panel_h = 360.0F;
     ImGui::SetCursorPos(ImVec2((io.DisplaySize.x - panel_w) * 0.5F,
                                 (io.DisplaySize.y - panel_h) * 0.5F));
 
@@ -820,6 +821,12 @@ bool render_pause_overlay(MenuState& state, bool* quit_to_menu) {
 
     ImGui::Spacing();
     ImGui::SetCursorPosX(cx);
+    if (MenuButton("DOCUMENTATION", ImVec2(btn_w, 38.0F))) {
+        state.screen = MenuScreen::Docs;
+    }
+
+    ImGui::Spacing();
+    ImGui::SetCursorPosX(cx);
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(kDanger.x, kDanger.y, kDanger.z, 0.15F));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(kDanger.x, kDanger.y, kDanger.z, 0.35F));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(kDanger.x, kDanger.y, kDanger.z, 0.45F));
@@ -833,6 +840,224 @@ bool render_pause_overlay(MenuState& state, bool* quit_to_menu) {
 
     ImGui::EndChild();
     ImGui::PopStyleColor();
+    ImGui::End();
+    return true;
+}
+
+// =============================================================================
+// Syntax-highlighted code block
+// =============================================================================
+
+static void CodeBlock(const char* label, const char* code) {
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Text, kTextDim);
+    ImGui::SetWindowFontScale(0.8F);
+    ImGui::TextUnformatted(label);
+    ImGui::SetWindowFontScale(1.0F);
+    ImGui::PopStyleColor();
+
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03F, 0.04F, 0.08F, 1.00F));
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 4.0F);
+    ImGui::BeginChild(("##code_" + std::string(label)).c_str(),
+                      ImVec2(0, 0), ImGuiChildFlags_Border, ImGuiWindowFlags_HorizontalScrollbar);
+
+    // Lightweight syntax highlighting — color keywords, strings, comments, numbers
+    const char* p = code;
+    while (*p) {
+        // Whitespace — emit as-is via SameLine trick
+        if (*p == ' ' || *p == '\n' || *p == '\t') { ImGui::TextUnformatted(" "); ++p; ImGui::SameLine(0,0); continue; }
+        if (*p == '\r') { ++p; continue; }
+
+        if (p[0] == '/' && p[1] == '/') { // line comment
+            const char* e = p; while (*e && *e != '\n') ++e;
+            ImGui::TextColored(ImVec4(0.3F,0.7F,0.3F,1), "%.*s", (int)(e-p), p); p = e; continue;
+        }
+        if (*p == '"') { // string
+            const char* e = ++p; while (*e && *e != '"') { if (*e=='\\') ++e; ++e; }
+            ImGui::TextColored(ImVec4(0.6F,0.8F,0.2F,1), "\"%.*s\"", (int)(e-p), p); p = *e ? e+1 : e;
+            ImGui::SameLine(0,0); continue;
+        }
+        if (std::isalpha(*p) || *p == '_') { // identifier / keyword
+            const char* e = p; while (std::isalnum(*e) || *e == '_') ++e;
+            std::string w(p, e-p);
+            bool kw = false;
+            for (auto* k : {"const","int","void","bool","float","double","char","auto",
+                "class","struct","if","else","for","while","return","static","virtual",
+                "override","public","private","namespace","using","template","typename",
+                "true","false","nullptr","new","delete","this","enum","switch","case",
+                "break","continue","default","constexpr","noexcept","inline","sizeof",
+                "typedef","unsigned","uint32_t","int32_t","size_t","std","nullptr_t"})
+                if (w == k) { kw = true; break; }
+            ImGui::TextColored(kw ? ImVec4(0.8F,0.4F,0.6F,1) : ImVec4(1,1,1,1), "%s", w.c_str());
+            p = e; ImGui::SameLine(0,0); continue;
+        }
+        if (std::isdigit(*p) || (*p=='-' && std::isdigit(p[1]))) {
+            const char* e = p; if (*e=='-') ++e;
+            while (std::isalnum(*e) || *e=='.' || *e=='x' || *e=='X') ++e;
+            ImGui::TextColored(ImVec4(0.4F,0.7F,1,1), "%.*s", (int)(e-p), p); p = e; ImGui::SameLine(0,0); continue;
+        }
+        // Operators and punctuation
+        ImGui::TextColored(ImVec4(0.7F,0.7F,0.8F,1), "%c", *p++);
+        ImGui::SameLine(0,0);
+    }
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+}
+
+// =============================================================================
+// Documentation Viewer
+// =============================================================================
+
+static const char* kArchitectureText =
+    "Layered modular architecture: Platform (GLFW/OpenGL) -> Engine (core, "
+    "network, render, audio, UI) -> Runtime (frame pipeline, session) -> "
+    "Game (entities, gameplay). Dependency direction is strictly downward. "
+    "No circular dependencies. UDP networking with reliable channels, "
+    "interpolation buffer, and jitter buffer.";
+
+static const char* kArchitectureCode = "ae::NetAddress addr;\n"
+    "addr.ip = \"192.168.1.100\"; addr.port = 7777;\n"
+    "Session session;\n"
+    "session.start(addr, Mode::Client);\n"
+    "session.send(Channel::Reliable, data, size);\n";
+
+static const char* kApiText =
+    "ae::core: log_info(), now_seconds(), trim(), CLI utils.\n"
+    "ae::network: Session, Channel::Reliable/Unreliable, ServerSnapshot.\n"
+    "ae::render: DebugRenderer, PbrRenderer, DebugScene.\n"
+    "ae::ui: MenuSystem with JSON screens, actions, widgets.\n"
+    "ahamkara::game: WeaponRegistry, PlayerState, GameplayTypes.";
+
+static const char* kApiCode = "class MyListener : public SessionListener {\n"
+    "  void on_connected(const NetAddress& p) override {\n"
+    "    log_info(\"Connected \" + p.ip);\n"
+    "  }\n"
+    "  void on_snapshot(const ServerSnapshot& s) override {\n"
+    "    pos_ = s.player_state.position;\n"
+    "  }\n"
+    "};\n"
+    "Session session;\n"
+    "session.set_listener(&listener);\n"
+    "session.start(addr, Mode::Server);\n";
+
+static const char* kDeployText =
+    "Local: cmake --preset debug && cmake --build --preset debug\n"
+    "Headless: cmake --preset debug-headless && cmake --build ... && ctest\n"
+    "Server: cmake --preset release && cmake --build ... --target ahamkara_server\n"
+    "Docker: docker compose build && docker compose up -d\n"
+    "Config: client/config/*.cfg, assets/compiled/levels/\n"
+    "Verify: ctest passes, server accepts UDP, client renders frames.";
+
+static const char* kDeployCode = "cmake -S . -B build/ci -G Ninja \\\n"
+    "  -DCMAKE_BUILD_TYPE=Debug \\\n"
+    "  -DAHAMKARA_BUILD_CLIENT=ON \\\n"
+    "  -DAHAMKARA_BUILD_SERVER=ON\n"
+    "cmake --build build/ci --parallel $(nproc)\n"
+    "ctest --test-dir build/ci --output-on-failure\n";
+
+bool render_docs_viewer(MenuState& state) {
+    ImGuiIO& io = ImGui::GetIO();
+    float win_w = 900.0F, win_h = 600.0F;
+    float sidebar_w = 200.0F;
+
+    ImGui::SetNextWindowPos(ImVec2((io.DisplaySize.x - win_w) * 0.5F,
+                                    (io.DisplaySize.y - win_h) * 0.5F));
+    ImGui::SetNextWindowSize(ImVec2(win_w, win_h));
+
+    if (!ImGui::Begin("Documentation", nullptr,
+        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
+        ImGuiWindowFlags_NoScrollbar)) {
+        ImGui::End();
+        return false;
+    }
+
+    // Header with back button
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.15F, 0.18F, 0.28F, 0.60F));
+    if (ImGui::Button("<  Back", ImVec2(100, 28))) {
+        state.screen = MenuScreen::PauseOverlay;
+        ImGui::PopStyleColor(2);
+        ImGui::End();
+        return false;
+    }
+    ImGui::PopStyleColor(2);
+
+    ImGui::SameLine(win_w - 140.0F);
+    ImGui::PushStyleColor(ImGuiCol_Text, kAccent);
+    ImGui::SetWindowFontScale(1.2F);
+    ImGui::TextUnformatted("TECHNICAL DOCS");
+    ImGui::SetWindowFontScale(1.0F);
+    ImGui::PopStyleColor();
+
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Persistent section selection
+    static int selected_section = 0;
+    const char* sections[] = {"Architecture", "API Reference", "Deployment Guide"};
+    const char* section_icons[] = {"  [A]  ", "  [#]  ", "  [>]  "};
+
+    // Sidebar
+    ImGui::BeginChild("DocSidebar", ImVec2(sidebar_w, 0), ImGuiChildFlags_Border);
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 2));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0F);
+
+    for (int i = 0; i < 3; ++i) {
+        bool sel = (selected_section == i);
+        if (sel) {
+            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(kAccent.x, kAccent.y, kAccent.z, 0.25F));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(kAccent.x, kAccent.y, kAccent.z, 0.35F));
+            ImGui::PushStyleColor(ImGuiCol_Text, kAccent);
+        } else {
+            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0,0,0,0));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.12F, 0.15F, 0.22F, 0.40F));
+            ImGui::PushStyleColor(ImGuiCol_Text, kTextDim);
+        }
+        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.1F, 0.5F));
+        char label[64];
+        snprintf(label, sizeof(label), "%s %s", section_icons[i], sections[i]);
+        if (ImGui::Button(label, ImVec2(sidebar_w - 16, 44))) selected_section = i;
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor(3);
+    }
+
+    ImGui::PopStyleVar(2);
+    ImGui::EndChild();
+
+    ImGui::SameLine();
+
+    // Content area — scrollable
+    ImGui::BeginChild("DocContent", ImVec2(0, 0), ImGuiChildFlags_None);
+
+    switch (selected_section) {
+    case 0: // Architecture
+        SectionHeader("Architecture Overview");
+        ImGui::PushStyleColor(ImGuiCol_Text, kTextDim);
+        ImGui::TextWrapped("%s", kArchitectureText);
+        ImGui::PopStyleColor();
+        CodeBlock("  Network session example:", kArchitectureCode);
+        break;
+
+    case 1: // API Reference
+        SectionHeader("API Reference");
+        ImGui::PushStyleColor(ImGuiCol_Text, kTextDim);
+        ImGui::TextWrapped("%s", kApiText);
+        ImGui::PopStyleColor();
+        CodeBlock("  Session listener example:", kApiCode);
+        break;
+
+    case 2: // Deployment Guide
+        SectionHeader("Deployment Guide");
+        ImGui::PushStyleColor(ImGuiCol_Text, kTextDim);
+        ImGui::TextWrapped("%s", kDeployText);
+        ImGui::PopStyleColor();
+        CodeBlock("  CI build script:", kDeployCode);
+        break;
+    }
+
+    ImGui::EndChild();
     ImGui::End();
     return true;
 }
