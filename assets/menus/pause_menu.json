@@ -6,7 +6,7 @@
             "type": "panel",
             "x": 0.5, "y": 0.45,
             "anchor": "center",
-            "width": 360, "height": 340,
+            "width": 360, "height": 400,
             "rounding": 8,
             "color": "panel",
             "elements": [
@@ -44,6 +44,14 @@
                     "x": 0.5, "y": 186,
                     "anchor": "top_center"
                 },
+                {
+                    "type": "button",
+                    "label": "DOCUMENTATION",
+                    "style": "secondary",
+                    "action": "push_screen:docs_viewer",
+                    "x": 0.5, "y": 244,
+                    "anchor": "top_center"
+                },
                 { "type": "spacer", "height": 10 },
                 { "type": "separator" },
                 {
@@ -51,7 +59,7 @@
                     "label": "QUIT TO MENU",
                     "style": "danger",
                     "action": "pop_to_root",
-                    "x": 0.5, "y": 270,
+                    "x": 0.5, "y": 320,
                     "anchor": "top_center"
                 }
             ]
