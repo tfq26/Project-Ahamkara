@@ -463,15 +463,15 @@ void test_frame_allocator_peak_usage() {
     alloc.end_frame();
 
     // Use 200 in slot 1
-    alloc.allocate(200);
+    static_cast<void>(alloc.allocate(200));
     assert(alloc.peak_used() >= 200);
 
     alloc.end_frame();  // slot 0, 0 used
-    alloc.allocate(150);
+    static_cast<void>(alloc.allocate(150));
     assert(alloc.peak_used() >= 200);
 
     alloc.end_frame();  // slot 1 again
-    alloc.allocate(100);
+    static_cast<void>(alloc.allocate(100));
     assert(alloc.peak_used() >= 200);
 
     alloc.reset_all();
@@ -485,18 +485,18 @@ void test_frame_allocator_slot_rotation() {
     alloc.end_frame();  // slot 1
 
     // Slot 1: fill 40 bytes
-    alloc.allocate(40);
+    static_cast<void>(alloc.allocate(40));
     assert(alloc.current_slot() == 1);
     assert(alloc.used() == 40);
 
     alloc.end_frame();  // slot 2
     assert(alloc.used() == 0);  // fresh slot
 
-    alloc.allocate(60);
+    static_cast<void>(alloc.allocate(60));
     assert(alloc.used() == 60);
 
     alloc.end_frame();  // slot 0
-    alloc.allocate(80);
+    static_cast<void>(alloc.allocate(80));
     assert(alloc.used() == 80);
 
     // Rotate back: slot 1 should be reset
@@ -516,12 +516,12 @@ void test_frame_allocator_slot_capacity() {
     assert(alloc.capacity() == 192);
 
     // Fill the slot
-    alloc.allocate(64);
+    static_cast<void>(alloc.allocate(64));
     assert(alloc.allocate(1) == nullptr);  // OOM in this slot
 
     // Switching slots should give us fresh capacity
     alloc.end_frame();
-    alloc.allocate(64);
+    static_cast<void>(alloc.allocate(64));
     assert(alloc.used() == 64);
 
     std::cout << "test_frame_allocator_slot_capacity passed.\n";

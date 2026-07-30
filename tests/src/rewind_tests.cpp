@@ -264,7 +264,7 @@ static void test_non_mutating_query() {
 
     // Capture the state of tick 15 before any read.
     ahamkara::game::HistoricalState before {};
-    scene.history.get(15, before);
+    static_cast<void>(scene.history.get(15, before));
 
     ahamkara::game::RewindValidation rv(scene.history);
 
@@ -273,12 +273,12 @@ static void test_non_mutating_query() {
 
     // Run multiple queries.
     for (int i = 0; i < 5; ++i) {
-        rv.validate_hit(15, origin, forward, 25.0F, 2.0F);
+        static_cast<void>(rv.validate_hit(15, origin, forward, 25.0F, 2.0F));
     }
 
     // Verify history is unchanged.
     ahamkara::game::HistoricalState after {};
-    scene.history.get(15, after);
+    static_cast<void>(scene.history.get(15, after));
 
     assert(before.tick == after.tick);
     assert(close(before.dummy_positions[0].x, after.dummy_positions[0].x));
