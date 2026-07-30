@@ -1,224 +1,238 @@
 # Ahamkara
 
-A custom C++20 game engine and multiplayer tech demo built from scratch.
+A custom C++20 game engine and multiplayer FPS tech demo (Flashback) built from scratch. Three products in one transitional monorepo:
 
-## Current Milestone
+| Product | Description |
+|---|---|
+| **Ahamkara** | Reusable engine: ECS, networking, physics, rendering, animation, audio, UI, input, platform |
+| **Flashback** | Multiplayer FPS game consuming Ahamkara and Wish (deathmatch, AI combatants, weapons, levels) |
+| **Wish** | Backend/session/activity/replication platform with a game-neutral protocol |
 
-Dedicated authoritative server and client networking skeleton. The client sends
-`PlayerInputCommand` packets over UDP at ~60 Hz; the server simulates movement
-and replies with `ServerSnapshot` packets. A native window + input layer
-(GLFW3) and a tiny client-only debug renderer are available so movement can be
-visually checked in a 3D grid scene. Audio, editor tooling, and fuller renderer
-systems are kept out until the networking and platform foundations are validated.
+The goal is to split into three independent repositories. See [Repository split](docs/architecture/repository-split.md).
+
+## Tech Stack
+
+- **Language**: C++20 (`CMAKE_CXX_EXTENSIONS OFF`)
+- **Build**: CMake ≥ 3.20, Ninja
+- **Compilers**: GCC 11+, Clang 14+, Apple Clang 14+
+- **Rendering**: OpenGL, GLFW 3.3+
+- **Physics**: Jolt Physics v5.0.0
+- **ECS**: EnTT v3.13.0
+- **Math**: GLM 1.0.1
+- **Audio**: miniaudio
+- **Scripting** (optional, Wish admin): Lua + sol2 v3.3.0
+- **Testing**: Google Test / Google Mock
+- **Lint/Format**: clang-format, clang-tidy, ruff (Python), shellcheck, actionlint, cmake-lint
 
 ## Repository Layout
 
 ```
-ahamkara/
-├── CMakeLists.txt          # Top-level CMake project
-├── CMakePresets.json       # Build presets (debug / release)
-├── .editorconfig           # Editor settings
-├── assets/                 # Game assets (future)
-├── backend/                # Platform backends (future)
-├── build/                  # Generated build trees (git-ignored)
-├── client/                 # Playable client executable
-│   └── src/client_main.cpp
-├── docs/                   # Guides, system docs, roadmaps, reports, vault
-│   ├── README.md
-│   ├── guides/
-│   ├── systems/
-│   ├── roadmap/
-│   ├── reports/
-│   └── vault/
-├── editor/                 # Editor tooling (future)
-├── engine/                 # Engine libraries (core, network, platform, render, runtime)
-├── game/                   # Game-facing types & logic
-├── scripts/                # Developer convenience scripts
-├── server/                 # Headless dedicated server
-│   └── src/dedicated_server_main.cpp
-├── tests/                  # Test targets
-└── tools/                  # Misc tooling
+├── CMakeLists.txt              # Top-level CMake project (v0.1.0)
+├── CMakePresets.json           # Build presets (debug / debug-headless / release)
+├── engine/                     # Reusable engine libraries (→ Ahamkara repo)
+│   ├── core/                   #   ae_core: logging, config, time, math, jobs, ECS types
+│   ├── network/                #   ae_network: UDP transport, reliable channel, interpolation
+│   ├── physics/                #   ae_physics: Jolt Physics integration
+│   ├── render/                 #   ae_render: OpenGL renderer, debug renderer, SSAO, LOD, IBL
+│   ├── animation/              #   ae_animation: skeletal animation, IK, clip player
+│   ├── audio/                  #   ae_audio: 3D spatialization (miniaudio)
+│   ├── ui/                     #   ae_ui: Dear ImGui debug UI
+│   ├── input/                  #   ae_input: keyboard, mouse, gamepad routing
+│   ├── platform/               #   ae_platform: GLFW window / OS integration
+│   ├── runtime/                #   ae_runtime: application lifecycle, frame pacing
+│   ├── collision/              #   ae_collision: spatial queries, AABB, ray casting
+│   └── skeleton/               #   ae_skeleton: pose evaluation, skinning, clip data
+├── game/                       # Gameplay layer (→ Flashback repo)
+├── client/                     # Client application (GLFW + OpenGL)
+├── server/                     # Dedicated authoritative server (UDP)
+├── wish/                       # Backend platform (→ Wish repo)
+├── tests/                      # ~46 CTest targets
+├── samples/flashback/          # Thin Flashback launcher
+├── tools/                      # Asset importer, diagnostics, controller mapper, lint
+├── assets/                     # Models, textures, materials, levels, sounds
+├── scripts/                    # Developer convenience scripts (20+)
+├── docs/                       # Architecture, guides, systems, wish, reports, vault
+├── client/config/              # Client configuration files
+├── .clang-format               # C++ formatting (LLVM-based, 4-space indent)
+├── .clang-tidy                 # Static analysis checks
+├── ruff.toml                   # Python lint config
+└── .editorconfig               # Editor settings (LF, UTF-8, spaces)
 ```
 
 ## Quick Start
 
 ### Prerequisites
 
-- **CMake ≥ 3.20**
-- **Ninja** (build tool)
-- **C++20 compiler** (GCC 11+, Clang 14+, or Apple Clang 14+)
-- **GLFW 3.3+** (`libglfw3-dev` on Ubuntu, `glfw` via Homebrew on macOS)
+Install build dependencies:
 
-See [`docs/guides/building.md`](docs/guides/building.md) for per-OS install instructions.
+**Ubuntu (22.04+)**
+```sh
+sudo apt update && sudo apt install -y cmake ninja-build g++-12 libglfw3-dev libgl1-mesa-dev
+```
 
-### Build & Run
+**macOS**
+```sh
+brew install cmake ninja glfw && xcode-select --install
+```
+
+### One-command launch
 
 ```sh
-# One-command local debug view
+# Configure, build, and run local debug view
 ./scripts/start.sh
 
-# Or launch the local UDP server+client pair together
+# Or launch dedicated server + client pair
 ./scripts/start.sh network
 ```
 
-The debug view opens a 1280×720 window with a ground grid, origin axes, and a
-local player marker. Keyboard and controller input are both supported. Current
-controller mapping uses left stick to move, right stick to look, `LB` to
-sprint, `A` to jump, `B` to crouch, `X` to slide, `Back` to toggle metrics,
-and `Start` to exit.
+The debug view opens a 1280×720 window with a ground grid, XYZ axes, and a local player marker. Keyboard and controller input are both supported.
 
-The network client connects to the local server over UDP. Both processes
-print tick and position diagnostics to stdout.
-
-For server-only local run and Docker notes, see
-[`docs/wish/local_run.md`](docs/wish/local_run.md).
-
-### Universal Start Script
-
-Use the universal launcher if you want one entrypoint for configure/build/run:
+### Manual build
 
 ```sh
-./scripts/start.sh
-./scripts/start.sh local
-./scripts/start.sh network
-./scripts/start.sh sandbox --skip-configure --skip-build
-```
-
-### Local Sandbox
-
-If you want a local, no-network movement sandbox right now:
-
-```sh
-./scripts/run_sandbox.sh
-```
-
-Then use commands like:
-
-```sh
-step 60 w sprint
-step 30 a
-status
-quit
-```
-
-## Development Workflows
-
-### Local Zed Workflow
-
-Use local Zed development when you want the tightest edit loop on a single
-task.
-
-```sh
-./scripts/setup-dev.sh
+cmake --preset debug
 cmake --build --preset debug
-./scripts/run-tests.sh
+ctest --test-dir build/debug --output-on-failure
 ```
 
-For the common full-client debug path:
+See [Building from source](docs/guides/building.md) for per-OS details and troubleshooting.
+
+## Setup Instructions
+
+### Client (Frontend)
+
+The client is a GLFW/OpenGL application with debug rendering, input handling, and menu system.
 
 ```sh
-./scripts/start.sh
+# Configure and build the debug preset (includes client)
+cmake --preset debug
+cmake --build --preset debug
+
+# Run the client debug view
+./scripts/run_client.sh --debug-view
+
+# Or connect a client to a running server
+./scripts/run_client.sh                # localhost
+./scripts/run_client.sh 192.168.6.28   # remote server
 ```
 
-### Coder Remote Workspace Workflow
+Keyboard controls: `W/A/S/D` move, `Shift` sprint, `Space` jump, `C` slide, `Ctrl` crouch, `F3` metrics, `Esc` exit.
 
-Use Coder workspaces on `servlenovo1` when you want builds, tests, indexing,
-and agent execution to happen off your laptop.
+### Server (Backend)
 
-1. Create a workspace in <https://dev.2helix.org>.
-2. Install the native build dependencies in the workspace image:
-   `git`, `cmake`, `ninja-build`, `g++`, `libglfw3-dev`, `libgl1-mesa-dev`,
-   `pkg-config`, and optionally `ccache`.
-3. Clone the repo and create an isolated task branch:
+The dedicated server runs headlessly over UDP at ~60 Hz tick rate. It handles session management, authentication, activity routing, and snapshot broadcast.
 
 ```sh
-git clone <repo-url> ~/src/Ahamkara
-cd ~/src/Ahamkara
-git fetch origin
-git checkout -b agent/codex/my-task origin/main
-./scripts/setup-dev.sh
-./scripts/run-tests.sh
+# Configure and build the headless preset (no GLFW/OpenGL dependency)
+cmake --preset debug-headless
+cmake --build --preset debug-headless
+
+# Run the dedicated server
+./scripts/run_server.sh
 ```
 
-For non-UI tasks in lighter remote workspaces, the headless preset avoids the
-GLFW/OpenGL client build:
+Server listens on UDP port `7777`. Configuration via environment variables (`WISH_SERVER_PORT`, `WISH_SERVER_ADMIN_PORT`, `WISH_SERVER_TICK_RATE`, `WISH_SERVER_MAX_PLAYERS`, `WISH_SERVER_MATCH_DURATION_SEC`). See [.env.example](.env.example) and [Wish local run](docs/wish/local_run.md).
+
+### Full Stack (Server + Client)
+
+```sh
+# Build both
+cmake --preset debug
+cmake --build --preset debug
+
+# Terminal 1: start server
+./scripts/run_server.sh
+
+# Terminal 2: start client
+./scripts/run_client.sh
+```
+
+Or use the universal launcher:
+
+```sh
+./scripts/start.sh network
+```
+
+### Headless (Remote / Test-Only)
+
+For remote workspaces or CI without a display:
 
 ```sh
 ./scripts/setup-dev.sh --preset debug-headless
-./scripts/run-tests.sh --preset debug-headless
+cmake --build --preset debug-headless
+ctest --test-dir build/debug-headless --output-on-failure
 ```
 
-### Multi-Agent Workflow
-
-Recommended model:
-
-- one agent = one workspace = one branch
-- one active writer per branch
-- Git is the source of truth
-- review diffs before merging manually
-
-Recommended branch naming:
-
-- `agent/<agent-name>/<task-name>`
-- `feature/<feature-name>`
-- `fix/<bug-name>`
-
-Warning: multiple agents should not work on the same branch at the same time.
-
-For larger features, let a parent agent own the workspace and integration
-branch, and let subagents work in separate branches or worktrees. Example:
+### Docker
 
 ```sh
-git fetch origin
-git worktree add ../ahamkara-subagent-ui -b agent/deepseek/ui-pass origin/main
-git worktree add ../ahamkara-subagent-tests -b agent/antigravity/test-pass origin/main
+# Build headless server image
+docker build -t ahamkara-server .
+
+# Run the server container
+docker run -p 7777:7777/udp ahamkara-server
 ```
 
-The parent agent should review and integrate subagent changes, then rerun the
-build and tests before commit.
+## Contribution Guidelines
 
-### Safe Agent Rules
+### Branching Strategy
 
-- do not commit secrets
-- do not modify infrastructure files unless asked
-- do not run destructive commands
-- do not auto-merge to `main`
-- do not rewrite history
-- always summarize changed files and commands run
+- `main` — stable, production-ready
+- `develop` — integration branch
+- `feature/<name>` — new features
+- `fix/<name>` — bug fixes
+- `agent/<agent-name>/<task-name>` — agent work branches
 
-### Sync, Diff, Commit, Push
+One agent/writer per branch. Do not share branches across writers.
 
-Safe sync for a clean workspace:
+### Pull Request Process
 
-```sh
-./scripts/sync-main.sh
-```
+1. Create a branch from `develop` (or `main` for hotfixes).
+2. Implement your change with tests.
+3. Run the full validation gate:
+   ```sh
+   cmake --preset debug
+   ./scripts/lint.sh --base-ref origin/main --compile-db build/debug
+   ./scripts/lint.sh --base-ref origin/main --compile-db build/debug --fix
+   cmake --preset debug-headless && cmake --build --preset debug-headless && ctest --test-dir build/debug-headless --output-on-failure
+   ```
+4. Open a pull request targeting `develop`.
+5. Ensure CI passes (lint, build matrix, tests, package).
+6. Request review. Do not self-merge without approval.
+7. Once approved, merge via rebase or squash.
 
-Inspect diffs:
+### Code Style
 
-```sh
-git status
-git diff
-git diff --stat origin/main...HEAD
-```
+- **C++**: Follow [coding rules](docs/coding-rules.md). Use C++20, `ae` namespace for engine code. Match adjacent code style. Public headers in `include/`, implementation in `src/`. Express dependencies in CMake target, not root include paths.
+- **Formatting**: clang-format (LLVM-based, 4-space indent) — run `./scripts/lint.sh --base-ref origin/main --compile-db build/debug --fix` before committing.
+- **Linting**: clang-tidy, ruff (Python), shellcheck, cmake-lint — all checked via `./scripts/lint.sh`.
+- **Shell scripts**: Fail-fast, resolve paths relative to script or repo root.
+- **Python**: Follow ruff.toml config (Py311 target).
 
-Commit and push:
+### Testing
 
-```sh
-git add <files>
-git commit -m "Describe the change"
-git push -u origin HEAD
-```
+- Every code change requires a test or an explicit explanation of why it cannot be automated.
+- Place regression tests at the narrowest boundary that proves the defect.
+- See [Testing and quality](docs/testing-quality.md) for the full test ownership table and CI contract.
+- Run tests with: `ctest --test-dir build/debug --output-on-failure`
 
-See [`docs/guides/remote-agent-workflow.md`](docs/guides/remote-agent-workflow.md) for the
-full remote-agent playbook.
+### Commit Messages
+
+Follow existing conventions:
+- Keep the first line under 72 characters.
+- Use present-tense imperative ("Add feature", "Fix crash", not "Added" or "Fixed").
+- Reference issue numbers when applicable.
 
 ## Documentation
 
 - [Docs index](docs/README.md)
 - [Architecture overview](docs/systems/architecture.md)
+- [Repository split plan](docs/architecture/repository-split.md)
 - [Networking model](docs/systems/networking.md)
 - [Building from source](docs/guides/building.md)
-- [Client config](docs/systems/client_config.md)
+- [Testing and quality](docs/testing-quality.md)
+- [Coding rules](docs/coding-rules.md)
 - [Asset pipeline](docs/systems/asset_pipeline.md)
 - [Remote agent workflow](docs/guides/remote-agent-workflow.md)
+- [Changelog](CHANGELOG.md)
+- [Glossary](docs/glossary.md)
