@@ -1,0 +1,207 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" font-family="'Segoe UI', system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8f9fa"/>
+      <stop offset="100%" stop-color="#e9ecef"/>
+    </linearGradient>
+    <linearGradient id="frontend" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a90d9"/>
+      <stop offset="100%" stop-color="#357abd"/>
+    </linearGradient>
+    <linearGradient id="backend" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e67e22"/>
+      <stop offset="100%" stop-color="#d35400"/>
+    </linearGradient>
+    <linearGradient id="wish" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#27ae60"/>
+      <stop offset="100%" stop-color="#1e8449"/>
+    </linearGradient>
+    <linearGradient id="protocol" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8e44ad"/>
+      <stop offset="100%" stop-color="#6c3483"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#666"/>
+    </marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a90d9"/>
+    </marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#e67e22"/>
+    </marker>
+    <filter id="shadow" x="-5%" y="-5%" width="115%" height="115%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <rect width="900" height="620" fill="url(#bg)" rx="8"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a2e">Ahamkara — Client–Server Architecture</text>
+
+  <!-- Client section -->
+  <rect x="40" y="55" width="380" height="340" rx="10" fill="none" stroke="#4a90d9" stroke-width="2" stroke-dasharray="6,3" opacity="0.5"/>
+  <text x="230" y="75" text-anchor="middle" font-size="13" font-weight="600" fill="#4a90d9">FRONTEND — Game Client</text>
+
+  <!-- Client subsystems -->
+  <rect x="60" y="90" width="160" height="70" rx="6" fill="url(#frontend)" filter="url(#shadow)"/>
+  <text x="140" y="118" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">🚀 ae_application</text>
+  <text x="140" y="135" text-anchor="middle" font-size="9" fill="#e0e8f0">Application lifecycle</text>
+  <text x="140" y="148" text-anchor="middle" font-size="9" fill="#e0e8f0">Host + module binding</text>
+
+  <rect x="240" y="90" width="160" height="70" rx="6" fill="url(#frontend)" filter="url(#shadow)"/>
+  <text x="320" y="118" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">🎮 client_frame_pipeline</text>
+  <text x="320" y="135" text-anchor="middle" font-size="9" fill="#e0e8f0">Frame orchestration</text>
+  <text x="320" y="148" text-anchor="middle" font-size="9" fill="#e0e8f0">Input → Sim → Render</text>
+
+  <!-- Client engine modules -->
+  <rect x="60" y="175" width="100" height="55" rx="5" fill="#2c3e50" filter="url(#shadow)"/>
+  <text x="110" y="198" text-anchor="middle" font-size="9" font-weight="600" fill="#ecf0f1">ae_render</text>
+  <text x="110" y="212" text-anchor="middle" font-size="8" fill="#95a5a6">OpenGL / GLFW</text>
+
+  <rect x="170" y="175" width="100" height="55" rx="5" fill="#2c3e50" filter="url(#shadow)"/>
+  <text x="220" y="198" text-anchor="middle" font-size="9" font-weight="600" fill="#ecf0f1">ae_input</text>
+  <text x="220" y="212" text-anchor="middle" font-size="8" fill="#95a5a6">KB + Controller</text>
+
+  <rect x="280" y="175" width="100" height="55" rx="5" fill="#2c3e50" filter="url(#shadow)"/>
+  <text x="330" y="198" text-anchor="middle" font-size="9" font-weight="600" fill="#ecf0f1">ae_audio</text>
+  <text x="330" y="212" text-anchor="middle" font-size="8" fill="#95a5a6">Audio playback</text>
+
+  <rect x="60" y="240" width="100" height="55" rx="5" fill="#2c3e50" filter="url(#shadow)"/>
+  <text x="110" y="263" text-anchor="middle" font-size="9" font-weight="600" fill="#ecf0f1">ae_animation</text>
+  <text x="110" y="277" text-anchor="middle" font-size="8" fill="#95a5a6">Graphs / IK</text>
+
+  <rect x="170" y="240" width="100" height="55" rx="5" fill="#2c3e50" filter="url(#shadow)"/>
+  <text x="220" y="263" text-anchor="middle" font-size="9" font-weight="600" fill="#ecf0f1">ae_ui</text>
+  <text x="220" y="277" text-anchor="middle" font-size="8" fill="#95a5a6">HUD / Menus</text>
+
+  <rect x="280" y="240" width="100" height="55" rx="5" fill="#2c3e50" filter="url(#shadow)"/>
+  <text x="330" y="263" text-anchor="middle" font-size="9" font-weight="600" fill="#ecf0f1">ae_platform</text>
+  <text x="330" y="277" text-anchor="middle" font-size="8" fill="#95a5a6">Window / Device</text>
+
+  <rect x="60" y="305" width="160" height="40" rx="5" fill="#34495e" filter="url(#shadow)"/>
+  <text x="140" y="330" text-anchor="middle" font-size="9" font-weight="600" fill="#ecf0f1">ahamkara_game (Flashback)</text>
+
+  <rect x="240" y="305" width="160" height="40" rx="5" fill="#34495e" filter="url(#shadow)"/>
+  <text x="320" y="330" text-anchor="middle" font-size="9" font-weight="600" fill="#ecf0f1">ae_core + ae_runtime</text>
+
+  <!-- Connection from client modules to pipeline -->
+  <line x1="140" y1="230" x2="140" y2="240" stroke="#4a90d9" stroke-width="1" marker-end="url(#arrow-blue)"/>
+  <line x1="220" y1="230" x2="220" y2="240" stroke="#4a90d9" stroke-width="1" marker-end="url(#arrow-blue)"/>
+  <line x1="330" y1="230" x2="330" y2="240" stroke="#4a90d9" stroke-width="1" marker-end="url(#arrow-blue)"/>
+  <line x1="110" y1="295" x2="110" y2="305" stroke="#4a90d9" stroke-width="1" marker-end="url(#arrow-blue)"/>
+  <line x1="140" y1="305" x2="140" y2="305" stroke="#4a90d9" stroke-width="1"/>
+
+  <!-- Network protocol label -->
+  <rect x="170" y="400" width="200" height="35" rx="17" fill="url(#protocol)" filter="url(#shadow)"/>
+  <text x="270" y="423" text-anchor="middle" font-size="10" font-weight="600" fill="#fff">UDP — PlayerInputCommand / ServerSnapshot</text>
+
+  <!-- Arrow from client to protocol -->
+  <line x1="230" y1="395" x2="230" y2="400" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <!-- Arrow from protocol to server -->
+  <line x1="270" y1="435" x2="270" y2="445" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Server section -->
+  <rect x="40" y="450" width="380" height="160" rx="10" fill="none" stroke="#e67e22" stroke-width="2" stroke-dasharray="6,3" opacity="0.5"/>
+  <text x="230" y="470" text-anchor="middle" font-size="13" font-weight="600" fill="#e67e22">BACKEND — Dedicated Server</text>
+
+  <rect x="60" y="485" width="160" height="55" rx="6" fill="url(#backend)" filter="url(#shadow)"/>
+  <text x="140" y="510" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">🖥️ ahamkara_server</text>
+  <text x="140" y="527" text-anchor="middle" font-size="9" fill="#fdebd0">Tick loop + networking</text>
+
+  <rect x="240" y="485" width="160" height="55" rx="6" fill="url(#wish)" filter="url(#shadow)"/>
+  <text x="320" y="510" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">🔗 Wish Platform</text>
+  <text x="320" y="527" text-anchor="middle" font-size="9" fill="#d5f5e3">Sessions / Auth / Replication</text>
+
+  <!-- Server engine modules -->
+  <rect x="60" y="550" width="100" height="40" rx="4" fill="#34495e" filter="url(#shadow)"/>
+  <text x="110" y="575" text-anchor="middle" font-size="9" fill="#ecf0f1">ae_network</text>
+
+  <rect x="170" y="550" width="100" height="40" rx="4" fill="#34495e" filter="url(#shadow)"/>
+  <text x="220" y="575" text-anchor="middle" font-size="9" fill="#ecf0f1">ahamkara_game</text>
+
+  <rect x="280" y="550" width="100" height="40" rx="4" fill="#34495e" filter="url(#shadow)"/>
+  <text x="330" y="575" text-anchor="middle" font-size="9" fill="#ecf0f1">ae_core</text>
+
+  <!-- Right column - Deployment info -->
+  <rect x="460" y="55" width="400" height="555" rx="10" fill="none" stroke="#27ae60" stroke-width="2" stroke-dasharray="6,3" opacity="0.5"/>
+  <text x="660" y="75" text-anchor="middle" font-size="13" font-weight="600" fill="#27ae60">DEPLOYMENT MODEL</text>
+
+  <!-- Source -->
+  <rect x="490" y="95" width="340" height="45" rx="6" fill="#6c3483" filter="url(#shadow)"/>
+  <text x="660" y="117" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">📦 Source Repository (monorepo)</text>
+  <text x="660" y="132" text-anchor="middle" font-size="9" fill="#e8daef">C++20 · CMake · Ninja</text>
+
+  <line x1="660" y1="140" x2="660" y2="155" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- CMake build -->
+  <rect x="490" y="158" width="340" height="55" rx="6" fill="#2980b9" filter="url(#shadow)"/>
+  <text x="660" y="180" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">🔨 CMake Build Presets</text>
+  <text x="660" y="195" text-anchor="middle" font-size="9" fill="#d6eaf8">debug (GUI) · release · debug-headless · package</text>
+
+  <line x1="660" y1="213" x2="660" y2="228" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Artifacts -->
+  <rect x="490" y="231" width="340" height="65" rx="6" fill="#1abc9c" filter="url(#shadow)"/>
+  <text x="660" y="253" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">📁 Build Artifacts</text>
+  <text x="660" y="270" text-anchor="middle" font-size="9" fill="#d1f2eb">Native executables · Shared libraries</text>
+  <text x="660" y="285" text-anchor="middle" font-size="9" fill="#d1f2eb">CPack packages (TGZ / ZIP)</text>
+
+  <line x1="660" y1="296" x2="660" y2="311" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Split paths -->
+  <rect x="490" y="314" width="160" height="50" rx="6" fill="#e74c3c" filter="url(#shadow)"/>
+  <text x="570" y="336" text-anchor="middle" font-size="10" font-weight="600" fill="#fff">🐳 Docker (Server)</text>
+  <text x="570" y="350" text-anchor="middle" font-size="8" fill="#fadbd8">Containerized deployment</text>
+
+  <rect x="670" y="314" width="160" height="50" rx="6" fill="#3498db" filter="url(#shadow)"/>
+  <text x="750" y="336" text-anchor="middle" font-size="10" font-weight="600" fill="#fff">💻 Local Dev</text>
+  <text x="750" y="350" text-anchor="middle" font-size="8" fill="#d6eaf8">Debug client + server</text>
+
+  <line x1="660" y1="311" x2="570" y2="314" stroke="#666" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="660" y1="311" x2="750" y2="314" stroke="#666" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- CI pipeline -->
+  <rect x="490" y="380" width="340" height="45" rx="6" fill="#2c3e50" filter="url(#shadow)"/>
+  <text x="660" y="400" text-anchor="middle" font-size="11" font-weight="600" fill="#ecf0f1">⚙️ CI Pipeline (GitHub Actions)</text>
+  <text x="660" y="415" text-anchor="middle" font-size="9" fill="#95a5a6">Lint → Build → Test → Package → Auto-merge</text>
+
+  <line x1="660" y1="364" x2="660" y2="380" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Platform targets -->
+  <rect x="490" y="440" width="110" height="55" rx="5" fill="#7f8c8d" filter="url(#shadow)"/>
+  <text x="545" y="462" text-anchor="middle" font-size="9" font-weight="600" fill="#fff">Linux (self-hosted)</text>
+  <text x="545" y="478" text-anchor="middle" font-size="8" fill="#ecf0f1">GCC/Clang</text>
+
+  <rect x="610" y="440" width="110" height="55" rx="5" fill="#7f8c8d" filter="url(#shadow)"/>
+  <text x="665" y="462" text-anchor="middle" font-size="9" font-weight="600" fill="#fff">Windows (GH-hosted)</text>
+  <text x="665" y="478" text-anchor="middle" font-size="8" fill="#ecf0f1">MSVC + vcpkg</text>
+
+  <rect x="730" y="440" width="100" height="55" rx="5" fill="#7f8c8d" filter="url(#shadow)"/>
+  <text x="780" y="462" text-anchor="middle" font-size="9" font-weight="600" fill="#fff">macOS</text>
+  <text x="780" y="478" text-anchor="middle" font-size="8" fill="#ecf0f1">Apple Clang</text>
+
+  <line x1="660" y1="425" x2="545" y2="440" stroke="#666" stroke-width="1"/>
+  <line x1="660" y1="425" x2="665" y2="440" stroke="#666" stroke-width="1"/>
+  <line x1="660" y1="425" x2="780" y2="440" stroke="#666" stroke-width="1"/>
+
+  <!-- Target architecture note -->
+  <rect x="490" y="510" width="340" height="55" rx="6" fill="#f39c12" filter="url(#shadow)"/>
+  <text x="660" y="530" text-anchor="middle" font-size="10" font-weight="600" fill="#fff">🎯 Target: Three-Repository Split</text>
+  <text x="660" y="547" text-anchor="middle" font-size="9" fill="#fef9e7">Ahamkara Engine · Flashback Game · Wish Platform</text>
+
+  <line x1="660" y1="495" x2="660" y2="510" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <rect x="490" y="580" width="340" height="25" rx="4" fill="#f0f0f0" stroke="#ddd" stroke-width="1"/>
+  <rect x="500" y="586" width="10" height="10" rx="2" fill="#4a90d9"/>
+  <text x="514" y="596" font-size="8" fill="#666">Frontend</text>
+  <rect x="565" y="586" width="10" height="10" rx="2" fill="#e67e22"/>
+  <text x="579" y="596" font-size="8" fill="#666">Backend</text>
+  <rect x="630" y="586" width="10" height="10" rx="2" fill="#27ae60"/>
+  <text x="644" y="596" font-size="8" fill="#666">Wish</text>
+  <rect x="690" y="586" width="10" height="10" rx="2" fill="#8e44ad"/>
+  <text x="704" y="596" font-size="8" fill="#666">Protocol</text>
+  <rect x="755" y="586" width="10" height="10" rx="2" fill="#2c3e50"/>
+  <text x="769" y="596" font-size="8" fill="#666">Engine</text>
+</svg>
