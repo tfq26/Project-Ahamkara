@@ -13,8 +13,13 @@ logs/
 .kronn/tmp/
 .kronn/
 .worktrees/
+.worktree.json
+_agent_results/
+plan_artifact.md
 
 build-issue55/
 build-#55/
 build-engine-only/
 tests/out_of_tree_consumer/build/
+node_modules/
+backend/dist/
