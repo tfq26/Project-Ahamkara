@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ahamkara — Game Engine</title>
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f; --bg2: #12121a; --accent: #ff6b35; --accent2: #ffd700;
+      --text: #e8e8ed; --muted: #8888a0; --glow: 0 0 20px rgba(255,107,53,.4);
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font); background: var(--bg); color: var(--text);
+      line-height: 1.6; overflow-x: hidden;
+    }
+    /* ── Stars background ── */
+    #stars {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      overflow: hidden;
+    }
+    #stars span {
+      position: absolute; border-radius: 50%; background: #fff;
+      animation: twinkle var(--d, 3s) ease-in-out infinite alternate;
+    }
+    @keyframes twinkle { 0% { opacity: .2; } 100% { opacity: .8; } }
+
+    /* ── Shared ── */
+    .section { position: relative; z-index: 1; padding: 6rem 1.5rem; }
+    .section-inner { max-width: 1100px; margin: 0 auto; }
+    .badge {
+      display: inline-block; padding: .35rem 1rem; border-radius: 999px;
+      font-size: .75rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; border: 1px solid var(--accent);
+      color: var(--accent); margin-bottom: 1rem;
+    }
+    h2 {
+      font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800;
+      letter-spacing: -.02em; margin-bottom: 1rem;
+    }
+    h2 .hl { background: linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    p { color: var(--muted); max-width: 680px; font-size: 1.1rem; }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      position: relative; z-index: 1; padding: 2rem;
+    }
+    .hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(255,107,53,.15) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 100%, rgba(255,215,0,.08) 0%, transparent 50%);
+    }
+    .hero-logo { height: 120px; margin-bottom: 1.5rem; filter: drop-shadow(0 0 30px rgba(255,107,53,.4)); }
+    .hero h1 {
+      font-size: clamp(3rem, 8vw, 5.5rem); font-weight: 900;
+      letter-spacing: -.03em; line-height: 1.05;
+      background: linear-gradient(135deg,var(--text) 30%,var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero .sub {
+      font-size: clamp(1.05rem, 2vw, 1.3rem); color: var(--muted);
+      max-width: 600px; margin: 1.2rem auto 2rem;
+    }
+    .btn {
+      display: inline-block; padding: .85rem 2.5rem; border-radius: 999px;
+      font-weight: 700; font-size: .95rem; text-decoration: none;
+      text-transform: uppercase; letter-spacing: .08em;
+      background: linear-gradient(135deg,var(--accent),#e85a20);
+      color: #fff; transition: transform .2s, box-shadow .2s;
+      box-shadow: var(--glow);
+    }
+    .btn:hover { transform: scale(1.05); box-shadow: 0 0 35px rgba(255,107,53,.6); }
+    .hero .scroll-hint {
+      position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: .4rem;
+      color: var(--muted); font-size: .75rem; letter-spacing: .1em;
+      animation: bounce 2s ease-in-out infinite;
+    }
+    .scroll-hint .arrow { width: 20px; height: 20px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); }
+    @keyframes bounce { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(6px); } }
+
+    /* ── Cards ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 2.5rem; }
+    .card {
+      background: linear-gradient(145deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+      border: 1px solid rgba(255,255,255,.06); border-radius: 1rem;
+      padding: 2rem; backdrop-filter: blur(8px);
+      transition: transform .25s, border-color .25s, box-shadow .25s;
+    }
+    .card:hover { transform: translateY(-4px); border-color: rgba(255,107,53,.3); box-shadow: 0 8px 30px rgba(0,0,0,.4); }
+    .card-icon { font-size: 2rem; margin-bottom: .75rem; display: block; }
+    .card h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: .5rem; }
+    .card p { font-size: .95rem; line-height: 1.65; }
+
+    /* ── Inspiration ── */
+    .inspire-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-top: 2.5rem; }
+    .inspire-item {
+      text-align: center; padding: 2rem 1.5rem;
+      border-radius: 1rem; border: 1px solid rgba(255,255,255,.04);
+      background: rgba(255,255,255,.02); transition: background .25s;
+    }
+    .inspire-item:hover { background: rgba(255,107,53,.06); }
+    .inspire-item .icon { font-size: 2.5rem; margin-bottom: .5rem; }
+    .inspire-item h4 { font-weight: 700; font-size: 1.05rem; margin-bottom: .35rem; }
+
+    /* ── Footer ── */
+    footer {
+      position: relative; z-index: 1; text-align: center;
+      padding: 3rem 1.5rem; border-top: 1px solid rgba(255,255,255,.04);
+      color: var(--muted); font-size: .85rem;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .section { padding: 3.5rem 1.25rem; }
+      .hero-logo { height: 80px; }
+      .card-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Stars -->
+    <div id="stars"><span v-for="s in stars" :key="s.id" :style="s.style"></span></div>
+
+    <!-- Hero -->
+    <section class="hero">
+      <img src="assets/logo.svg" alt="Ahamkara" class="hero-logo">
+      <h1>AHAMKARA</h1>
+      <p class="sub">A custom C++20 game engine and multiplayer tech demo — built from the ground up for performance, determinism, and creative freedom.</p>
+      <a href="#overview" class="btn">Explore the Engine</a>
+      <div class="scroll-hint"><span>SCROLL</span><div class="arrow"></div></div>
+    </section>
+
+    <!-- Overview: Ahamkara -->
+    <section id="overview" class="section">
+      <div class="section-inner">
+        <span class="badge">Project Overview</span>
+        <h2>What is <span class="hl">Ahamkara</span>?</h2>
+        <p>Ahamkara is a reusable game engine, runtime host, and SDK written in modern C++20. It provides the foundational layers — core utilities, networking, collision, physics, rendering, animation, input, audio, and UI — that game projects need to ship.</p>
+        <div class="card-grid">
+          <div class="card" v-for="f in features" :key="f.title">
+            <span class="card-icon">{{ f.icon }}</span>
+            <h3>{{ f.title }}</h3>
+            <p>{{ f.desc }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Wish -->
+    <section id="wish" class="section" style="background: radial-gradient(ellipse at 30% 50%, rgba(255,215,0,.04) 0%, transparent 60%);">
+      <div class="section-inner">
+        <span class="badge">Platform</span>
+        <h2>Introducing <span class="hl">Wish</span></h2>
+        <p>Wish is an independent backend, session, and activity platform with a game-neutral protocol. It handles matchmaking, parties, persistence, rewards, and live-content hooks — so your game logic stays clean and portable.</p>
+        <div class="card-grid">
+          <div class="card" v-for="w in wishFeatures" :key="w.title">
+            <span class="card-icon">{{ w.icon }}</span>
+            <h3>{{ w.title }}</h3>
+            <p>{{ w.desc }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Inspiration -->
+    <section id="inspiration" class="section">
+      <div class="section-inner">
+        <span class="badge">Inspiration</span>
+        <h2>Born from <span class="hl">great games</span></h2>
+        <p>Ahamkara and Wish are inspired by the best in class — from the fluid gunplay of Destiny and Call of Duty to the robust service architecture behind modern live-service titles. Every design decision is driven by what makes games feel responsive, fair, and immersive.</p>
+        <div class="inspire-grid">
+          <div class="inspire-item" v-for="item in inspirations" :key="item.title">
+            <div class="icon">{{ item.icon }}</div>
+            <h4>{{ item.title }}</h4>
+            <p style="font-size:.9rem;">{{ item.desc }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>Ahamkara Engine &mdash; Built with C++20, CMake, and a lot of determination.</p>
+    </footer>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+    createApp({
+      data() {
+        return {
+          stars: Array.from({ length: 80 }, (_, i) => ({
+            id: i,
+            style: {
+              left: Math.random() * 100 + '%',
+              top: Math.random() * 100 + '%',
+              width: (w = Math.random() * 3 + 1) + 'px',
+              height: w + 'px',
+              '--d': (Math.random() * 4 + 2) + 's',
+              animationDelay: Math.random() * 3 + 's'
+            }
+          })),
+          features: [
+            { icon: '⚙️', title: 'Deterministic Core', desc: 'Authoritative server model with fixed-tick simulation, rollback networking, and reproducible physics.' },
+            { icon: '🎨', title: 'PBR Renderer', desc: 'Physically based rendering pipeline with glTF import, GPU skinning, and level-driven environments.' },
+            { icon: '🌐', title: 'Multiplayer Netcode', desc: 'UDP-based snapshot protocol, client prediction, lag compensation, and dedicated server support.' },
+            { icon: '🧠', title: 'AI & Navigation', desc: 'Navgrid A*, path following, encounter scripting, and data-driven encounter flow.' }
+          ],
+          wishFeatures: [
+            { icon: '🔗', title: 'Game-Neutral Protocol', desc: 'Platform-agnostic session and activity protocol that works with any engine or game.' },
+            { icon: '👥', title: 'Parties & Matchmaking', desc: 'Fireteam management, session orchestration, and skill-based matchmaking out of the box.' },
+            { icon: '💾', title: 'Persistence & Rewards', desc: 'Save/load character state, reward/pickup pipelines, and cross-session progression hooks.' },
+            { icon: '📡', title: 'Live-Content Hooks', desc: 'Data-driven modifiers, rotating activities, and telemetry-backed validation without code churn.' }
+          ],
+          inspirations: [
+            { icon: '🎯', title: 'Destiny', desc: 'Fluid first-person feel, activity-driven loot loops, and seamless matchmaking.' },
+            { icon: '🔥', title: 'Call of Duty', desc: 'Tight gunplay, viewmodel immersion, and fast-paced multiplayer architecture.' },
+            { icon: '🏗️', title: 'Id Tech / Unreal', desc: 'Clean engine architecture, tooling pipelines, and data-driven content workflows.' },
+            { icon: '🌌', title: 'Live-Service Design', desc: 'Session persistence, live events, and anti-cheat telemetry from modern FPS platforms.' }
+          ]
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
