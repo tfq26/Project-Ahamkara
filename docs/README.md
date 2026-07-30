@@ -28,13 +28,16 @@ rationale independently of that issue.
    propagation, recovery, telemetry, and extension rules.
 7. [Error-code operations](operations/error-codes.md) — initial code catalog
    and support workflow.
+8. [Deployment guide](deployment-guide/README.md) — frontend, backend, and
+   server deployment instructions.
 
 ## Documentation layout
 
 | Area | Purpose |
-|---|---|
+|---|---|---|
 | [`architecture/`](architecture/README.md) | System-wide boundaries, dependency direction, and migrations |
 | [`design/`](design/README.md) | Proposed or accepted designs that have not become simple subsystem facts |
+| [`deployment-guide/`](deployment-guide/README.md) | Deployment instructions for frontend, backend, and services |
 | [`systems/`](systems/README.md) | Current implementation truth for individual subsystems |
 | [`guides/`](guides/README.md) | Build, maintenance, operation, and contributor workflows |
 | [`operations/`](operations/debug-operations.md) | Troubleshooting, diagnostics, error codes, and runbooks |
