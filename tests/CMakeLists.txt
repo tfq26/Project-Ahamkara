@@ -248,6 +248,16 @@ add_test(
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/lint/tests/test_lint_runner.py
 )
 
+add_test(
+    NAME website_marketing_page_tests
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/src/website_marketing_page_tests.py
+)
+
+add_test(
+    NAME site_validation_tests
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/src/site_validation_tests.py
+)
+
 add_executable(ahamkara_nakama_bridge_tests
     src/nakama_bridge_tests.cpp
 )
