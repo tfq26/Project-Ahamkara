@@ -250,7 +250,7 @@ add_test(
 
 add_test(
     NAME website_marketing_page_tests
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/src/website_marketing_page_tests.py
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../site/validate_site.py
 
 )
 

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a1a"/>
+      <stop offset="50%" style="stop-color:#1a1a3e"/>
+      <stop offset="100%" style="stop-color:#0a0a1a"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="30%" cy="40%" r="60%">
+      <stop offset="0%" style="stop-color:#2a4a8a;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#0a0a1a;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="70%" cy="60%" r="50%">
+      <stop offset="0%" style="stop-color:#4a2a6a;stop-opacity:0.2"/>
+      <stop offset="100%" style="stop-color:#0a0a1a;stop-opacity:0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <rect width="1920" height="1080" fill="url(#glow1)"/>
+  <rect width="1920" height="1080" fill="url(#glow2)"/>
+  <!-- Grid lines -->
+  <g stroke="#ffffff" stroke-opacity="0.03" stroke-width="1">
+    <line x1="0" y1="270" x2="1920" y2="270"/>
+    <line x1="0" y1="540" x2="1920" y2="540"/>
+    <line x1="0" y1="810" x2="1920" y2="810"/>
+    <line x1="480" y1="0" x2="480" y2="1080"/>
+    <line x1="960" y1="0" x2="960" y2="1080"/>
+    <line x1="1440" y1="0" x2="1440" y2="1080"/>
+  </g>
+  <!-- Hexagon shapes -->
+  <polygon points="960,150 1100,230 1100,390 960,470 820,390 820,230" fill="none" stroke="#2a5a9a" stroke-width="2" stroke-opacity="0.3"/>
+  <polygon points="960,150 1100,230 1100,390 960,470 820,390 820,230" fill="none" stroke="#4a8ad4" stroke-width="1" stroke-opacity="0.15" transform="scale(1.5) translate(-480,-200)"/>
+  <!-- Central emblem -->
+  <g transform="translate(960,540)" fill="none" stroke="#3a7abd" stroke-width="1.5" stroke-opacity="0.25">
+    <circle r="200"/>
+    <circle r="150"/>
+    <circle r="100"/>
+    <circle r="50"/>
+    <line x1="-200" y1="0" x2="200" y2="0"/>
+    <line x1="0" y1="-200" x2="0" y2="200"/>
+  </g>
+</svg>

@@ -1,0 +1,105 @@
+/* Ahamkara Marketing Page - Destiny/CoD inspired */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#06060f;color:#c8d0e0;line-height:1.6;-webkit-font-smoothing:antialiased}
+img{max-width:100%;height:auto;display:block}
+a{color:#6a9ad4;text-decoration:none;transition:color .2s}
+a:hover{color:#8ab4f0}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+
+/* Nav */
+.navbar{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(6,6,15,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(74,138,212,.1)}
+.nav-inner{display:flex;justify-content:space-between;align-items:center;height:64px;max-width:1200px;margin:0 auto;padding:0 24px}
+.nav-logo{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.5rem;letter-spacing:.15em;color:#e0e8f0}
+.nav-links{display:flex;list-style:none;gap:32px}
+.nav-links a{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.95rem;letter-spacing:.08em;text-transform:uppercase;color:#8899b0;transition:color .2s}
+.nav-links a:hover{color:#8ab4f0}
+
+/* Hero */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.hero-bg{position:absolute;inset:0;background:url('src/assets/Javelin-4.jpg') center/cover no-repeat}
+.hero-bg::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 40%,rgba(42,74,138,.35) 0%,transparent 60%),radial-gradient(ellipse at 70% 60%,rgba(74,42,106,.2) 0%,transparent 50%),linear-gradient(135deg,rgba(6,6,15,.7) 0%,rgba(10,10,26,.4) 40%,rgba(18,18,42,.6) 70%,rgba(6,6,15,.8) 100%);background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px),radial-gradient(ellipse at 30% 40%,rgba(42,74,138,.35) 0%,transparent 60%),radial-gradient(ellipse at 70% 60%,rgba(74,42,106,.2) 0%,transparent 50%),linear-gradient(135deg,rgba(6,6,15,.7) 0%,rgba(10,10,26,.4) 40%,rgba(18,18,42,.6) 70%,rgba(6,6,15,.8) 100%);background-size:60px 60px,60px 60px,100% 100%,100% 100%,100% 100%;background-blend-mode:overlay;mask-image:radial-gradient(ellipse at 50% 50%,black 30%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse at 50% 50%,black 30%,transparent 70%)}
+.hero-overlay{position:absolute;inset:0;background:url('src/assets/hero-bg.svg') center/cover no-repeat;opacity:.15}
+.hero-content{position:relative;z-index:1;text-align:center;max-width:800px;padding:24px;animation:fadeInUp 1s ease-out}
+.hero-sup{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.85rem;letter-spacing:.3em;text-transform:uppercase;color:#4a8ad4;margin-bottom:16px}
+.hero-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:clamp(3rem,10vw,7rem);letter-spacing:.12em;text-transform:uppercase;color:#e8f0f8;line-height:1;margin-bottom:16px;text-shadow:0 0 60px rgba(74,138,212,.3)}
+.hero-sub{font-family:'Rajdhani',sans-serif;font-weight:500;font-size:clamp(1rem,2.5vw,1.4rem);letter-spacing:.15em;text-transform:uppercase;color:#6a8aaa;margin-bottom:20px}
+.hero-desc{font-size:1.05rem;color:#8899b0;max-width:600px;margin:0 auto 36px;line-height:1.7}
+.hero-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;padding:14px 32px;border-radius:4px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.95rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .25s;border:1px solid transparent}
+.btn-primary{background:linear-gradient(135deg,#2a5a9a,#3a7abd);color:#e8f0f8;border-color:#4a8ad4}
+.btn-primary:hover{background:linear-gradient(135deg,#3a6aaa,#4a8ad4);box-shadow:0 0 30px rgba(74,138,212,.3);color:#fff}
+.btn-outline{background:transparent;color:#6a9ad4;border-color:rgba(74,138,212,.3)}
+.btn-outline:hover{border-color:#4a8ad4;background:rgba(74,138,212,.08);color:#8ab4f0}
+
+/* Scroll indicator */
+.scroll-indicator{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;color:#4a5a7a;font-family:'Rajdhani',sans-serif;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;animation:fadeInUp 1.5s .5s both}
+.scroll-line{width:1px;height:40px;background:linear-gradient(to bottom,#4a5a7a,transparent);animation:scrollPulse 2s ease-in-out infinite}
+
+/* Sections */
+.section{position:relative;padding:100px 0;overflow:hidden}
+.section:nth-child(odd){background:#08081a}
+.section-bg{position:absolute;inset:0;pointer-events:none}
+.section-tag{display:inline-block;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;color:#4a8ad4;border:1px solid rgba(74,138,212,.2);padding:4px 14px;border-radius:2px;margin-bottom:16px}
+.section-tag-wish{color:#aa4ad4;border-color:rgba(170,74,212,.2)}
+.section-header{text-align:center;margin-bottom:60px}
+.section-header h2,.section-text h2{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:clamp(2rem,4vw,3rem);letter-spacing:.05em;color:#d8e0e8;margin-bottom:16px}
+.section-lead{font-size:1.15rem;color:#8a9ab0;line-height:1.7;margin-bottom:16px}
+.section-text p{color:#7888a0;margin-bottom:16px}
+
+/* Grid */
+.section-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.section-grid-reverse .section-visual{order:2}
+.section-grid-reverse .section-text{order:1}
+.section-visual{display:flex;justify-content:center;align-items:center}
+.section-emblem{width:300px;height:300px;object-fit:contain}
+
+/* Feature list */
+.feature-list{list-style:none;margin:24px 0}
+.feature-list li{padding:10px 0;border-bottom:1px solid rgba(74,138,212,.06);color:#7888a0;font-size:.95rem}
+.feature-list li:last-child{border-bottom:none}
+.feature-list strong{color:#8a9ab0}
+
+/* Inspiration */
+.section-inspiration{background:linear-gradient(180deg,#08081a 0%,#06060f 100%)}
+.inspiration-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:48px}
+.inspiration-card{background:rgba(255,255,255,.02);border:1px solid rgba(74,138,212,.08);border-radius:8px;padding:32px 24px;transition:border-color .3s,transform .3s}
+.inspiration-card:hover{border-color:rgba(74,138,212,.25);transform:translateY(-4px)}
+.card-icon{margin-bottom:16px}
+.inspiration-card h3{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.3rem;letter-spacing:.05em;color:#c8d0e0;margin-bottom:12px}
+.inspiration-card p{font-size:.9rem;color:#7888a0;line-height:1.6}
+.inspiration-footer{text-align:center;max-width:600px;margin:0 auto;padding-top:24px;border-top:1px solid rgba(74,138,212,.08)}
+.inspiration-footer p{font-size:1.05rem;color:#6a8aaa;font-style:italic}
+
+/* Footer */
+.footer{padding:40px 0;border-top:1px solid rgba(74,138,212,.06);background:#06060f}
+.footer-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.footer-brand{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.1rem;letter-spacing:.15em;color:#4a5a7a}
+.footer-text{font-size:.85rem;color:#4a5a7a}
+
+/* Keyframes */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scrollPulse{0%,100%{opacity:.6;transform:scaleY(1)}50%{opacity:1;transform:scaleY(1.2)}}
+
+/* Responsive */
+@media(max-width:1024px){.section-grid{gap:40px}}
+@media(max-width:768px){
+  .nav-links{gap:20px}.nav-links a{font-size:.8rem}
+  .section{padding:64px 0}
+  .section-grid{grid-template-columns:1fr;gap:32px;text-align:center}
+  .section-grid-reverse .section-visual{order:1}
+  .section-grid-reverse .section-text{order:2}
+  .section-emblem{width:200px;height:200px}
+  .feature-list{text-align:left}
+  .inspiration-grid{grid-template-columns:1fr;gap:16px}
+  .hero-actions{flex-direction:column;align-items:center}
+  .btn{width:100%;max-width:280px;justify-content:center}
+  .footer-inner{flex-direction:column;text-align:center}
+}
+@media(max-width:480px){
+  .nav-inner{height:56px;padding:0 16px}
+  .nav-logo{font-size:1.2rem}.nav-links{gap:12px}
+  .container{padding:0 16px}
+}

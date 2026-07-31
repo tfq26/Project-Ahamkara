@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ahamkara — Game Engine</title>
+  <meta name="description" content="Ahamkara: A custom C++20 game engine and multiplayer tech demo. Discover what Ahamkara is, what Wish is, and what inspired the project.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">AHAMKARA</a>
+      <ul class="nav-links">
+        <li><a href="#ahamkara">Engine</a></li>
+        <li><a href="#wish">Wish</a></li>
+        <li><a href="#inspiration">Inspiration</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero" id="hero">
+    <div class="hero-bg" role="img" aria-label="Ahamkara hero background"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <p class="hero-sup">C++20 Game Engine</p>
+      <h1 class="hero-title">AHAMKARA</h1>
+      <p class="hero-sub">Built from scratch. Engineered for performance.</p>
+      <p class="hero-desc">A custom game engine and multiplayer tech demo — with an independent backend platform that powers sessions, identity, and activities.</p>
+      <div class="hero-actions">
+        <a href="#ahamkara" class="btn btn-primary">Explore the Engine</a>
+        <a href="https://git.2helix.org/taufeeq26/Project-Ahamkara" class="btn btn-outline" target="_blank" rel="noopener">View Source</a>
+      </div>
+    </div>
+    <div class="scroll-indicator" aria-hidden="true">
+      <span>Scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </header>
+
+  <!-- What is Ahamkara -->
+  <section class="section section-ahamkara" id="ahamkara">
+    <div class="section-bg"></div>
+    <div class="container">
+      <div class="section-grid">
+        <div class="section-visual">
+          <img src="src/assets/ahamkara-emblem.svg" alt="Ahamkara emblem" class="section-emblem" loading="lazy" width="300" height="300">
+        </div>
+        <div class="section-text">
+          <span class="section-tag">Engine</span>
+          <h2>What is Ahamkara?</h2>
+          <p class="section-lead">Ahamkara is a reusable C++20 game engine built from the ground up — no middleware, no shortcuts.</p>
+          <p>It provides a complete runtime host, SDK, rendering pipeline, animation system, physics and collision, audio, netcode with lag compensation, and a full toolchain. Designed for determinism, low latency, and developer control.</p>
+          <ul class="feature-list">
+            <li><strong>Core:</strong> Entity-component system, diagnostics, math, platform abstraction</li>
+            <li><strong>Network:</strong> UDP transport, snapshot interpolation, reliable channels, lag-compensated hit validation</li>
+            <li><strong>Render:</strong> PBR pipeline, animation blending, level-driven environments</li>
+            <li><strong>AI:</strong> 6 combatant archetypes, state-machine behaviors, spatial navigation</li>
+          </ul>
+          <a href="https://git.2helix.org/taufeeq26/Project-Ahamkara" class="btn btn-primary" target="_blank" rel="noopener">Explore the Repository</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- What is Wish -->
+  <section class="section section-wish" id="wish">
+    <div class="section-bg"></div>
+    <div class="container">
+      <div class="section-grid section-grid-reverse">
+        <div class="section-visual">
+          <img src="src/assets/wish-emblem.svg" alt="Wish emblem" class="section-emblem" loading="lazy" width="300" height="300">
+        </div>
+        <div class="section-text">
+          <span class="section-tag section-tag-wish">Platform</span>
+          <h2>What is Wish?</h2>
+          <p class="section-lead">Wish is an independent backend and session platform that powers the live-service layer.</p>
+          <p>It owns identity, authentication, admission, sessions, activities, replication envelopes, administration, and backend integrations — all independent from the game engine, so any game can use it.</p>
+          <ul class="feature-list">
+            <li><strong>Identity:</strong> Player accounts, authentication, profile management</li>
+            <li><strong>Sessions:</strong> Match lifecycle, player admission, state replication</li>
+            <li><strong>Activities:</strong> Game-neutral activity routing and server-authoritative tick</li>
+            <li><strong>Integrations:</strong> Nakama adapter, extensible service architecture</li>
+          </ul>
+          <a href="https://git.2helix.org/taufeeq26/Project-Ahamkara" class="btn btn-outline" target="_blank" rel="noopener">Learn About Wish</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Inspiration -->
+  <section class="section section-inspiration" id="inspiration">
+    <div class="section-bg"></div>
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Origins</span>
+        <h2>Inspiration</h2>
+        <p class="section-lead">Built by one developer, inspired by the best in the industry.</p>
+      </div>
+      <div class="inspiration-grid">
+        <article class="inspiration-card">
+          <div class="card-icon">
+            <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="#4a8ad4" stroke-width="2">
+              <circle cx="24" cy="24" r="20"/>
+              <path d="M16 24l6 6 10-10"/>
+            </svg>
+          </div>
+          <h3>Destiny</h3>
+          <p>From the atmospheric sci-fi worlds of Destiny comes the design philosophy of moment-to-moment gameplay feel, seamless netcode, and immersive world-building.</p>
+        </article>
+        <article class="inspiration-card">
+          <div class="card-icon">
+            <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="#4a8ad4" stroke-width="2">
+              <rect x="8" y="12" width="32" height="24" rx="4"/>
+              <circle cx="20" cy="24" r="4"/>
+              <circle cx="28" cy="24" r="4"/>
+            </svg>
+          </div>
+          <h3>Call of Duty</h3>
+          <p>The gold standard for arcade FPS — tight gunplay, snappy movement mechanics, killstreaks, and the satisfying game feel that keeps players coming back.</p>
+        </article>
+        <article class="inspiration-card">
+          <div class="card-icon">
+            <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="#4a8ad4" stroke-width="2">
+              <path d="M24 4L28 18h14l-11 8 4 14-11-8-11 8 4-14-11-8h14z"/>
+            </svg>
+          </div>
+          <h3>Game Engine Development</h3>
+          <p>The project draws from decades of engine architecture research — data-oriented design, deterministic networking, and systems-level engineering in modern C++20.</p>
+        </article>
+      </div>
+      <div class="inspiration-footer">
+        <p>Ahamkara is the engine. Flashback is the game. Wish is the platform. Built from scratch, piece by piece.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">AHAMKARA</div>
+        <p class="footer-text">Built with C++20 • Open source on <a href="https://git.2helix.org/taufeeq26/Project-Ahamkara" target="_blank" rel="noopener">2Helix</a></p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="scripts.js"></script>
+</body>
+</html>
