@@ -59,6 +59,37 @@ of GitHub issue bodies under `docs/`. Documentation may link to an issue for
 execution status, but it should explain durable architecture, operation, or
 rationale independently of that issue.
 
+## Start here
+
+1. [Architecture](architecture/README.md) — layered architecture diagram,
+   build system, CI/CD pipeline, deployment model, and key design decisions.
+2. [Architecture overview](architecture/overview.md) — current composition,
+   target boundaries, and dependency direction.
+3. [Three-repository destination](architecture/repository-split.md) — what
+   belongs in Ahamkara, Flashback, and Wish.
+4. [Repository map](repo-map.md) — what each current folder owns.
+5. [Build and test guide](guides/building.md) — supported commands.
+6. [Maintenance guide](guides/maintenance.md) — how to diagnose, repair, and
+   validate changes.
+7. [Error-system proposal](design/error-system.md) — stable error identities,
+   propagation, recovery, telemetry, and extension rules.
+8. [Error-code operations](operations/error-codes.md) — initial code catalog
+   and support workflow.
+
+## Documentation layout
+
+| Area | Purpose |
+|---|---|
+| [`architecture/`](architecture/README.md) | System-wide boundaries, dependency direction, and migrations |
+| [`design/`](design/README.md) | Proposed or accepted designs that have not become simple subsystem facts |
+| [`systems/`](systems/README.md) | Current implementation truth for individual subsystems |
+| [`guides/`](guides/README.md) | Build, maintenance, operation, and contributor workflows |
+| [`operations/`](operations/debug-operations.md) | Troubleshooting, diagnostics, error codes, and runbooks |
+| [`wish/`](wish/README.md) | Transitional Wish implementation notes until Wish is extracted |
+| [`roadmap/`](roadmap/roadmap.md) | Strategic direction only; executable work stays in GitHub Issues |
+| [`reports/`](reports/README.md) | Historical investigations and implementation evidence |
+| [`vault/`](vault/README.md) | Lightweight project memory, decisions, and agent orientation |
+
 ## Source-of-truth order
 
 For behavior, trust source code, tests, and build configuration before prose.
