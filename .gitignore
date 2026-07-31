@@ -23,3 +23,9 @@ tests/out_of_tree_consumer/build/
 .worktree.json
 plan_artifact.md
 _agent_results/
+
+# Node.js / pnpm
+node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
