@@ -233,6 +233,43 @@ git push -u origin HEAD
 See [`docs/guides/remote-agent-workflow.md`](docs/guides/remote-agent-workflow.md) for the
 full remote-agent playbook.
 
+## Frontend & Deployment
+
+The project includes a Vue.js frontend (in [`frontend/`](frontend/)) for the web dashboard, deployed to **Cloudflare Pages** on every push to `main`.
+
+### Prerequisites for deployment
+
+- **Node.js ≥ 18** with npm
+- A **Cloudflare account** with Pages enabled
+- `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` environment variables set
+
+### Build locally
+
+```sh
+cd frontend
+npm ci
+npm run build     # outputs to frontend/dist/
+```
+
+The `dist/` directory contains the production build with SPA fallback routing (via `_redirects`).
+
+### Deploy manually
+
+```sh
+bash deploy.sh    # builds and deploys to Cloudflare Pages
+```
+
+### CI/CD
+
+- **Forgejo (Agola)**: runs `build-frontend` on every push; runs `deploy-frontend` on push to `main`.
+- **GitHub Actions**: runs `build-frontend` on every push/PR; runs `deploy-frontend` on push to `main`.
+- Deployment uses **Wrangler CLI** with direct upload (`wrangler pages deploy`).
+- Set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as secrets in both CI systems.
+
+### SPA routing
+
+The [`frontend/public/_redirects`](frontend/public/_redirects) file enables client-side routing by serving `index.html` for all routes (Cloudflare Pages SPA fallback).
+
 ## Documentation
 
 - [Docs index](docs/README.md)

@@ -77,6 +77,37 @@
             { type: "run", command: "cmake --preset debug-headless && cmake --build --preset debug-headless && ctest --test-dir build/debug-headless --output-on-failure" },
           ],
         },
+        {
+          name: "build-frontend",
+          runtime: {
+            arch: "amd64",
+            containers: [{ image: "node:22-bookworm" }],
+          },
+          steps: [
+            { type: "run", command: "apt-get update -qq && apt-get install -y -qq git" },
+            { type: "run", command: "git clone --branch \"$AGOLA_REPOSITORY_REF\" \"$AGOLA_REPOSITORY_URL\" . && git -c advice.detachedHead=false checkout \"$AGOLA_COMMIT_SHA\"" },
+            { type: "run", command: "npm ci --prefix frontend" },
+            { type: "run", command: "npm run build --prefix frontend" },
+          ],
+        },
+        {
+          name: "deploy-frontend",
+          depends: ["build-frontend"],
+          when: { branch: "main" },
+          runtime: {
+            arch: "amd64",
+            containers: [{ image: "node:22-bookworm" }],
+          },
+          environment: {
+            CLOUDFLARE_API_TOKEN: "",
+            CLOUDFLARE_ACCOUNT_ID: "",
+          },
+          steps: [
+            { type: "run", command: "apt-get update -qq && apt-get install -y -qq git" },
+            { type: "run", command: "git clone --branch \"$AGOLA_REPOSITORY_REF\" \"$AGOLA_REPOSITORY_URL\" . && git -c advice.detachedHead=false checkout \"$AGOLA_COMMIT_SHA\"" },
+            { type: "run", command: "bash deploy.sh" },
+          ],
+        },
       ],
     },
   ],

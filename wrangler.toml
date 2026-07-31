@@ -1,0 +1,5 @@
+name = "ahamkara"
+pages_build_output_dir = "frontend/dist"
+
+[env.production]
+name = "ahamkara"
