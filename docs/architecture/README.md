@@ -10,6 +10,9 @@ between them, and the architectural invariants that guide development.
 
 - [Overview](overview.md) — current monorepo composition, target
   three-repository structure, runtime data flow, and architectural invariants.
+- [Client–Server Architecture](client-server-architecture.md) — frontend
+  (game client) and backend (server + Wish) separation, communication
+  protocol, deployment model, and design decisions.
 - [Repository split](repository-split.md) — extraction boundaries and
   dependency rules for Ahamkara, Flashback, and Wish.
 

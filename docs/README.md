@@ -65,6 +65,9 @@ rationale independently of that issue.
    build system, CI/CD pipeline, deployment model, and key design decisions.
 2. [Architecture overview](architecture/overview.md) — current composition,
    target boundaries, and dependency direction.
+2. [Client–Server Architecture](architecture/client-server-architecture.md) —
+   game client (frontend), server + Wish (backend), deployment model, and
+   design decisions.
 3. [Three-repository destination](architecture/repository-split.md) — what
    belongs in Ahamkara, Flashback, and Wish.
 4. [Repository map](repo-map.md) — what each current folder owns.
