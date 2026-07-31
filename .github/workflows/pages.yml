@@ -1,0 +1,59 @@
+name: Deploy to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Validate Website
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run marketing page tests
+        run: |
+          python3 tests/src/website_marketing_page_tests.py
+
+  deploy:
+    name: Deploy to Pages
+    needs: test
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage website for deployment
+        run: |
+          # Copy marketing website to public/ for deployment
+          rm -rf public
+          cp -r website public
+
+          # Ensure SPA routing support
+          if ! grep -q '_spa_redirect' public/404.html 2>/dev/null; then
+            cp public/index.html public/404.html
+          fi
+
+      - name: Deploy to pages branch
+        env:
+          DEPLOY_TOKEN: ${{ github.token }}
+        run: |
+          REPO_HOST=$(echo "${{ github.server_url }}" | sed 's|^https\?://||')
+          REPO_URL="https://x-access-token:${DEPLOY_TOKEN}@${REPO_HOST}/${{ github.repository }}.git"
+
+          DEPLOY_DIR=$(mktemp -d)
+          cp -r public/* "$DEPLOY_DIR/"
+
+          cd "$DEPLOY_DIR"
+          git init -q
+          git config user.name  "CI Bot"
+          git config user.email "ci@ahamkara.dev"
+          git checkout -b pages
+          git add .
+          git commit -q -m "Deploy to Pages [skip ci]" || echo "No changes to deploy"
+          git remote add origin "$REPO_URL"
+          git push -q origin pages --force

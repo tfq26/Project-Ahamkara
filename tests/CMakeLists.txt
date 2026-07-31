@@ -251,7 +251,12 @@ add_test(
 add_test(
     NAME website_marketing_page_tests
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../site/validate_site.py
+)
 
+add_test(
+    NAME site_validation_tests
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/src/site_validation_tests.py
+>>>>>>> forgejo/issue-967cb622
 )
 
 add_executable(ahamkara_nakama_bridge_tests
