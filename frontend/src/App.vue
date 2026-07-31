@@ -1,11 +1,13 @@
 <template>
-  <main>
-    <h1>Ahamkara</h1>
-    <p>Game Engine Dashboard</p>
-  </main>
+  <div id="app-root">
+    <header>
+      <nav>
+        <router-link to="/">Home</router-link>
+        <router-link to="/docs">Docs</router-link>
+      </nav>
+    </header>
+    <main>
+      <router-view />
+    </main>
+  </div>
 </template>
-
-<style>
-body { margin: 0; font-family: system-ui, sans-serif; }
-main { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
-</style>
