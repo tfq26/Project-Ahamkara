@@ -376,12 +376,20 @@ DebugUiActions DebugUiController::render(
             menu_state_.open_settings();
         } else if (ui.screen == ae::ui::MenuScreen::Character) {
             menu_state_.open_character();
+        } else if (ui.screen == ae::ui::MenuScreen::Docs) {
+            menu_state_.open_docs();
         }
         break;
     case ae::ui::MenuScreen::Settings:
         ae::ui::render_settings(ui);
         if (ui.screen != ae::ui::MenuScreen::Settings) {
             menu_state_.back_from_settings();
+        }
+        break;
+    case ae::ui::MenuScreen::Docs:
+        ae::ui::render_docs_viewer(ui);
+        if (ui.screen != ae::ui::MenuScreen::Docs) {
+            menu_state_.back_to_pause();
         }
         break;
     case ae::ui::MenuScreen::Character: {

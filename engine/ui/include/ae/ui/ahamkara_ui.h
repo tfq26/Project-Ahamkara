@@ -14,7 +14,8 @@ enum class MenuScreen {
     MainMenu,
     Settings,
     Character,
-    PauseOverlay
+    PauseOverlay,
+    Docs
 };
 
 struct MenuState {
@@ -56,5 +57,6 @@ bool render_settings(MenuState& state);
 bool render_character_sheet(const float* hp, float max_hp, int ammo, int max_ammo,
                             const char* weapon_name, int reserve_ammo);
 bool render_pause_overlay(MenuState& state, bool* quit_to_menu);
+bool render_docs_viewer(MenuState& state);
 
 }  // namespace ae::ui
