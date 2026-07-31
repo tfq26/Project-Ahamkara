@@ -7,6 +7,7 @@ repository and project; see
 
 ## Docs
 
+- [Admin API reference](admin-api.md)
 - [Architecture](architecture.md)
 - [Local run](local_run.md)
 - [Nakama boundary](nakama_boundary.md)
