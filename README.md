@@ -134,7 +134,6 @@ pnpm typecheck
 Each package also has its own ESLint, Prettier, and TypeScript configuration.
 
 ## Quick Start
->>>>>>> forgejo/issue-63b358c4
 
 ## Prerequisites
 
