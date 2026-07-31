@@ -198,7 +198,7 @@ void test_memory_budget_pressure_ok() {
 void test_memory_budget_frame_allocator_tracking() {
     ae::FrameAllocator alloc(1024, 2);
     alloc.end_frame();
-    alloc.allocate(400);
+    static_cast<void>(alloc.allocate(400));
 
     ae::MemoryBudgetTracker tracker(0, 0, 300, 500);  // frame alloc soft=300, hard=500
     tracker.track_frame_allocator(alloc);
@@ -211,7 +211,7 @@ void test_memory_budget_frame_allocator_tracking() {
 void test_memory_budget_allocator_hard() {
     ae::FrameAllocator alloc(1024, 2);
     alloc.end_frame();
-    alloc.allocate(400);
+    static_cast<void>(alloc.allocate(400));
 
     ae::MemoryBudgetTracker tracker(0, 0, 200, 350);  // hard=350, alloc 400 >= 350
     tracker.track_frame_allocator(alloc);
@@ -223,7 +223,7 @@ void test_memory_budget_allocator_hard() {
 void test_memory_budget_allocator_ok() {
     ae::FrameAllocator alloc(1024, 2);
     alloc.end_frame();
-    alloc.allocate(100);
+    static_cast<void>(alloc.allocate(100));
 
     ae::MemoryBudgetTracker tracker(0, 0, 200, 500);  // soft=200, hard=500, alloc 100 < 200
     tracker.track_frame_allocator(alloc);

@@ -14,30 +14,23 @@ logs/
 .kronn/
 .worktrees/
 .worktree.json
-_agent_results/
 plan_artifact.md
+_agent_results/
 
 build-issue55/
 build-#55/
 build-engine-only/
 tests/out_of_tree_consumer/build/
 
-<<<<<<< HEAD
-# Worktree / agent artifacts
-.worktree.json
-plan_artifact.md
-_agent_results/
-
 # Node.js / pnpm
 node_modules/
 dist/
 backend/dist/
+frontend/node_modules/
+frontend/dist/
 .turbo/
-*.tsbuildinfonode_modules/
-dist/
->>>>>>> forgejo/issue-4b85475d
-=======
-# Frontend
-/frontend/node_modules/
-/frontend/dist/
->>>>>>> forgejo/issue-9acc3c95
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.pyc
