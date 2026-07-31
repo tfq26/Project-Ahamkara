@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 780" width="1100" height="780">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2e7d32"/>
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1565c0"/>
+    </marker>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8f9fa"/>
+      <stop offset="100%" stop-color="#e9ecef"/>
+    </linearGradient>
+    <linearGradient id="engine-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e3f2fd"/>
+      <stop offset="100%" stop-color="#bbdefb"/>
+    </linearGradient>
+    <linearGradient id="game-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8f5e9"/>
+      <stop offset="100%" stop-color="#c8e6c9"/>
+    </linearGradient>
+    <linearGradient id="product-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff3e0"/>
+      <stop offset="100%" stop-color="#ffe0b2"/>
+    </linearGradient>
+    <linearGradient id="wish-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fce4ec"/>
+      <stop offset="100%" stop-color="#f8bbd0"/>
+    </linearGradient>
+    <linearGradient id="target-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f3e5f5"/>
+      <stop offset="100%" stop-color="#e1bee7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="780" rx="8" fill="url(#bg)" stroke="#ccc" stroke-width="1"/>
+
+  <!-- Title -->
+  <text x="550" y="32" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="20" font-weight="bold" fill="#222">Ahamkara — System Architecture Overview</text>
+  <text x="550" y="50" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#666">Current monorepo composition (transitional — target: three independent repositories)</text>
+
+  <!-- ========== LAYER 1: ENGINE (blue) ========== -->
+  <rect x="20" y="70" width="1060" height="280" rx="6" fill="url(#engine-grad)" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="40" y="95" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1565c0">ENGINE LAYER — Ahamkara (C++20 static libraries)</text>
+
+  <!-- Core -->
+  <rect x="40" y="108" width="150" height="65" rx="4" fill="#fff" stroke="#1565c0" stroke-width="1.2"/>
+  <text x="115" y="130" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1565c0">ae_core</text>
+  <text x="115" y="146" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Config, Logging, Diagnostics</text>
+  <text x="115" y="158" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Jobs, Memory, Telemetry, Time</text>
+
+  <!-- Runtime -->
+  <rect x="212" y="108" width="150" height="65" rx="4" fill="#fff" stroke="#1565c0" stroke-width="1.2"/>
+  <text x="287" y="130" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1565c0">ae_runtime</text>
+  <text x="287" y="146" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Application Lifecycle, Camera</text>
+  <text x="287" y="158" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Metrics, Performance Logger</text>
+
+  <!-- Network -->
+  <rect x="384" y="108" width="150" height="65" rx="4" fill="#fff" stroke="#1565c0" stroke-width="1.2"/>
+  <text x="459" y="130" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1565c0">ae_network</text>
+  <text x="459" y="146" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">UDP Socket, Packet Simulation</text>
+  <text x="459" y="158" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Clock Sync, History Buffer</text>
+
+  <!-- Platform -->
+  <rect x="556" y="108" width="150" height="65" rx="4" fill="#fff" stroke="#1565c0" stroke-width="1.2"/>
+  <text x="631" y="130" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1565c0">ae_platform</text>
+  <text x="631" y="146" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">GLFW Window, Input Device</text>
+  <text x="631" y="158" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Platform Integration</text>
+
+  <!-- Render -->
+  <rect x="728" y="108" width="150" height="65" rx="4" fill="#fff" stroke="#1565c0" stroke-width="1.2"/>
+  <text x="803" y="130" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1565c0">ae_render</text>
+  <text x="803" y="146" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">OpenGL Backend, PBR, SSAO</text>
+  <text x="803" y="158" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Debug Render, TAA, Shadow</text>
+
+  <!-- Dependencies arrows (core -> others) -->
+  <line x1="190" y1="140" x2="212" y2="140" stroke="#1565c0" stroke-width="1" marker-end="url(#arrowhead-blue)"/>
+  <line x1="190" y1="145" x2="212" y2="145" stroke="#1565c0" stroke-width="1" marker-end="url(#arrowhead-blue)"/>
+  <line x1="190" y1="140" x2="384" y2="140" stroke="#1565c0" stroke-width="1" marker-end="url(#arrowhead-blue)"/>
+  <line x1="190" y1="145" x2="384" y2="145" stroke="#1565c0" stroke-width="1" marker-end="url(#arrowhead-blue)"/>
+  <line x1="190" y1="140" x2="556" y2="140" stroke="#1565c0" stroke-width="1" marker-end="url(#arrowhead-blue)"/>
+  <line x1="190" y1="145" x2="556" y2="145" stroke="#1565c0" stroke-width="1" marker-end="url(#arrowhead-blue)"/>
+  <line x1="190" y1="140" x2="728" y2="140" stroke="#1565c0" stroke-width="1" marker-end="url(#arrowhead-blue)"/>
+  <line x1="190" y1="145" x2="728" y2="145" stroke="#1565c0" stroke-width="1" marker-end="url(#arrowhead-blue)"/>
+
+  <!-- Engine row 2 -->
+  <!-- Skeleton -->
+  <rect x="40" y="190" width="120" height="55" rx="4" fill="#fff" stroke="#1565c0" stroke-width="1"/>
+  <text x="100" y="210" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="bold" fill="#1565c0">ae_skeleton</text>
+  <text x="100" y="226" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Mat4, Skin, ClipData</text>
+  <text x="100" y="238" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">PosePalette</text>
+
+  <!-- Animation -->
+  <rect x="175" y="190" width="120" height="55" rx="4" fill="#fff" stroke="#1565c0" stroke-width="1"/>
+  <text x="235" y="210" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="bold" fill="#1565c0">ae_animation</text>
+  <text x="235" y="226" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Graphs, IK, Clip Player</text>
+  <text x="235" y="238" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Character/Weapon State</text>
+
+  <!-- Collision -->
+  <rect x="310" y="190" width="120" height="55" rx="4" fill="#fff" stroke="#1565c0" stroke-width="1"/>
+  <text x="370" y="210" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="bold" fill="#1565c0">ae_collision</text>
+  <text x="370" y="226" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Collision World, Shapes</text>
+  <text x="370" y="238" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Traces, Layers</text>
+
+  <!-- Physics -->
+  <rect x="445" y="190" width="120" height="55" rx="4" fill="#fff" stroke="#1565c0" stroke-width="1"/>
+  <text x="505" y="210" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="bold" fill="#1565c0">ae_physics</text>
+  <text x="505" y="226" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Jolt Physics Wrapper</text>
+  <text x="505" y="238" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">(Jolt Physics 5.0)</text>
+
+  <!-- Input -->
+  <rect x="580" y="190" width="100" height="55" rx="4" fill="#fff" stroke="#1565c0" stroke-width="1"/>
+  <text x="630" y="210" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="bold" fill="#1565c0">ae_input</text>
+  <text x="630" y="226" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Input Mapping</text>
+  <text x="630" y="238" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Runtime</text>
+
+  <!-- Audio -->
+  <rect x="695" y="190" width="100" height="55" rx="4" fill="#fff" stroke="#1565c0" stroke-width="1"/>
+  <text x="745" y="210" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="bold" fill="#1565c0">ae_audio</text>
+  <text x="745" y="226" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Audio Runtime</text>
+  <text x="745" y="238" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">(miniaudio)</text>
+
+  <!-- UI -->
+  <rect x="810" y="190" width="100" height="55" rx="4" fill="#fff" stroke="#1565c0" stroke-width="1"/>
+  <text x="860" y="210" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="bold" fill="#1565c0">ae_ui</text>
+  <text x="860" y="226" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">UI/Menu/HUD</text>
+  <text x="860" y="238" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Runtime</text>
+
+  <!-- Dependencies render -> animation (known boundary defect) -->
+  <text x="340" y="256" font-family="Helvetica, Arial, sans-serif" font-size="8" font-style="italic" fill="#c62828">⚠ Known cycle: ae_render ↔ ae_animation</text>
+
+  <!-- Third-party deps banner -->
+  <rect x="40" y="270" width="870" height="26" rx="4" fill="#e8eaf6" stroke="#5c6bc0" stroke-width="0.8"/>
+  <text x="50" y="286" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#5c6bc0" font-weight="bold">Third-party:</text>
+  <text x="130" y="286" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#555">GLM 1.0 (math)</text>
+  <text x="260" y="286" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#555">EnTT 3.13 (ECS)</text>
+  <text x="390" y="286" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#555">Jolt Physics 5.0</text>
+  <text x="530" y="286" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#555">miniaudio</text>
+  <text x="640" y="286" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#555">GLFW 3.3 (window/input)</text>
+  <text x="800" y="286" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#555">OpenGL (debug render)</text>
+
+  <!-- Layer label -->
+  <text x="1070" y="95" text-anchor="end" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#1565c0" font-style="italic">engine/*</text>
+
+  <!-- ========== LAYER 2: GAME + WISH (green + pink) ========== -->
+  <rect x="20" y="360" width="1060" height="140" rx="6" fill="url(#game-grad)" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="40" y="385" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2e7d32">GAME LAYER — Flashback / Ahamkara Game</text>
+
+  <!-- Game library -->
+  <rect x="40" y="398" width="500" height="88" rx="4" fill="#fff" stroke="#2e7d32" stroke-width="1.2"/>
+  <text x="290" y="420" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2e7d32">ahamkara_game (static library)</text>
+  <text x="290" y="438" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#555">Gameplay rules, player movement, weapons, world simulation, AI</text>
+  <text x="290" y="454" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#555">Deathmatch / Horde / Social Hub activities, client prediction</text>
+  <text x="290" y="470" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#555">World types (Debug Javelin-4), camera, projectiles, animation adapter</text>
+
+  <!-- Wish library -->
+  <rect x="560" y="398" width="500" height="88" rx="4" fill="url(#wish-grad)" stroke="#ad1457" stroke-width="1.2"/>
+  <text x="810" y="420" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#ad1457">wish_engine (static library)</text>
+  <text x="810" y="438" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#555">Sessions, parties, matchmaking, activity lifecycle</text>
+  <text x="810" y="454" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#555">Replication, admin commands, heartbeat, metrics</text>
+  <text x="810" y="470" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#555">Nakama integration, transport config, error envelopes</text>
+
+  <!-- Dependencies from game to engine -->
+  <line x1="290" y1="363" x2="200" y2="350" stroke="#2e7d32" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrowhead-green)"/>
+  <line x1="290" y1="363" x2="500" y2="350" stroke="#2e7d32" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrowhead-green)"/>
+
+  <!-- ========== LAYER 3: PRODUCT (orange) ========== -->
+  <rect x="20" y="510" width="1060" height="100" rx="6" fill="url(#product-grad)" stroke="#e65100" stroke-width="1.5"/>
+  <text x="40" y="535" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="bold" fill="#e65100">PRODUCT LAYER — Executables</text>
+
+  <!-- Client -->
+  <rect x="40" y="548" width="310" height="50" rx="4" fill="#fff" stroke="#e65100" stroke-width="1.2"/>
+  <text x="195" y="568" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#e65100">ahamkara_client (executable)</text>
+  <text x="195" y="584" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Windowed player client (GLFW/OpenGL)</text>
+
+  <!-- Server -->
+  <rect x="380" y="548" width="310" height="50" rx="4" fill="#fff" stroke="#e65100" stroke-width="1.2"/>
+  <text x="535" y="568" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#e65100">ahamkara_server (executable)</text>
+  <text x="535" y="584" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Headless dedicated server</text>
+
+  <!-- Flashback sample -->
+  <rect x="720" y="548" width="340" height="50" rx="4" fill="#fff" stroke="#e65100" stroke-width="1.2"/>
+  <text x="890" y="568" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#e65100">flashback (sample executable)</text>
+  <text x="890" y="584" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">Thin executable over ahamkara_client_lib</text>
+
+  <!-- Line from game to product -->
+  <line x1="195" y1="498" x2="195" y2="548" stroke="#e65100" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+  <line x1="535" y1="498" x2="535" y2="548" stroke="#e65100" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+
+  <!-- ========== CLIENT-SERVER NETWORKING ========== -->
+  <!-- UDP arrow between client and server -->
+  <rect x="150" y="628" width="780" height="55" rx="6" fill="#f3f3f3" stroke="#999" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="540" y="647" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="bold" fill="#555">CLIENT-SERVER NETWORKING (UDP)</text>
+  <text x="270" y="665" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">PlayerInputCommand @ ~60 Hz</text>
+  <text x="810" y="665" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555">ServerSnapshot (state, interpolated)</text>
+  <line x1="350" y1="658" x2="730" y2="658" stroke="#555" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <line x1="730" y1="670" x2="350" y2="670" stroke="#555" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <text x="540" y="680" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="8" fill="#888">Simulated packet loss/latency via ae::NetworkSimulator</text>
+
+  <!-- ========== TARGET ARCHITECTURE SECTION ========== -->
+  <rect x="20" y="698" width="1060" height="68" rx="6" fill="url(#target-grad)" stroke="#7b1fa2" stroke-width="1.5"/>
+  <text x="40" y="718" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#7b1fa2">TARGET ARCHITECTURE — Three independent repositories</text>
+
+  <!-- Ahamkara -->
+  <rect x="40" y="728" width="310" height="28" rx="4" fill="#fff" stroke="#7b1fa2" stroke-width="1"/>
+  <text x="195" y="746" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="bold" fill="#7b1fa2">Ahamkara</text>
+  <text x="195" y="746" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555" dy="12">Reusable engine + SDK + tools</text>
+
+  <!-- Flashback -->
+  <rect x="380" y="728" width="310" height="28" rx="4" fill="#fff" stroke="#7b1fa2" stroke-width="1"/>
+  <text x="535" y="746" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="bold" fill="#7b1fa2">Flashback</text>
+  <text x="535" y="746" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555" dy="12">Game + content + composition</text>
+
+  <!-- Wish -->
+  <rect x="720" y="728" width="340" height="28" rx="4" fill="#fff" stroke="#7b1fa2" stroke-width="1"/>
+  <text x="890" y="746" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="bold" fill="#7b1fa2">Wish</text>
+  <text x="890" y="746" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#555" dy="12">Backend + sessions + activities</text>
+
+  <!-- Legend -->
+  <rect x="930" y="78" width="140" height="100" rx="4" fill="#fff" stroke="#ccc" stroke-width="0.8"/>
+  <text x="940" y="95" font-family="Helvetica, Arial, sans-serif" font-size="9" font-weight="bold" fill="#555">Legend</text>
+  <rect x="940" y="103" width="12" height="12" rx="2" fill="#1565c0"/>
+  <text x="958" y="113" font-family="Helvetica, Arial, sans-serif" font-size="8" fill="#555">Engine layer</text>
+  <rect x="940" y="119" width="12" height="12" rx="2" fill="#2e7d32"/>
+  <text x="958" y="129" font-family="Helvetica, Arial, sans-serif" font-size="8" fill="#555">Game layer</text>
+  <rect x="940" y="135" width="12" height="12" rx="2" fill="#ad1457"/>
+  <text x="958" y="145" font-family="Helvetica, Arial, sans-serif" font-size="8" fill="#555">Wish layer</text>
+  <rect x="940" y="151" width="12" height="12" rx="2" fill="#e65100"/>
+  <text x="958" y="161" font-family="Helvetica, Arial, sans-serif" font-size="8" fill="#555">Product executables</text>
+</svg>

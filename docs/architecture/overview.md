@@ -2,6 +2,10 @@
 
 Status: Current-state description plus accepted target direction
 
+> **Visual overview:** See the [system architecture diagram](architecture_overview.svg)
+> for a consolidated view of the current monorepo composition, technology stack,
+> and target three-repository destination.
+
 ## Product model
 
 The current repository is a transitional monorepo. Its root build adds core
@@ -196,3 +200,51 @@ Ahamkara hosts product games through `ae::IGameModule`:
 - Graphical and headless hosts share the same contract; presentation systems remain outside the module interface
 
 This keeps Flashback product types out of the engine while allowing deterministic headless lifecycle tests.
+
+## Technology choices
+
+The following table records the rationale behind major technology decisions in
+the Ahamkara stack.
+
+### Language and build
+
+| Decision | Choice | Rationale |
+|---|---|---|
+| Language | **C++20** | Required for modern C++ features (concepts, `std::span`, designated initializers, improved lambdas). Sufficiently mature toolchain support across GCC 11+, Clang 14+, and Apple Clang 14+. [src: file: CMakeLists.txt:10-11] |
+| Build system | **CMake ≥ 3.20** | Industry-standard C++ build system; presets provide consistent developer and CI configurations without boilerplate. [src: file: CMakeLists.txt:1-6] |
+| Build tool | **Ninja** | Fast, parallel builds; the default generator for all presets. [src: file: CMakePresets.json:13] |
+| Package format | **CMake package export** | Standard `find_package` / `add_subdirectory` workflow; out-of-tree consumer tests prove the install boundary. [src: file: CMakeLists.txt:192-206] |
+
+### Engine dependencies
+
+| Dependency | Version | Purpose | Rationale |
+|---|---|---|---|
+| **GLM** | 1.0.1 | Math library (vectors, matrices, quaternions) | Header-only, no runtime dependency; used in public API headers for `ae_core`. Not re-exported in installed packages. [src: file: CMakeLists.txt:42-47] |
+| **EnTT** | 3.13.0 | Entity-component system | Header-only, modern C++ ECS; used by gameplay and world simulation. [src: file: CMakeLists.txt:49-55] |
+| **Jolt Physics** | 5.0.0 | Rigid-body physics and collision | Production-quality open-source physics engine. Fetched only when building game/collision paths, not in engine-only package mode. [src: file: CMakeLists.txt:34-39] |
+| **miniaudio** | master | Audio playback and capture | Single-header library, minimal integration overhead. [src: file: CMakeLists.txt:57-62] |
+
+### Client platform
+
+| Decision | Choice | Rationale |
+|---|---|---|
+| Windowing / input | **GLFW 3.3+** | Cross-platform window creation and input handling; widely used, well-maintained. Required only for graphical builds. [src: file: CMakeLists.txt:158-160] |
+| Graphics API | **OpenGL** (debug renderer) | Temporary debug-renderer backend; sufficient for early-stage visualisation without committing to a full graphics API. [src: file: engine/render/CMakeLists.txt:47-59] |
+| Audio backend | **miniaudio** (via `ae_audio`) | Lightweight, portable audio runtime; wraps platform audio APIs. [src: file: engine/ui/CMakeLists.txt:1-17] |
+
+### Networking
+
+| Decision | Choice | Rationale |
+|---|---|---|
+| Transport | **UDP** | Required for low-latency, loss-tolerant game state synchronisation. TCP's head-of-line blocking is unsuitable for real-time action games. [src: file: engine/network/CMakeLists.txt:1-21] |
+| Simulation | **ae::NetworkSimulator** | Custom configurable packet loss/latency/jitter injection layer atop `UdpSocket`. Enables offline testing of degradation behaviour. [src: file: engine/network/include/ae/network/network_simulator.h] |
+
+### Architecture principles
+
+| Principle | Rationale |
+|---|---|
+| **Authoritative server** | The server is the single source of truth for game state. Clients send inputs and receive snapshots; the server validates, simulates, and broadcasts. This prevents common cheating vectors and simplifies state reconciliation. |
+| **Client-side prediction** | Clients run a local `World` copy to hide network latency. On each server snapshot, predicted state is compared against authoritative state and corrected when divergence exceeds a threshold. [src: file: game/include/ahamkara/game/client_prediction.h] |
+| **Snapshot interpolation** | The client maintains a small buffer of server snapshots and renders at a time offset that smooths out packet jitter. [src: file: engine/network/include/ae/network/snapshot_interpolator.h] |
+| **GameModule interface** | `ae::IGameModule` decouples engine lifecycle from product gameplay code, enabling deterministic headless testing and clean repository separation. [src: file: engine/core/include/ae/core/game_module.h] |
+| **Engine-only packages** | The `AHAMKARA_ENGINE_ONLY` flag produces a minimal engine package without Wish, Flashback, or client code — proving the boundary before the physical repository split. [src: file: CMakeLists.txt:114-122] |
