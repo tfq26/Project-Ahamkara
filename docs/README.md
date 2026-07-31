@@ -37,9 +37,9 @@ rationale independently of that issue.
 | [`design/`](design/README.md) | Proposed or accepted designs that have not become simple subsystem facts |
 | [`systems/`](systems/README.md) | Current implementation truth for individual subsystems |
 | [`guides/`](guides/README.md) | Build, maintenance, operation, and contributor workflows |
-| [`operations/`](operations/debug-operations.md) | Troubleshooting, diagnostics, error codes, and runbooks |
+| [`operations/`](operations/README.md) | Troubleshooting, diagnostics, error codes, and runbooks |
 | [`wish/`](wish/README.md) | Transitional Wish implementation notes until Wish is extracted |
-| [`roadmap/`](roadmap/roadmap.md) | Strategic direction only; executable work stays in GitHub Issues |
+| [`roadmap/`](roadmap/README.md) | Strategic direction only; executable work stays in GitHub Issues |
 | [`reports/`](reports/README.md) | Historical investigations and implementation evidence |
 | [`vault/`](vault/README.md) | Lightweight project memory, decisions, and agent orientation |
 
