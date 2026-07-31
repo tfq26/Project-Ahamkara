@@ -13,6 +13,9 @@ logs/
 .kronn/tmp/
 .kronn/
 .worktrees/
+.worktree.json
+_agent_results/
+plan_artifact.md
 
 build-issue55/
 build-#55/
@@ -27,5 +30,6 @@ _agent_results/
 # Node.js / pnpm
 node_modules/
 dist/
+backend/dist/
 .turbo/
 *.tsbuildinfo

@@ -1,56 +1,37 @@
 # Ahamkara Backend
 
-Hono-based HTTP backend for the Ahamkara project. Serves the built Vue.js frontend and provides API endpoints.
+Hono-based HTTP backend that serves the Ahamkara frontend SPA with static file support and client-side routing fallback.
 
-## Quick Start
+## Quick start
 
 ```bash
-# Install dependencies
+cd backend
 npm install
-
-# Start development server (with hot reload)
-npm run dev
-
-# Build TypeScript
-npm run build
-
-# Start production server
-npm start
-```
-
-## API Endpoints
-
-| Method | Path          | Description        |
-| ------ | ------------- | ------------------ |
-| GET    | `/api/health` | Health check       |
-
-### Health Check
-
-```bash
-curl http://localhost:3000/api/health
-# → { "status": "ok", "timestamp": "2026-07-30T21:00:00.000Z" }
-```
-
-## Frontend
-
-The static file server serves the built frontend from `./dist/`. To serve your Vue.js app:
-
-```bash
-# Build the frontend and copy output to backend/dist/
-npm run build  # in the frontend project
-cp -r frontend/dist/* backend/dist/
+npm run dev    # development with hot-reload
+npm start      # production
 ```
 
 ## Configuration
 
-Configuration is via environment variables (see `.env.example`):
+| Variable      | Default                        | Description                              |
+|---------------|--------------------------------|------------------------------------------|
+| `PORT`        | `3000`                         | HTTP server port                         |
+| `STATIC_ROOT` | `<repo>/frontend/dist` | Path to built frontend assets            |
 
-| Variable | Default | Description          |
-| -------- | ------- | -------------------- |
-| `PORT`   | `3000`  | HTTP server port     |
+## Architecture
 
-## Tests
+```
+Request → API routes → Static file middleware → SPA fallback (index.html)
+```
+
+1. **API routes** (e.g. `/api/health`) are registered first and short-circuit.
+2. **Static middleware** serves existing files from `STATIC_ROOT`; calls `next()` when a file is not found.
+3. **SPA fallback** returns `index.html` for any unmatched GET request, enabling client-side routing.
+
+## Testing
 
 ```bash
 npm test
 ```
+
+Uses [vitest](https://vitest.dev/) with Hono's built-in `app.request()` for integration tests without a running server.
