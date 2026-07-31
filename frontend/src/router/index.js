@@ -1,15 +1,34 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Marketing from '../views/Marketing.vue'
-import Docs from '../views/Docs.vue'
 
 const routes = [
-  { path: '/', name: 'Marketing', component: Marketing },
-  { path: '/docs', name: 'Docs', component: Docs },
+  {
+    path: '/',
+    name: 'home',
+    component: () => import('../views/HomeView.vue'),
+  },
+  {
+    path: '/engine',
+    name: 'engine',
+    component: () => import('../views/EngineView.vue'),
+  },
+  {
+    path: '/wish',
+    name: 'wish',
+    component: () => import('../views/WishView.vue'),
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    component: () => import('../views/NotFoundView.vue'),
+  },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior() {
+    return { top: 0 }
+  },
 })
 
 export default router

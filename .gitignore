@@ -22,6 +22,7 @@ build-#55/
 build-engine-only/
 tests/out_of_tree_consumer/build/
 
+<<<<<<< HEAD
 # Worktree / agent artifacts
 .worktree.json
 plan_artifact.md
@@ -35,3 +36,8 @@ backend/dist/
 *.tsbuildinfonode_modules/
 dist/
 >>>>>>> forgejo/issue-4b85475d
+=======
+# Frontend
+/frontend/node_modules/
+/frontend/dist/
+>>>>>>> forgejo/issue-9acc3c95
