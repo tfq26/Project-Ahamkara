@@ -32,4 +32,6 @@ node_modules/
 dist/
 backend/dist/
 .turbo/
-*.tsbuildinfo
+*.tsbuildinfonode_modules/
+dist/
+>>>>>>> forgejo/issue-4b85475d
