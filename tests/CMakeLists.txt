@@ -249,8 +249,9 @@ add_test(
 )
 
 add_test(
-    NAME docs_accessibility_tests
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/src/docs_accessibility_tests.py
+    NAME website_marketing_page_tests
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/src/website_marketing_page_tests.py
+
 )
 
 add_executable(ahamkara_nakama_bridge_tests
