@@ -1,0 +1,209 @@
+{
+    "name": "Documentation",
+    "elements": [
+        {
+            "type": "panel",
+            "x": 0.5, "y": 0.50,
+            "anchor": "center",
+            "width": 920, "height": 580,
+            "rounding": 8,
+            "color": "panel",
+            "elements": [
+                {
+                    "type": "docs_viewer",
+                    "x": 0, "y": 0,
+                    "width": 920, "height": 500,
+                    "elements": [
+                        {
+                            "type": "docs_section",
+                            "id": "architecture",
+                            "label": "Architecture",
+                            "elements": [
+                                {
+                                    "type": "text",
+                                    "content": "The Ahamkara engine follows a layered architecture:",
+                                    "font": "body",
+                                    "color": "text_primary",
+                                    "x": 10, "y": 50,
+                                    "anchor": "top_left"
+                                },
+                                {
+                                    "type": "text",
+                                    "content": "Engine Core (ae_core) provides math, logging, and utility types.",
+                                    "font": "small",
+                                    "color": "text_secondary",
+                                    "x": 10, "y": 85,
+                                    "anchor": "top_left"
+                                },
+                                {
+                                    "type": "text",
+                                    "content": "Engine Network (ae_network) handles UDP/MVPE transport.",
+                                    "font": "small",
+                                    "color": "text_secondary",
+                                    "x": 10, "y": 105,
+                                    "anchor": "top_left"
+                                },
+                                {
+                                    "type": "text",
+                                    "content": "Engine Runtime (ae_runtime) manages world/session lifecycle.",
+                                    "font": "small",
+                                    "color": "text_secondary",
+                                    "x": 10, "y": 125,
+                                    "anchor": "top_left"
+                                },
+                                {
+                                    "type": "text",
+                                    "content": "Engine Render (ae_render) provides OpenGL rendering pipeline.",
+                                    "font": "small",
+                                    "color": "text_secondary",
+                                    "x": 10, "y": 145,
+                                    "anchor": "top_left"
+                                },
+                                {
+                                    "type": "text",
+                                    "content": "Key abstractions:",
+                                    "font": "body",
+                                    "color": "text_primary",
+                                    "x": 10, "y": 180,
+                                    "anchor": "top_left"
+                                },
+                                {
+                                    "type": "code_block",
+                                    "language": "cpp",
+                                    "content": "class World {\n  EntityRegistry registry;\n  SystemManager systems;\npublic:\n  void tick(float dt);\n  Entity spawn();\n};"
+                                },
+                                {
+                                    "type": "text",
+                                    "content": "Systems communicate via ECS (EnTT). Simulation is deterministic across client/server.",
+                                    "font": "small",
+                                    "color": "text_secondary",
+                                    "x": 10, "y": 280,
+                                    "anchor": "top_left"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "docs_section",
+                            "id": "api_reference",
+                            "label": "API Reference",
+                            "elements": [
+                                {
+                                    "type": "text",
+                                    "content": "Core API types and their usage:",
+                                    "font": "body",
+                                    "color": "text_primary",
+                                    "x": 10, "y": 50,
+                                    "anchor": "top_left"
+                                },
+                                {
+                                    "type": "code_block",
+                                    "language": "cpp",
+                                    "content": "#include <ae/core/math.h>\n#include <ae/runtime/world.h>\n\nvoid setup_world() {\n  auto world = World::create();\n  auto player = world.spawn();\n  player.add<Transform>({0,0,0});\n  player.add<Velocity>({1,0,0});\n  world.tick(0.016f);\n}"
+                                },
+                                {
+                                    "type": "text",
+                                    "content": "Network API for session management:",
+                                    "font": "body",
+                                    "color": "text_primary",
+                                    "x": 10, "y": 210,
+                                    "anchor": "top_left"
+                                },
+                                {
+                                    "type": "code_block",
+                                    "language": "cpp",
+                                    "content": "auto session = NetworkSession::connect(endpoint);\nsession->send(Packet::Type::Join, player_data);\nsession->poll([](const Packet& pkt) {\n  handle_packet(pkt);\n});"
+                                },
+                                {
+                                    "type": "text",
+                                    "content": "IMPORTANT: All network calls must be made from the main thread.",
+                                    "font": "small",
+                                    "color": "warning",
+                                    "x": 10, "y": 320,
+                                    "anchor": "top_left"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "docs_section",
+                            "id": "deployment_guide",
+                            "label": "Deployment Guide",
+                            "elements": [
+                                {
+                                    "type": "text",
+                                    "content": "Building for deployment:",
+                                    "font": "body",
+                                    "color": "text_primary",
+                                    "x": 10, "y": 50,
+                                    "anchor": "top_left"
+                                },
+                                {
+                                    "type": "text",
+                                    "content": "1. Configure: cmake --preset release",
+                                    "font": "small",
+                                    "color": "text_secondary",
+                                    "x": 10, "y": 85,
+                                    "anchor": "top_left"
+                                },
+                                {
+                                    "type": "text",
+                                    "content": "2. Build: cmake --build --preset release",
+                                    "font": "small",
+                                    "color": "text_secondary",
+                                    "x": 10, "y": 105,
+                                    "anchor": "top_left"
+                                },
+                                {
+                                    "type": "text",
+                                    "content": "3. Package: cpack --config build/release/CPackConfig.cmake",
+                                    "font": "small",
+                                    "color": "text_secondary",
+                                    "x": 10, "y": 125,
+                                    "anchor": "top_left"
+                                },
+                                {
+                                    "type": "text",
+                                    "content": "Docker deployment:",
+                                    "font": "body",
+                                    "color": "text_primary",
+                                    "x": 10, "y": 165,
+                                    "anchor": "top_left"
+                                },
+                                {
+                                    "type": "code_block",
+                                    "language": "bash",
+                                    "content": "docker build -t ahamkara-server -f Dockerfile .\ndocker run -d -p 7777:7777/udp ahamkara-server"
+                                },
+                                {
+                                    "type": "text",
+                                    "content": "Configuration via environment variables:",
+                                    "font": "body",
+                                    "color": "text_primary",
+                                    "x": 10, "y": 260,
+                                    "anchor": "top_left"
+                                },
+                                {
+                                    "type": "code_block",
+                                    "language": "bash",
+                                    "content": "export AHAMKARA_PORT=7777\nexport AHAMKARA_MAX_PLAYERS=16\n./ahamkara_server"
+                                },
+                                {
+                                    "type": "spacer",
+                                    "height": 200
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "button",
+                    "label": "BACK",
+                    "style": "secondary",
+                    "action": "pop_screen",
+                    "x": 0.5, "y": 510,
+                    "anchor": "top_center",
+                    "width": 200
+                }
+            ]
+        }
+    ]
+}

@@ -46,6 +46,8 @@ public:
         std::string map_id;
         std::string description;
         std::string players;
+        std::string id;         // docs section id
+        std::string language;   // code block language
         std::string anchor;
         float x{0}, y{0};
         float width{0}, height{0};

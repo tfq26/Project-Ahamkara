@@ -114,6 +114,8 @@ void parse_element(MiniJson& j, MenuSystem::ParsedElement& el) {
         else if (key == "map_id") el.map_id = j.read_string();
         else if (key == "description") el.description = j.read_string();
         else if (key == "players") el.players = j.read_string();
+        else if (key == "id") el.id = j.read_string();
+        else if (key == "language") el.language = j.read_string();
         else if (key == "anchor") el.anchor = j.read_string();
         else if (key == "x") el.x = j.read_number();
         else if (key == "y") el.y = j.read_number();
@@ -507,6 +509,229 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
                         {pos.x + std::cos(a2) * r * 0.5f, pos.y + std::sin(a2) * r * 0.5f},
                         c, t);
         }
+        return;
+    }
+
+    if (el.type == "docs_viewer") {
+        // Determine active section index from float_vars convention.
+        std::string var_name = "docs_active_" + std::to_string(reinterpret_cast<uintptr_t>(&el));
+        auto var_it = float_vars_.find(var_name);
+        int active_idx = var_it != float_vars_.end() ? static_cast<int>(var_it->second) : 0;
+        active_idx = std::clamp(active_idx, 0, static_cast<int>(el.elements.size()) - 1);
+
+        float el_w_scaled = el.width > 0 ? el.width * io.DisplayFramebufferScale.x : 800;
+        float el_h_scaled = el.height > 0 ? el.height * io.DisplayFramebufferScale.y : 500;
+        auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
+                                     offset_x, offset_y, parent_w, parent_h, el_w_scaled, el_h_scaled);
+
+        // Split: sidebar (left 220px) + content area
+        float sidebar_w = 220.0f * io.DisplayFramebufferScale.x;
+        float content_x = pos.x + sidebar_w + 4.0f;
+        float content_w = el_w_scaled - sidebar_w - 4.0f;
+
+        // ── Sidebar panel ──
+        auto sidebar_bg = get_theme_color(theme_.colors, "panel");
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, sidebar_bg);
+        ImGui::SetCursorScreenPos({pos.x, pos.y});
+        std::string sbar_id = "##docs_sbar_" + std::to_string(reinterpret_cast<uintptr_t>(&el));
+        if (ImGui::BeginChild(sbar_id.c_str(), {sidebar_w, el_h_scaled}, ImGuiChildFlags_Border)) {
+            auto accent = get_theme_color(theme_.colors, "accent");
+            auto text_primary = get_theme_color(theme_.colors, "text_primary");
+            auto text_secondary = get_theme_color(theme_.colors, "text_secondary");
+            auto btn_sec = get_theme_color(theme_.colors, "button_secondary");
+            auto btn_sec_hover = get_theme_color(theme_.colors, "button_secondary_hover");
+
+            // Title
+            ImGui::PushStyleColor(ImGuiCol_Text, accent);
+            ImGui::SetWindowFontScale(1.3f);
+            ImGui::TextUnformatted("DOCS");
+            ImGui::SetWindowFontScale(1.0f);
+            ImGui::PopStyleColor();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            // Section buttons
+            for (int i = 0; i < static_cast<int>(el.elements.size()); ++i) {
+                bool is_active = (i == active_idx);
+                ImGui::PushStyleColor(ImGuiCol_Button, is_active ? accent : btn_sec);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, is_active ? accent : btn_sec_hover);
+                ImGui::PushStyleColor(ImGuiCol_Text, text_primary);
+                ImGui::SetWindowFontScale(0.95f);
+                float btn_w = sidebar_w - 16.0f;
+                if (ImGui::Button((el.elements[i].label + "##" + sbar_id + "_" + std::to_string(i)).c_str(),
+                                  {btn_w, 36.0f})) {
+                    float_vars_[var_name] = static_cast<float>(i);
+                }
+                ImGui::SetWindowFontScale(1.0f);
+                ImGui::PopStyleColor(3);
+                ImGui::Spacing();
+            }
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+
+        // ── Content panel ──
+        ImGui::SetCursorScreenPos({content_x, pos.y});
+        auto content_bg = get_theme_color(theme_.colors, "panel");
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, content_bg);
+        std::string cid = "##docs_content_" + std::to_string(reinterpret_cast<uintptr_t>(&el));
+        if (ImGui::BeginChild(cid.c_str(), {content_w, el_h_scaled}, ImGuiChildFlags_Border)) {
+            if (active_idx >= 0 && active_idx < static_cast<int>(el.elements.size())) {
+                render_element(el.elements[active_idx], content_x, pos.y, content_w, el_h_scaled);
+            }
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+        return;
+    }
+
+    if (el.type == "docs_section") {
+        // Render section content: title + children
+        auto accent = get_theme_color(theme_.colors, "accent");
+        auto text_primary = get_theme_color(theme_.colors, "text_primary");
+
+        ImGui::PushStyleColor(ImGuiCol_Text, accent);
+        ImGui::SetWindowFontScale(1.5f);
+        ImGui::TextUnformatted(el.label.c_str());
+        ImGui::SetWindowFontScale(1.0f);
+        ImGui::PopStyleColor();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        for (const auto& child : el.elements) {
+            render_element(child, offset_x, offset_y, parent_w, parent_h);
+        }
+        return;
+    }
+
+    if (el.type == "code_block") {
+        // Simple syntax highlighting: keywords in magenta, strings green, numbers yellow, rest white
+        auto text_primary = get_theme_color(theme_.colors, "text_primary");
+        ImVec4 keyword_col = {0.85f, 0.25f, 0.85f, 1.0f}; // magenta
+        ImVec4 string_col = {0.35f, 0.85f, 0.35f, 1.0f};  // green
+        ImVec4 number_col = {0.90f, 0.80f, 0.20f, 1.0f};  // yellow
+        ImVec4 comment_col = {0.45f, 0.50f, 0.55f, 1.0f}; // gray
+
+        // C++ keywords for highlighting
+        static const char* keywords[] = {
+            "auto", "bool", "break", "case", "catch", "char", "class", "const", "constexpr",
+            "continue", "default", "do", "double", "else", "enum", "explicit", "extern",
+            "false", "float", "for", "friend", "goto", "if", "inline", "int", "long",
+            "mutable", "namespace", "new", "noexcept", "nullptr", "operator", "private",
+            "protected", "public", "return", "short", "signed", "sizeof", "static",
+            "struct", "switch", "template", "this", "throw", "true", "try", "typedef",
+            "typeid", "typename", "union", "unsigned", "using", "virtual", "void",
+            "volatile", "while", "override", "final", "default", "delete", "include",
+            "define", "ifdef", "endif", "pragma"
+        };
+
+        auto code_bg = ImVec4(0.07f, 0.08f, 0.12f, 0.95f);
+        float avail_w = ImGui::GetContentRegionAvail().x;
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, code_bg);
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 4.0f);
+        std::string cb_id = "##code_" + std::to_string(reinterpret_cast<uintptr_t>(&el));
+
+        // Language label
+        if (!el.language.empty()) {
+            auto text_secondary = get_theme_color(theme_.colors, "text_secondary");
+            ImGui::PushStyleColor(ImGuiCol_Text, text_secondary);
+            ImGui::SetWindowFontScale(0.75f);
+            ImGui::TextUnformatted(el.language.c_str());
+            ImGui::SetWindowFontScale(1.0f);
+            ImGui::PopStyleColor();
+        }
+
+        if (ImGui::BeginChild(cb_id.c_str(), {avail_w, 0}, ImGuiChildFlags_Border)) {
+            ImGui::PushStyleColor(ImGuiCol_Text, text_primary);
+            ImGui::PushFont(nullptr); // default font
+            ImGui::SetWindowFontScale(0.90f);
+
+            // Tokenize and render with syntax highlighting
+            std::string code_str = el.content;
+            const char* p = code_str.c_str();
+            while (*p) {
+                // Skip whitespace
+                if (*p == ' ' || *p == '\t') {
+                    const char* ws_start = p;
+                    while (*p == ' ' || *p == '\t') ++p;
+                    ImGui::TextUnformatted(std::string(ws_start, p - ws_start).c_str());
+                    ImGui::SameLine(0, 0);
+                    continue;
+                }
+                // Newline
+                if (*p == '\n') {
+                    ++p;
+                    ImGui::TextUnformatted("");
+                    continue;
+                }
+                // Comment (line)
+                if (*p == '/' && *(p+1) == '/') {
+                    const char* comment_start = p;
+                    while (*p && *p != '\n') ++p;
+                    ImGui::PushStyleColor(ImGuiCol_Text, comment_col);
+                    ImGui::TextUnformatted(std::string(comment_start, p - comment_start).c_str());
+                    ImGui::PopStyleColor();
+                    if (*p == '\n') { ImGui::TextUnformatted(""); ++p; }
+                    continue;
+                }
+                // String literal
+                if (*p == '"') {
+                    const char* str_start = p;
+                    ++p; // skip opening "
+                    while (*p && (*p != '"' || *(p-1) == '\\')) ++p;
+                    if (*p == '"') ++p;
+                    ImGui::PushStyleColor(ImGuiCol_Text, string_col);
+                    ImGui::TextUnformatted(std::string(str_start, p - str_start).c_str());
+                    ImGui::PopStyleColor();
+                    ImGui::SameLine(0, 0);
+                    continue;
+                }
+                // Number
+                if (std::isdigit(*p) || (*p == '-' && std::isdigit(*(p+1)))) {
+                    const char* num_start = p;
+                    if (*p == '-') ++p;
+                    while (std::isalnum(*p) || *p == '.' || *p == 'x' || *p == 'X' ||
+                           *p == 'u' || *p == 'U' || *p == 'f' || *p == 'F') ++p;
+                    ImGui::PushStyleColor(ImGuiCol_Text, number_col);
+                    ImGui::TextUnformatted(std::string(num_start, p - num_start).c_str());
+                    ImGui::PopStyleColor();
+                    ImGui::SameLine(0, 0);
+                    continue;
+                }
+                // Identifier / keyword
+                if (std::isalpha(*p) || *p == '_' || *p == '#') {
+                    const char* ident_start = p;
+                    while (std::isalnum(*p) || *p == '_') ++p;
+                    std::string token(ident_start, p - ident_start);
+                    bool is_keyword = false;
+                    for (const char* kw : keywords) {
+                        if (token == kw) { is_keyword = true; break; }
+                    }
+                    if (is_keyword) {
+                        ImGui::PushStyleColor(ImGuiCol_Text, keyword_col);
+                    }
+                    ImGui::TextUnformatted(token.c_str());
+                    if (is_keyword) {
+                        ImGui::PopStyleColor();
+                    }
+                    ImGui::SameLine(0, 0);
+                    continue;
+                }
+                // Punctuation / operators: single char
+                {
+                    char single[2] = {*p, 0};
+                    ImGui::TextUnformatted(single);
+                    ImGui::SameLine(0, 0);
+                    ++p;
+                }
+            }
+
+            ImGui::SetWindowFontScale(1.0f);
+            ImGui::PopStyleColor(); // text_primary
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor(); // code_bg
         return;
     }
 

@@ -114,15 +114,8 @@ install(FILES
 # ── Wish backend separate package ─────────────────────────────────────────
 # Export wish_engine to its own target set so consumer projects can use
 # find_package(Wish CONFIG) independently of the Ahamkara package.
+# Note: wish_engine target install is handled in wish/CMakeLists.txt.
 if(TARGET wish_engine)
-    install(TARGETS wish_engine
-        EXPORT  WishTargets
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Wish
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Wish
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Wish
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    )
-
     install(EXPORT WishTargets
         FILE    WishTargets.cmake
         NAMESPACE Wish::
