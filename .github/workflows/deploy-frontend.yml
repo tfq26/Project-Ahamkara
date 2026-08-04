@@ -20,7 +20,7 @@ permissions:
 jobs:
   build-and-deploy:
     name: Build & Deploy
-    runs-on: [self-hosted, linux]
+    runs-on: [ubuntu-latest]
     container:
       image: node:20-bookworm
 
