@@ -253,6 +253,11 @@ add_test(
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/src/docs_accessibility_tests.py
 )
 
+add_test(
+    NAME landing_page_wish_framework_tests
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/unit/landing_page/landing_page_wish_framework_test.py
+)
+
 add_executable(ahamkara_nakama_bridge_tests
     src/nakama_bridge_tests.cpp
 )
