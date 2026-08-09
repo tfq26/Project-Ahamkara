@@ -83,6 +83,7 @@ public:
     static std::string make_json_response(std::string body);
     static std::string make_error_response(int status_code, std::string_view status_text, std::string body);
     static std::string escape_json(std::string_view text);
+    static std::string escape_html(std::string_view text);
     static std::string render_health(const ServerStatus& status);
     static std::string render_match_status(const ServerStatus& status);
     static std::string render_players(const ServerStatus& status);

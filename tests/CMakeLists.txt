@@ -820,3 +820,31 @@ target_include_directories(ahamkara_docs_viewer_tests
 )
 
 add_test(NAME ahamkara_docs_viewer_tests COMMAND ahamkara_docs_viewer_tests)
+
+# --- Landing page integration test ---
+# Starts the real Wish admin HTTP server on a loopback port, fetches / and
+# /index.html, and verifies the landing page content and XSS-safety. The
+# admin server implementation (admin_server.cpp) is compiled directly since
+# it is not part of the wish_engine library.
+add_executable(ahamkara_landing_page_tests
+    integration/test_landing_page.cpp
+    ../wish/admin/admin_server.cpp
+)
+
+target_compile_features(ahamkara_landing_page_tests PRIVATE cxx_std_20)
+
+target_include_directories(ahamkara_landing_page_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_link_libraries(ahamkara_landing_page_tests
+    PRIVATE
+        wish_engine
+)
+
+if(WIN32)
+    target_link_libraries(ahamkara_landing_page_tests PRIVATE ws2_32)
+endif()
+
+add_test(NAME ahamkara_landing_page_tests COMMAND ahamkara_landing_page_tests)

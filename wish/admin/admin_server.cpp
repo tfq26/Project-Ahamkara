@@ -352,6 +352,34 @@ std::string HttpAdminServer::escape_json(std::string_view text) {
     return escaped;
 }
 
+std::string HttpAdminServer::escape_html(std::string_view text) {
+    std::string escaped;
+    escaped.reserve(text.size());
+    for (const char c : text) {
+        switch (c) {
+        case '&':
+            escaped += "&amp;";
+            break;
+        case '<':
+            escaped += "&lt;";
+            break;
+        case '>':
+            escaped += "&gt;";
+            break;
+        case '"':
+            escaped += "&quot;";
+            break;
+        case '\'':
+            escaped += "&#39;";
+            break;
+        default:
+            escaped += c;
+            break;
+        }
+    }
+    return escaped;
+}
+
 std::string HttpAdminServer::render_info_page(const ServerStatus& status) {
     std::ostringstream stream;
 
@@ -388,7 +416,7 @@ std::string HttpAdminServer::render_info_page(const ServerStatus& status) {
            << "ul{list-style:none;padding:0}\n"
            << "li{padding:4px 0}\n"
            << "</style>\n</head>\n<body>\n"
-           << "<h1>\U0001f3ae Ahamkara &mdash; " << escape_json(status.game_name) << "</h1>\n";
+           << "<h1>\U0001f3ae Ahamkara &mdash; " << escape_html(status.game_name) << "</h1>\n";
 
     stream << "<h2>Server Status</h2>\n<table>\n"
            << "<tr><th>Status</th><td class=\"ok\">Running</td></tr>\n"
@@ -416,7 +444,7 @@ std::string HttpAdminServer::render_info_page(const ServerStatus& status) {
     } else {
         stream << "<table>\n<tr><th>Endpoint</th><th>Last Seen</th></tr>\n";
         for (const auto& player : status.players) {
-            stream << "<tr><td>" << escape_json(player.endpoint) << "</td><td>"
+            stream << "<tr><td>" << escape_html(player.endpoint) << "</td><td>"
                    << fmt_duration(player.seconds_since_seen) << " ago</td></tr>\n";
         }
         stream << "</table>\n";

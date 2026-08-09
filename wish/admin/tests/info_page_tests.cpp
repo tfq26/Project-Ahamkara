@@ -112,6 +112,36 @@ int test_render_without_match_remaining() {
     return 0;
 }
 
+int test_render_xss_safe() {
+    wish::admin::ServerStatus status {};
+    status.game_name = "<script>alert('game')</script>";
+    status.match_active = false;
+
+    wish::admin::PlayerStatus p1;
+    p1.endpoint = "<img src=x onerror=alert('player')>";
+    p1.seconds_since_seen = 1.0F;
+    status.players.push_back(p1);
+
+    const std::string html = wish::admin::HttpAdminServer::render_info_page(status);
+
+    int failures = 0;
+    // Raw unescaped user input must never reach the rendered document.
+    if (html.find("<script>alert('game')</script>") != std::string::npos) {
+        failures += fail("raw <script> payload must be HTML-escaped");
+    }
+    if (html.find("<img src=x onerror=alert('player')>") != std::string::npos) {
+        failures += fail("raw <img> payload must be HTML-escaped");
+    }
+    failures += expect_contains(html, "&lt;script&gt;alert(&#39;game&#39;)&lt;/script&gt;", "escaped game name");
+    failures += expect_contains(html, "&lt;img src=x onerror=alert(&#39;player&#39;)&gt;", "escaped player endpoint");
+
+    if (failures > 0) {
+        return fail(std::to_string(failures) + " XSS escaping checks failed");
+    }
+    std::cout << "test_render_xss_safe: ok\n";
+    return 0;
+}
+
 } // namespace
 
 int main() {
@@ -120,6 +150,7 @@ int main() {
     failures += test_render_full_page();
     failures += test_render_with_players();
     failures += test_render_without_match_remaining();
+    failures += test_render_xss_safe();
 
     if (failures > 0) {
         std::cerr << failures << " info page test(s) FAILED.\n";
