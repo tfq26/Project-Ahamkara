@@ -19,9 +19,10 @@ from pathlib import Path
 # parents up.
 ROOT = Path(__file__).resolve().parents[3]
 
-# Files covered by the issue. The primary landing page HTML is
-# public/index.html; the full marketing landing page HTML + CSS pair is
-# site/index.html + site/styles.css (deployed via vercel.json).
+# Files covered by the issue. The root landing page pair is
+# public/index.html + public/styles.css; the full marketing landing page
+# HTML + CSS pair is site/index.html + site/styles.css (deployed via
+# vercel.json).
 #
 # Each entry maps a required section to the keyword that a documenting
 # comment for that section must mention (case-insensitive).
@@ -32,6 +33,14 @@ FILES = {
         "inline_styles": "stylesheet",
         "main_content": "main",
         "spa_redirect": "spa redirect",
+    },
+    "public/styles.css": {
+        "file_intent": "stylesheet",
+        "design_tokens": "design tokens",
+        "layout": "layout",
+        "container": "container",
+        "typography": "typography",
+        "link_group": "link group",
     },
     "site/index.html": {
         "file_intent": "landing page",

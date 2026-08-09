@@ -1,0 +1,110 @@
+/* =========================================================================
+   Ahamkara root landing page — stylesheet (public/styles.css)
+
+   This is the extracted, standalone stylesheet for public/index.html.
+   The inline <style> block in index.html mirrors these rules but is kept
+   self-contained so the HTML works from a single file (useful for
+   Forgejo/Cloudflare Pages deployments and offline inspection).
+
+   This file is the documented reference copy. If the inline styles drift,
+   this file is the source of truth for the visual decisions.
+
+   Sections (in file order):
+     1. Design tokens          :root custom properties / CSS variables
+     2. Layout                 body flex centring + dark palette
+     3. Container              <main> wrapper
+     4. Typography             headings, paragraphs, links
+     5. Link group             .links spacing
+
+   Design system: minimal GitHub-dark palette (#0d1117 base), single
+   accent (blue #58a6ff -> purple #bc8cff gradient). No external fonts
+   or images — the page uses the OS-native UI font stack.
+   ========================================================================= */
+
+
+/* ----------------------- 1. Design tokens ------------------------------- */
+/* :root holds the design tokens shared by the page. color-scheme: dark
+   hints to the browser that native form controls (if any) should render
+   in dark mode. The font-family stack favours the platform UI font for a
+   native, zero-dependency look across operating systems. */
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* ----------------------- 2. Layout -------------------------------------- */
+/* Body reset: zero margin to remove browser defaults, min-height: 100vh
+   so the flex centring fills the full viewport. Flexbox with column
+   direction + align-items/justify-content:center places the <main> card
+   exactly in the middle of the screen on both axes.
+   
+   Background #0d1117 is GitHub's dark colour (slightly warmer than
+   pure black, easier on the eyes). Text colour #c9d1d9 is a soft
+   grey-blue chosen for comfortable reading on dark backgrounds. */
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #0d1117;
+  color: #c9d1d9;
+}
+
+/* ----------------------- 3. Container ----------------------------------- */
+/* <main> is the semantic content wrapper. max-width: 640px caps line
+   length for readability on wide monitors (a line of text should not
+   exceed ~75 characters). padding: 2rem prevents content from touching
+   the viewport edge on small screens. text-align: center keeps the
+   minimal landing page copy centred. */
+main {
+  max-width: 640px;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* ----------------------- 4. Typography ---------------------------------- */
+/* <h1> — the "Ahamkara" title. font-size: 2.5rem gives it visual weight
+   without overwhelming the page. The gradient (blue #58a6ff to purple
+   #bc8cff) creates the brand accent without an image asset — the
+   -webkit-background-clip and -webkit-text-fill-color properties clip
+   the gradient to the glyph shapes. A non-WebKit fallback would show
+   the body text colour, which is still legible. */
+h1 {
+  font-size: 2.5rem;
+  margin: 0 0 0.5rem;
+  background: linear-gradient(135deg, #58a6ff, #bc8cff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* <p> — body copy. line-height: 1.6 provides comfortable vertical
+   rhythm between lines. Colour #8b949e is muted grey for secondary
+   text, distinct from the brighter body colour. */
+p {
+  line-height: 1.6;
+  color: #8b949e;
+}
+
+/* <a> — links use the same blue as the title gradient start.
+   text-decoration: none removes the default underline for a cleaner
+   look; the underline appears on hover via a:hover.
+   Colour: #58a6ff (blue accent). */
+a {
+  color: #58a6ff;
+  text-decoration: none;
+}
+
+/* Link hover: the underline reappears on hover to provide a clear
+   interactive affordance without additional code. */
+a:hover {
+  text-decoration: underline;
+}
+
+/* ----------------------- 5. Link group ---------------------------------- */
+/* .links — margin-top: 2rem pushes the link row away from the paragraph
+   text above, creating visual rhythm between the sections. */
+.links {
+  margin-top: 2rem;
+}
