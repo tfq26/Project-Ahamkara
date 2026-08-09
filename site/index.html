@@ -1,18 +1,53 @@
 <!DOCTYPE html>
+<!--
+  Ahamkara marketing landing page (site/).
+
+  This is the full static marketing page deployed to Vercel (see
+  vercel.json -> outputDirectory "site"). It is a pure static site: no
+  build step, no framework. Styling is in styles.css and the only
+  behaviour enhancement lives in scripts.js (smooth scrolling).
+
+  Page sections (top to bottom):
+    1. <nav class="navbar">        fixed navigation bar with anchor links
+    2. <header class="hero">       full-viewport hero with background art
+    3. <section #ahamkara>         "What is Ahamkara?" engine pitch
+    4. <section #wish>             "What is Wish?" backend/platform pitch
+    5. <section #inspiration>      inspiration cards
+    6. <footer class="footer">     brand + attribution
+
+  Dynamic content injection points:
+    - <script src="scripts.js"> attaches smooth-scroll behaviour for the
+      in-page anchor links (offset for the fixed navbar).
+    - Section backgrounds (hero-bg, section-bg) are pure CSS/asset layers
+      laid out behind the text; no JS is required for them.
+-->
 <html lang="en">
 <head>
+  <!-- charset and viewport are required for correct rendering on all
+       devices and must appear early in <head>. -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ahamkara — Game Engine</title>
+  <!-- SEO/meta description surfaced by search engines and social previews. -->
   <meta name="description" content="Ahamkara: A custom C++20 game engine and multiplayer tech demo. Discover what Ahamkara is, what Wish is, and what inspired the project.">
+
+  <!-- Font preconnects: open connections to Google Fonts before the CSS is
+       parsed so font files download sooner. crossorigin is required because
+       fonts are fetched with CORS. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Two font families: Inter for body/UI text, Rajdhani for display
+       headings and the condensed brand look. -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Site stylesheet: all visual styling lives in styles.css. -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- Navigation -->
+  <!-- ============ Navigation ============
+       Fixed to the top of the viewport. Contains the brand mark and
+       anchor links that scroll to the page sections below. -->
   <nav class="navbar" aria-label="Main navigation">
     <div class="nav-inner">
       <a href="#" class="nav-logo">AHAMKARA</a>
@@ -24,7 +59,13 @@
     </div>
   </nav>
 
-  <!-- Hero Section -->
+  <!-- ============ Hero Section ============
+       First impression: full-viewport header. Layers:
+         - .hero-bg     : background photo (Javelin-4.jpg) + decorative
+                          grid/glow overlay (pure CSS, see styles.css)
+         - .hero-overlay: secondary SVG overlay for extra depth
+         - .hero-content: centred text + call-to-action buttons
+         - .scroll-indicator: visual affordance that more content follows -->
   <header class="hero" id="hero">
     <div class="hero-bg" role="img" aria-label="Ahamkara hero background"></div>
     <div class="hero-overlay"></div>
@@ -34,6 +75,8 @@
       <p class="hero-sub">Built from scratch. Engineered for performance.</p>
       <p class="hero-desc">A custom game engine and multiplayer tech demo — with an independent backend platform that powers sessions, identity, and activities.</p>
       <div class="hero-actions">
+        <!-- Primary action scrolls to the engine section; secondary action
+             opens the source repository in a new tab (rel=noopener). -->
         <a href="#ahamkara" class="btn btn-primary">Explore the Engine</a>
         <a href="https://git.2helix.org/taufeeq26/Project-Ahamkara" class="btn btn-outline" target="_blank" rel="noopener">View Source</a>
       </div>
@@ -44,12 +87,17 @@
     </div>
   </header>
 
-  <!-- What is Ahamkara -->
+  <!-- ============ "What is Ahamkara" Section ============
+       First content section: two-column grid (visual | text).
+       The <section id="ahamkara"> id is the target of the "Engine" nav link. -->
   <section class="section section-ahamkara" id="ahamkara">
+    <!-- Decorative full-bleed background layer (no pointer events). -->
     <div class="section-bg"></div>
     <div class="container">
       <div class="section-grid">
         <div class="section-visual">
+          <!-- loading="lazy" defers loading offscreen images; explicit
+               width/height reserves space and prevents layout shift. -->
           <img src="src/assets/ahamkara-emblem.svg" alt="Ahamkara emblem" class="section-emblem" loading="lazy" width="300" height="300">
         </div>
         <div class="section-text">
@@ -69,7 +117,10 @@
     </div>
   </section>
 
-  <!-- What is Wish -->
+  <!-- ============ "What is Wish" Section ============
+       Mirror of the Ahamkara section but with the grid reversed
+       (visual on the right via .section-grid-reverse) and a purple
+       accent tag to distinguish the platform product. -->
   <section class="section section-wish" id="wish">
     <div class="section-bg"></div>
     <div class="container">
@@ -94,7 +145,9 @@
     </div>
   </section>
 
-  <!-- Inspiration -->
+  <!-- ============ Inspiration Section ============
+       Centred header + a responsive grid of cards. Each card pairs an
+       inline SVG icon with a title and short description. -->
   <section class="section section-inspiration" id="inspiration">
     <div class="section-bg"></div>
     <div class="container">
@@ -141,7 +194,8 @@
     </div>
   </section>
 
-  <!-- Footer -->
+  <!-- ============ Footer ============
+       Brand mark + attribution line. No scripts, purely informational. -->
   <footer class="footer">
     <div class="container">
       <div class="footer-inner">
@@ -151,6 +205,8 @@
     </div>
   </footer>
 
+  <!-- Behaviour enhancement: smooth scroll for in-page anchors.
+       Loaded at the end of <body> so the DOM is ready before it runs. -->
   <script src="scripts.js"></script>
 </body>
 </html>

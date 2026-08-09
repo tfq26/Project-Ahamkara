@@ -1,103 +1,217 @@
-/* Ahamkara Marketing Page - Destiny/CoD inspired */
+/* =========================================================================
+   Ahamkara Marketing Page — stylesheet (site/styles.css)
+
+   Consumed by site/index.html. A single static stylesheet for the whole
+   landing page, split into logical sections (in file order):
+
+     1. Reset & base           universal reset, html/body, typography
+     2. Container             shared max-width wrapper
+     3. Nav                   fixed navigation bar
+     4. Hero                  full-viewport intro with layered background
+     5. Buttons               .btn variants
+     6. Scroll indicator      hero "scroll" affordance
+     7. Sections              generic section layout + tags/headers
+     8. Grid                  two-column section grids
+     9. Feature list          bullet feature lists
+    10. Inspiration           card grid + footer
+    11. Footer                site footer
+    12. Keyframes             shared animations
+    13. Responsive            media queries (tablet + mobile)
+
+   Design system: dark sci-fi palette (#06060f base), two accent families —
+   blue (#4a8ad4, engine brand) and purple (#aa4ad4, Wish platform).
+   Display font: Rajdhani; body font: Inter. Both loaded in index.html.
+   ========================================================================= */
+
+
+/* ----------------------- 1. Reset & base ------------------------------- */
+/* Universal reset: remove default margins/padding and switch to
+   border-box so width/height include padding and border. This keeps
+   layout math predictable across the whole page. */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+/* Smooth anchor scrolling is the CSS foundation for the nav links;
+   scripts.js only has to compensate for the fixed navbar offset.
+   font-size:16px pins the rem base so clamp() values stay consistent. */
 html{scroll-behavior:smooth;font-size:16px}
+/* Body defaults: Inter stack for UI text, dark background, soft blue-grey
+   text, comfortable 1.6 line-height, and antialiasing for crisper text. */
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#06060f;color:#c8d0e0;line-height:1.6;-webkit-font-smoothing:antialiased}
+/* Images never overflow their container and are block-level (no inline gap). */
 img{max-width:100%;height:auto;display:block}
+/* Link base colour uses the blue accent; transition smooths hover. */
 a{color:#6a9ad4;text-decoration:none;transition:color .2s}
 a:hover{color:#8ab4f0}
+
+/* ----------------------- 2. Container ---------------------------------- */
+/* Shared centred content column: caps line length on wide screens and
+   adds consistent horizontal padding on small screens. */
 .container{max-width:1200px;margin:0 auto;padding:0 24px}
 
-/* Nav */
+/* ----------------------- 3. Nav ---------------------------------------- */
+/* Fixed to the top so it stays visible while scrolling. Semi-transparent
+   dark background + backdrop blur lets page content show through while
+   keeping links legible. z-index:100 keeps it above the hero layers. */
 .navbar{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(6,6,15,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(74,138,212,.1)}
+/* Inner wrapper: brand on the left, links on the right (space-between). */
 .nav-inner{display:flex;justify-content:space-between;align-items:center;height:64px;max-width:1200px;margin:0 auto;padding:0 24px}
+/* Brand mark uses Rajdhani + wide letter-spacing for the "AHAMKARA" look. */
 .nav-logo{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.5rem;letter-spacing:.15em;color:#e0e8f0}
+/* Nav link list: horizontal flex row, no bullets, spaced with gap. */
 .nav-links{display:flex;list-style:none;gap:32px}
+/* Nav links: uppercase condensed text for a game-HUD feel. */
 .nav-links a{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.95rem;letter-spacing:.08em;text-transform:uppercase;color:#8899b0;transition:color .2s}
 .nav-links a:hover{color:#8ab4f0}
 
-/* Hero */
+/* ----------------------- 4. Hero --------------------------------------- */
+/* Full-viewport intro. The section is a flex container so the centred
+   content box sits in the middle; overflow:hidden clips the absolutely
+   positioned background layers. */
 .hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+/* Photo layer: covers the full hero, centred with object-cover semantics. */
 .hero-bg{position:absolute;inset:0;background:url('src/assets/Javelin-4.jpg') center/cover no-repeat}
+/* Styling decision: the ::after pseudo-element composites a multi-layer
+   background over the photo — a faint 60px grid, two radial colour glows
+   (blue/purple), and a dark vignette gradient. The `background` shorthand
+   seeds the layers and the explicit `background-image` declaration overrides
+   the image layers; `background-size` gives each of the five layers its
+   dimensions, `background-blend-mode:overlay` blends them, and mask-image
+   fades the whole overlay outward so it reads as depth, not a texture. */
 .hero-bg::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 40%,rgba(42,74,138,.35) 0%,transparent 60%),radial-gradient(ellipse at 70% 60%,rgba(74,42,106,.2) 0%,transparent 50%),linear-gradient(135deg,rgba(6,6,15,.7) 0%,rgba(10,10,26,.4) 40%,rgba(18,18,42,.6) 70%,rgba(6,6,15,.8) 100%);background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px),radial-gradient(ellipse at 30% 40%,rgba(42,74,138,.35) 0%,transparent 60%),radial-gradient(ellipse at 70% 60%,rgba(74,42,106,.2) 0%,transparent 50%),linear-gradient(135deg,rgba(6,6,15,.7) 0%,rgba(10,10,26,.4) 40%,rgba(18,18,42,.6) 70%,rgba(6,6,15,.8) 100%);background-size:60px 60px,60px 60px,100% 100%,100% 100%,100% 100%;background-blend-mode:overlay;mask-image:radial-gradient(ellipse at 50% 50%,black 30%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse at 50% 50%,black 30%,transparent 70%)}
+/* Secondary SVG overlay adds a subtle texture at low opacity for depth. */
 .hero-overlay{position:absolute;inset:0;background:url('src/assets/hero-bg.svg') center/cover no-repeat;opacity:.15}
+/* The content box needs position:relative + z-index:1 to sit above the
+   absolutely positioned background layers. Entry animation fadeInUp. */
 .hero-content{position:relative;z-index:1;text-align:center;max-width:800px;padding:24px;animation:fadeInUp 1s ease-out}
+/* Eyebrow above the title: small uppercase Rajdhani in accent blue. */
 .hero-sup{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.85rem;letter-spacing:.3em;text-transform:uppercase;color:#4a8ad4;margin-bottom:16px}
+/* Title: fluid size via clamp (3rem->7rem) so it scales with the viewport.
+   Wide letter-spacing + uppercase gives the blocky sci-fi title. */
 .hero-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:clamp(3rem,10vw,7rem);letter-spacing:.12em;text-transform:uppercase;color:#e8f0f8;line-height:1;margin-bottom:16px;text-shadow:0 0 60px rgba(74,138,212,.3)}
+/* Subtitle: second Rajdhani line in muted blue. */
 .hero-sub{font-family:'Rajdhani',sans-serif;font-weight:500;font-size:clamp(1rem,2.5vw,1.4rem);letter-spacing:.15em;text-transform:uppercase;color:#6a8aaa;margin-bottom:20px}
+/* Description: wider, muted text constrained to 600px for readability. */
 .hero-desc{font-size:1.05rem;color:#8899b0;max-width:600px;margin:0 auto 36px;line-height:1.7}
+/* CTA row: buttons side by side, wrapping on narrow screens. */
 .hero-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
 
-/* Buttons */
+/* ----------------------- 5. Buttons ------------------------------------ */
+/* Shared button base: inline-flex so icon+text align, Rajdhani uppercase,
+   subtle radius, and a 0.25s transition for hover states. */
 .btn{display:inline-flex;align-items:center;padding:14px 32px;border-radius:4px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.95rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .25s;border:1px solid transparent}
+/* Primary button: blue gradient fill, used for the main calls to action. */
 .btn-primary{background:linear-gradient(135deg,#2a5a9a,#3a7abd);color:#e8f0f8;border-color:#4a8ad4}
+/* Hover brightens the gradient and adds a glow to pull attention. */
 .btn-primary:hover{background:linear-gradient(135deg,#3a6aaa,#4a8ad4);box-shadow:0 0 30px rgba(74,138,212,.3);color:#fff}
+/* Outline button: transparent fill, blue border — secondary actions. */
 .btn-outline{background:transparent;color:#6a9ad4;border-color:rgba(74,138,212,.3)}
+/* Hover fills the outline button slightly for a tactile feel. */
 .btn-outline:hover{border-color:#4a8ad4;background:rgba(74,138,212,.08);color:#8ab4f0}
 
-/* Scroll indicator */
+/* ----------------------- 6. Scroll indicator --------------------------- */
+/* "Scroll" hint pinned near the bottom of the hero, centred horizontally.
+   Uses translateX(-50%) to centre relative to the 50% left offset. */
 .scroll-indicator{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;color:#4a5a7a;font-family:'Rajdhani',sans-serif;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;animation:fadeInUp 1.5s .5s both}
+/* Thin vertical line under the label; scrollPulse animation draws the eye
+   downward to suggest scrolling. */
 .scroll-line{width:1px;height:40px;background:linear-gradient(to bottom,#4a5a7a,transparent);animation:scrollPulse 2s ease-in-out infinite}
 
-/* Sections */
+/* ----------------------- 7. Sections ----------------------------------- */
+/* Generic section shell: relative positioning so section-bg can be layered
+   behind content; vertical padding for rhythm; overflow:hidden clips any
+   decorative bleed. */
 .section{position:relative;padding:100px 0;overflow:hidden}
+/* Alternating section backgrounds create visual separation between blocks. */
 .section:nth-child(odd){background:#08081a}
+/* Full-bleed decorative layer; pointer-events:none so it never blocks
+   clicks on content above it. */
 .section-bg{position:absolute;inset:0;pointer-events:none}
+/* Eyebrow tag (e.g. "Engine", "Origins"): uppercase, bordered pill. */
 .section-tag{display:inline-block;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;color:#4a8ad4;border:1px solid rgba(74,138,212,.2);padding:4px 14px;border-radius:2px;margin-bottom:16px}
+/* Wish variant swaps the accent to purple to brand the platform. */
 .section-tag-wish{color:#aa4ad4;border-color:rgba(170,74,212,.2)}
+/* Centred section header block (Inspiration section). */
 .section-header{text-align:center;margin-bottom:60px}
+/* Shared heading style for section headers and text-column h2s. */
 .section-header h2,.section-text h2{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:clamp(2rem,4vw,3rem);letter-spacing:.05em;color:#d8e0e8;margin-bottom:16px}
+/* Lead paragraph under headings. */
 .section-lead{font-size:1.15rem;color:#8a9ab0;line-height:1.7;margin-bottom:16px}
+/* Body paragraphs inside the text column. */
 .section-text p{color:#7888a0;margin-bottom:16px}
 
-/* Grid */
+/* ----------------------- 8. Grid --------------------------------------- */
+/* Two-column layout used by the Ahamkara/Wish sections (visual | text). */
 .section-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+/* .section-grid-reverse flips the visual/text order using flex order so the
+   image sits on the right without changing the HTML structure. */
 .section-grid-reverse .section-visual{order:2}
 .section-grid-reverse .section-text{order:1}
+/* Visual column centres its image. */
 .section-visual{display:flex;justify-content:center;align-items:center}
+/* Emblems have an explicit size and object-fit to avoid distortion. */
 .section-emblem{width:300px;height:300px;object-fit:contain}
 
-/* Feature list */
+/* ----------------------- 9. Feature list ------------------------------- */
+/* Bullet-less feature list used in the Ahamkara/Wish sections. */
 .feature-list{list-style:none;margin:24px 0}
+/* Each row separated by a faint divider line. */
 .feature-list li{padding:10px 0;border-bottom:1px solid rgba(74,138,212,.06);color:#7888a0;font-size:.95rem}
+/* Last row has no divider so the list ends cleanly. */
 .feature-list li:last-child{border-bottom:none}
+/* <strong> labels (e.g. "Core:", "Network:") are brighter than body text. */
 .feature-list strong{color:#8a9ab0}
 
-/* Inspiration */
+/* ----------------------- 10. Inspiration ------------------------------- */
+/* Inspiration section gets its own subtle vertical gradient. */
 .section-inspiration{background:linear-gradient(180deg,#08081a 0%,#06060f 100%)}
+/* Three-column card grid, collapsing to one column on mobile. */
 .inspiration-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:48px}
+/* Card: near-transparent fill + hairline border + rounded corners.
+   Hover uses a gentle lift (translateY) for interactivity feedback. */
 .inspiration-card{background:rgba(255,255,255,.02);border:1px solid rgba(74,138,212,.08);border-radius:8px;padding:32px 24px;transition:border-color .3s,transform .3s}
 .inspiration-card:hover{border-color:rgba(74,138,212,.25);transform:translateY(-4px)}
+/* Icon block spacing above the card title. */
 .card-icon{margin-bottom:16px}
 .inspiration-card h3{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.3rem;letter-spacing:.05em;color:#c8d0e0;margin-bottom:12px}
 .inspiration-card p{font-size:.9rem;color:#7888a0;line-height:1.6}
+/* Footer strip under the card grid: centred, top border as a divider. */
 .inspiration-footer{text-align:center;max-width:600px;margin:0 auto;padding-top:24px;border-top:1px solid rgba(74,138,212,.08)}
 .inspiration-footer p{font-size:1.05rem;color:#6a8aaa;font-style:italic}
 
-/* Footer */
+/* ----------------------- 11. Footer ------------------------------------ */
+/* Site footer: subtle top border on the page background colour. */
 .footer{padding:40px 0;border-top:1px solid rgba(74,138,212,.06);background:#06060f}
+/* Footer layout: brand left, attribution right, wrapping on mobile. */
 .footer-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
 .footer-brand{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.1rem;letter-spacing:.15em;color:#4a5a7a}
 .footer-text{font-size:.85rem;color:#4a5a7a}
 
-/* Keyframes */
+/* ----------------------- 12. Keyframes --------------------------------- */
+/* Shared entrance animation: rise + fade from 30px below. */
 @keyframes fadeInUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+/* Scroll hint pulse: the line breathes (opacity + vertical scale). */
 @keyframes scrollPulse{0%,100%{opacity:.6;transform:scaleY(1)}50%{opacity:1;transform:scaleY(1.2)}}
 
-/* Responsive */
+/* ----------------------- 13. Responsive -------------------------------- */
+/* Small tablets/laptops: tighten the section grid gap. */
 @media(max-width:1024px){.section-grid{gap:40px}}
+/* Tablets/phones: stack everything into one column. */
 @media(max-width:768px){
   .nav-links{gap:20px}.nav-links a{font-size:.8rem}
   .section{padding:64px 0}
   .section-grid{grid-template-columns:1fr;gap:32px;text-align:center}
+  /* With a single column, restore natural order (visual first) and keep the
+     text under it — the reverse trick is no longer needed. */
   .section-grid-reverse .section-visual{order:1}
   .section-grid-reverse .section-text{order:2}
   .section-emblem{width:200px;height:200px}
+  /* Feature lists stay left-aligned even when the section text is centred. */
   .feature-list{text-align:left}
   .inspiration-grid{grid-template-columns:1fr;gap:16px}
   .hero-actions{flex-direction:column;align-items:center}
   .btn{width:100%;max-width:280px;justify-content:center}
   .footer-inner{flex-direction:column;text-align:center}
 }
+/* Small phones: compact nav and tighter container padding. */
 @media(max-width:480px){
   .nav-inner{height:56px;padding:0 16px}
   .nav-logo{font-size:1.2rem}.nav-links{gap:12px}

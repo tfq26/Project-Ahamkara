@@ -1,14 +1,44 @@
 <!DOCTYPE html>
+<!--
+  Ahamkara landing page (root site page).
+
+  This is the simple, dependency-free entry page served at the site root. It is
+  intentionally kept lightweight: no frameworks, no build step, and no external
+  network requests. The entire visual style lives in the inline <style> block
+  below so the page works from a single file (useful for Forgejo/Cloudflare
+  Pages deployments and quick offline inspection).
+
+  File layout:
+    - <head>    : metadata + inline CSS (styling decisions)
+    - <body>    : semantic <main> content (structure)
+    - <script>  : SPA redirect hand-off (dynamic content injection point)
+
+  Deeper project copy lives in site/index.html + site/styles.css.
+-->
 <html lang="en">
 <head>
+  <!-- Character encoding must be declared first so the page text renders
+       correctly regardless of how the server sends the file. -->
   <meta charset="utf-8">
+  <!-- Responsive viewport so the page scales correctly on mobile/tablet. -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ahamkara — Game Engine</title>
+
+  <!-- ============================================================
+       Inline stylesheet
+       Kept inline (rather than a separate .css file) so the page is
+       self-contained. Each rule below documents the styling decision.
+       ============================================================ -->
   <style>
+    /* :root holds the design tokens shared by the page: prefer the OS dark
+       color scheme and use the platform UI font stack for a native feel. */
     :root {
-      color-scheme: dark;
+      color-scheme: dark;                       /* hint to render native form controls dark */
       font-family: system-ui, -apple-system, sans-serif;
     }
+
+    /* Reset the default body margin and center the card vertically +
+       horizontally. min-height: 100vh makes the centering viewport-aware. */
     body {
       margin: 0;
       min-height: 100vh;
@@ -16,14 +46,21 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      /* GitHub-dark palette: near-black background, soft grey-blue text. */
       background: #0d1117;
       color: #c9d1d9;
     }
+
+    /* Content wrapper: cap width for readability on wide monitors. */
     main {
       max-width: 640px;
       padding: 2rem;
       text-align: center;
     }
+
+    /* Title treatment: gradient text (blue -> purple) creates the brand accent
+       without images. The -webkit- prefixed properties clip the gradient to
+       the glyphs; fallback color is handled by the body text color. */
     h1 {
       font-size: 2.5rem;
       margin: 0 0 0.5rem;
@@ -31,10 +68,14 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+
+    /* Body copy: comfortable line-height and muted colour for readability. */
     p {
       line-height: 1.6;
       color: #8b949e;
     }
+
+    /* Links use the same blue accent as the title gradient. */
     a {
       color: #58a6ff;
       text-decoration: none;
@@ -42,12 +83,15 @@
     a:hover {
       text-decoration: underline;
     }
+
+    /* Link group: pushed below the copy for visual rhythm. */
     .links {
       margin-top: 2rem;
     }
   </style>
 </head>
 <body>
+  <!-- Semantic main content. A page should contain exactly one <main>. -->
   <main>
     <h1>Ahamkara</h1>
     <p>A custom C++20 game engine and multiplayer tech demo built from scratch.</p>
@@ -56,9 +100,25 @@
       UDP transport at ~60 Hz, GLFW3 debug renderer, CMake + Ninja build.
     </p>
     <div class="links">
+      <!-- Primary action: point visitors at the source repository. -->
       <a href="https://git.2helix.org/taufeeq26/Project-Ahamkara">Source</a>
     </div>
   </main>
+
+  <!-- ============================================================
+       SPA redirect hand-off (dynamic content injection point).
+
+       Static hosts (Forgejo Pages, Cloudflare Pages, etc.) can only serve
+       the file that matches the requested path. For client-side-routed
+       apps the deep link (e.g. /docs/setup) would 404. To fix that,
+       public/404.html stashes the original URL in sessionStorage and
+       redirects to "/". This script runs on the root page and:
+         1. reads the stashed URL (key "_spa_redirect"),
+         2. removes it so the redirect only happens once,
+         3. rewrites the address bar to the deep link WITHOUT issuing a
+            new network request (history.replaceState), letting the SPA
+            router pick up the correct route.
+       ============================================================ -->
   <script>
     (function () {
       var r = sessionStorage.getItem('_spa_redirect');
