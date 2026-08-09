@@ -12,6 +12,7 @@ as the agent documentation contract.
 - [Testing and quality](testing-quality.md)
 - [Decisions](decisions.md)
 - [Glossary](glossary.md)
+- [Wish admin HTTP server](wish_admin_http_server.md)
 - [Historical reports](reports/README.md)
 
 Executable work is tracked only in
