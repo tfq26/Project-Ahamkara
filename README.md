@@ -447,6 +447,37 @@ bash deploy.sh    # builds and deploys to Cloudflare Pages
 
 The [`frontend/public/_redirects`](frontend/public/_redirects) file enables client-side routing by serving `index.html` for all routes (Cloudflare Pages SPA fallback).
 
+### Vercel deployment (landing page)
+
+The static marketing landing page in [`site/`](site/) is configured for
+deployment to **Vercel** via the [`vercel.json`](vercel.json) at the repository
+root. The landing page is a pure static site, so no build step is required —
+Vercel serves the `site/` directory directly as the project output.
+
+#### Prerequisites
+
+- A **Vercel** account with the project imported from
+  `taufeeq26/Project-Ahamkara`.
+- The [Vercel CLI](https://vercel.com/docs/cli) for manual deploys
+  (`npm i -g vercel`).
+
+#### Deploy manually
+
+```sh
+# From the repository root
+vercel --prod
+```
+
+Vercel reads `vercel.json`, serves `site/` as the static output directory, and
+prints the public deployment URL (for example `https://ahamkara.vercel.app`).
+
+#### CI/CD
+
+To deploy on every push to `main`, link the repository in the Vercel dashboard
+(Import Git Repository → `taufeeq26/Project-Ahamkara`). Vercel uses the root
+`vercel.json` for all project settings (output directory, headers, and rewrites)
+and serves the landing page at the generated deployment URL.
+
 ## Documentation
 
 - [Docs index](docs/README.md)

@@ -254,6 +254,12 @@ add_test(
 )
 
 add_test(
+    NAME vercel_deployment_tests
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/src/vercel_deployment_tests.py
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
+add_test(
     NAME docs_viewer
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/src/docs_viewer_tests.py
 )
