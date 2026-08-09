@@ -698,6 +698,24 @@ target_link_libraries(ahamkara_html_escape_tests
 )
 add_test(NAME ahamkara_html_escape_tests COMMAND ahamkara_html_escape_tests)
 
+# Root HTML page XSS-safety tests. render_info_page() lives in admin_server.cpp,
+# which is not part of the wish_engine library, so it is compiled into this
+# target directly (same pattern as wish_admin_info_page_tests in wish/CMakeLists.txt).
+add_executable(ahamkara_admin_info_page_xss_tests
+    unit/admin/admin_info_page_xss_tests.cpp
+    ../wish/admin/admin_server.cpp
+)
+target_compile_features(ahamkara_admin_info_page_xss_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_admin_info_page_xss_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_link_libraries(ahamkara_admin_info_page_xss_tests
+    PRIVATE
+        wish_engine
+)
+add_test(NAME ahamkara_admin_info_page_xss_tests COMMAND ahamkara_admin_info_page_xss_tests)
+
 add_executable(ahamkara_rewind_tests
     src/rewind_tests.cpp
 )
