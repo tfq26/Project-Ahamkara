@@ -21,6 +21,7 @@ add_library(wish_engine STATIC
     replication/src/replication_frame.cpp
     admin/src/admin_command.cpp
     admin/src/heartbeat_service.cpp
+    admin/src/html_escape.cpp
     admin/src/metrics_collector.cpp
     integrations/nakama/src/nakama_bridge.cpp
     integrations/flashback/src/game_session_adapter.cpp

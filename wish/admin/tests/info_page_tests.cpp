@@ -23,6 +23,13 @@ int expect_contains(const std::string& haystack, const std::string& needle, cons
     return 0;
 }
 
+int expect_not_contains(const std::string& haystack, const std::string& needle, const std::string& label) {
+    if (haystack.find(needle) != std::string::npos) {
+        return fail(label + ": expected NOT to find \"" + needle + "\"");
+    }
+    return 0;
+}
+
 int test_render_full_page() {
     wish::admin::ServerStatus status {};
     status.game_name = "Ahamkara Engine";
@@ -112,6 +119,34 @@ int test_render_without_match_remaining() {
     return 0;
 }
 
+int test_escapes_xss_in_game_name() {
+    wish::admin::ServerStatus status {};
+    status.game_name = "<script>alert('xss')</script>";
+
+    const std::string html = wish::admin::HttpAdminServer::render_info_page(status);
+
+    int failures = 0;
+    failures += expect_contains(html, "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;", "escaped game name");
+    failures += expect_not_contains(html, "<script>", "raw script tag must not appear");
+    return failures;
+}
+
+int test_escapes_xss_in_player_endpoint() {
+    wish::admin::ServerStatus status {};
+
+    wish::admin::PlayerStatus p1;
+    p1.endpoint = "\"><script>alert(1)</script>";
+    p1.seconds_since_seen = 1.0F;
+    status.players.push_back(p1);
+
+    const std::string html = wish::admin::HttpAdminServer::render_info_page(status);
+
+    int failures = 0;
+    failures += expect_contains(html, "&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;", "escaped endpoint");
+    failures += expect_not_contains(html, "<script>", "raw script tag must not appear");
+    return failures;
+}
+
 } // namespace
 
 int main() {
@@ -120,6 +155,8 @@ int main() {
     failures += test_render_full_page();
     failures += test_render_with_players();
     failures += test_render_without_match_remaining();
+    failures += test_escapes_xss_in_game_name();
+    failures += test_escapes_xss_in_player_endpoint();
 
     if (failures > 0) {
         std::cerr << failures << " info page test(s) FAILED.\n";
