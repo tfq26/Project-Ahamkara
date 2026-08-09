@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Ahamkara — a custom C++20 game engine and multiplayer tech demo built from scratch.">
   <title>Ahamkara — Game Engine</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -11,20 +12,93 @@
        main content instead of tabbing through every element above it. -->
   <a class="skip-link" href="#main-content">Skip to main content</a>
 
+  <!-- Site header: sticky navigation bar with links to the major landing
+       page sections and the source repository. Native <a href="#anchor">
+       links are keyboard-focusable and scroll smoothly to their section. -->
+  <header class="site-header">
+    <nav class="navbar" aria-label="Main navigation">
+      <a class="navbar__brand" href="#main-content">Ahamkara</a>
+      <ul class="navbar__links">
+        <li><a href="#philosophy">Philosophy</a></li>
+        <li><a href="#wish">Wish</a></li>
+        <li><a href="#inspiration">Inspiration</a></li>
+        <li>
+          <a class="button button--small button--outline" href="https://git.2helix.org/taufeeq26/Project-Ahamkara" target="_blank" rel="noopener">View Source</a>
+        </li>
+      </ul>
+    </nav>
+  </header>
+
   <!-- Primary landing page content -->
   <main id="main-content">
-    <h1>Ahamkara</h1>
-    <p>A custom C++20 game engine and multiplayer tech demo built from scratch.</p>
-    <p>
-      Dedicated authoritative server with client networking skeleton —
-      UDP transport at ~60 Hz, GLFW3 debug renderer, CMake + Ninja build.
-    </p>
-    <!-- Navigation: native anchor links are keyboard-focusable and announced
-         by assistive technology. -->
-    <nav class="links" aria-label="Primary navigation">
-      <a href="https://git.2helix.org/taufeeq26/Project-Ahamkara">Source</a>
-    </nav>
+    <!-- Hero section: the first thing visitors see. -->
+    <section class="hero" aria-labelledby="hero-heading">
+      <h1 id="hero-heading">Ahamkara</h1>
+      <p class="hero__tagline">A custom C++20 game engine and multiplayer tech demo built from scratch.</p>
+      <p class="hero__description">
+        Dedicated authoritative server with client networking skeleton —
+        UDP transport at ~60 Hz, GLFW3 debug renderer, CMake + Ninja build.
+      </p>
+      <div class="hero__actions">
+        <a class="button" href="#philosophy">Explore the Engine</a>
+        <a class="button button--outline" href="https://git.2helix.org/taufeeq26/Project-Ahamkara" target="_blank" rel="noopener">View Source</a>
+      </div>
+    </section>
+
+    <!-- Feature sections: distinct cards that separate the page into clear,
+         scannable blocks. Each section has a heading and descriptive text. -->
+    <div class="sections">
+      <section class="section" id="philosophy" aria-labelledby="philosophy-heading">
+        <div class="section__card">
+          <h2 id="philosophy-heading">Philosophy</h2>
+          <p class="section__lead">
+            Ahamkara is a reusable C++20 game engine and multiplayer tech demo
+            built from the ground up — no middleware, no shortcuts.
+          </p>
+          <p>
+            The engine provides the foundational systems needed to build modern
+            networked games: core utilities, a dedicated authoritative server,
+            real-time networking, 3D rendering, physics and collision, animation,
+            audio, and a platform abstraction layer. Designed for determinism,
+            low latency, and developer control.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="wish" aria-labelledby="wish-heading">
+        <div class="section__card">
+          <h2 id="wish-heading">Wish</h2>
+          <p class="section__lead">
+            Wish is an independent backend and session platform that powers the
+            live-service layer for games built with Ahamkara.
+          </p>
+          <p>
+            It owns identity, authentication, admission, sessions, activities,
+            replication envelopes, administration, and backend integrations — all
+            independent from the game engine, so any game can use it.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="inspiration" aria-labelledby="inspiration-heading">
+        <div class="section__card">
+          <h2 id="inspiration-heading">Inspiration</h2>
+          <p class="section__lead">Built by one developer, inspired by the best in the industry.</p>
+          <ul class="inspiration-list">
+            <li><strong>Destiny</strong> — moment-to-moment gameplay feel, seamless netcode, and immersive world-building.</li>
+            <li><strong>Call of Duty</strong> — the gold standard for arcade FPS: tight gunplay, snappy movement, and satisfying game feel.</li>
+            <li><strong>Engine development</strong> — data-oriented design, deterministic networking, and systems-level engineering in modern C++20.</li>
+          </ul>
+        </div>
+      </section>
+    </div>
   </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <p>Built with C++20 · Open source on <a href="https://git.2helix.org/taufeeq26/Project-Ahamkara" target="_blank" rel="noopener">2Helix</a></p>
+  </footer>
+
   <script>
     (function () {
       var r = sessionStorage.getItem('_spa_redirect');
