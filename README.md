@@ -11,6 +11,80 @@ and replies with `ServerSnapshot` packets. A native window + input layer
 visually checked in a 3D grid scene. Audio, editor tooling, and fuller renderer
 systems are kept out until the networking and platform foundations are validated.
 
+## Landing Page
+
+The project's public landing page and technical documentation site live in a
+separate repository,
+[`ahamkara-info-site`](https://git.2helix.org/taufeeq26/ahamkara-info-site),
+and are deployed to Vercel. The landing page is a Vue 3 single-page
+application built with Vite.
+
+### Purpose
+
+The landing page introduces Ahamkara to visitors and links to technical
+documentation for developers. It is the public-facing entry point for the
+project.
+
+### Features
+
+- Marketing landing page at `/` (see `src/views/Home.vue`) with the project
+  title, tagline, and a "Read the docs" call-to-action.
+- Technical documentation page at `/docs` (see `src/views/Docs.vue`).
+- Client-side navigation via Vue Router with a shared navigation bar
+  (`src/components/NavBar.vue`) that highlights the active route.
+- Static production build output to `dist/`.
+
+### File Locations (ahamkara-info-site repository)
+
+| Path | Purpose |
+|---|---|
+| `index.html` | SPA entry point |
+| `src/main.js` | App bootstrap (Vue + router) |
+| `src/App.vue` | Root component |
+| `src/router/routes.js` | Route table (`/` and `/docs`) |
+| `src/views/Home.vue` | Marketing landing page |
+| `src/views/Docs.vue` | Technical documentation page |
+| `src/components/NavBar.vue` | Shared navigation bar |
+| `src/components/DocsSidebar.vue` | Docs page sidebar |
+| `src/components/SyntaxHighlight.vue` | Code block syntax highlighting |
+| `vite.config.js` | Vite build and Vitest configuration |
+| `package.json` | npm scripts and dependencies |
+
+### Local Development
+
+```sh
+git clone https://git.2helix.org/taufeeq26/ahamkara-info-site.git
+cd ahamkara-info-site
+npm install
+npm run dev       # dev server at http://localhost:5173
+npm run build     # production build into dist/
+npm run preview   # preview the production build
+```
+
+Run the Vitest unit test suite:
+
+```sh
+npm test          # run the full unit test suite once
+npm run test:watch
+```
+
+### Deploying to Vercel
+
+The site is a static Vite build, so deploying to Vercel is a standard Vite
+deployment:
+
+1. Import the `ahamkara-info-site` repository in the Vercel dashboard.
+2. Vercel auto-detects the **Vite** framework preset. Confirm the settings:
+   - Build command: `npm run build`
+   - Output directory: `dist`
+3. Deploy. Every push to `main` triggers a new deployment automatically.
+4. To update the live site, push changes to `main`, or redeploy from the
+   Vercel dashboard/CLI:
+
+```sh
+npx vercel --prod   # deploy the current build directly
+```
+
 ## Repository Layout
 
 ```
