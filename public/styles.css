@@ -30,21 +30,27 @@
   box-sizing: border-box;
 }
 
+/* Smooth scrolling for in-page anchor links. scroll-padding-top reserves
+   space for the sticky navigation bar so section headings are not hidden
+   behind it when a nav link is followed. The reduced-motion block at the
+   bottom of this file resets scroll-behavior for users who prefer it. */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 4.5rem;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
   background: var(--color-bg);
   color: var(--color-text);
 }
 
 main {
-  max-width: 640px;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
+  flex: 1 0 auto;
 }
 
 h1 {
@@ -57,6 +63,11 @@ h1 {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+h2 {
+  font-size: 1.75rem;
+  margin: 0 0 0.75rem;
 }
 
 p {
@@ -78,18 +89,6 @@ a:visited {
 a:hover,
 a:focus-visible {
   text-decoration: underline;
-}
-
-/* Navigation links are native <a> elements, so they are keyboard-focusable
-   without any script or tabindex juggling. */
-.links {
-  margin-top: 2rem;
-}
-
-.links a {
-  display: inline-block;
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
 }
 
 /* Visible keyboard focus indicator (WCAG 2.4.7 Focus Visible). */
@@ -123,6 +122,160 @@ a:focus-visible {
   clip: auto;
   white-space: normal;
   z-index: 100;
+}
+
+/* ==========================================================================
+   Navigation bar
+   The navbar sticks to the top of the viewport while scrolling, so the
+   section links stay visible on every screen size. Links are native
+   <a href="#section"> elements and remain visible on small screens — the
+   layout wraps instead of collapsing, so no JavaScript toggle is required.
+   ========================================================================== */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  width: 100%;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-link);
+}
+
+.navbar__inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.navbar__logo {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-text);
+}
+
+.navbar__links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.navbar__links a {
+  display: inline-block;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+}
+
+/* ==========================================================================
+   Hero + sections
+   ========================================================================== */
+.hero {
+  padding: 4rem 1.5rem 2.5rem;
+  text-align: center;
+  border-bottom: 1px solid var(--color-link);
+}
+
+.hero__tagline {
+  font-size: 1.25rem;
+  color: var(--color-text);
+  margin-bottom: 1rem;
+}
+
+.hero__actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.button {
+  display: inline-block;
+  padding: 0.625rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 600;
+  color: var(--color-bg);
+  background: var(--color-link);
+}
+
+.button:visited {
+  color: var(--color-bg);
+}
+
+.button--outline {
+  color: var(--color-link);
+  background: transparent;
+  border: 1px solid var(--color-link);
+}
+
+.button--outline:visited {
+  color: var(--color-link);
+}
+
+.section {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.section + .section {
+  border-top: 1px solid var(--color-link);
+}
+
+.section__lead {
+  font-size: 1.125rem;
+  color: var(--color-text);
+}
+
+.inspiration-list {
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.inspiration-list strong {
+  color: var(--color-text);
+}
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+.footer {
+  width: 100%;
+  padding: 1.5rem;
+  text-align: center;
+  border-top: 1px solid var(--color-link);
+  color: var(--color-text-muted);
+}
+
+.footer p {
+  margin: 0;
+}
+
+/* ==========================================================================
+   Responsive layout
+   The navigation bar stays visible on every screen size. On narrow screens
+   the inner layout wraps and centers so links never overflow horizontally.
+   ========================================================================== */
+@media (max-width: 480px) {
+  .navbar__inner {
+    justify-content: center;
+    padding: 0.5rem 1rem;
+  }
+
+  .navbar__logo {
+    width: 100%;
+    text-align: center;
+  }
+
+  .hero {
+    padding-top: 2.5rem;
+  }
 }
 
 /* Respect users who request reduced motion (WCAG 2.3.3). */
