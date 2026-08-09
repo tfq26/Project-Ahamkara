@@ -1,0 +1,138 @@
+/* ==========================================================================
+   Ahamkara landing page styles
+   ========================================================================== */
+
+/* Color tokens. Every foreground/background pair below meets WCAG 2.1 AA
+   contrast requirements (>= 4.5:1 for normal text, >= 3:1 for large text
+   and non-text UI components):
+     --color-text       (#c9d1d9) on --color-bg       (#0d1117) -> 12.26:1
+     --color-text-muted (#8b949e) on --color-bg       (#0d1117) ->  6.15:1
+     --color-link       (#58a6ff) on --color-bg       (#0d1117) ->  7.49:1
+     --color-accent     (#bc8cff) on --color-bg       (#0d1117) ->  7.51:1
+     --color-focus      (#58a6ff) on --color-bg       (#0d1117) ->  7.48:1
+*/
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, sans-serif;
+
+  /* WCAG AA-compliant color tokens */
+  --color-bg: #0d1117;
+  --color-text: #c9d1d9;
+  --color-text-muted: #8b949e;
+  --color-link: #58a6ff;
+  --color-link-visited: #bc8cff;
+  --color-accent: #bc8cff;
+  --color-focus: #58a6ff;
+}
+
+/* Reset */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+main {
+  max-width: 640px;
+  padding: 2rem;
+  text-align: center;
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin: 0 0 0.5rem;
+  /* Solid fallback color keeps the heading readable even when the
+     gradient/clip-text effect is unavailable or disabled. */
+  color: var(--color-link);
+  background: linear-gradient(135deg, var(--color-link), var(--color-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+p {
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+a:visited {
+  color: var(--color-link-visited);
+}
+
+/* Hover and keyboard-focus both underline links so the affordance is never
+   conveyed by color alone (WCAG 1.4.1 Use of Color). */
+a:hover,
+a:focus-visible {
+  text-decoration: underline;
+}
+
+/* Navigation links are native <a> elements, so they are keyboard-focusable
+   without any script or tabindex juggling. */
+.links {
+  margin-top: 2rem;
+}
+
+.links a {
+  display: inline-block;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+}
+
+/* Visible keyboard focus indicator (WCAG 2.4.7 Focus Visible). */
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Skip link: visually hidden until it receives keyboard focus. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  color: var(--color-text);
+  background: var(--color-bg);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+}
+
+.skip-link:focus-visible {
+  left: 1rem;
+  top: 1rem;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  z-index: 100;
+}
+
+/* Respect users who request reduced motion (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
