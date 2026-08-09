@@ -137,6 +137,8 @@ ul {
 }
 
 .navbar {
+  position: sticky;
+  top: 0;
   max-width: var(--content-max-width);
   margin: 0 auto;
   height: var(--navbar-height);

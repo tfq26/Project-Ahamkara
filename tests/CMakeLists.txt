@@ -272,6 +272,12 @@ add_test(
 )
 
 add_test(
+    NAME landing_page_navigation_tests
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/unit/landing_page/landing_page_navigation_test.py
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
+add_test(
     NAME docs_viewer
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/src/docs_viewer_tests.py
 )
