@@ -4,60 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ahamkara — Game Engine</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      font-family: system-ui, -apple-system, sans-serif;
-    }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #0d1117;
-      color: #c9d1d9;
-    }
-    main {
-      max-width: 640px;
-      padding: 2rem;
-      text-align: center;
-    }
-    h1 {
-      font-size: 2.5rem;
-      margin: 0 0 0.5rem;
-      background: linear-gradient(135deg, #58a6ff, #bc8cff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    p {
-      line-height: 1.6;
-      color: #8b949e;
-    }
-    a {
-      color: #58a6ff;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    .links {
-      margin-top: 2rem;
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main>
+  <!-- Skip link: lets keyboard and screen-reader users jump straight to the
+       main content instead of tabbing through every element above it. -->
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <!-- Primary landing page content -->
+  <main id="main-content">
     <h1>Ahamkara</h1>
     <p>A custom C++20 game engine and multiplayer tech demo built from scratch.</p>
     <p>
       Dedicated authoritative server with client networking skeleton —
       UDP transport at ~60 Hz, GLFW3 debug renderer, CMake + Ninja build.
     </p>
-    <div class="links">
+    <!-- Navigation: native anchor links are keyboard-focusable and announced
+         by assistive technology. -->
+    <nav class="links" aria-label="Primary navigation">
       <a href="https://git.2helix.org/taufeeq26/Project-Ahamkara">Source</a>
-    </div>
+    </nav>
   </main>
   <script>
     (function () {
