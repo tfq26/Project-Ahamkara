@@ -110,6 +110,15 @@ class GameMcpServer:
         allowed_root = self.root.parent.absolute()
         if path.parent != allowed_root and allowed_root not in path.parents:
             raise RuntimeError("Configured executable is outside the MCP development root")
+        working_directory = Path(os.environ.get("AHAMKARA_GAME_MCP_WORKING_DIRECTORY", Path.cwd())).absolute()
+        if not working_directory.is_dir():
+            raise RuntimeError("AHAMKARA_GAME_MCP_WORKING_DIRECTORY is not a directory")
+        if (
+            working_directory != allowed_root
+            and allowed_root not in working_directory.parents
+            and working_directory not in allowed_root.parents
+        ):
+            raise RuntimeError("Configured working directory is outside the MCP development tree")
         if self.process and self.process.poll() is None:
             return {"running": True, "pid": self.process.pid}
         launch_mode = os.environ.get("AHAMKARA_GAME_MCP_LAUNCH_MODE", "mcp")
@@ -117,7 +126,7 @@ class GameMcpServer:
             raise RuntimeError("AHAMKARA_GAME_MCP_LAUNCH_MODE must be 'mcp' or 'local'")
         self.process = subprocess.Popen(
             [str(path), f"--{launch_mode}"],
-            cwd=str(allowed_root),
+            cwd=str(working_directory),
             env=os.environ.copy(),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
