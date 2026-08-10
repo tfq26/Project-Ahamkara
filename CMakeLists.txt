@@ -113,6 +113,13 @@ option(AHAMKARA_BUILD_WISH "Build Wish backend modules (not part of pure engine 
 option(AHAMKARA_BUILD_GAME "Build Flashback/gameplay library (not part of pure engine package)" ON)
 option(AHAMKARA_ENGINE_ONLY "Configure pure engine targets only (disables wish/game/client/server/samples)" OFF)
 
+# Development-only game control bridge. Keep this opt-in and fail closed for
+# ordinary Release configurations so production binaries contain no MCP hook.
+option(AHAMKARA_ENABLE_GAME_MCP "Build the local development game MCP bridge" OFF)
+if(AHAMKARA_ENABLE_GAME_MCP AND CMAKE_BUILD_TYPE AND NOT CMAKE_BUILD_TYPE MATCHES "Debug|RelWithDebInfo")
+    message(FATAL_ERROR "AHAMKARA_ENABLE_GAME_MCP is only allowed for Debug or RelWithDebInfo builds")
+endif()
+
 if(AHAMKARA_ENGINE_ONLY)
     set(AHAMKARA_BUILD_WISH OFF CACHE BOOL "" FORCE)
     set(AHAMKARA_BUILD_GAME OFF CACHE BOOL "" FORCE)

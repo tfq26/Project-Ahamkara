@@ -27,6 +27,18 @@ add_library(ahamkara_client_lib STATIC
     src/weapon_presentation.cpp
     src/playtest_harness.cpp
 )
+
+if(AHAMKARA_ENABLE_GAME_MCP)
+    target_sources(ahamkara_client_lib PRIVATE
+        $<$<CONFIG:Debug>:src/game_mcp_bridge.cpp>
+        $<$<CONFIG:RelWithDebInfo>:src/game_mcp_bridge.cpp>
+    )
+    target_compile_definitions(ahamkara_client_lib PRIVATE
+        $<$<CONFIG:Debug>:AHAMKARA_ENABLE_GAME_MCP=1>
+        $<$<CONFIG:RelWithDebInfo>:AHAMKARA_ENABLE_GAME_MCP=1>
+    )
+endif()
+
 target_compile_features(ahamkara_client_lib PUBLIC cxx_std_20)
 
 target_include_directories(ahamkara_client_lib
