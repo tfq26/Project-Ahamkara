@@ -112,8 +112,11 @@ class GameMcpServer:
             raise RuntimeError("Configured executable is outside the MCP development root")
         if self.process and self.process.poll() is None:
             return {"running": True, "pid": self.process.pid}
+        launch_mode = os.environ.get("AHAMKARA_GAME_MCP_LAUNCH_MODE", "mcp")
+        if launch_mode not in {"mcp", "local"}:
+            raise RuntimeError("AHAMKARA_GAME_MCP_LAUNCH_MODE must be 'mcp' or 'local'")
         self.process = subprocess.Popen(
-            [str(path), "--local"],
+            [str(path), f"--{launch_mode}"],
             cwd=str(allowed_root),
             env=os.environ.copy(),
             stdout=subprocess.DEVNULL,

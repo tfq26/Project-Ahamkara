@@ -120,6 +120,18 @@ int main(int argc, char** argv) {
         return run_local_client(client_config, controller_bindings, level_path);
     }
 
+    if (argc > 1 && std::string(argv[1]) == "--mcp") {
+#if defined(AHAMKARA_ENABLE_GAME_MCP)
+        // Use the normal playable client path, but seed it directly into the
+        // game so the MCP runner does not need to operate the title menu.
+        const auto scenario = ahamkara::client::make_default_autoplay_scenario(level_path);
+        return run_local_client(client_config, controller_bindings, level_path, &scenario);
+#else
+        ae::log_error("The --mcp launch mode is only available in a dev build configured with AHAMKARA_ENABLE_GAME_MCP=ON.");
+        return 2;
+#endif
+    }
+
     if (argc > 1 && std::string(argv[1]) == "--autoplay") {
         const auto scenario = ahamkara::client::make_default_autoplay_scenario(level_path);
         return run_playtest_client(level_path, scenario);
