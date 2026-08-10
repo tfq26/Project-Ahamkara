@@ -33,7 +33,6 @@ target_compile_features(ae_render PUBLIC cxx_std_20)
 target_include_directories(ae_render
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-    PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/glad/include
 )
 
