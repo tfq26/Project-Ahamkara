@@ -24,8 +24,8 @@ public:
     /// Store the previous frame's view/projection for motion vector computation.
     void store_prev_matrices(const float* view, const float* proj);
 
-    const float* prev_view() const { return prev_view_; }
-    const float* prev_proj() const { return prev_proj_; }
+    const float* prev_view() const { return has_history_ ? prev_view_ : nullptr; }
+    const float* prev_proj() const { return has_history_ ? prev_proj_ : nullptr; }
 
 private:
     float prev_view_[16] = {};

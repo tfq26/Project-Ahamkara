@@ -10,6 +10,8 @@ add_library(wish_engine STATIC
     core/src/activity_loader.cpp
     core/src/error_envelope.cpp
     core/src/error_catalog.cpp
+    core/src/version_compatibility.cpp
+    core/src/support_bundle.cpp
     core/src/observability.cpp
     core/src/log.cpp
     core/src/sequence_tracker.cpp

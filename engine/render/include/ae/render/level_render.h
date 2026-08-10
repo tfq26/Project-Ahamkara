@@ -120,9 +120,10 @@ void compose_model_matrix(const LevelMeshInstance& instance, float out_matrix[16
     const float* camera_position,
     const LodSettings& settings = LodSettings {});
 
-// Returns true if, in the given sorted batch list, every group of consecutive
-// calls sharing the same mesh also shares the same material identity.  This
-// verifies that material-aware secondary sorting is correct.
+// Returns true if, in the given sorted batch list, material keys are
+// non-decreasing within each consecutive same-mesh group. This verifies that
+// material-aware secondary sorting is correct without requiring all instances
+// using a mesh to share one material.
 [[nodiscard]] bool sorted_by_material(const std::vector<LodBatchedCall>& calls);
 
 // Measure batch efficiency as the fraction of consecutive same-mesh runs that

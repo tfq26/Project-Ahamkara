@@ -511,9 +511,15 @@ struct PbrRenderer::Impl {
         glUniformMatrix4fv(u_view, 1, GL_FALSE, view);
         glUniformMatrix4fv(u_projection, 1, GL_FALSE, jittered_proj_);
 
-        // TAA motion vector uniforms (prev frame view/proj)
-        glUniformMatrix4fv(u_prev_view, 1, GL_FALSE, taa_.prev_view());
-        glUniformMatrix4fv(u_prev_proj, 1, GL_FALSE, taa_.prev_proj());
+        // TAA motion vector uniforms (prev frame view/proj). The first frame
+        // has no history yet, so use the current matrices as a stable
+        // zero-motion baseline instead of passing a null pointer to OpenGL.
+        const float* previous_view = taa_.prev_view();
+        const float* previous_proj = taa_.prev_proj();
+        glUniformMatrix4fv(u_prev_view, 1, GL_FALSE,
+                           previous_view ? previous_view : view);
+        glUniformMatrix4fv(u_prev_proj, 1, GL_FALSE,
+                           previous_proj ? previous_proj : proj);
         glUniform3fv(u_view_pos, 1, cam_pos);
         glUniform1f(u_ambient, lights[0].ambient);
         glUniform3fv(u_ambient_sky, 1, ambient_sky_color_);

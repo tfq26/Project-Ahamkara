@@ -364,9 +364,9 @@ bool sorted_by_material(const std::vector<LodBatchedCall>& calls) {
         return true;
     }
 
-    // Walk through the list.  Whenever we see a mesh change, that's a new
-    // group.  Within each mesh group, verify that all instances share the same
-    // material identity.
+    // Walk through the list. Whenever we see a mesh change, that's a new
+    // group. Within each mesh group, verify that the secondary material keys
+    // remain in the same non-decreasing order used by the batch comparator.
     std::size_t group_start = 0;
     for (std::size_t i = 1; i <= calls.size(); ++i) {
         const bool same_mesh = (i < calls.size()) &&
@@ -374,13 +374,17 @@ bool sorted_by_material(const std::vector<LodBatchedCall>& calls) {
                                calls[i].mesh->ibo_indices.id == calls[group_start].mesh->ibo_indices.id;
 
         if (!same_mesh) {
-            // Check that all instances in [group_start, i) have the same material.
+            // Check material ordering within [group_start, i).
             if (i - group_start > 1) {
-                const std::uint64_t ref_key = compute_material_key(*calls[group_start].instance);
+                std::uint64_t previous_key =
+                    compute_material_key(*calls[group_start].instance);
                 for (std::size_t j = group_start + 1; j < i; ++j) {
-                    if (compute_material_key(*calls[j].instance) != ref_key) {
+                    const std::uint64_t current_key =
+                        compute_material_key(*calls[j].instance);
+                    if (current_key < previous_key) {
                         return false;
                     }
+                    previous_key = current_key;
                 }
             }
             group_start = i;

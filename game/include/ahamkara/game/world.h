@@ -275,6 +275,15 @@ public:
     void set_is_server(bool is_server) { is_server_ = is_server; }
     [[nodiscard]] bool is_server() const { return is_server_; }
 
+    // -- Encounter scripting integration --
+    [[nodiscard]] EncounterManager& encounter_manager() { return encounters_; }
+    [[nodiscard]] const EncounterManager& encounter_manager() const { return encounters_; }
+    void add_encounter(const EncounterDef& def) { encounters_.add_encounter(def); }
+    bool start_encounter(const std::string& id) { return encounters_.start_encounter(id); }
+    [[nodiscard]] const EncounterState* encounter_state(const std::string& id) const {
+        return encounters_.get_state(id);
+    }
+
     // -- AI Combatant management ------------------------------------------------
 
     /// Spawn an AI combatant entity in the registry at the given world position
@@ -380,6 +389,15 @@ private:
     float match_time_ {0.0F};
     bool match_over_ {false};
     float damage_feedback_timer_ {0.0F};
+
+    // -- Encounter scripting state --
+    EncounterManager encounters_ {};
+
+    // -- Navigation grid (lazily built from colliders) --
+    std::optional<ai::NavGridBuildResult> nav_grid_;
+    ai::NavSpace nav_space_ {};
+    bool nav_grid_dirty_ {true};
+
     VfxFeedback vfx_feedback_ {};
     ae::u32 vfx_feedback_event_id_ {0};
 };
