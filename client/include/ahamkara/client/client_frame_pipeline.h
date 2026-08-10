@@ -26,6 +26,9 @@
 #include "ae/ui/menu_system.h"
 #include "ae/ui/hud_system.h"
 #include "ahamkara/client/debug_inspector.h"
+#if defined(AHAMKARA_ENABLE_GAME_MCP)
+#include "ahamkara/client/game_mcp_bridge.h"
+#endif
 
 namespace ae {
 class PlatformWindow;
@@ -135,6 +138,10 @@ private:
     bool console_open_ {false};
 
     bool autoplay_mode_ {false};
+
+#if defined(AHAMKARA_ENABLE_GAME_MCP)
+    std::unique_ptr<GameMcpBridge> game_mcp_bridge_ {};
+#endif
 };
 
 }  // namespace ahamkara::client

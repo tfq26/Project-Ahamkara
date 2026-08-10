@@ -14,11 +14,15 @@
 #include "ahamkara/client/weapon_viewmodel_data.h"
 #include "ahamkara/game/movement.h"
 #include "ahamkara/game/net_types.h"
+#if defined(AHAMKARA_ENABLE_GAME_MCP)
+#include "ae/render/gl_platform.h"
+#endif
 
 #include <GLFW/glfw3.h>
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <vector>
 
 #define AE_LOG_CATEGORY "Client"
 
@@ -151,6 +155,15 @@ ClientFramePipeline::ClientFramePipeline(
         ae::ConfigRegistry::instance().reload_from_file(path);
     });
 
+#if defined(AHAMKARA_ENABLE_GAME_MCP)
+    if (auto bridge_config = GameMcpBridge::config_from_environment(); bridge_config.has_value()) {
+        game_mcp_bridge_ = std::make_unique<GameMcpBridge>(std::move(*bridge_config));
+        if (!game_mcp_bridge_->start()) {
+            game_mcp_bridge_.reset();
+        }
+    }
+#endif
+
     ae::log_info_cat("Client", "Developer console initialized. Press ` (backtick) to open.");
 }
 
@@ -275,7 +288,19 @@ void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
 
 void ClientFramePipeline::stage_gather_gameplay_input() {
     simulation_.set_paused(menu_state_.simulation_should_pause());
+#if defined(AHAMKARA_ENABLE_GAME_MCP)
+    // When the bridge is enabled it is exclusive: a missing command means
+    // neutral input, preventing a remote test from accidentally mixing with
+    // a developer's keyboard or mouse input.
+    if (game_mcp_bridge_ && game_mcp_bridge_->running()) {
+        raw_input_ = {};
+        (void)game_mcp_bridge_->poll_input(raw_input_);
+    } else {
+        raw_input_ = input_provider_.gather_input(smoothed_delta_);
+    }
+#else
     raw_input_ = input_provider_.gather_input(smoothed_delta_);
+#endif
     if (menu_state_.gameplay_input_enabled()) {
         simulation_.submit_input(raw_input_);
     }
@@ -283,6 +308,15 @@ void ClientFramePipeline::stage_gather_gameplay_input() {
 
 void ClientFramePipeline::stage_pull_snapshots() {
     simulation_.get_snapshots(prev_snap_, curr_snap_, alpha_);
+
+#if defined(AHAMKARA_ENABLE_GAME_MCP)
+    if (game_mcp_bridge_ && game_mcp_bridge_->running()) {
+        game_mcp_bridge_->publish_snapshot(
+            curr_snap_, application_.frame_index(),
+            static_cast<float>(application_.frame_index()) * smoothed_delta_,
+            frontend_state_.displayed_metrics.fps);
+    }
+#endif
 
     static bool was_menu_visible = true;
     if (was_menu_visible && !menu_state_.visible() && curr_snap_.match_over) {
@@ -659,6 +693,21 @@ void ClientFramePipeline::render_console_overlay() {
 }
 
 void ClientFramePipeline::stage_present() {
+#if defined(AHAMKARA_ENABLE_GAME_MCP)
+    if (game_mcp_bridge_ && game_mcp_bridge_->capture_requested()) {
+        auto* glfw_window = static_cast<GLFWwindow*>(window_.native_handle());
+        int width = 0;
+        int height = 0;
+        glfwGetFramebufferSize(glfw_window, &width, &height);
+        if (width > 0 && height > 0) {
+            std::vector<std::uint8_t> rgba(static_cast<std::size_t>(width) *
+                                           static_cast<std::size_t>(height) * 4U);
+            glPixelStorei(GL_PACK_ALIGNMENT, 1);
+            glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+            game_mcp_bridge_->write_frame_ppm(width, height, rgba);
+        }
+    }
+#endif
     renderer_.present();
 }
 

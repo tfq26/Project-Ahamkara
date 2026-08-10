@@ -1,0 +1,2 @@
+# Optional development dependency. Never install this in a production image.
+mcp>=1.0,<2

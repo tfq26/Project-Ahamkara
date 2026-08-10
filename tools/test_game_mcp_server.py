@@ -1,0 +1,42 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from game_mcp_server import GameMcpServer
+from game_qa_model import _ppm_to_png
+
+
+class GameMcpServerTests(unittest.TestCase):
+    def test_action_is_written_atomically_with_token(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bridge = GameMcpServer(Path(directory), "test-token", enabled=True)
+            bridge.step(move_y=1.0, fire=True, duration_ticks=3)
+            files = list((Path(directory) / "commands").glob("*.cmd"))
+            self.assertEqual(len(files), 1)
+            contents = files[0].read_text(encoding="utf-8")
+            self.assertIn("token=test-token", contents)
+            self.assertIn("move_y=1.0", contents)
+            self.assertIn("fire=true", contents)
+            self.assertIn("duration_ticks=3", contents)
+
+    def test_observe_returns_state_json(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "state.json").write_text(json.dumps({"frame": 7}), encoding="utf-8")
+            bridge = GameMcpServer(root, "test-token", enabled=True)
+            self.assertEqual(bridge.observe(), {"frame": 7})
+
+    def test_disabled_server_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "disabled"):
+            GameMcpServer(Path(tempfile.gettempdir()), "test-token", enabled=False)
+
+    def test_frame_converter_returns_png(self):
+        with tempfile.TemporaryDirectory() as directory:
+            frame = Path(directory) / "frame.ppm"
+            frame.write_bytes(b"P6\n1 1\n255\n" + bytes((10, 20, 30)))
+            self.assertTrue(_ppm_to_png(frame).startswith(b"\x89PNG\r\n\x1a\n"))
+
+
+if __name__ == "__main__":
+    unittest.main()
