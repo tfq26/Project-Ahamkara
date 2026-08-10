@@ -70,6 +70,13 @@ target_link_libraries(ahamkara_client
         ahamkara_client_lib
 )
 
+if(AHAMKARA_ENABLE_GAME_MCP)
+    target_compile_definitions(ahamkara_client PRIVATE
+        $<$<CONFIG:Debug>:AHAMKARA_ENABLE_GAME_MCP=1>
+        $<$<CONFIG:RelWithDebInfo>:AHAMKARA_ENABLE_GAME_MCP=1>
+    )
+endif()
+
 set_target_properties(ahamkara_client PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/client
 )

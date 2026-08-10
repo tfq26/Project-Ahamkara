@@ -1,7 +1,9 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from game_mcp_server import GameMcpServer
 from game_qa_model import _ppm_to_png
@@ -36,6 +38,23 @@ class GameMcpServerTests(unittest.TestCase):
             frame = Path(directory) / "frame.ppm"
             frame.write_bytes(b"P6\n1 1\n255\n" + bytes((10, 20, 30)))
             self.assertTrue(_ppm_to_png(frame).startswith(b"\x89PNG\r\n\x1a\n"))
+
+    def test_invalid_launch_mode_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory) / "ahamkara_client"
+            executable.write_text("placeholder", encoding="utf-8")
+            bridge = GameMcpServer(Path(directory), "test-token", enabled=True)
+            with (
+                patch.dict(
+                    os.environ,
+                    {
+                        "AHAMKARA_GAME_MCP_EXECUTABLE": str(executable),
+                        "AHAMKARA_GAME_MCP_LAUNCH_MODE": "menu",
+                    },
+                ),
+                self.assertRaisesRegex(RuntimeError, "must be 'mcp' or 'local'"),
+            ):
+                bridge.launch()
 
 
 if __name__ == "__main__":
