@@ -50,9 +50,27 @@ class GameMcpServerTests(unittest.TestCase):
                     {
                         "AHAMKARA_GAME_MCP_EXECUTABLE": str(executable),
                         "AHAMKARA_GAME_MCP_LAUNCH_MODE": "menu",
+                        "AHAMKARA_GAME_MCP_WORKING_DIRECTORY": directory,
                     },
                 ),
                 self.assertRaisesRegex(RuntimeError, "must be 'mcp' or 'local'"),
+            ):
+                bridge.launch()
+
+    def test_invalid_working_directory_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory) / "ahamkara_client"
+            executable.write_text("placeholder", encoding="utf-8")
+            bridge = GameMcpServer(Path(directory), "test-token", enabled=True)
+            with (
+                patch.dict(
+                    os.environ,
+                    {
+                        "AHAMKARA_GAME_MCP_EXECUTABLE": str(executable),
+                        "AHAMKARA_GAME_MCP_WORKING_DIRECTORY": str(Path(directory) / "missing"),
+                    },
+                ),
+                self.assertRaisesRegex(RuntimeError, "not a directory"),
             ):
                 bridge.launch()
 

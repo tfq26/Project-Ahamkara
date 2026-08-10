@@ -24,6 +24,7 @@ export AHAMKARA_GAME_MCP_ENABLED=1
 export AHAMKARA_GAME_MCP_ROOT="$PWD/build/game-mcp-session"
 export AHAMKARA_GAME_MCP_TOKEN="replace-with-a-random-session-token"
 export AHAMKARA_GAME_MCP_EXECUTABLE="$PWD/build/game-mcp/client/ahamkara_client"
+export AHAMKARA_GAME_MCP_WORKING_DIRECTORY="$PWD"
 export GAME_QA_MODEL="qwen/qwen3-vl-30b-a3b-instruct"
 # The MCP launcher defaults to --mcp, which starts directly in the playable sandbox.
 # Set this to local only when you intentionally want the normal menu flow.
