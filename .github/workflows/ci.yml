@@ -93,6 +93,10 @@ jobs:
         if: matrix.preset == 'debug-headless'
         run: ctest --test-dir build/debug-headless --output-on-failure
 
+      - name: Run Flashback headless contract tests
+        if: matrix.preset == 'debug-headless'
+        run: ctest --test-dir build/debug-headless --output-on-failure -R 'flashback_(game_module|error)'
+
       - name: Run benchmarks (debug-headless only)
         if: matrix.preset == 'debug-headless'
         run: ctest --test-dir build/debug-headless --output-on-failure -L benchmark -V

@@ -28,6 +28,8 @@ class TestGameModule final : public ae::IGameModule {
     ae::Result<void> initialize(const ae::GameModuleHostServices& host) override {
         initialized = true;
         host_mode = host.mode;
+        host_api_version = host.api_version;
+        host_capabilities = host.capabilities;
         events.push_back("init");
         return {};
     }
@@ -47,6 +49,8 @@ class TestGameModule final : public ae::IGameModule {
     bool initialized {false};
     bool shut_down {false};
     ae::RuntimeMode host_mode {ae::RuntimeMode::Tests};
+    ae::GameModuleApiVersion host_api_version {};
+    ae::GameModuleCapabilities host_capabilities {};
     float last_dt {0.0F};
     std::vector<std::uint64_t> ticks;
     std::vector<std::string> events;
@@ -81,6 +85,10 @@ int main() {
         EXPECT_TRUE(app.is_running());
         EXPECT_TRUE(raw->initialized);
         EXPECT_TRUE(raw->host_mode == ae::RuntimeMode::DedicatedServer);
+        EXPECT_TRUE(raw->host_api_version.major == ae::kGameModuleApiVersion.major);
+        EXPECT_TRUE(raw->host_api_version.minor == ae::kGameModuleApiVersion.minor);
+        EXPECT_TRUE(raw->host_capabilities.supports(ae::GameModuleCapability::Lifecycle));
+        EXPECT_TRUE(raw->host_capabilities.supports(ae::GameModuleCapability::FrameTiming));
 
         auto t1 = app.tick(1.0F / 60.0F);
         auto t2 = app.tick(1.0F / 60.0F);

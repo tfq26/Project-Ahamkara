@@ -2,8 +2,6 @@
 # reusable client runtime and its own game module, so engine improvements show
 # up here automatically on rebuild while Flashback owns its game identity.
 
-add_subdirectory(game_module)
-
 add_executable(flashback
     src/main.cpp
 )

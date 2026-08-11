@@ -21,8 +21,26 @@ struct GameModuleApiVersion {
 
 inline constexpr GameModuleApiVersion kGameModuleApiVersion {1, 0, 0};
 
+enum class GameModuleCapability : std::uint64_t {
+    Lifecycle = 1ULL << 0,
+    FrameTiming = 1ULL << 1,
+};
+
+struct GameModuleCapabilities {
+    std::uint64_t bits {
+        static_cast<std::uint64_t>(GameModuleCapability::Lifecycle) |
+        static_cast<std::uint64_t>(GameModuleCapability::FrameTiming)};
+
+    [[nodiscard]] constexpr bool supports(GameModuleCapability capability) const {
+        const auto requested = static_cast<std::uint64_t>(capability);
+        return (bits & requested) == requested;
+    }
+};
+
 struct GameModuleHostServices {
     RuntimeMode mode {RuntimeMode::Tests};
+    GameModuleApiVersion api_version {kGameModuleApiVersion};
+    GameModuleCapabilities capabilities {};
     void* user_data {nullptr};
 };
 

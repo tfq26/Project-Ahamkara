@@ -86,6 +86,11 @@ jobs:
         run: ctest --test-dir build/debug-headless --output-on-failure -C Debug
         shell: pwsh
 
+      - name: Run Flashback headless contract tests
+        if: matrix.preset == 'debug-headless'
+        run: ctest --test-dir build/debug-headless --output-on-failure -C Debug -R "flashback_(game_module|error)"
+        shell: pwsh
+
       - name: Upload CMake configure/build logs
         if: always()
         run: |

@@ -112,6 +112,8 @@ option(AHAMKARA_BUILD_SAMPLES "Build sample games that consume the engine" ON)
 option(AHAMKARA_BUILD_WISH "Build Wish backend modules (not part of pure engine package)" ON)
 option(AHAMKARA_BUILD_GAME "Build Flashback/gameplay library (not part of pure engine package)" ON)
 option(AHAMKARA_ENGINE_ONLY "Configure pure engine targets only (disables wish/game/client/server/samples)" OFF)
+option(AHAMKARA_BUILD_FLASHBACK_CONTRACT_TESTS
+       "Build Flashback's headless game-module compatibility tests" ON)
 
 # Development-only game control bridge. Keep this opt-in and fail closed for
 # ordinary Release configurations so production binaries contain no MCP hook.
@@ -126,6 +128,7 @@ if(AHAMKARA_ENGINE_ONLY)
     set(AHAMKARA_BUILD_CLIENT OFF CACHE BOOL "" FORCE)
     set(AHAMKARA_BUILD_SERVER OFF CACHE BOOL "" FORCE)
     set(AHAMKARA_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+    set(AHAMKARA_BUILD_FLASHBACK_CONTRACT_TESTS OFF CACHE BOOL "" FORCE)
 endif()
 
 add_subdirectory(engine/core)
@@ -164,6 +167,15 @@ if(AHAMKARA_BUILD_GAME)
         message(FATAL_ERROR "AHAMKARA_BUILD_GAME requires AHAMKARA_BUILD_WISH (game links wish_engine).")
     endif()
     add_subdirectory(game)
+endif()
+
+# Flashback's game module is headless-safe and acts as the reference consumer
+# contract test for engine changes. The graphical executable is added below
+# only when a client/sample build is requested.
+if(NOT AHAMKARA_ENGINE_ONLY AND
+   (AHAMKARA_BUILD_FLASHBACK_CONTRACT_TESTS OR
+    (AHAMKARA_BUILD_CLIENT AND AHAMKARA_BUILD_SAMPLES)))
+    add_subdirectory(samples/flashback/game_module)
 endif()
 
 if(AHAMKARA_BUILD_CLIENT)
