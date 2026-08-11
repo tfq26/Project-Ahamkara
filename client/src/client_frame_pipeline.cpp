@@ -588,12 +588,16 @@ void ClientFramePipeline::stage_render_ui() {
     }
 
     // Render menus (main, pause, settings, map select, loading)
-    if (menu_initialized_ && menu_system_.is_visible()) {
+    // The menu stack retains its root screen after starting gameplay so it can
+    // be reused for pause/settings flows.  Use ClientMenuState as the source
+    // of truth here; otherwise the main-menu background is rendered over the
+    // gameplay framebuffer in autoplay/MCP mode.
+    if (menu_initialized_ && menu_system_.is_visible() && menu_state_.visible()) {
         menu_system_.render();
     }
 
     // Render gameplay HUD (new JSON-driven system + legacy crosshair fallback)
-    if (hud_loaded_ && gameplay_active_ && !menu_system_.is_visible()) {
+    if (hud_loaded_ && gameplay_active_ && !menu_state_.visible()) {
         ae::ui::HudState hud_state;
         hud_state.health = curr_snap_.player_state.health;
         hud_state.max_health = 100.0f;

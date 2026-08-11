@@ -473,12 +473,19 @@ public:
 
     // --- Capability ---
     bool timer_queries_supported() override {
-        const char* extensions =
-            reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
-        if (!extensions) return false;
-        std::string ext_str(extensions);
-        return ext_str.find("GL_ARB_timer_query") != std::string::npos ||
-               ext_str.find("GL_EXT_timer_query") != std::string::npos;
+        GLint extension_count = 0;
+        glGetIntegerv(GL_NUM_EXTENSIONS, &extension_count);
+        for (GLint index = 0; index < extension_count; ++index) {
+            const auto* extension = glGetStringi(GL_EXTENSIONS, static_cast<GLuint>(index));
+            if (extension == nullptr) {
+                continue;
+            }
+            const std::string name(reinterpret_cast<const char*>(extension));
+            if (name == "GL_ARB_timer_query" || name == "GL_EXT_timer_query") {
+                return true;
+            }
+        }
+        return false;
     }
 
     // --- Swap interval ---

@@ -1037,6 +1037,8 @@ struct DebugRenderer::Impl {
     int u_light1_specular_loc {-1};
     int u_use_skinning_loc {-1};
     int u_joint_matrices_loc {-1};
+    int depth_u_use_skinning_loc {-1};
+    int depth_u_joint_matrices_loc {-1};
     int u_modelview_loc {-1};
     int u_projection_loc {-1};
     GpuModel humanoid_vbo;      // LOD0: full detail
@@ -1293,6 +1295,12 @@ bool DebugRenderer::initialize(ae::PlatformWindow& window) {
         const char* depth_attrib_names[] = {"aPosition", "aJoints", "aWeights"};
         ShaderProgramDesc depth_desc{depth_vs, depth_fs, depth_attrib_locs, depth_attrib_names, 2};
         impl_->depth_program = impl_->backend->create_shader_program(depth_desc);
+        if (impl_->depth_program) {
+            impl_->depth_u_use_skinning_loc =
+                impl_->backend->get_uniform_location(impl_->depth_program, "uUseSkinning");
+            impl_->depth_u_joint_matrices_loc =
+                impl_->backend->get_uniform_location(impl_->depth_program, "uJointMatrices");
+        }
     }
 
     // Generate occlusion queries (raw GL – these are legacy and will be
@@ -1570,7 +1578,7 @@ void DebugRenderer::Impl::draw_depth_pre_pass(const DebugScene& scene, const Fru
             ae::gl_compat::mat4_rotate(scene.player_yaw * 180.0F / kPi, 0.0F, 1.0F, 0.0F) *
             ae::gl_compat::mat4_scale(scene.player_height, scene.player_height, scene.player_height));
         draw_gpu_model(*backend, humanoid_vbo, depth_program,
-                      -1, u_use_skinning_loc, u_joint_matrices_loc,
+                      -1, depth_u_use_skinning_loc, depth_u_joint_matrices_loc,
                       1.0F, 1.0F, 1.0F, 1.0F, true, nullptr, 0);
         end_matrix_snapshot(player_snapshot);
     }
@@ -1584,14 +1592,17 @@ void DebugRenderer::Impl::draw_depth_pre_pass(const DebugScene& scene, const Fru
             ae::gl_compat::mat4_rotate(scene.dummy_yaws[i] * 180.0F / kPi, 0.0F, 1.0F, 0.0F) *
             ae::gl_compat::mat4_scale(scene.player_height, scene.player_height, scene.player_height));
         draw_gpu_model(*backend, humanoid_vbo, depth_program,
-                      -1, u_use_skinning_loc, u_joint_matrices_loc,
+                      -1, depth_u_use_skinning_loc, depth_u_joint_matrices_loc,
                       1.0F, 1.0F, 1.0F, 1.0F, false, nullptr, 0);
         end_matrix_snapshot(dummy_snapshot);
     }
 
     backend->use_shader(kInvalidShader);
     backend->set_color_write(true, true, true, true);
-    backend->set_depth_func_equal();  // main pass: only draw pixels at the depth written in pre-pass
+    // The depth pre-pass covers dynamic models only; map and level geometry
+    // are first drawn in the main pass and therefore must not require an
+    // equal depth value that was never written.
+    backend->set_depth_func_lequal();
     if (gpu_timers_supported) {
         backend->end_query(gpu_timer_queries[1]);
     }
@@ -1961,6 +1972,9 @@ void DebugRenderer::render(DebugScene& scene, const std::function<void()>& draw_
     const float aspect_ratio = static_cast<float>(width) / static_cast<float>(height);
 
     impl_->backend->set_viewport(0, 0, width, height);
+    // Re-establish full-frame state before drawing after the UI pass.
+    glDisable(GL_SCISSOR_TEST);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     impl_->backend->clear_color_and_depth();
 
     ae::gl_compat::begin_frame(width, height);
@@ -1969,7 +1983,7 @@ void DebugRenderer::render(DebugScene& scene, const std::function<void()>& draw_
     const bool gldiag = s_gldiag_frame < 3;
     if (gldiag) {
         ae::gl_compat::diag_reset();
-        (void)glGetError();  // clear any pre-existing error
+        (void)glGetError();
     }
 
     // Record frame time for sparkline
