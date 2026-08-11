@@ -21,3 +21,5 @@ level levels/textured_showcase.lvl compiled/levels/textured_showcase.aelevel
 level levels/blood_gulch.lvl compiled/levels/blood_gulch.aelevel
 model models/blood_gulch.gltf compiled/models/blood_gulch.aemesh
 model models/viewmodel_arms.gltf compiled/models/viewmodel_arms.aemesh
+model models/assault_rifle.gltf compiled/models/assault_rifle.aemesh
+model models/enemy_basic.gltf compiled/models/enemy_basic.aemesh
