@@ -29,10 +29,15 @@ int main(int argc, char** argv) {
     ae::init_file_logging("logs");
     const char* level_path = kDefaultShowcaseLevel;
     bool autoplay = false;
+    int window_width = 0;
+    int window_height = 0;
     for (int i = 1; i + 1 < argc; ++i) {
         if (std::string(argv[i]) == "--level") {
             level_path = argv[i + 1];
-            break;
+        } else if (std::string(argv[i]) == "--window-width") {
+            window_width = std::atoi(argv[i + 1]);
+        } else if (std::string(argv[i]) == "--window-height") {
+            window_height = std::atoi(argv[i + 1]);
         }
     }
     for (int i = 1; i < argc; ++i) {
@@ -43,8 +48,14 @@ int main(int argc, char** argv) {
 
     // Defaults are fine for a demo; the real client loads these from config
     // files, but Flashback just showcases the engine running a level.
+    // The --window-width/--window-height flags let the repeatable menu QA
+    // checklist capture every supported resolution (see tools/menu_qa/).
     ahamkara::client::ClientConfig client_config {};
     client_config.app_name = "Flashback";
+    if (window_width > 0)
+        client_config.window_width = window_width;
+    if (window_height > 0)
+        client_config.window_height = window_height;
     ahamkara::client::ControllerBindings controller_bindings {};
     const auto autoplay_scenario = autoplay
         ? ahamkara::client::make_default_autoplay_scenario(level_path)
