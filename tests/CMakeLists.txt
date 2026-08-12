@@ -294,6 +294,11 @@ add_test(
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/src/docs_viewer_tests.py
 )
 
+add_test(
+    NAME workflow_docs_tests
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/src/workflow_docs_tests.py
+)
+
 add_executable(ahamkara_nakama_bridge_tests
     src/nakama_bridge_tests.cpp
 )
@@ -620,6 +625,15 @@ if(TARGET ahamkara_server)
         COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
                 --config $<CONFIG>
                 --target ahamkara_server
+    )
+endif()
+
+if(TARGET flashback)
+    add_test(
+        NAME flashback_build_regression
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
+                --config $<CONFIG>
+                --target flashback
     )
 endif()
 
