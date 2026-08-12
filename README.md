@@ -483,6 +483,7 @@ and serves the landing page at the generated deployment URL.
 - [Docs index](docs/README.md)
 - [Architecture overview](docs/systems/architecture.md)
 - [Building from source](docs/guides/building.md)
+- [macOS Flashback development workflow](docs/guides/macos-flashback-workflow.md)
 - [Networking model](docs/systems/networking.md)
 - [Client config](docs/systems/client_config.md)
 - [Asset pipeline](docs/systems/asset_pipeline.md)

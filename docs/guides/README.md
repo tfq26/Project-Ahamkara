@@ -10,6 +10,7 @@ Ahamkara during the repository split.
 - [Deployment](deployment.md) — local, Docker, CI/CD, packaging, and GitHub Pages
 - [Maintenance and error repair](maintenance.md)
 - [Remote agent workflow](remote-agent-workflow.md)
+- [macOS Flashback development workflow](macos-flashback-workflow.md)
 
 ## Related Vault Notes
 
