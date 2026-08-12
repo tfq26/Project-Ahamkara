@@ -1,38 +1,59 @@
 {
     "name": "Main Menu",
-    "background": [0.04, 0.06, 0.10, 1.0],
+    "background": [0.035, 0.045, 0.08, 1.0],
     "elements": [
         {
             "type": "panel",
             "x": 0.5, "y": 0.50,
             "anchor": "center",
-            "width": 480, "height": 520,
-            "rounding": 8,
+            "width": 480, "height": 600,
+            "rounding": 10,
             "color": "panel",
             "elements": [
+                {
+                    "type": "separator",
+                    "color": "accent",
+                    "x": 0.5, "y": 0.035,
+                    "anchor": "top_center",
+                    "width": 96
+                },
                 {
                     "type": "text",
                     "content": "FLASHBACK",
                     "font": "title",
                     "color": "text_primary",
-                    "x": 0.5, "y": 60,
+                    "x": 0.5, "y": 0.075,
                     "anchor": "top_center"
                 },
                 {
                     "type": "text",
-                    "content": "Ahamkara Engine Tech Demo",
-                    "font": "small",
-                    "color": "text_secondary",
-                    "x": 0.5, "y": 112,
+                    "content": "ARENA COMBAT",
+                    "font": "subtitle",
+                    "color": "accent",
+                    "x": 0.5, "y": 0.155,
                     "anchor": "top_center"
                 },
-                { "type": "spacer", "height": 40 },
+                {
+                    "type": "separator",
+                    "x": 0.5, "y": 0.205,
+                    "anchor": "top_center",
+                    "width": 320
+                },
+                {
+                    "type": "button",
+                    "label": "CONTINUE",
+                    "style": "secondary",
+                    "enabled": false,
+                    "action": "continue_game",
+                    "x": 0.5, "y": 0.25,
+                    "anchor": "top_center"
+                },
                 {
                     "type": "button",
                     "label": "PLAY",
                     "style": "primary",
                     "action": "push_screen:map_select",
-                    "x": 0.5, "y": 180,
+                    "x": 0.5, "y": 0.365,
                     "anchor": "top_center"
                 },
                 {
@@ -40,34 +61,37 @@
                     "label": "SETTINGS",
                     "style": "secondary",
                     "action": "push_screen:settings",
-                    "x": 0.5, "y": 240,
+                    "x": 0.5, "y": 0.48,
                     "anchor": "top_center"
                 },
-                {
-                    "type": "button",
-                    "label": "SANDBOX",
-                    "style": "secondary",
-                    "action": "start_sandbox",
-                    "x": 0.5, "y": 300,
-                    "anchor": "top_center"
-                },
-                { "type": "spacer", "height": 20 },
-                { "type": "separator" },
-                { "type": "spacer", "height": 10 },
                 {
                     "type": "button",
                     "label": "QUIT TO DESKTOP",
                     "style": "secondary",
                     "action": "quit_application",
-                    "x": 0.5, "y": 400,
+                    "x": 0.5, "y": 0.595,
+                    "anchor": "top_center"
+                },
+                {
+                    "type": "separator",
+                    "x": 0.5, "y": 0.675,
+                    "anchor": "top_center",
+                    "width": 320
+                },
+                {
+                    "type": "text",
+                    "content": "Up/Down Navigate   |   Enter Select   |   Esc Back",
+                    "font": "small",
+                    "color": "text_secondary",
+                    "x": 0.5, "y": 0.72,
                     "anchor": "top_center"
                 },
                 {
                     "type": "text",
-                    "content": "Build {build_date}  |  {fps} FPS",
+                    "content": "Flashback v0.1.0  -  Ahamkara Engine",
                     "font": "small",
                     "color": "text_secondary",
-                    "x": 0.5, "y": 490,
+                    "x": 0.5, "y": 0.82,
                     "anchor": "top_center"
                 }
             ]

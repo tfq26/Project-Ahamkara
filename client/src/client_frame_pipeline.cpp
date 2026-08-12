@@ -70,6 +70,11 @@ ClientFramePipeline::ClientFramePipeline(
         menu_system_.set_variable("audio_enabled", client_config_.audio.enabled ? 1.0f : 0.0f);
         menu_system_.set_variable("mouse_sensitivity", client_config_.mouse_sensitivity);
 
+        // A saved-session flag drives the (currently disabled) CONTINUE entry.
+        // A future save system owns this value; until then the button stays
+        // visibly disabled to exercise the disabled visual state.
+        menu_system_.set_variable("has_save", 0.0f);
+
         // ── Gameplay actions ──────────────────────────────────────────
         menu_system_.register_action("start_game", [this](std::string_view param) {
             gameplay_active_ = true;
@@ -81,23 +86,31 @@ ClientFramePipeline::ClientFramePipeline(
             // Use a simple staged simulation: load level in background, then unpause
             simulation_.set_paused(true);
             bool loaded = simulation_.load_level(path);
-            simulation_.set_paused(!loaded);
             menu_system_.set_variable("loading_progress", loaded ? "1.0" : "0.5");
             menu_system_.set_variable("loading_status", loaded ? "Ready." : "Failed to load map.");
 
-            // Small delay so loading screen is visible, then pop to gameplay
-            // In production this would be async with progress callbacks
-            menu_system_.pop_to_root();
+            // Hide all menu screens and hand control to gameplay. In production
+            // the loading screen would stay until an async load completed.
+            menu_system_.clear_screens();
+            menu_state_.start_gameplay();
             simulation_.set_paused(false);
         });
         menu_system_.register_action("start_sandbox", [this](std::string_view) {
             gameplay_active_ = true;
-            menu_system_.pop_to_root();
+            menu_system_.clear_screens();
+            menu_state_.start_gameplay();
             simulation_.set_paused(false);
         });
         menu_system_.register_action("resume_game", [this](std::string_view) {
             menu_system_.pop_screen();
+            menu_state_.resume_gameplay();
             simulation_.set_paused(false);
+        });
+        menu_system_.register_action("quit_to_menu", [this](std::string_view) {
+            menu_system_.show_screen("main_menu");
+            menu_state_.show_main_menu();
+            gameplay_active_ = false;
+            simulation_.set_paused(true);
         });
         menu_system_.register_action("quit_application", [this](std::string_view) {
             application_.shutdown();
@@ -240,14 +253,19 @@ void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
         || debug_state.is_code_pressed(controller_bindings_.menu);
 
     if (menu_toggle && menu_initialized_) {
-        if (gameplay_active_ && !menu_state_.visible()) {
-            menu_system_.set_active_screen("pause_menu", true);
-            simulation_.set_paused(true);
-        } else if (menu_state_.visible()) {
-            menu_system_.pop_screen();
-            simulation_.set_paused(false);
+        // Menu transitions flow through ClientMenuState so gameplay pause and
+        // cursor policy stay consistent with what the user sees. ESC on the
+        // main menu is deliberately a no-op (it only closes via PLAY).
+        const bool pause_changed = menu_state_.toggle_menu();
+        if (pause_changed) {
+            if (menu_state_.visible()) {
+                menu_system_.set_active_screen("pause_menu", true);
+                simulation_.set_paused(true);
+            } else {
+                menu_system_.clear_screens();
+                simulation_.set_paused(false);
+            }
         }
-        menu_state_.toggle_menu();
     }
 
     if (glfw_win) {

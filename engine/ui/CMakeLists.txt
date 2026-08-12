@@ -7,6 +7,7 @@ add_library(ae_ui STATIC
     imgui_impl_opengl3.cpp
     src/ahamkara_ui.cpp
     src/menu_system.cpp
+    src/menu_navigation_model.cpp
     src/hud_element.cpp
     src/hud_system.cpp
 )

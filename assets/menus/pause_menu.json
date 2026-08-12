@@ -15,17 +15,21 @@
                     "content": "PAUSED",
                     "font": "header",
                     "color": "text_primary",
-                    "x": 0.5, "y": 24,
+                    "x": 0.5, "y": 0.05,
                     "anchor": "top_center"
                 },
-                { "type": "separator" },
-                { "type": "spacer", "height": 16 },
+                {
+                    "type": "separator",
+                    "x": 0.5, "y": 0.11,
+                    "anchor": "top_center",
+                    "width": 280
+                },
                 {
                     "type": "button",
                     "label": "RESUME",
                     "style": "primary",
                     "action": "resume_game",
-                    "x": 0.5, "y": 70,
+                    "x": 0.5, "y": 0.16,
                     "anchor": "top_center"
                 },
                 {
@@ -33,7 +37,7 @@
                     "label": "SETTINGS",
                     "style": "secondary",
                     "action": "push_screen:settings",
-                    "x": 0.5, "y": 128,
+                    "x": 0.5, "y": 0.29,
                     "anchor": "top_center"
                 },
                 {
@@ -41,7 +45,7 @@
                     "label": "CHANGE MAP",
                     "style": "secondary",
                     "action": "push_screen:map_select",
-                    "x": 0.5, "y": 186,
+                    "x": 0.5, "y": 0.42,
                     "anchor": "top_center"
                 },
                 {
@@ -49,17 +53,21 @@
                     "label": "DOCUMENTATION",
                     "style": "secondary",
                     "action": "push_screen:docs_viewer",
-                    "x": 0.5, "y": 244,
+                    "x": 0.5, "y": 0.55,
                     "anchor": "top_center"
                 },
-                { "type": "spacer", "height": 10 },
-                { "type": "separator" },
+                {
+                    "type": "separator",
+                    "x": 0.5, "y": 0.70,
+                    "anchor": "top_center",
+                    "width": 280
+                },
                 {
                     "type": "button",
                     "label": "QUIT TO MENU",
                     "style": "danger",
-                    "action": "pop_to_root",
-                    "x": 0.5, "y": 320,
+                    "action": "quit_to_menu",
+                    "x": 0.5, "y": 0.76,
                     "anchor": "top_center"
                 }
             ]

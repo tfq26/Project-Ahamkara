@@ -24,7 +24,7 @@
                                     "content": "The Ahamkara engine follows a layered architecture:",
                                     "font": "body",
                                     "color": "text_primary",
-                                    "x": 10, "y": 50,
+                                    "x": 0.015, "y": 0.10,
                                     "anchor": "top_left"
                                 },
                                 {
@@ -32,7 +32,7 @@
                                     "content": "Engine Core (ae_core) provides math, logging, and utility types.",
                                     "font": "small",
                                     "color": "text_secondary",
-                                    "x": 10, "y": 85,
+                                    "x": 0.015, "y": 0.17,
                                     "anchor": "top_left"
                                 },
                                 {
@@ -40,7 +40,7 @@
                                     "content": "Engine Network (ae_network) handles UDP/MVPE transport.",
                                     "font": "small",
                                     "color": "text_secondary",
-                                    "x": 10, "y": 105,
+                                    "x": 0.015, "y": 0.21,
                                     "anchor": "top_left"
                                 },
                                 {
@@ -48,7 +48,7 @@
                                     "content": "Engine Runtime (ae_runtime) manages world/session lifecycle.",
                                     "font": "small",
                                     "color": "text_secondary",
-                                    "x": 10, "y": 125,
+                                    "x": 0.015, "y": 0.25,
                                     "anchor": "top_left"
                                 },
                                 {
@@ -56,7 +56,7 @@
                                     "content": "Engine Render (ae_render) provides OpenGL rendering pipeline.",
                                     "font": "small",
                                     "color": "text_secondary",
-                                    "x": 10, "y": 145,
+                                    "x": 0.015, "y": 0.29,
                                     "anchor": "top_left"
                                 },
                                 {
@@ -64,7 +64,7 @@
                                     "content": "Key abstractions:",
                                     "font": "body",
                                     "color": "text_primary",
-                                    "x": 10, "y": 180,
+                                    "x": 0.015, "y": 0.36,
                                     "anchor": "top_left"
                                 },
                                 {
@@ -77,7 +77,7 @@
                                     "content": "Systems communicate via ECS (EnTT). Simulation is deterministic across client/server.",
                                     "font": "small",
                                     "color": "text_secondary",
-                                    "x": 10, "y": 280,
+                                    "x": 0.015, "y": 0.56,
                                     "anchor": "top_left"
                                 }
                             ]
@@ -92,7 +92,7 @@
                                     "content": "Core API types and their usage:",
                                     "font": "body",
                                     "color": "text_primary",
-                                    "x": 10, "y": 50,
+                                    "x": 0.015, "y": 0.10,
                                     "anchor": "top_left"
                                 },
                                 {
@@ -105,7 +105,7 @@
                                     "content": "Network API for session management:",
                                     "font": "body",
                                     "color": "text_primary",
-                                    "x": 10, "y": 210,
+                                    "x": 0.015, "y": 0.42,
                                     "anchor": "top_left"
                                 },
                                 {
@@ -118,7 +118,7 @@
                                     "content": "IMPORTANT: All network calls must be made from the main thread.",
                                     "font": "small",
                                     "color": "warning",
-                                    "x": 10, "y": 320,
+                                    "x": 0.015, "y": 0.64,
                                     "anchor": "top_left"
                                 }
                             ]
@@ -133,7 +133,7 @@
                                     "content": "Building for deployment:",
                                     "font": "body",
                                     "color": "text_primary",
-                                    "x": 10, "y": 50,
+                                    "x": 0.015, "y": 0.10,
                                     "anchor": "top_left"
                                 },
                                 {
@@ -141,7 +141,7 @@
                                     "content": "1. Configure: cmake --preset release",
                                     "font": "small",
                                     "color": "text_secondary",
-                                    "x": 10, "y": 85,
+                                    "x": 0.015, "y": 0.17,
                                     "anchor": "top_left"
                                 },
                                 {
@@ -149,7 +149,7 @@
                                     "content": "2. Build: cmake --build --preset release",
                                     "font": "small",
                                     "color": "text_secondary",
-                                    "x": 10, "y": 105,
+                                    "x": 0.015, "y": 0.21,
                                     "anchor": "top_left"
                                 },
                                 {
@@ -157,7 +157,7 @@
                                     "content": "3. Package: cpack --config build/release/CPackConfig.cmake",
                                     "font": "small",
                                     "color": "text_secondary",
-                                    "x": 10, "y": 125,
+                                    "x": 0.015, "y": 0.25,
                                     "anchor": "top_left"
                                 },
                                 {
@@ -165,7 +165,7 @@
                                     "content": "Docker deployment:",
                                     "font": "body",
                                     "color": "text_primary",
-                                    "x": 10, "y": 165,
+                                    "x": 0.015, "y": 0.33,
                                     "anchor": "top_left"
                                 },
                                 {
@@ -178,17 +178,13 @@
                                     "content": "Configuration via environment variables:",
                                     "font": "body",
                                     "color": "text_primary",
-                                    "x": 10, "y": 260,
+                                    "x": 0.015, "y": 0.52,
                                     "anchor": "top_left"
                                 },
                                 {
                                     "type": "code_block",
                                     "language": "bash",
                                     "content": "export AHAMKARA_PORT=7777\nexport AHAMKARA_MAX_PLAYERS=16\n./ahamkara_server"
-                                },
-                                {
-                                    "type": "spacer",
-                                    "height": 200
                                 }
                             ]
                         }
@@ -199,7 +195,7 @@
                     "label": "BACK",
                     "style": "secondary",
                     "action": "pop_screen",
-                    "x": 0.5, "y": 510,
+                    "x": 0.5, "y": 0.88,
                     "anchor": "top_center",
                     "width": 200
                 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ae/ui/menu_navigation_model.h"
 #include "imgui.h"
 
 #include <filesystem>
@@ -26,8 +27,19 @@ public:
     void pop_screen();
     void pop_to_root();
     void show_screen(const std::string& name);
+    /// Hide all screens (used when entering gameplay).
+    void clear_screens();
     [[nodiscard]] const std::string& current_screen() const { return current_screen_; }
     [[nodiscard]] bool is_visible() const { return !screen_stack_.empty(); }
+
+    /// Focus state of the active screen (index into the ordered focusable
+    /// list; -1 when nothing is enabled). Exposed for tests and tooling.
+    [[nodiscard]] int focused_index() const {
+        return nav_model_.focus_index();
+    }
+    [[nodiscard]] bool has_focus() const {
+        return nav_model_.has_focus();
+    }
 
     void set_variable(const std::string& key, const std::string& value);
     void set_variable(const std::string& key, float value);
@@ -49,6 +61,11 @@ public:
         std::string id;         // docs section id
         std::string language;   // code block language
         std::string anchor;
+        // Static enablement. A button is focusable/selectable only when
+        // enabled (dynamic enablement can be driven through `enabled_var`).
+        bool enabled {true};
+        // Float variable name that gates enablement (value >= 0.5 => enabled).
+        std::string enabled_var;
         float x{0}, y{0};
         float width{0}, height{0};
         float min{0}, max{0};
@@ -78,18 +95,39 @@ public:
     std::string resolve_variable(const std::string& content) const;
 
 private:
-    ParsedTheme theme_;
-    std::unordered_map<std::string, ParsedScreen> screens_;
-    std::vector<std::string> screen_stack_;
-    std::string current_screen_;
-    std::string screen_dir_;
+  /// Collect focusable elements (buttons / map cards) in render order.
+  void collect_focusables(const std::vector<ParsedElement>& elements,
+                          std::vector<const ParsedElement*>& out);
+  /// Keep the navigation model in sync with the current screen's elements.
+  void sync_navigation_model(const ParsedScreen& screen);
+  /// Apply keyboard/gamepad navigation input for the current frame.
+  void handle_navigation_input();
+  /// Build a focus ring around a focused element's item rect.
+  void draw_focus_ring(const ImVec2& item_min, const ImVec2& item_max, float thickness);
 
-    std::unordered_map<std::string, MenuAction> actions_;
-    std::unordered_map<std::string, std::string> str_vars_;
-    std::unordered_map<std::string, float> float_vars_;
+  ParsedTheme theme_;
+  std::unordered_map<std::string, ParsedScreen> screens_;
+  std::vector<std::string> screen_stack_;
+  std::string current_screen_;
+  std::string screen_dir_;
 
-    float loading_progress_{0.0f};
-    float spinner_angle_{0.0f};
+  std::unordered_map<std::string, MenuAction> actions_;
+  std::unordered_map<std::string, std::string> str_vars_;
+  std::unordered_map<std::string, float> float_vars_;
+
+  // Deterministic focus/navigation state for the active screen.
+  MenuNavigationModel nav_model_ {};
+  std::vector<const ParsedElement*> focus_list_ {};
+  std::unordered_map<const ParsedElement*, int> focus_map_ {};
+  std::string nav_screen_name_ {};
+  int pending_activate_ {-1};
+
+  // UI scale derived from the display size so menus stay usable across the
+  // supported desktop window sizes.
+  float ui_scale_ {1.0F};
+
+  float loading_progress_ {0.0f};
+  float spinner_angle_ {0.0f};
 };
 
 }  // namespace ae::ui
