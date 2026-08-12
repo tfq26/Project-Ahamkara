@@ -117,6 +117,10 @@ void parse_element(MiniJson& j, MenuSystem::ParsedElement& el) {
         else if (key == "id") el.id = j.read_string();
         else if (key == "language") el.language = j.read_string();
         else if (key == "anchor") el.anchor = j.read_string();
+        else if (key == "enabled")
+            el.enabled = j.read_bool();
+        else if (key == "enabled_var")
+            el.enabled_var = j.read_string();
         else if (key == "x") el.x = j.read_number();
         else if (key == "y") el.y = j.read_number();
         else if (key == "width") el.width = j.read_number();
@@ -125,7 +129,8 @@ void parse_element(MiniJson& j, MenuSystem::ParsedElement& el) {
         else if (key == "max") el.max = j.read_number();
         else if (key == "radius") el.radius = j.read_number();
         else if (key == "thickness") el.thickness = j.read_number();
-        else if (key == "rounding") el.rounding = j.read_number();
+        else if (key == "rounding")
+            el.rounding = static_cast<int>(j.read_number());
         else if (key == "background") { auto v = j.read_float_array(); if (v.size() >= 4) {} }
         else if (key == "overlay") el.content = j.read_bool() ? "true" : "false";
         else if (key == "elements" && j.peek() == '[') {
@@ -203,6 +208,13 @@ static void parse_theme(MenuSystem::ParsedTheme& theme, MiniJson& j) {
         else j.skip_value();
     }
 }
+
+// Reference design resolution. Menus are authored against a 1280x720 canvas;
+// the UI scale adapts the composition to the supported desktop window sizes.
+constexpr float kReferenceWidth = 1280.0F;
+constexpr float kReferenceHeight = 720.0F;
+constexpr float kMinUiScale = 0.6F;
+constexpr float kMaxUiScale = 1.5F;
 
 }  // namespace
 
@@ -291,6 +303,12 @@ LayoutPos compute_position(float el_x, float el_y, const std::string& anchor,
     return p;
 }
 
+/// Clamp an element's top-left position so it stays inside its parent.
+void clamp_to_parent(LayoutPos& pos, float parent_w, float parent_h, float el_w, float el_h) {
+    pos.x = std::clamp(pos.x, 0.0f, std::max(0.0f, parent_w - el_w));
+    pos.y = std::clamp(pos.y, 0.0f, std::max(0.0f, parent_h - el_h));
+}
+
 }  // namespace
 
 void MenuSystem::render() {
@@ -303,6 +321,29 @@ void MenuSystem::render() {
     auto& io = ImGui::GetIO();
     float sw = io.DisplaySize.x;
     float sh = io.DisplaySize.y;
+
+    // Derive a UI scale from the display size so the composition stays usable
+    // across the supported desktop window sizes (1280x720 .. 2560x1440 and
+    // below). 1280x720 is the design reference (scale = 1.0).
+    ui_scale_ = std::clamp(std::min(sw / kReferenceWidth, sh / kReferenceHeight),
+                           kMinUiScale, kMaxUiScale);
+
+    // Menu focus is fully explicit and deterministic; suppress ImGui's
+    // built-in (mouse-driven) navigation while rendering menu screens.
+    const ImGuiConfigFlags saved_nav_flags =
+        io.ConfigFlags & (ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad);
+    io.ConfigFlags &= ~(ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad);
+
+    // Collect focusable elements in render order and sync the nav model.
+    focus_list_.clear();
+    focus_map_.clear();
+    collect_focusables(screen.elements, focus_list_);
+    for (int i = 0; i < static_cast<int>(focus_list_.size()); ++i) {
+        focus_map_[focus_list_[static_cast<std::size_t>(i)]] = i;
+    }
+    sync_navigation_model(screen);
+    pending_activate_ = -1;
+    handle_navigation_input();
 
     // Background
     if (!screen.background.empty() && screen.background.size() >= 4) {
@@ -319,31 +360,107 @@ void MenuSystem::render() {
     for (const auto& el : screen.elements) {
         render_element(el, 0, 0, sw, sh);
     }
+
+    io.ConfigFlags |= saved_nav_flags;
+}
+
+void MenuSystem::collect_focusables(const std::vector<ParsedElement>& elements,
+                                    std::vector<const ParsedElement*>& out) {
+    for (const auto& el : elements) {
+        if (el.type == "panel") {
+            collect_focusables(el.elements, out);
+        } else if (el.type == "button" || el.type == "map_card") {
+            out.push_back(&el);
+        }
+    }
+}
+
+void MenuSystem::sync_navigation_model(const ParsedScreen& screen) {
+    const bool screen_changed = screen.name != nav_screen_name_;
+    nav_screen_name_ = screen.name;
+
+    if (screen_changed || nav_model_.count() != static_cast<int>(focus_list_.size())) {
+        nav_model_.set_count(static_cast<int>(focus_list_.size()));
+        // A fresh screen starts from its first enabled slot.
+        if (screen_changed) {
+            nav_model_.reset();
+        }
+    }
+    for (int i = 0; i < static_cast<int>(focus_list_.size()); ++i) {
+        const ParsedElement* el = focus_list_[static_cast<std::size_t>(i)];
+        bool enabled = el->enabled;
+        if (!el->enabled_var.empty()) {
+            auto it = float_vars_.find(el->enabled_var);
+            enabled = it != float_vars_.end() && it->second >= 0.5f;
+        }
+        nav_model_.set_enabled(i, enabled);
+    }
+}
+
+void MenuSystem::handle_navigation_input() {
+    const bool up = ImGui::IsKeyPressed(ImGuiKey_UpArrow) || ImGui::IsKeyPressed(ImGuiKey_GamepadDpadUp);
+    const bool down = ImGui::IsKeyPressed(ImGuiKey_DownArrow) || ImGui::IsKeyPressed(ImGuiKey_GamepadDpadDown);
+    const bool left = ImGui::IsKeyPressed(ImGuiKey_LeftArrow) || ImGui::IsKeyPressed(ImGuiKey_GamepadDpadLeft);
+    const bool right = ImGui::IsKeyPressed(ImGuiKey_RightArrow) || ImGui::IsKeyPressed(ImGuiKey_GamepadDpadRight);
+    const bool activate = ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter) || ImGui::IsKeyPressed(ImGuiKey_Space) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceDown);
+
+    if (up)
+        nav_model_.move_prev();
+    if (down)
+        nav_model_.move_next();
+    if (left)
+        nav_model_.move_prev();
+    if (right)
+        nav_model_.move_next();
+
+    if (activate && nav_model_.has_focus()) {
+        pending_activate_ = nav_model_.focus_index();
+    }
+}
+
+void MenuSystem::draw_focus_ring(const ImVec2& item_min, const ImVec2& item_max, float thickness) {
+    const auto accent = get_theme_color(theme_.colors, "accent");
+    const float pad = 3.0f * ui_scale_;
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    if (dl == nullptr)
+        return;
+    const ImVec2 ring_min(item_min.x - pad, item_min.y - pad);
+    const ImVec2 ring_max(item_max.x + pad, item_max.y + pad);
+    dl->AddRect(ring_min, ring_max,
+                ImGui::ColorConvertFloat4ToU32(accent),
+                4.0f * ui_scale_, ImDrawFlags_None, std::max(1.0f, thickness * ui_scale_));
 }
 
 void MenuSystem::render_element(const ParsedElement& el, float offset_x, float offset_y, float parent_w, float parent_h) {
     auto& io = ImGui::GetIO();
-    float scale = io.DisplayFramebufferScale.x > 0 ? io.DisplayFramebufferScale.x : 1.0f;
+    float dpi = io.DisplayFramebufferScale.x > 0 ? io.DisplayFramebufferScale.x : 1.0f;
+    float u = dpi * ui_scale_;
 
-    float el_w = el.width > 0 ? el.width * scale : 0;
-    float el_h = el.height > 0 ? el.height * scale : 0;
-    float btn_w = get_theme_float(theme_.spacing, "button_width", 280) * scale;
-    float btn_h = get_theme_float(theme_.spacing, "button_height", 48) * scale;
+    float el_w = el.width > 0 ? el.width * u : 0;
+    float el_h = el.height > 0 ? el.height * u : 0;
+    float btn_w = get_theme_float(theme_.spacing, "button_width", 280) * u;
+    float btn_h = get_theme_float(theme_.spacing, "button_height", 48) * u;
 
     if (el.type == "spacer") {
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + el.height * scale);
+        // Spacing is handled through explicit element coordinates.
         return;
     }
 
     if (el.type == "separator") {
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
+        float x = offset_x + el.x * parent_w;
+        float y = offset_y + el.y * parent_h;
+        float w = el.width > 0 ? el.width * u : parent_w;
+        const auto col = get_theme_color(theme_.colors, el.color.empty() ? "divider" : el.color);
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        if (dl != nullptr) {
+            dl->AddLine({x, y}, {x + w, y}, ImGui::ColorConvertFloat4ToU32(col), 1.0f * u);
+        }
         return;
     }
 
     if (el.type == "panel") {
         auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor, offset_x, offset_y, parent_w, parent_h, el_w, el_h);
+        clamp_to_parent(pos, parent_w, parent_h, el_w, el_h);
 
         if (el.color == "none") {
             ImGui::SetNextWindowPos({pos.x, pos.y});
@@ -351,7 +468,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         } else {
             auto bg = get_theme_color(theme_.colors, el.color != "none" ? el.color : "panel");
             ImGui::PushStyleColor(ImGuiCol_WindowBg, bg);
-            if (el.rounding > 0) ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, (float)el.rounding);
+            if (el.rounding > 0)
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, static_cast<float>(el.rounding) * u);
             ImGui::SetNextWindowPos({pos.x, pos.y});
             ImGui::SetNextWindowSize({el_w, el_h});
         }
@@ -367,19 +485,20 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         ImGui::End();
         if (el.color != "none") {
             if (el.rounding > 0) ImGui::PopStyleVar();
-            if (el.color != "none") ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
         }
         return;
     }
 
     if (el.type == "text") {
         std::string text = resolve_variable(el.content);
-        float font_size = get_theme_float(theme_.fonts, el.font, 1.0f);
+        float font_size = get_theme_float(theme_.fonts, el.font, 1.0f) * ui_scale_;
         auto color = get_theme_color(theme_.colors, el.color, {1,1,1,1});
 
         float tw = ImGui::CalcTextSize(text.c_str()).x * font_size;
         auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
                                      offset_x, offset_y, parent_w, parent_h, tw, font_size * 20);
+        clamp_to_parent(pos, parent_w, parent_h, tw, font_size * 20);
 
         ImGui::SetCursorScreenPos({pos.x, pos.y});
         ImGui::PushStyleColor(ImGuiCol_Text, color);
@@ -391,13 +510,21 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
     }
 
     if (el.type == "button") {
+        auto it = focus_map_.find(&el);
+        const int slot = it != focus_map_.end() ? it->second : -1;
+        const bool enabled = slot >= 0 && nav_model_.is_enabled(slot);
+        const bool is_focused = slot >= 0 && nav_model_.has_focus() && nav_model_.focus_index() == slot;
+
         auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
                                      offset_x, offset_y, parent_w, parent_h, btn_w, btn_h);
+        clamp_to_parent(pos, parent_w, parent_h, btn_w, btn_h);
         ImGui::SetCursorScreenPos({pos.x, pos.y});
 
         auto c_normal  = get_theme_color(theme_.colors, "button_" + el.style);
         auto c_hover   = get_theme_color(theme_.colors, "button_" + el.style + "_hover", c_normal);
+        auto c_focus = get_theme_color(theme_.colors, "button_" + el.style + "_focus", c_hover);
         auto c_primary = get_theme_color(theme_.colors, "button_primary");
+        auto c_disabled = get_theme_color(theme_.colors, "button_disabled", c_normal);
 
         if (el.style == "danger") {
             c_normal = get_theme_color(theme_.colors, "button_danger");
@@ -405,34 +532,73 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         }
         if (c_normal.x == 0 && c_normal.y == 0 && c_normal.z == 0) c_normal = c_primary;
 
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-        ImGui::PushStyleColor(ImGuiCol_Button, c_normal);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, c_hover);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, c_normal);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f * u);
 
-        float font_scale = get_theme_float(theme_.fonts, "button", 1.05f);
+        if (!enabled) {
+            // Disabled state: muted colors and no interaction.
+            ImGui::PushStyleColor(ImGuiCol_Button, c_disabled);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, c_disabled);
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, c_disabled);
+            ImGui::PushStyleColor(ImGuiCol_Text, get_theme_color(theme_.colors, "text_disabled", c_disabled));
+        } else if (is_focused) {
+            // Focused state: bright, persistent focus ring + focused colors.
+            ImGui::PushStyleColor(ImGuiCol_Button, c_focus);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, c_focus);
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, c_normal);
+            ImGui::PushStyleColor(ImGuiCol_Text, get_theme_color(theme_.colors, "text_primary"));
+        } else {
+            ImGui::PushStyleColor(ImGuiCol_Button, c_normal);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, c_hover);
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, c_normal);
+            ImGui::PushStyleColor(ImGuiCol_Text, get_theme_color(theme_.colors, "text_primary"));
+        }
+
+        float font_scale = get_theme_float(theme_.fonts, "button", 1.05f) * ui_scale_;
         if (font_scale != 1.0f) ImGui::SetWindowFontScale(font_scale);
 
-        bool clicked = ImGui::Button(el.label.c_str(), {btn_w, btn_h});
+        bool clicked = false;
+        if (enabled) {
+            clicked = ImGui::Button(el.label.c_str(), {btn_w, btn_h});
+        } else {
+            // Reserve the same footprint without accepting input.
+            ImGui::InvisibleButton(("##disabled_" + el.label).c_str(), {btn_w, btn_h});
+        }
 
         if (font_scale != 1.0f) ImGui::SetWindowFontScale(1.0f);
-        ImGui::PopStyleColor(3);
+        ImGui::PopStyleColor(4);
         ImGui::PopStyleVar();
 
-        if (clicked && !el.action.empty()) {
-            execute_action(el.action);
+        // Hovering an enabled button adopts focus so mouse and nav stay in sync.
+        if (enabled && slot >= 0 && ImGui::IsItemHovered()) {
+            nav_model_.set_focus(slot);
+        }
+
+        // Activation: keyboard/controller (via the focused slot) or mouse click.
+        if (enabled && (clicked || (is_focused && pending_activate_ == slot))) {
+            if (!el.action.empty())
+                execute_action(el.action);
+        }
+
+        if (is_focused && enabled) {
+            draw_focus_ring(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), 2.0f);
         }
         return;
     }
 
     if (el.type == "map_card") {
-        auto pos = compute_position(el.x * parent_w + offset_x, el.y * parent_h + offset_y, el.anchor,
-                                     offset_x, offset_y, parent_w, parent_h, el_w, el_h);
+        auto it = focus_map_.find(&el);
+        const int slot = it != focus_map_.end() ? it->second : -1;
+        const bool enabled = slot >= 0 && nav_model_.is_enabled(slot);
+        const bool is_focused = slot >= 0 && nav_model_.has_focus() && nav_model_.focus_index() == slot;
+
+        auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
+                                    offset_x, offset_y, parent_w, parent_h, el_w, el_h);
+        clamp_to_parent(pos, parent_w, parent_h, el_w, el_h);
         ImGui::SetCursorScreenPos({pos.x, pos.y});
 
         auto bg = get_theme_color(theme_.colors, "button_secondary");
         ImGui::PushStyleColor(ImGuiCol_ChildBg, bg);
-        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 6.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 6.0f * u);
 
         std::string child_name = "##mapcard_" + el.map_id;
         if (ImGui::BeginChild(child_name.c_str(), {el_w, el_h}, ImGuiChildFlags_Border)) {
@@ -441,13 +607,13 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
             auto text2  = get_theme_color(theme_.colors, "text_secondary");
 
             ImGui::PushStyleColor(ImGuiCol_Text, accent);
-            ImGui::SetWindowFontScale(1.1f);
+            ImGui::SetWindowFontScale(1.1f * ui_scale_);
             ImGui::TextUnformatted(el.label.c_str());
             ImGui::SetWindowFontScale(1.0f);
             ImGui::PopStyleColor();
 
             ImGui::PushStyleColor(ImGuiCol_Text, text2);
-            ImGui::SetWindowFontScale(0.85f);
+            ImGui::SetWindowFontScale(0.85f * ui_scale_);
             ImGui::TextWrapped("%s", el.description.c_str());
             ImGui::SetWindowFontScale(1.0f);
             ImGui::PopStyleColor();
@@ -456,40 +622,56 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
             ImGui::TextUnformatted(el.players.c_str());
             ImGui::PopStyleColor();
 
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 4);
-            if (ImGui::Button(("SELECT##" + el.map_id).c_str(), {el_w - 16, 26})) {
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 4 * ui_scale_);
+            if (ImGui::Button(("SELECT##" + el.map_id).c_str(), {el_w - 16 * ui_scale_, 26 * ui_scale_})) {
                 if (!el.action.empty()) execute_action(el.action);
             }
         }
         ImGui::EndChild();
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
+
+        // Hovering the card adopts focus so keyboard and mouse stay in sync.
+        if (enabled && slot >= 0 && ImGui::IsItemHovered()) {
+            nav_model_.set_focus(slot);
+        }
+        // Keyboard/controller activation selects the whole card.
+        if (enabled && is_focused && pending_activate_ == slot) {
+            if (!el.action.empty())
+                execute_action(el.action);
+        }
+        if (is_focused && enabled) {
+            draw_focus_ring(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), 2.0f);
+        }
         return;
     }
 
     if (el.type == "progress_bar") {
-        float bar_w = el.width > 0 ? el.width * scale : 300 * scale;
-        float bar_h = el.height > 0 ? el.height * scale : 8 * scale;
+        float bar_w = el.width > 0 ? el.width * u : 300 * u;
+        float bar_h = el.height > 0 ? el.height * u : 8 * u;
         auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
                                      offset_x, offset_y, parent_w, parent_h, bar_w, bar_h);
+        clamp_to_parent(pos, parent_w, parent_h, bar_w, bar_h);
         ImGui::SetCursorScreenPos({pos.x, pos.y});
 
         auto fill = get_theme_color(theme_.colors, "progress_fill");
         auto bg   = get_theme_color(theme_.colors, "progress_bg");
-        float r = el.rounding > 0 ? (float)el.rounding : 4.0f;
+        float r = el.rounding > 0 ? static_cast<float>(el.rounding) * u : 4.0f * u;
 
         ImDrawList* dl = ImGui::GetWindowDrawList();
-        dl->AddRectFilled({pos.x, pos.y}, {pos.x + bar_w, pos.y + bar_h},
-                          ImGui::ColorConvertFloat4ToU32(bg), r);
-        float prog = std::clamp(loading_progress_, 0.0f, 1.0f);
-        dl->AddRectFilled({pos.x, pos.y}, {pos.x + bar_w * prog, pos.y + bar_h},
-                          ImGui::ColorConvertFloat4ToU32(fill), r);
+        if (dl != nullptr) {
+            dl->AddRectFilled({pos.x, pos.y}, {pos.x + bar_w, pos.y + bar_h},
+                              ImGui::ColorConvertFloat4ToU32(bg), r);
+            float prog = std::clamp(loading_progress_, 0.0f, 1.0f);
+            dl->AddRectFilled({pos.x, pos.y}, {pos.x + bar_w * prog, pos.y + bar_h},
+                              ImGui::ColorConvertFloat4ToU32(fill), r);
+        }
         return;
     }
 
     if (el.type == "spinner") {
-        float r = el.radius > 0 ? el.radius * scale : 10.0f * scale;
-        float t = el.thickness > 0 ? el.thickness * scale : 2.5f * scale;
+        float r = el.radius > 0 ? el.radius * u : 10.0f * u;
+        float t = el.thickness > 0 ? el.thickness * u : 2.5f * u;
         auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
                                      offset_x, offset_y, parent_w, parent_h, r * 2, r * 2);
         pos.x += r;
@@ -497,6 +679,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
 
         auto col = get_theme_color(theme_.colors, el.color.empty() ? "accent" : el.color);
         ImDrawList* dl = ImGui::GetWindowDrawList();
+        if (dl == nullptr)
+            return;
 
         spinner_angle_ += ImGui::GetIO().DeltaTime * 4.0f;
         const int segments = 30;
@@ -519,13 +703,13 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         int active_idx = var_it != float_vars_.end() ? static_cast<int>(var_it->second) : 0;
         active_idx = std::clamp(active_idx, 0, static_cast<int>(el.elements.size()) - 1);
 
-        float el_w_scaled = el.width > 0 ? el.width * io.DisplayFramebufferScale.x : 800;
-        float el_h_scaled = el.height > 0 ? el.height * io.DisplayFramebufferScale.y : 500;
+        float el_w_scaled = el.width > 0 ? el.width * u : 800 * u;
+        float el_h_scaled = el.height > 0 ? el.height * u : 500 * u;
         auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
                                      offset_x, offset_y, parent_w, parent_h, el_w_scaled, el_h_scaled);
 
         // Split: sidebar (left 220px) + content area
-        float sidebar_w = 220.0f * io.DisplayFramebufferScale.x;
+        float sidebar_w = 220.0f * u;
         float content_x = pos.x + sidebar_w + 4.0f;
         float content_w = el_w_scaled - sidebar_w - 4.0f;
 
@@ -537,7 +721,6 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         if (ImGui::BeginChild(sbar_id.c_str(), {sidebar_w, el_h_scaled}, ImGuiChildFlags_Border)) {
             auto accent = get_theme_color(theme_.colors, "accent");
             auto text_primary = get_theme_color(theme_.colors, "text_primary");
-            auto text_secondary = get_theme_color(theme_.colors, "text_secondary");
             auto btn_sec = get_theme_color(theme_.colors, "button_secondary");
             auto btn_sec_hover = get_theme_color(theme_.colors, "button_secondary_hover");
 
@@ -588,7 +771,6 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
     if (el.type == "docs_section") {
         // Render section content: title + children
         auto accent = get_theme_color(theme_.colors, "accent");
-        auto text_primary = get_theme_color(theme_.colors, "text_primary");
 
         ImGui::PushStyleColor(ImGuiCol_Text, accent);
         ImGui::SetWindowFontScale(1.5f);
@@ -736,17 +918,18 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
     }
 
     if (el.type == "slider") {
-        float w = el.width > 0 ? el.width * scale : 300 * scale;
+        float w = el.width > 0 ? el.width * u : 300 * u;
         auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
-                                     offset_x, offset_y, parent_w, parent_h, w, 40);
+                                    offset_x, offset_y, parent_w, parent_h, w, 40 * ui_scale_);
+        clamp_to_parent(pos, parent_w, parent_h, w, 40 * ui_scale_);
         ImGui::SetCursorScreenPos({pos.x, pos.y});
         ImGui::PushStyleColor(ImGuiCol_Text, get_theme_color(theme_.colors, "text_primary"));
         ImGui::TextUnformatted(el.label.c_str());
         ImGui::PopStyleColor();
 
-        auto it = float_vars_.find(el.setting);
-        float val = it != float_vars_.end() ? it->second : el.min;
-        ImGui::SetCursorScreenPos({pos.x, pos.y + 18});
+        auto vit = float_vars_.find(el.setting);
+        float val = vit != float_vars_.end() ? vit->second : el.min;
+        ImGui::SetCursorScreenPos({pos.x, pos.y + 18 * ui_scale_});
         ImGui::SetNextItemWidth(w);
         if (ImGui::SliderFloat(("##slider_" + el.setting).c_str(), &val, el.min, el.max, "%.2f")) {
             float_vars_[el.setting] = val;
@@ -756,9 +939,10 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
     }
 
     if (el.type == "toggle") {
-        float w = el.width > 0 ? el.width * scale : 300 * scale;
+        float w = el.width > 0 ? el.width * u : 300 * u;
         auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
-                                     offset_x, offset_y, parent_w, parent_h, w, 30);
+                                    offset_x, offset_y, parent_w, parent_h, w, 30 * ui_scale_);
+        clamp_to_parent(pos, parent_w, parent_h, w, 30 * ui_scale_);
         ImGui::SetCursorScreenPos({pos.x, pos.y});
         ImGui::PushStyleColor(ImGuiCol_Text, get_theme_color(theme_.colors, "text_primary"));
         ImGui::TextUnformatted(el.label.c_str());
@@ -766,7 +950,7 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
 
         auto it = float_vars_.find(el.setting);
         bool val = (it != float_vars_.end() && it->second > 0.5f);
-        ImGui::SetCursorScreenPos({pos.x + w - 40, pos.y});
+        ImGui::SetCursorScreenPos({pos.x + w - 40 * ui_scale_, pos.y});
         if (ImGui::Checkbox(("##tgl_" + el.setting).c_str(), &val)) {
             float_vars_[el.setting] = val ? 1.0f : 0.0f;
             execute_action("setting_changed:" + el.setting);
@@ -827,6 +1011,11 @@ void MenuSystem::pop_to_root() {
 void MenuSystem::show_screen(const std::string& name) {
     screen_stack_.clear();
     push_screen(name);
+}
+
+void MenuSystem::clear_screens() {
+    screen_stack_.clear();
+    current_screen_.clear();
 }
 
 void MenuSystem::set_active_screen(const std::string& name, bool active) {

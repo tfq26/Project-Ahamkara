@@ -893,3 +893,65 @@ target_include_directories(ahamkara_docs_viewer_tests
 )
 
 add_test(NAME ahamkara_docs_viewer_tests COMMAND ahamkara_docs_viewer_tests)
+
+# =============================================================================
+# Flashback menu shell — pure navigation logic and menu-state transitions
+# =============================================================================
+
+# Deterministic focus model backing the JSON menu screens. Headless-friendly.
+add_executable(ahamkara_menu_navigation_tests
+    unit/ui/menu_navigation_tests.cpp
+    ../engine/ui/src/menu_navigation_model.cpp
+)
+target_compile_features(ahamkara_menu_navigation_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_menu_navigation_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/ui/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+add_test(NAME ahamkara_menu_navigation_tests COMMAND ahamkara_menu_navigation_tests)
+
+# JSON menu screens through the real MenuSystem + ImGui core (no backend).
+# Verifies focus determinism, disabled-slot skipping, and push/pop flow.
+add_executable(ahamkara_menu_screen_integration_tests
+    unit/ui/menu_screen_integration_tests.cpp
+    ../engine/ui/src/menu_system.cpp
+    ../engine/ui/src/menu_navigation_model.cpp
+    ../engine/ui/imgui.cpp
+    ../engine/ui/imgui_draw.cpp
+    ../engine/ui/imgui_tables.cpp
+    ../engine/ui/imgui_widgets.cpp
+)
+target_compile_features(ahamkara_menu_screen_integration_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_menu_screen_integration_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/ui
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/ui/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_link_libraries(ahamkara_menu_screen_integration_tests
+    PRIVATE
+        ae_core
+)
+add_test(NAME ahamkara_menu_screen_integration_tests COMMAND ahamkara_menu_screen_integration_tests
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..)
+
+# ClientMenuState — menu visibility / gameplay-pause transition owner.
+# Headless-friendly (no GLFW/render deps beyond the ae/ui MenuScreen enum).
+add_executable(ahamkara_client_menu_state_tests
+    unit/client/client_menu_state_tests.cpp
+    ../client/src/client_menu_state.cpp
+)
+target_compile_features(ahamkara_client_menu_state_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_client_menu_state_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../client/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/ui/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+)
+target_link_libraries(ahamkara_client_menu_state_tests
+    PRIVATE
+        ae_core
+)
+add_test(NAME ahamkara_client_menu_state_tests COMMAND ahamkara_client_menu_state_tests)
