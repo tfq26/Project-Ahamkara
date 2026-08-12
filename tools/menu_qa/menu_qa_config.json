@@ -1,0 +1,27 @@
+{
+    "menus_dir": "assets/menus",
+    "screens_in_scope": [
+        "main_menu",
+        "settings",
+        "pause_menu",
+        "loading_screen"
+    ],
+    "supported_resolutions": [
+        [1280, 720],
+        [1600, 900],
+        [1920, 1080],
+        [2560, 1440]
+    ],
+    "checks": {
+        "contrast_normal_threshold": 4.5,
+        "contrast_large_threshold": 3.0,
+        "large_text_font_scale": 1.6,
+        "alignment_x_tolerance": 0.01,
+        "font_base_size_px": 20.0,
+        "char_width_estimate_px": 8.0
+    },
+    "capture": {
+        "settle_seconds": 4,
+        "window_flags": ["--window-width", "--window-height"]
+    }
+}
