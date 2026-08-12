@@ -380,6 +380,15 @@ private:
     float match_time_ {0.0F};
     bool match_over_ {false};
     float damage_feedback_timer_ {0.0F};
+
+    // -- Encounter scripting state --
+    EncounterManager encounters_ {};
+
+    // -- Navigation grid (lazily built from colliders) --
+    std::optional<ai::NavGridBuildResult> nav_grid_;
+    ai::NavSpace nav_space_ {};
+    bool nav_grid_dirty_ {true};
+
     VfxFeedback vfx_feedback_ {};
     ae::u32 vfx_feedback_event_id_ {0};
 };

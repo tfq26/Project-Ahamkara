@@ -1,6 +1,8 @@
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
+# Rewrites a target's public include directories to the build/install
+# interface pair used by the exported Ahamkara package.
 function(ahamkara_set_export_includes target rel_include)
     if(NOT TARGET ${target})
         return()
@@ -30,7 +32,11 @@ install(TARGETS ${_AHAMKARA_EXPORT_LIBS}
 )
 
 set(_AHAMKARA_EXTRA_LIBS)
-foreach(_lib IN ITEMS ae_collision ae_physics ae_skeleton ae_animation ae_audio ae_input ae_ui ae_render ae_platform ahamkara_game wish_engine)
+set(_AHAMKARA_EXTRA_LIB_LIST
+    ae_collision ae_physics ae_skeleton ae_animation ae_audio ae_input
+    ae_ui ae_render ae_platform ahamkara_game wish_engine
+)
+foreach(_lib IN ITEMS ${_AHAMKARA_EXTRA_LIB_LIST})
     if(TARGET ${_lib})
         list(APPEND _AHAMKARA_EXTRA_LIBS ${_lib})
     endif()
@@ -114,15 +120,8 @@ install(FILES
 # ── Wish backend separate package ─────────────────────────────────────────
 # Export wish_engine to its own target set so consumer projects can use
 # find_package(Wish CONFIG) independently of the Ahamkara package.
+# Note: wish_engine target install is handled in wish/CMakeLists.txt.
 if(TARGET wish_engine)
-    install(TARGETS wish_engine
-        EXPORT  WishTargets
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Wish
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Wish
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Wish
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    )
-
     install(EXPORT WishTargets
         FILE    WishTargets.cmake
         NAMESPACE Wish::

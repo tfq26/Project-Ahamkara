@@ -14,6 +14,8 @@ add_library(wish_engine STATIC
     core/src/log.cpp
     core/src/sequence_tracker.cpp
     core/src/session_orchestrator.cpp
+    core/src/version_compatibility.cpp
+    core/src/support_bundle.cpp
     net/src/transport_config.cpp
     session/src/session_model.cpp
     session/src/session_group.cpp
