@@ -35,19 +35,44 @@ bool ClientMenuState::simulation_should_pause() const {
 }
 
 bool ClientMenuState::toggle_menu() {
-    // MainMenu only goes away via PLAY — ESC does nothing here
-    if (mode_ == ClientMenuMode::MainMenu || mode_ == ClientMenuMode::SettingsFromMainMenu) {
+    // MainMenu only goes away via PLAY — ESC does nothing here.
+    if (mode_ == ClientMenuMode::MainMenu) {
         return false;
     }
 
-    if (mode_ == ClientMenuMode::Gameplay) {
-        show_pause();
-        ae::log_info("Menu opened: Pause Overlay");
-        return true;
+    const ClientMenuMode previous = mode_;
+    const bool changed = handle_cancel();
+    if (changed) {
+        if (previous == ClientMenuMode::Gameplay) {
+            ae::log_info("Menu opened: Pause Overlay");
+        } else {
+            ae::log_info("Menu closed: returning to previous screen");
+        }
     }
+    return changed;
+}
 
-    resume_gameplay();
-    ae::log_info("Menu closed: returning to game");
+bool ClientMenuState::handle_cancel() {
+    switch (mode_) {
+    case ClientMenuMode::MainMenu:
+        // The main menu is a root screen; cancel never dismisses it.
+        return false;
+    case ClientMenuMode::SettingsFromMainMenu:
+        mode_ = ClientMenuMode::MainMenu;
+        break;
+    case ClientMenuMode::SettingsFromPause:
+    case ClientMenuMode::Character:
+        mode_ = ClientMenuMode::PauseOverlay;
+        break;
+    case ClientMenuMode::Gameplay:
+        // Cancel from gameplay opens the pause overlay.
+        mode_ = ClientMenuMode::PauseOverlay;
+        break;
+    case ClientMenuMode::PauseOverlay:
+        mode_ = ClientMenuMode::Gameplay;
+        break;
+    }
+    sync_menu_state();
     return true;
 }
 

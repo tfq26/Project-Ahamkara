@@ -47,6 +47,12 @@ public:
     /// Returns true if the simulation pause state changed.
     [[nodiscard]] bool toggle_menu();
 
+    /// Cancel / back (ESC or gamepad B).  Each mode has a deterministic
+    /// destination: settings return to their origin, the character sheet and
+    /// pause overlay return to gameplay, and the main menu is never dismissible
+    /// via cancel.  Returns true if the menu mode changed.
+    [[nodiscard]] bool handle_cancel();
+
     void start_gameplay();
     void resume_gameplay();
     void open_settings();

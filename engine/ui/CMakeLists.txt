@@ -9,6 +9,7 @@ add_library(ae_ui STATIC
     src/menu_system.cpp
     src/hud_element.cpp
     src/hud_system.cpp
+    src/settings_catalog.cpp
 )
 
 target_compile_features(ae_ui PUBLIC cxx_std_20)

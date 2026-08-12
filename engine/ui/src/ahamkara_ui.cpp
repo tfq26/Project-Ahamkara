@@ -1,5 +1,7 @@
 #include "ae/core/log.h"
 #include "ae/ui/ahamkara_ui.h"
+#include "ae/ui/menu_nav.h"
+#include "ae/ui/settings_catalog.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -110,6 +112,60 @@ float PulseAlpha() {
     return 0.03F + 0.02F * (float)std::sin(t * 0.8);
 }
 
+// --- Keyboard/gamepad navigation helpers -------------------------------------
+
+// Renders a menu button and, when it is the active navigation index, gives it
+// keyboard focus for the frame so Enter/Space/gamepad-A activates it.  The
+// ImGui nav highlight provides the activation feedback for the focused row.
+bool FocusedMenuButton(const char* label, const ImVec2& size, int focus_index, int active_index, bool primary = false) {
+    if (focus_index == active_index) {
+        ImGui::SetKeyboardFocusHere(0);
+    }
+    return MenuButton(label, size, primary);
+}
+
+// Advances the active menu index in response to directional keys, wrapping at
+// both ends of the list.  Returns the updated active index.  Focus never
+// escapes the list, so a menu opened with any previously selected item always
+// has a usable selection.
+int HandleMenuNav(int active_index, int button_count) {
+    if (button_count <= 0)
+        return active_index;
+    if (ImGui::IsKeyPressed(ImGuiKey_DownArrow, false)) {
+        return ae::ui::wrap_focus(active_index, button_count, 1);
+    }
+    if (ImGui::IsKeyPressed(ImGuiKey_UpArrow, false)) {
+        return ae::ui::wrap_focus(active_index, button_count, -1);
+    }
+    return active_index;
+}
+
+// Renders a settings row that is intentionally unavailable in this build.  The
+// row is disabled and labelled so the player knows the setting has no effect
+// instead of silently accepting input.
+void UnavailableSettingRow(const UnavailableSetting& setting) {
+    ImGui::PushStyleColor(ImGuiCol_Text, kTextDim);
+    ImGui::TextUnformatted(setting.label.c_str());
+    ImGui::SameLine(160.0F);
+    ImGui::TextDisabled("[Unavailable]");
+    ImGui::PopStyleColor();
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("%s", setting.reason.c_str());
+    }
+}
+
+// Looks up an unavailable setting by id.  Falls back to a disabled row with a
+// generic reason when the catalog entry is missing so the UI never silently
+// drops an unavailable row.
+const UnavailableSetting& lookup_unavailable_setting(const std::string& id) {
+    static const UnavailableSetting kMissing {"", "Unknown", "Unavailable in this build."};
+    for (const auto& entry : unavailable_settings()) {
+        if (entry.id == id)
+            return entry;
+    }
+    return kMissing;
+}
+
 }  // namespace
 
 bool initialize_ui(GLFWwindow* window, const char* glsl_version) {
@@ -122,6 +178,7 @@ bool initialize_ui(GLFWwindow* window, const char* glsl_version) {
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    io.ConfigNavCursorVisibleAlways = true; // keep the focused menu item visible
     io.IniFilename = nullptr;
 
     ImGui::StyleColorsDark();
@@ -462,23 +519,28 @@ bool render_main_menu(MenuState& state, bool* quit_requested) {
     float btn_w = 280.0F, btn_h = 46.0F;
     float cx = (win_w - btn_w) * 0.5F;
 
+    static int main_menu_index = 0;
+    constexpr int kMainMenuButtons = 3;
+
     ImGui::SetCursorPosX(cx);
-    if (MenuButton("PLAY", ImVec2(btn_w, btn_h), true)) {
+    if (FocusedMenuButton("PLAY", ImVec2(btn_w, btn_h), 0, main_menu_index, true)) {
         state.visible = false;
         state.screen = MenuScreen::None;
     }
 
     ImGui::Spacing();
     ImGui::SetCursorPosX(cx);
-    if (MenuButton("SETTINGS", ImVec2(btn_w, 40.0F))) {
+    if (FocusedMenuButton("SETTINGS", ImVec2(btn_w, 40.0F), 1, main_menu_index)) {
         state.screen = MenuScreen::Settings;
     }
 
     ImGui::Spacing();
     ImGui::SetCursorPosX(cx);
-    if (MenuButton("QUIT TO DESKTOP", ImVec2(btn_w, 36.0F))) {
+    if (FocusedMenuButton("QUIT TO DESKTOP", ImVec2(btn_w, 36.0F), 2, main_menu_index)) {
         if (quit_requested) *quit_requested = true;
     }
+
+    main_menu_index = HandleMenuNav(main_menu_index, kMainMenuButtons);
 
     // Footer
     ImGui::SetCursorPosY(win_h - 36.0F);
@@ -595,10 +657,8 @@ bool render_settings(MenuState& state) {
         SliderSetting("Mouse Sensitivity", &state.pending_mouse_sens, 0.1F, 5.0F, "%.1f");
 
         SectionHeader("ADVANCED");
-        static bool vsync = true;
-        CheckboxSetting("V-Sync", &vsync);
-        static bool show_fps = false;
-        CheckboxSetting("Show FPS Counter", &show_fps);
+        UnavailableSettingRow(lookup_unavailable_setting("vsync"));
+        UnavailableSettingRow(lookup_unavailable_setting("show_fps"));
     }
 
     else if (selected_tab == 1) { // Audio
@@ -608,16 +668,7 @@ bool render_settings(MenuState& state) {
         SliderSetting("SFX Volume", &state.pending_sfx_vol, 0.0F, 1.0F, "%.0f%%");
 
         SectionHeader("OUTPUT");
-        static int audio_device = 0;
-        const char* devices[] = {"System Default", "Speakers", "Headphones"};
-        ImGui::TextUnformatted("Output Device");
-        ImGui::SameLine(160);
-        ImGui::SetNextItemWidth(220);
-        if (ImGui::BeginCombo("##audio_dev", devices[audio_device])) {
-            for (int i = 0; i < 3; ++i)
-                if (ImGui::Selectable(devices[i], audio_device == i)) audio_device = i;
-            ImGui::EndCombo();
-        }
+        UnavailableSettingRow(lookup_unavailable_setting("audio_output_device"));
     }
 
     else if (selected_tab == 2) { // Controls
@@ -645,22 +696,19 @@ bool render_settings(MenuState& state) {
 
             ImGui::EndTable();
         }
+        ImGui::Spacing();
+        UnavailableSettingRow(lookup_unavailable_setting("input_rebinding"));
     }
 
     else if (selected_tab == 3) { // Gameplay
         SectionHeader("HUD");
-        static bool hud_enabled = true;
-        CheckboxSetting("Show HUD", &hud_enabled);
-        static bool crosshair_enabled = true;
-        CheckboxSetting("Show Crosshair", &crosshair_enabled);
-        static bool minimap_enabled = true;
-        CheckboxSetting("Show Minimap", &minimap_enabled);
+        UnavailableSettingRow(lookup_unavailable_setting("hud_enabled"));
+        UnavailableSettingRow(lookup_unavailable_setting("crosshair_enabled"));
+        UnavailableSettingRow(lookup_unavailable_setting("minimap_enabled"));
 
         SectionHeader("COMBAT");
-        static bool hitmarkers = true;
-        CheckboxSetting("Hitmarkers", &hitmarkers);
-        static bool damage_numbers = true;
-        CheckboxSetting("Damage Numbers", &damage_numbers);
+        UnavailableSettingRow(lookup_unavailable_setting("hitmarkers"));
+        UnavailableSettingRow(lookup_unavailable_setting("damage_numbers"));
     }
 
     ImGui::EndChild();
@@ -801,20 +849,23 @@ bool render_pause_overlay(MenuState& state, bool* quit_to_menu) {
     float btn_w = 240.0F;
     float cx = (panel_w - btn_w) * 0.5F;
 
+    static int pause_index = 0;
+    constexpr int kPauseButtons = 4;
+
     ImGui::SetCursorPosX(cx);
-    if (MenuButton("RESUME", ImVec2(btn_w, 42.0F), true)) {
+    if (FocusedMenuButton("RESUME", ImVec2(btn_w, 42.0F), 0, pause_index, true)) {
         state.visible = false;
     }
 
     ImGui::Spacing();
     ImGui::SetCursorPosX(cx);
-    if (MenuButton("SETTINGS", ImVec2(btn_w, 38.0F))) {
+    if (FocusedMenuButton("SETTINGS", ImVec2(btn_w, 38.0F), 1, pause_index)) {
         state.screen = MenuScreen::Settings;
     }
 
     ImGui::Spacing();
     ImGui::SetCursorPosX(cx);
-    if (MenuButton("CHARACTER", ImVec2(btn_w, 38.0F))) {
+    if (FocusedMenuButton("CHARACTER", ImVec2(btn_w, 38.0F), 2, pause_index)) {
         state.screen = MenuScreen::Character;
     }
 
@@ -825,11 +876,13 @@ bool render_pause_overlay(MenuState& state, bool* quit_to_menu) {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(kDanger.x, kDanger.y, kDanger.z, 0.45F));
     ImGui::PushStyleColor(ImGuiCol_Text, kDanger);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0F);
-    if (ImGui::Button("QUIT TO MENU", ImVec2(btn_w, 34.0F))) {
+    if (FocusedMenuButton("QUIT TO MENU", ImVec2(btn_w, 34.0F), 3, pause_index)) {
         if (quit_to_menu) *quit_to_menu = true;
     }
     ImGui::PopStyleVar();
     ImGui::PopStyleColor(4);
+
+    pause_index = HandleMenuNav(pause_index, kPauseButtons);
 
     ImGui::EndChild();
     ImGui::PopStyleColor();

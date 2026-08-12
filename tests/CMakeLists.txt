@@ -748,13 +748,18 @@ add_test(
         -DCONSUMER_SRC=${CMAKE_SOURCE_DIR}/tests/wish_out_of_tree_consumer
         -P ${CMAKE_SOURCE_DIR}/cmake/WishOutOfTreeConsumerTest.cmake
 )
-target_compile_features(ahamkara_observability_tests PRIVATE cxx_std_20)
-target_include_directories(ahamkara_observability_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-target_link_libraries(ahamkara_observability_tests
-    PRIVATE
-        wish_engine
-)
-add_test(NAME ahamkara_observability_tests COMMAND ahamkara_observability_tests)
+if(TARGET wish_engine)
+    add_executable(ahamkara_observability_tests
+        src/observability_tests.cpp
+    )
+    target_compile_features(ahamkara_observability_tests PRIVATE cxx_std_20)
+    target_include_directories(ahamkara_observability_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+    target_link_libraries(ahamkara_observability_tests
+        PRIVATE
+            wish_engine
+    )
+    add_test(NAME ahamkara_observability_tests COMMAND ahamkara_observability_tests)
+endif()
 
 add_executable(ahamkara_version_compatibility_tests
     src/version_compatibility_tests.cpp
@@ -798,3 +803,23 @@ target_link_libraries(ahamkara_network_boundary_validation_tests
         ahamkara_game
 )
 add_test(NAME ahamkara_network_boundary_validation_tests COMMAND ahamkara_network_boundary_validation_tests)
+
+# --- Flashback menu navigation flow (menu state machine + settings catalog) ---
+add_executable(ahamkara_menu_navigation_tests
+    unit/client/menu_navigation_tests.cpp
+    ../client/src/client_menu_state.cpp
+    ../engine/ui/src/settings_catalog.cpp
+)
+target_compile_features(ahamkara_menu_navigation_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_menu_navigation_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+        ${CMAKE_CURRENT_SOURCE_DIR}/../client/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/ui/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+)
+target_link_libraries(ahamkara_menu_navigation_tests
+    PRIVATE
+        ae_core
+)
+add_test(NAME ahamkara_menu_navigation_tests COMMAND ahamkara_menu_navigation_tests)
