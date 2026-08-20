@@ -24,7 +24,7 @@ jobs:
   # Lint — clang-tidy, clang-format, and Python lint
   # ---------------------------------------------------------------------------
   lint:
-    runs-on: debian-latest
+    runs-on: ubuntu-latest
     container:
       image: debian:bookworm
     steps:
@@ -52,7 +52,7 @@ jobs:
   # Build & Test — debug preset (full client + tests)
   # ---------------------------------------------------------------------------
   debug:
-    runs-on: debian-latest
+    runs-on: ubuntu-latest
     container:
       image: debian:bookworm
     steps:
@@ -79,7 +79,7 @@ jobs:
   # Build & Test — debug-headless preset (server, no GL deps needed)
   # ---------------------------------------------------------------------------
   debug-headless:
-    runs-on: debian-latest
+    runs-on: ubuntu-latest
     container:
       image: debian:bookworm
     steps:
@@ -105,7 +105,7 @@ jobs:
   # Build — release preset (build only; GL client tests need debug libs)
   # ---------------------------------------------------------------------------
   release:
-    runs-on: debian-latest
+    runs-on: ubuntu-latest
     container:
       image: debian:bookworm
     steps:
@@ -128,7 +128,7 @@ jobs:
   # Package — produces distributable archives
   # ---------------------------------------------------------------------------
   package:
-    runs-on: debian-latest
+    runs-on: ubuntu-latest
     container:
       image: debian:bookworm
     steps:
