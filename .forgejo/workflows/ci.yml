@@ -26,7 +26,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: debian:bookworm
+      image: node:22-bookworm
     steps:
       - uses: actions/checkout@v4
 
@@ -54,7 +54,7 @@ jobs:
   debug:
     runs-on: ubuntu-latest
     container:
-      image: debian:bookworm
+      image: node:22-bookworm
     steps:
       - uses: actions/checkout@v4
 
@@ -81,7 +81,7 @@ jobs:
   debug-headless:
     runs-on: ubuntu-latest
     container:
-      image: debian:bookworm
+      image: node:22-bookworm
     steps:
       - uses: actions/checkout@v4
 
@@ -107,7 +107,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     container:
-      image: debian:bookworm
+      image: node:22-bookworm
     steps:
       - uses: actions/checkout@v4
 
@@ -130,7 +130,7 @@ jobs:
   package:
     runs-on: ubuntu-latest
     container:
-      image: debian:bookworm
+      image: node:22-bookworm
     steps:
       - uses: actions/checkout@v4
 
