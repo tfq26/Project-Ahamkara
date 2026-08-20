@@ -29,6 +29,8 @@ jobs:
       image: node:22-bookworm
     steps:
       - uses: actions/checkout@v4
+        with:
+          github-server-url: https://git.2helix.org
 
       - name: Install dependencies
         run: |
@@ -57,6 +59,8 @@ jobs:
       image: node:22-bookworm
     steps:
       - uses: actions/checkout@v4
+        with:
+          github-server-url: https://git.2helix.org
 
       - name: Install dependencies
         run: |
@@ -84,6 +88,8 @@ jobs:
       image: node:22-bookworm
     steps:
       - uses: actions/checkout@v4
+        with:
+          github-server-url: https://git.2helix.org
 
       - name: Install dependencies
         run: |
@@ -110,6 +116,8 @@ jobs:
       image: node:22-bookworm
     steps:
       - uses: actions/checkout@v4
+        with:
+          github-server-url: https://git.2helix.org
 
       - name: Install dependencies
         run: |
@@ -133,6 +141,8 @@ jobs:
       image: node:22-bookworm
     steps:
       - uses: actions/checkout@v4
+        with:
+          github-server-url: https://git.2helix.org
 
       - name: Install dependencies
         run: |
