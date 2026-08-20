@@ -16,7 +16,7 @@ env:
 jobs:
   production-qa:
     name: Production QA gate
-    runs-on: debian-latest
+    runs-on: ubuntu-latest
     container:
       image: debian:bookworm
     steps:
