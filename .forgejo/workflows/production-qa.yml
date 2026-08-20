@@ -1,0 +1,44 @@
+name: Production QA
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+  QA_ARTIFACT_DIR: qa-artifacts
+
+jobs:
+  production-qa:
+    name: Production QA gate
+    runs-on: debian-latest
+    container:
+      image: debian:bookworm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install QA dependencies
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq \
+            bash ca-certificates cmake ninja-build clang clang-tidy clang-format \
+            build-essential git python3 python3-pip \
+            libglfw3-dev libgl-dev mesa-common-dev libglu1-mesa-dev \
+            libgtest-dev libgmock-dev
+
+      - name: Run production QA suite
+        run: bash ./qa-production.sh
+
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahamkara-production-qa-${{ github.sha }}
+          path: qa-artifacts/
+          if-no-files-found: warn
