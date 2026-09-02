@@ -114,7 +114,7 @@ void DeathmatchActivity::tick(float dt) {
 }
 
 void DeathmatchActivity::process_input(wish::session::SessionId sid,
-                                       const ae::PacketEnvelope& envelope,
+                                       const wish::PacketEnvelope& envelope,
                                        ae::u32 command_sequence) {
     PlayerSlot* slot = find_slot(sid);
     if (!slot) return;
@@ -284,7 +284,7 @@ PlayerSlot* DeathmatchActivity::find_slot(wish::session::SessionId sid) {
     return nullptr;
 }
 
-PlayerSlot* DeathmatchActivity::find_slot_by_address(const ae::NetAddress& addr) {
+PlayerSlot* DeathmatchActivity::find_slot_by_address(const wish::NetAddress& addr) {
     for (auto& s : slots_) {
         if (s.address.ip == addr.ip && s.address.port == addr.port) return &s;
     }

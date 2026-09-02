@@ -3,6 +3,7 @@ add_library(ae_runtime STATIC
     src/free_camera.cpp
     src/metrics.cpp
     src/performance_logger.cpp
+    src/streaming_executor.cpp
 )
 
 target_compile_features(ae_runtime PUBLIC cxx_std_20)

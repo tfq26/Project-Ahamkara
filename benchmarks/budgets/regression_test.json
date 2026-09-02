@@ -1,0 +1,14 @@
+{
+  "budgets": [
+    {
+      "name": "deliberate_regression",
+      "unit": "ms",
+      "type": "absolute",
+      "warn_threshold": 0.0,
+      "fail_threshold": 0.001,
+      "expected": 0.0,
+      "k_factor": 2.0,
+      "percentile_p": 95.0
+    }
+  ]
+}

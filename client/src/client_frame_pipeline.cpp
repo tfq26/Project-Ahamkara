@@ -141,20 +141,11 @@ ClientFramePipeline::ClientFramePipeline(
     console_.register_builtins();
     console_.set_config_registry(&ae::ConfigRegistry::instance());
 
-    // Register a custom console command to reload shaders.
-    console_.register_command("reload_shaders", "Reload GPU shaders from disk (placeholder)",
-        [](const std::vector<std::string>&, ae::Console& self) {
-            self.print_tagged("Console", "Shader reload triggered (stub — implement renderer reload hook).");
-        });
-
-    // Register a custom console command to show debug render stats.
-    console_.register_command("show_collision", "Toggle collision debug geometry",
-        [](const std::vector<std::string>&, ae::Console& self) {
-            self.print_tagged("Console", "Collision debug geometry toggle (stub — implement in debug renderer).");
-        });
-
     // ── Authoring: File Watcher ─────────────────────────────────────────
     // Watch the config file for live-reload.
+    // If the config file is invalid (parse error, malformed lines, etc.), the
+    // last valid state is preserved and a warning diagnostic is emitted by
+    // reload_from_file internally.  No silent partial update occurs.
     file_watcher_.watch("client/config/ahamkara.cfg", [this](const std::string& path) {
         ae::log_info_cat("Client", "Config file changed: " + path);
         ae::ConfigRegistry::instance().reload_from_file(path);
@@ -629,9 +620,8 @@ void ClientFramePipeline::render_console_overlay() {
 
         ImGui::EndChild();
 
-        // Input line
+        // Input line — buffer persists across frames until submission or explicit clear
         ImGui::PushItemWidth(-1.0f);
-        console_input_buffer_[0] = '\0';
         if (ImGui::InputText("##console_input", console_input_buffer_, kConsoleBufSize,
                              ImGuiInputTextFlags_EnterReturnsTrue)) {
             std::string input(console_input_buffer_);
