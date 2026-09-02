@@ -68,7 +68,7 @@ public:
 
     void tick(float dt) override;
     void process_input(wish::session::SessionId sid,
-                       const ae::PacketEnvelope& envelope,
+                       const wish::PacketEnvelope& envelope,
                        ae::u32 command_sequence) override;
 
     ae::usize build_snapshot_bytes(wish::session::SessionId sid,
@@ -89,9 +89,9 @@ public:
 
 private:
     struct Slot {
-        ae::NetAddress address {};
+        wish::NetAddress address {};
         wish::session::SessionId session_id {};
-        ae::SequenceTracker seq_tracker {};
+        wish::SequenceTracker seq_tracker {};
         ae::u32 last_processed {0};
         ae::u32 last_received {0};
         ReplicatedPlayerState player_state {};

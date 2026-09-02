@@ -9,8 +9,8 @@ void test_tracks_multiple_clients() {
     wish::session::SessionRuntime runtime(std::chrono::seconds(2));
     const auto base_time = wish::session::SessionRuntime::clock::time_point {};
 
-    const ae::NetAddress client_a {"127.0.0.1", 20001};
-    const ae::NetAddress client_b {"127.0.0.1", 20002};
+    const wish::NetAddress client_a {"127.0.0.1", 20001};
+    const wish::NetAddress client_b {"127.0.0.1", 20002};
 
     auto& session_a = runtime.touch_client(client_a, base_time);
     auto& session_b = runtime.touch_client(client_b, base_time + std::chrono::milliseconds(100));
@@ -27,13 +27,13 @@ void test_input_processing_and_timeout_cleanup() {
     wish::session::SessionRuntime runtime(std::chrono::seconds(1));
     const auto base_time = wish::session::SessionRuntime::clock::time_point {};
 
-    const ae::NetAddress client_a {"127.0.0.1", 21001};
-    const ae::NetAddress client_b {"127.0.0.1", 21002};
+    const wish::NetAddress client_a {"127.0.0.1", 21001};
+    const wish::NetAddress client_b {"127.0.0.1", 21002};
 
-    ae::PacketEnvelope envelope_a {};
+    wish::PacketEnvelope envelope_a {};
     envelope_a.sequence = 11;
 
-    ae::PacketEnvelope envelope_b {};
+    wish::PacketEnvelope envelope_b {};
     envelope_b.sequence = 12;
 
     auto& session_a = runtime.record_input(client_a, envelope_a, 41, base_time);
