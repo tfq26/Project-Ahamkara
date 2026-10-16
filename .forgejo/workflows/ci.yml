@@ -63,7 +63,6 @@ jobs:
 
   runner-api-tests:
     name: Forgejo runner API tests
-    needs: lint
     runs-on: ubuntu-latest
 
     steps:
