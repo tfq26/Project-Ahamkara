@@ -2,9 +2,9 @@
 
 This document records direction and exit gates, not executable tasks. Priority,
 status, dependencies, and acceptance criteria live in
-[GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues); the current
+[Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues); the current
 architecture initiative is indexed by
-[#61](https://github.com/tfq26/Project-Ahamkara/issues/61).
+[Forgejo #82 (migrated from GitHub #61)](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues/82).
 
 ## North star
 

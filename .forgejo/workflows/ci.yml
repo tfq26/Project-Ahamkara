@@ -1,0 +1,211 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "agent/automerge/**"
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 4
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Generate compilation database
+        run: cmake --preset debug
+
+      - name: Run change-aware lint gate
+        env:
+          EVENT_BASE_REF: ${{ forgejo.event.pull_request.base.sha || forgejo.event.before }}
+        run: |
+          base_ref="${EVENT_BASE_REF}"
+          if [[ -z "${base_ref}" || "${base_ref}" =~ ^0+$ ]]; then
+            base_ref=$(git rev-parse HEAD^)
+          fi
+          ./scripts/lint.sh \
+            --base-ref "${base_ref}" \
+            --committed-only \
+            --compile-db build/debug
+
+      - name: Publish lint summary
+        if: always()
+        run: |
+          if [[ -f build/lint/summary.md ]]; then
+            summary_file="${FORGEJO_STEP_SUMMARY:-${GITHUB_STEP_SUMMARY:-}}"
+            if [[ -n "${summary_file}" ]]; then
+              cat build/lint/summary.md >> "${summary_file}"
+            else
+              cat build/lint/summary.md
+            fi
+          fi
+
+      - name: Upload lint reports
+        if: always()
+        uses: https://data.forgejo.org/actions/upload-artifact@c6a366c94c3e0affe28c06c8df20a878f24da3cf
+        with:
+          name: ahamkara-lint-report
+          path: build/lint/
+          if-no-files-found: warn
+
+  runner-api-tests:
+    name: Forgejo runner API tests
+    needs: lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+
+      - name: Test Forgejo automation clients
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python3 -B tests/test_agent_runner_api.py
+          python3 -B tests/test_oz_forgejo_api.py
+          python3 -B tests/test_reviewer_runner_api.py
+
+  build-and-test:
+    name: ${{ matrix.preset }} (Forgejo runner)
+    needs: [lint, runner-api-tests]
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [debug, release, debug-headless]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      - name: Run tests (debug only)
+        if: matrix.preset == 'debug'
+        run: ctest --test-dir build/${{ matrix.preset }} --output-on-failure
+
+      - name: Run tests (debug-headless only)
+        if: matrix.preset == 'debug-headless'
+        run: ctest --test-dir build/debug-headless --output-on-failure
+
+  package:
+    name: Package
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+
+    steps:
+      - name: Checkout
+        uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+
+      - name: Package
+        run: |
+          cmake --preset package
+          cmake --build --preset package
+          cpack --preset package
+
+      - name: Upload package artifact
+        uses: https://data.forgejo.org/actions/upload-artifact@c6a366c94c3e0affe28c06c8df20a878f24da3cf
+        with:
+          name: ahamkara-package
+          path: build/package/*.tar.gz
+          if-no-files-found: error
+
+  auto-merge:
+    needs: build-and-test
+    if: |
+      success() &&
+      forgejo.event_name == 'push' &&
+      startsWith(forgejo.ref_name, 'agent/automerge/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - name: Checkout
+        uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Auto-merge into develop
+        env:
+          AUTO_MERGE_BRANCH: ${{ forgejo.ref_name }}
+          FORGEJO_API_URL: ${{ forgejo.api_url }}
+          FORGEJO_REPOSITORY: ${{ forgejo.repository }}
+          FORGEJO_TOKEN: ${{ forgejo.token }}
+        run: |
+          git config user.name "Oz Agent"
+          git config user.email "oz-agent@warp.dev"
+          git fetch origin develop
+          git checkout develop
+          if git merge --no-ff "${AUTO_MERGE_BRANCH}" -m "Auto-merge ${AUTO_MERGE_BRANCH} into develop [skip ci]"; then
+            git push origin develop
+            echo "Merged ${AUTO_MERGE_BRANCH} into develop"
+            ISSUE_NUM=$(printf '%s' "${AUTO_MERGE_BRANCH}" | grep -oE '[0-9]+' | head -1 || true)
+            if [[ -n "${ISSUE_NUM}" ]]; then
+              python3 - "${ISSUE_NUM}" <<'PY'
+          import json
+          import os
+          import sys
+          import urllib.error
+          import urllib.request
+
+          issue = sys.argv[1]
+          url = (
+              os.environ["FORGEJO_API_URL"].rstrip("/")
+              + "/repos/"
+              + os.environ["FORGEJO_REPOSITORY"]
+              + "/issues/"
+              + issue
+              + "/comments"
+          )
+          payload = json.dumps({
+              "body": "Auto-merged into develop. Next stop: main via release PR."
+          }).encode()
+          request = urllib.request.Request(
+              url,
+              data=payload,
+              method="POST",
+              headers={
+                  "Authorization": "token " + os.environ["FORGEJO_TOKEN"],
+                  "Content-Type": "application/json",
+                  "Accept": "application/json",
+              },
+          )
+          try:
+              with urllib.request.urlopen(request, timeout=20):
+                  pass
+          except (urllib.error.HTTPError, urllib.error.URLError) as error:
+              print(f"Warning: could not post Forgejo issue comment ({type(error).__name__}).")
+          PY
+            fi
+          else
+            echo "Merge conflict — manual intervention needed"
+            exit 1
+          fi

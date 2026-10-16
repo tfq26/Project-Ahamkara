@@ -59,4 +59,4 @@ accepts a Flashback-oriented player command. This violates the target boundary.
   source paths.
 
 Mutable implementation status belongs in
-[GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues).
+[Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues).

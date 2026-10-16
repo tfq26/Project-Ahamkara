@@ -8,7 +8,7 @@
 - Never edit generated output or the generated facts block in root
   `AGENTS.md`. [src: file: AGENTS.md:5-15]
 - Do not create a second issue tracker under `docs/`; use
-  [GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues).
+  [Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues).
 - Public engine code cannot include Flashback or Wish private/product types.
 - Logs are observations; recoverable failures must be returned or handled, not
   converted into log-only control flow.

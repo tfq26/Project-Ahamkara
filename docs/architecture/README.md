@@ -7,5 +7,5 @@
 Subsystem implementation belongs in [`../systems/`](../systems/README.md).
 Proposed implementation mechanisms belong in
 [`../design/`](../design/README.md). Executable migration work belongs in
-[GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues).
+[Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues).
 

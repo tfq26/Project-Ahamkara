@@ -12,9 +12,9 @@ Status: Active
 
 ## Work record
 
-Use one canonical GitHub issue for scope, state, dependencies, acceptance
+Use one canonical Forgejo issue for scope, state, dependencies, acceptance
 criteria, and implementation discussion. Follow the
-[GitHub issue skill](../skills/github-issues/SKILL.md).
+[Forgejo issue skill](../skills/forgejo-issues/SKILL.md).
 
 Create a feature brief under `docs/vault/features/` only for durable context
 that should remain after the issue closes. Do not copy the issue body.

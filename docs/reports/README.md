@@ -5,7 +5,7 @@ Historical reports, investigations, and subagent outputs.
 Reports may retain historical task identifiers, branch names, and observations.
 They are not current issue records or specifications. Local queue files were
 retired after work tracking moved to
-[GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues).
+[Forgejo issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues).
 
 ## Subagent Reports
 

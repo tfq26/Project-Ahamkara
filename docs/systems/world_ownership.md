@@ -99,5 +99,5 @@ client/include/ahamkara/client/weapon_presentation.h:9-34]
 | HUD state or menu state | `ClientFramePipeline` |
 
 Do not add migration status or implementation checklists here. Mutable repair
-work belongs in [GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues);
+work belongs in [Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues);
 this document changes only when the implemented ownership boundary changes.

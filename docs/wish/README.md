@@ -20,4 +20,4 @@ repository and project; see
 - [Build guide](../guides/building.md)
 
 Do not add Flashback gameplay types to Wish contracts. Work status belongs in
-[GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues).
+[Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues).

@@ -7,8 +7,8 @@ the task database.
 
 ## Skills
 
-- [[skills/github-issues/SKILL]] — inspect, create, update, label, and close
-  canonical GitHub issues.
+- [[skills/forgejo-issues/SKILL]] — inspect, create, update, label, and close
+  canonical Forgejo issues.
 - [[skills/lean-implementation/SKILL]] — keep implementation and review scoped.
 - [[skills/agent-worktrees/SKILL]] — isolate parallel branches/worktrees.
 - [[skills/subagent-reporting/SKILL]] — write historical implementation or
@@ -18,7 +18,7 @@ the task database.
 
 ## Paths
 
-- Canonical issues: <https://github.com/tfq26/Project-Ahamkara/issues>
+- Canonical issues: <https://git.2helix.org/taufeeq26/Project-Ahamkara/issues>
 - Reports: `docs/reports/subagents/`
 - Report template: `docs/vault/templates/subagent-report-template.md`
 - Durable decisions: `docs/vault/memory/decision-log.md`

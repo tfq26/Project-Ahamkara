@@ -5,12 +5,12 @@ monorepo and the planned Ahamkara, Flashback, and Wish repository split.
 
 ## Work tracking
 
-Mutable work belongs in [GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues).
+Mutable work belongs in [Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues).
 The canonical architecture/backlog tracker during the split is
-[#61](https://github.com/tfq26/Project-Ahamkara/issues/61).
+[Forgejo #82 (migrated from GitHub #61)](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues/82).
 
 Do not create local issue cards, queue-task files, status dashboards, or copies
-of GitHub issue bodies under `docs/`. Documentation may link to an issue for
+of Forgejo issue bodies under `docs/`. Documentation may link to an issue for
 execution status, but it should explain durable architecture, operation, or
 rationale independently of that issue.
 
@@ -39,7 +39,7 @@ rationale independently of that issue.
 | [`guides/`](guides/README.md) | Build, maintenance, operation, and contributor workflows |
 | [`operations/`](operations/debug-operations.md) | Troubleshooting, diagnostics, error codes, and runbooks |
 | [`wish/`](wish/README.md) | Transitional Wish implementation notes until Wish is extracted |
-| [`roadmap/`](roadmap/roadmap.md) | Strategic direction only; executable work stays in GitHub Issues |
+| [`roadmap/`](roadmap/roadmap.md) | Strategic direction only; executable work stays in Forgejo Issues |
 | [`reports/`](reports/README.md) | Historical investigations and implementation evidence |
 | [`vault/`](vault/README.md) | Lightweight project memory, decisions, and agent orientation |
 
@@ -47,5 +47,5 @@ rationale independently of that issue.
 
 For behavior, trust source code, tests, and build configuration before prose.
 For intentional boundaries, trust accepted architecture and decision docs. For
-priority and completion state, trust GitHub Issues. Historical reports explain
+priority and completion state, trust Forgejo Issues. Historical reports explain
 what was observed at a point in time and are not current specifications.

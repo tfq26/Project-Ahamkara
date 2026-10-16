@@ -48,7 +48,7 @@ describe -> spec -> generate -> import -> load loop.
 
 Implication: `planets` are deferred and treated as scaled-up streamed maps;
 build the map pipeline first. Strategic direction stays in the roadmap and
-implementation work stays in GitHub Issues.
+implementation work stayed in GitHub Issues at that time.
 
 ## 2026-06-20 - Defer HDR / Render-Target Foundation
 
@@ -77,7 +77,7 @@ entry fires.
 
 Implication: HDR stays discoverable in the roadmap and memory notes, but
 agents should not create or claim implementation work until a trigger is
-confirmed in GitHub Issues.
+confirmed in Forgejo Issues.
 
 ## 2026-06-20 - Function Before Fidelity (Engine Prioritization)
 
@@ -138,13 +138,26 @@ Implication: Ahamkara and Wish do not depend on Flashback or each other.
 Flashback consumes versioned releases and owns integration adapters. See
 [repository split](../../architecture/repository-split.md).
 
-## 2026-07-13 - GitHub Issues Own Work State
+## 2026-07-13 - GitHub Issues Own Work State (Superseded 2026-10-16)
 
-Decision: GitHub Issues is the only source of truth for priority, state,
-dependencies, and acceptance criteria.
+Decision at the time: GitHub Issues was the only source of truth for priority,
+state, dependencies, and acceptance criteria.
 
 Rationale: The file-backed queue duplicated issue state and made documentation
 stale.
 
 Implication: `docs/` contains durable architecture, designs, structure,
 maintenance, operations, memory, and historical reports—not a second backlog.
+
+
+## 2026-10-16 - Forgejo Owns Work Tracking and CI
+
+Decision: Use Forgejo Issues and pull requests as the only current source of
+truth for project work. Use Forgejo Actions for repository CI.
+
+Rationale: The project owner explicitly moved tracking and CI from GitHub to the
+self-hosted Forgejo instance.
+
+Implication: GitHub records are archival and link to their Forgejo counterparts.
+New work and CI changes belong on Forgejo.
+[src: user:taufeeqali:2026-10-16: explicit Forgejo cutover]

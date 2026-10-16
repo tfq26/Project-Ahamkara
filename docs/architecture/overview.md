@@ -131,7 +131,7 @@ presentation modules. See [repository-split.md](repository-split.md).
 - Tests exist at the same boundary being claimed: unit tests for local logic,
   integration tests for module composition, and out-of-tree consumer tests for
   package boundaries.
-- Strategic docs describe intent; GitHub Issues own mutable execution state.
+- Strategic docs describe intent; Forgejo Issues own mutable execution state.
 
 ## Migration
 
@@ -139,7 +139,7 @@ The split should happen after package boundaries can be proven inside the
 monorepo. Extracting directories first would preserve hidden includes and make
 three repositories fail independently. The required sequence and exit gates
 are documented in [repository-split.md](repository-split.md); work status stays
-in [GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues).
+in [Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues).
 
 
 ## Render / Animation Dependency

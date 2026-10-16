@@ -164,7 +164,7 @@ Suggested subagent output:
 - risks
 
 Historical agent reports live under `docs/reports/subagents/`; they preserve
-evidence but do not represent current work status. Check GitHub Issues and run
+evidence but do not represent current work status. Check Forgejo Issues and run
 the relevant tests instead of trusting an old handoff result.
 
 ## How An Agent Should Start

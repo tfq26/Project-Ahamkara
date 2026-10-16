@@ -6,8 +6,8 @@ Two-pass workflow:
   1. DeepSeek (coder): reads issue, generates implementation commands
   2. Gemini (reviewer): reviews errors/failures and guides fixes
 
-Polls GitHub for open issues with label 'task' in tfq26/Project-Ahamkara,
-and notifies via Jupiter on start/completion/failure.
+Polls Forgejo for open issues with the 'task' label, and notifies via
+Jupiter on start/completion/failure.
 
 Config: /home/taufe/agent-runner/config.env (sourced by run.sh)
 """
@@ -26,7 +26,9 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 # ── Config ───────────────────────────────────────────────────────────────────
-REPO = "tfq26/Project-Ahamkara"
+FORGEJO_URL = os.environ.get("FORGEJO_URL", "").rstrip("/")
+FORGEJO_REPOSITORY = os.environ.get("FORGEJO_REPOSITORY", "")
+FORGEJO_TOKEN = os.environ.get("FORGEJO_TOKEN")
 WORKTREE_BASE = Path("/home/taufe/Projects")
 AHAMKARA_CLONE = Path("/home/taufe/Projects/ahamkara")
 LOG_DIR = Path("/home/taufe/agent-runner/logs")
@@ -41,27 +43,15 @@ BUILD_CMD = "cmake --build build/debug -j$(nproc)"
 CMAKE_CONFIGURE_CMD = "cmake --preset debug"
 
 # ── Init from config.env (sourced by run.sh) ────────────────────────────────
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
 DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-chat")
 DEEPSEEK_URL = os.environ.get("DEEPSEEK_URL", "https://api.deepseek.com/v1/chat/completions")
 
-if not GITHUB_TOKEN:
-    print("FATAL: GITHUB_TOKEN not set", flush=True)
-    sys.exit(1)
-if not GEMINI_API_KEY:
-    print("FATAL: GEMINI_API_KEY not set", flush=True)
-    sys.exit(1)
-if not DEEPSEEK_API_KEY:
-    print("FATAL: DEEPSEEK_API_KEY not set", flush=True)
-    sys.exit(1)
-
 GEMINI_API_URL = (
     f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
 )
-LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ── API calls ────────────────────────────────────────────────────────────────
@@ -124,45 +114,124 @@ def gemini_call(prompt, system_instruction=None):
         return None
 
 
-# ── GitHub helpers ───────────────────────────────────────────────────────────
+# ── Forgejo API helpers ──────────────────────────────────────────────────────
 
 
-def _gh_headers():
+def build_api_url(path, params=None):
+    """Build a Forgejo repository API URL from configured instance/repository."""
+    from urllib.parse import quote, urlencode, urlsplit
+
+    parts = urlsplit(FORGEJO_URL)
+    if parts.scheme not in {"http", "https"} or not parts.netloc or parts.username or parts.password:
+        raise ValueError("FORGEJO_URL must be an http(s) instance URL without embedded credentials")
+    repo_parts = FORGEJO_REPOSITORY.split("/")
+    if len(repo_parts) != 2 or not all(re.fullmatch(r"[A-Za-z0-9_.-]+", p) for p in repo_parts):
+        raise ValueError("FORGEJO_REPOSITORY must be in owner/repository form")
+
+    owner, repo = (quote(part, safe="") for part in repo_parts)
+    endpoint = str(path).strip("/")
+    url = f"{FORGEJO_URL}/api/v1/repos/{owner}/{repo}"
+    if endpoint:
+        url += "/" + quote(endpoint, safe="/")
+    if params:
+        url += "?" + urlencode(params)
+    return url
+
+
+def _forgejo_headers():
+    if not FORGEJO_TOKEN:
+        raise RuntimeError("FORGEJO_TOKEN is not set")
     return {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json",
+        "Authorization": f"token {FORGEJO_TOKEN}",
+        "Accept": "application/json",
         "User-Agent": "ahamkara-agent-runner",
     }
 
 
-def api_get(path):
-    req = Request(f"https://api.github.com/repos/{REPO}/{path}", headers=_gh_headers())
-    with urlopen(req) as resp:
-        return json.loads(resp.read())
+def api_request(method, path, data=None, params=None):
+    body = json.dumps(data).encode() if data is not None else None
+    headers = _forgejo_headers()
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+    req = Request(build_api_url(path, params), data=body, headers=headers, method=method)
+    with urlopen(req, timeout=30) as resp:
+        raw = resp.read()
+    return json.loads(raw) if raw else {}
+
+
+def api_get(path, params=None):
+    return api_request("GET", path, params=params)
 
 
 def api_post(path, data):
-    body = json.dumps(data).encode()
-    req = Request(
-        f"https://api.github.com/repos/{REPO}/{path}",
-        data=body,
-        headers={**_gh_headers(), "Content-Type": "application/json"},
-        method="POST",
-    )
-    with urlopen(req) as resp:
-        return json.loads(resp.read())
+    return api_request("POST", path, data=data)
 
 
 def api_patch(path, data):
-    body = json.dumps(data).encode()
-    req = Request(
-        f"https://api.github.com/repos/{REPO}/{path}",
-        data=body,
-        headers={**_gh_headers(), "Content-Type": "application/json"},
-        method="PATCH",
+    return api_request("PATCH", path, data=data)
+
+
+def api_get_all(path, params=None, page_size=50):
+    """Fetch all list pages using Forgejo's page/limit query parameters."""
+    if page_size < 1 or page_size > 50:
+        raise ValueError("page_size must be between 1 and Forgejo's 50-item response limit")
+    all_items = []
+    page = 1
+    while page <= 1000:
+        page_params = {**(params or {}), "page": page, "limit": page_size}
+        batch = api_get(path, page_params)
+        if not isinstance(batch, list):
+            raise ValueError(f"Expected a list response from Forgejo API path {path!r}")
+        all_items.extend(batch)
+        if len(batch) < page_size:
+            return all_items
+        page += 1
+    raise RuntimeError(f"Forgejo pagination exceeded 1000 pages for API path {path!r}")
+
+
+def _label_names(issue):
+    labels = issue.get("labels", [])
+    names = set()
+    for label in labels if isinstance(labels, list) else []:
+        if isinstance(label, str):
+            names.add(label.casefold())
+        elif isinstance(label, dict) and isinstance(label.get("name"), str):
+            names.add(label["name"].casefold())
+    return names
+
+
+def is_open_task_issue(issue):
+    """Forgejo's issues endpoint can include pull requests; accept task issues only."""
+    return (
+        isinstance(issue, dict)
+        and str(issue.get("state", "open")).casefold() == "open"
+        and not issue.get("pull_request")
+        and "task" in _label_names(issue)
     )
-    with urlopen(req) as resp:
-        return json.loads(resp.read())
+
+
+def list_open_task_issues():
+    issues = api_get_all("issues", {"state": "open"})
+    return [issue for issue in issues if is_open_task_issue(issue)]
+
+
+def find_open_pull_request(branch):
+    expected_repo = FORGEJO_REPOSITORY.casefold()
+    for pull in api_get_all("pulls", {"state": "open"}):
+        head = pull.get("head") or {}
+        head_repo = head.get("repo") or {}
+        if head.get("ref") != branch:
+            continue
+        if head_repo.get("full_name") and head_repo["full_name"].casefold() != expected_repo:
+            continue
+        return pull
+    return None
+
+
+def create_pull_request(title, body, head, base):
+    if not base:
+        raise ValueError("Forgejo repository metadata did not provide a default branch")
+    return api_post("pulls", {"title": title, "body": body, "head": head, "base": base})
 
 
 def jupiter_notify(title, message, priority="info"):
@@ -181,11 +250,6 @@ def jupiter_notify(title, message, priority="info"):
     except Exception as e:
         print(f"  [WARN] Jupiter notify failed: {e}", flush=True)
         return None
-
-
-def gh(*args, capture_output=True, check=True, **kwargs):
-    cmd = ["gh", "--repo", REPO, *list(args)]
-    return subprocess.run(cmd, capture_output=capture_output, text=True, check=check, **kwargs)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -666,23 +730,18 @@ def process_issue(issue):
             return
 
         # Create PR
-        existing = gh("pr", "list", "--head", branch, "--json", "url", capture_output=True, check=False)
-        if existing.returncode == 0 and existing.stdout.strip():
-            existing_data = json.loads(existing.stdout)
-            if existing_data:
-                pr_url = existing_data[0].get("url", "")
+        existing = find_open_pull_request(branch)
+        if existing:
+            pr_url = existing.get("html_url", "")
         if not pr_url:
-            result = gh(
-                "pr",
-                "create",
-                "--title",
+            repo_info = api_get("")
+            pull = create_pull_request(
                 f"[Task #{num}] {title}",
-                "--body",
                 f"## Summary\n\nImplements issue #{num}: **{title}**\n\n---\n_🤖 Ahamkara Agent Runner_",
-                capture_output=True,
-                check=False,
+                branch,
+                repo_info.get("default_branch"),
             )
-            pr_url = result.stdout.strip() if result.returncode == 0 else ""
+            pr_url = pull.get("html_url", "")
 
         # Close issue
         api_patch(f"issues/{num}", {"state": "closed"})
@@ -705,12 +764,24 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="List issues without processing")
     args = parser.parse_args()
 
+    missing = [name for name, value in (
+        ("FORGEJO_URL", FORGEJO_URL),
+        ("FORGEJO_REPOSITORY", FORGEJO_REPOSITORY),
+        ("FORGEJO_TOKEN", FORGEJO_TOKEN),
+        ("GEMINI_API_KEY", GEMINI_API_KEY),
+        ("DEEPSEEK_API_KEY", DEEPSEEK_API_KEY),
+    ) if not value]
+    if missing:
+        print("FATAL: required environment variable(s) not set: " + ", ".join(missing), flush=True)
+        sys.exit(1)
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+
     if not AHAMKARA_CLONE.exists():
         print(f"FATAL: Ahamkara clone not found at {AHAMKARA_CLONE}", flush=True)
         sys.exit(1)
 
     print(f"[{datetime.now(UTC).isoformat()}] Agent Runner starting", flush=True)
-    print(f"  Repo: {REPO}", flush=True)
+    print(f"  Forgejo repo: {FORGEJO_REPOSITORY}", flush=True)
     print(f"  Clone: {AHAMKARA_CLONE}", flush=True)
     print(f"  Coder: DeepSeek ({DEEPSEEK_MODEL})", flush=True)
     print(f"  Reviewer: Gemini ({GEMINI_MODEL})", flush=True)
@@ -727,7 +798,7 @@ def main():
         return
 
     try:
-        issues = api_get("issues?labels=task&state=open&per_page=10")
+        issues = list_open_task_issues()
     except Exception as e:
         print(f"ERROR fetching issues: {e}", flush=True)
         sys.exit(1)

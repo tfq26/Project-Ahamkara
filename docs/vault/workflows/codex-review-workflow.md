@@ -2,12 +2,12 @@
 
 Status: Active
 
-Use this workflow for a GitHub issue branch or pull request that needs technical
+Use this workflow for a Forgejo issue branch or pull request that needs technical
 review.
 
 ## Inputs
 
-- canonical GitHub issue and acceptance criteria;
+- canonical Forgejo issue and acceptance criteria;
 - pull request/branch diff and review threads;
 - relevant architecture, design, and system docs;
 - source, tests, CMake target definitions, and validation output;
@@ -31,5 +31,5 @@ review.
 - **blocked** — an external dependency or required user decision prevents
   progress.
 
-Record the outcome in the GitHub review/issue. Do not mirror it into a local
+Record the outcome in the Forgejo pull request/issue. Do not mirror it into a local
 queue state.

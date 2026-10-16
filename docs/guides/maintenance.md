@@ -59,7 +59,7 @@ matrix and runs tests for debug/headless jobs.
 [src: file: .github/workflows/ci.yml:22-67]
 
 The build matrix itself is under active repair; check
-[#39](https://github.com/tfq26/Project-Ahamkara/issues/39) rather than copying
+[#120](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues/120) rather than copying
 its mutable status into this guide.
 
 ## Diagnose using existing facilities
@@ -112,7 +112,7 @@ Report exactly which rungs ran and which did not.
   changes.
 - Update `design/` when an accepted design changes before implementation.
 - Update `operations/error-codes.md` when a stable code is added or deprecated.
-- Put work state and follow-up acceptance criteria in GitHub Issues, not docs.
+- Put work state and follow-up acceptance criteria in Forgejo Issues, not docs.
 - Preserve reports as historical evidence; do not rewrite them to pretend they
   described the current revision.
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage Forgejo Issues"
+  short_description: "Coordinate issue work from intake through closure"
+  default_prompt: "Use $manage-forgejo-issues to triage this repository backlog and identify the next safe agent task."
