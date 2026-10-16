@@ -9,9 +9,6 @@ on:
   pull_request:
     branches: [main, develop]
 
-permissions:
-  contents: read
-
 env:
   CMAKE_BUILD_PARALLEL_LEVEL: 4
 
@@ -24,6 +21,7 @@ jobs:
       - name: Checkout
         uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
+          github-server-url: ${{ forgejo.server_url }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -72,6 +70,7 @@ jobs:
       - name: Checkout
         uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
+          github-server-url: ${{ forgejo.server_url }}
           persist-credentials: false
 
       - name: Test Forgejo automation clients
@@ -96,6 +95,7 @@ jobs:
       - name: Checkout
         uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
+          github-server-url: ${{ forgejo.server_url }}
           persist-credentials: false
 
       - name: Configure
@@ -121,6 +121,7 @@ jobs:
       - name: Checkout
         uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
+          github-server-url: ${{ forgejo.server_url }}
           persist-credentials: false
 
       - name: Package
@@ -143,13 +144,11 @@ jobs:
       forgejo.event_name == 'push' &&
       startsWith(forgejo.ref_name, 'agent/automerge/')
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
     steps:
       - name: Checkout
         uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
+          github-server-url: ${{ forgejo.server_url }}
           fetch-depth: 0
           persist-credentials: true
 
