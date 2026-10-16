@@ -21,7 +21,7 @@ jobs:
       - name: Checkout
         uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          github-server-url: ${{ forgejo.server_url }}
+          github-server-url: https://git.2helix.org
           fetch-depth: 0
           persist-credentials: false
 
@@ -70,7 +70,7 @@ jobs:
       - name: Checkout
         uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          github-server-url: ${{ forgejo.server_url }}
+          github-server-url: https://git.2helix.org
           persist-credentials: false
 
       - name: Test Forgejo automation clients
@@ -95,7 +95,7 @@ jobs:
       - name: Checkout
         uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          github-server-url: ${{ forgejo.server_url }}
+          github-server-url: https://git.2helix.org
           persist-credentials: false
 
       - name: Configure
@@ -121,7 +121,7 @@ jobs:
       - name: Checkout
         uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          github-server-url: ${{ forgejo.server_url }}
+          github-server-url: https://git.2helix.org
           persist-credentials: false
 
       - name: Package
@@ -148,7 +148,7 @@ jobs:
       - name: Checkout
         uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          github-server-url: ${{ forgejo.server_url }}
+          github-server-url: https://git.2helix.org
           fetch-depth: 0
           persist-credentials: true
 
