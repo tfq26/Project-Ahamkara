@@ -764,13 +764,17 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="List issues without processing")
     args = parser.parse_args()
 
-    missing = [name for name, value in (
-        ("FORGEJO_URL", FORGEJO_URL),
-        ("FORGEJO_REPOSITORY", FORGEJO_REPOSITORY),
-        ("FORGEJO_TOKEN", FORGEJO_TOKEN),
-        ("GEMINI_API_KEY", GEMINI_API_KEY),
-        ("DEEPSEEK_API_KEY", DEEPSEEK_API_KEY),
-    ) if not value]
+    missing = [
+        name
+        for name, value in (
+            ("FORGEJO_URL", FORGEJO_URL),
+            ("FORGEJO_REPOSITORY", FORGEJO_REPOSITORY),
+            ("FORGEJO_TOKEN", FORGEJO_TOKEN),
+            ("GEMINI_API_KEY", GEMINI_API_KEY),
+            ("DEEPSEEK_API_KEY", DEEPSEEK_API_KEY),
+        )
+        if not value
+    ]
     if missing:
         print("FATAL: required environment variable(s) not set: " + ", ".join(missing), flush=True)
         sys.exit(1)

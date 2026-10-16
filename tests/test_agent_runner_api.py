@@ -7,7 +7,6 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER_PATH = ROOT / "agent-runner.py"
 TEST_ENV = {
@@ -33,8 +32,7 @@ class ForgejoApiTests(unittest.TestCase):
         )
         self.assertEqual(
             url,
-            "https://forgejo.example/forgejo/api/v1/repos/"
-            "taufeeq26/Project-Ahamkara/issues?state=open&page=2&limit=50",
+            "https://forgejo.example/forgejo/api/v1/repos/taufeeq26/Project-Ahamkara/issues?state=open&page=2&limit=50",
         )
 
     def test_auth_headers_use_configured_forgejo_token(self):

@@ -22,6 +22,13 @@ class LintRunnerTests(unittest.TestCase):
     def test_normalize_path_preserves_hidden_directories(self) -> None:
         self.assertEqual(lint_runner.normalize_path("./.github/workflows/ci.yml"), ".github/workflows/ci.yml")
 
+    def test_forgejo_and_github_workflows_are_selected_by_their_validators(self) -> None:
+        self.assertTrue(lint_runner.is_workflow(".forgejo/workflows/ci.yml"))
+        self.assertTrue(lint_runner.is_workflow(".github/workflows/legacy.yml"))
+        self.assertTrue(lint_runner.is_github_workflow(".github/workflows/legacy.yml"))
+        self.assertFalse(lint_runner.is_github_workflow(".forgejo/workflows/ci.yml"))
+        self.assertFalse(lint_runner.is_workflow("docs/workflow.yml"))
+
     def test_cmake_format_dsl_is_not_treated_as_python(self) -> None:
         self.assertFalse(lint_runner.is_python(".cmake-format.py"))
         self.assertTrue(lint_runner.is_python("tools/lint/run.py"))

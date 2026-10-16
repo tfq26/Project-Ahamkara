@@ -172,7 +172,6 @@ def api_get_paginated(path: str) -> list[dict]:
     return items
 
 
-
 def api_post(path: str, data: dict) -> dict | None:
     """POST JSON to the Forgejo repository API."""
     request = urllib.request.Request(
@@ -193,6 +192,7 @@ def api_post(path: str, data: dict) -> dict | None:
     except Exception as error:
         log.warning("api_post %s failed: %s", path, error)
         return None
+
 
 def comment_on_issue(issue_num: int, body: str) -> None:
     """Post a comment on an issue."""

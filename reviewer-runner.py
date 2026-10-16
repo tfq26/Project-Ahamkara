@@ -269,7 +269,8 @@ def open_task_issues() -> list[dict]:
     """Fetch open task issues, excluding pull requests returned by Forgejo."""
     issues = api_get_all("issues", {"state": "open"})
     return [
-        issue for issue in issues
+        issue
+        for issue in issues
         if isinstance(issue, dict)
         and str(issue.get("state", "open")).casefold() == "open"
         and not issue.get("pull_request")

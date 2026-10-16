@@ -110,9 +110,17 @@ def is_cmake(path: str) -> bool:
     return candidate.name == "CMakeLists.txt" or candidate.suffix.lower() == ".cmake"
 
 
-def is_workflow(path: str) -> bool:
+def is_github_workflow(path: str) -> bool:
     normalized = normalize_path(path)
     return normalized.startswith(".github/workflows/") and Path(normalized).suffix.lower() in {".yaml", ".yml"}
+
+
+def is_workflow(path: str) -> bool:
+    normalized = normalize_path(path)
+    return normalized.startswith((".forgejo/workflows/", ".github/workflows/")) and Path(normalized).suffix.lower() in {
+        ".yaml",
+        ".yml",
+    }
 
 
 def is_python(path: str) -> bool:
@@ -443,9 +451,9 @@ def run_shellcheck(paths: Sequence[str], report_dir: Path) -> CheckResult:
 
 
 def run_actionlint(paths: Sequence[str], report_dir: Path) -> CheckResult:
-    if not any(is_workflow(path) for path in paths):
+    if not any(is_github_workflow(path) for path in paths):
         return skipped("actionlint", "actionlint.json", "no selected workflow files")
-    workflows = sorted(path for path in tracked_paths() if is_workflow(path))
+    workflows = sorted(path for path in tracked_paths() if is_github_workflow(path))
     return execute(
         "actionlint",
         ["actionlint", "-format", "{{json .}}", *workflows],

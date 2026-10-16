@@ -1,0 +1,39 @@
+# Reproducible Forgejo Actions image for Ahamkara C++ builds and lint.
+FROM data.forgejo.org/forgejo/runner@sha256:eb6e7bc21973382d261e6eb883dbd27b8cb56939d33a3bfd79a1352b7f9a33a0 AS forgejo_runner
+FROM node:20-bookworm
+
+COPY --from=forgejo_runner /bin/forgejo-runner /usr/local/bin/forgejo-runner
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    AHAMKARA_LINT_VENV=/opt/ahamkara-lint
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    cmake \
+    git \
+    libgl1-mesa-dev \
+    libglfw3-dev \
+    libglu1-mesa-dev \
+    libgmock-dev \
+    libgtest-dev \
+    ninja-build \
+    pkg-config \
+    python3 \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt /tmp/ahamkara-lint-requirements.txt
+RUN python3 -m venv "${AHAMKARA_LINT_VENV}" \
+    && "${AHAMKARA_LINT_VENV}/bin/python" -m pip install --disable-pip-version-check --no-cache-dir \
+        --requirement /tmp/ahamkara-lint-requirements.txt \
+    && sha256sum /tmp/ahamkara-lint-requirements.txt | cut -d " " -f 1 \
+        > "${AHAMKARA_LINT_VENV}/.ahamkara-requirements.sha256" \
+    && rm /tmp/ahamkara-lint-requirements.txt
+
+RUN cmake --version && ninja --version && g++ --version \
+    && "${AHAMKARA_LINT_VENV}/bin/clang-format" --version \
+    && "${AHAMKARA_LINT_VENV}/bin/clang-tidy" --version \
+    && "${AHAMKARA_LINT_VENV}/bin/ruff" --version \
+    && "${AHAMKARA_LINT_VENV}/bin/shellcheck" --version \
+    && forgejo-runner --version

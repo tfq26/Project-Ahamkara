@@ -8,7 +8,6 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER_PATH = ROOT / "reviewer-runner.py"
 _LOG_TEMP = tempfile.TemporaryDirectory()
@@ -63,8 +62,7 @@ class ForgejoApiTests(unittest.TestCase):
         request = urlopen.call_args.args[0]
         self.assertEqual(
             request.full_url,
-            "https://forgejo.example/forgejo/api/v1/repos/"
-            "taufeeq26/Project-Ahamkara/pulls",
+            "https://forgejo.example/forgejo/api/v1/repos/taufeeq26/Project-Ahamkara/pulls",
         )
         self.assertEqual(request.get_method(), "POST")
         self.assertEqual(request.get_header("Authorization"), "token offline-test-token")
@@ -135,17 +133,17 @@ class ForgejoApiTests(unittest.TestCase):
             "base": "main",
         }
         with patch.object(runner, "api_post", return_value=created) as api_post:
-            result = runner.create_pull_request(
-                payload["title"], payload["body"], payload["head"], payload["base"]
-            )
+            result = runner.create_pull_request(payload["title"], payload["body"], payload["head"], payload["base"])
         api_post.assert_called_once_with("pulls", payload)
         self.assertEqual(result, created)
         self.assertEqual(runner.pull_request_url(result), created["html_url"])
 
     def test_missing_forgejo_token_is_rejected(self):
-        with patch.object(runner, "FORGEJO_TOKEN", ""):
-            with self.assertRaisesRegex(RuntimeError, "FORGEJO_TOKEN is not set"):
-                runner._forgejo_headers()
+        with (
+            patch.object(runner, "FORGEJO_TOKEN", ""),
+            self.assertRaisesRegex(RuntimeError, "FORGEJO_TOKEN is not set"),
+        ):
+            runner._forgejo_headers()
 
 
 if __name__ == "__main__":

@@ -32,12 +32,14 @@ Forgejo API boundaries. Run them with:
 PYTHONDONTWRITEBYTECODE=1 python3 -B tests/test_agent_runner_api.py
 PYTHONDONTWRITEBYTECODE=1 python3 -B tests/test_oz_forgejo_api.py
 PYTHONDONTWRITEBYTECODE=1 python3 -B tests/test_reviewer_runner_api.py
+PYTHONDONTWRITEBYTECODE=1 python3 -B tools/lint/tests/test_lint_runner.py
 ```
 
-The `runner-api-tests` Forgejo Actions job runs the same three modules for
-pushes to `main`, `develop`, and `agent/automerge/**`, and for pull requests
-targeting `main` or `develop`. These tests mock the API boundary; they do not
-prove that a live server accepts the configured token or permissions.
+The `workflow-validation` job uses the native Forgejo runner validator. The
+`runner-api-tests` job runs these four test modules for pushes to `main`,
+`develop`, and `agent/automerge/**`, and for pull requests targeting `main` or
+`develop`. These tests mock the API boundary; they do not prove that a live
+server accepts the configured token or permissions.
 
 ## Test ownership
 
@@ -61,9 +63,11 @@ Place a regression test at the narrowest boundary that proves the defect:
 
 ## CI contract
 
-CI runs the focused Forgejo automation API tests, configures and builds its
-debug/release/headless platform matrix, runs CTest for debug and debug-headless
-jobs, and has a separate package job.
+CI validates the Forgejo workflow, runs the focused automation API tests, and
+executes the debug/release/headless build matrix on the `ahamkara-ci` runner
+image. It runs CTest for debug and debug-headless jobs and has a package job. Build the runner image with
+`docker build -f tools/lint/Dockerfile.ci -t ahamkara-ci:latest tools/lint`; the
+Forgejo runner configuration on servdesktop02 maps the `ahamkara-ci` label to it.
 [src: file: .forgejo/workflows/ci.yml:1]
 
 The existence of a CI job is not proof that the current branch is green. The

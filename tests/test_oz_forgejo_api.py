@@ -85,9 +85,8 @@ class ForgejoApiTests(unittest.TestCase):
                     module.forgejo_api_headers(),
                     {"Authorization": "token unit-test-token", "Accept": "application/json"},
                 )
-                with patch.dict(os.environ, {}, clear=True):
-                    with self.assertRaisesRegex(RuntimeError, "FORGEJO_TOKEN"):
-                        module.forgejo_api_headers()
+                with patch.dict(os.environ, {}, clear=True), self.assertRaisesRegex(RuntimeError, "FORGEJO_TOKEN"):
+                    module.forgejo_api_headers()
 
     def test_runner_post_uses_forgejo_url_and_token_header(self) -> None:
         requests = []
@@ -98,9 +97,7 @@ class ForgejoApiTests(unittest.TestCase):
             return FakeResponse({"id": 9})
 
         with patch.object(self.scripts["oz_runner"].urllib.request, "urlopen", side_effect=fake_urlopen):
-            result = self.scripts["oz_runner"].api_post(
-                "issues/17/comments", {"body": "test comment"}
-            )
+            result = self.scripts["oz_runner"].api_post("issues/17/comments", {"body": "test comment"})
 
         self.assertEqual(result, {"id": 9})
         self.assertEqual(len(requests), 1)
@@ -119,7 +116,7 @@ class ForgejoApiTests(unittest.TestCase):
             with self.subTest(module=module.__name__):
                 requests = []
 
-                def fake_urlopen(request, timeout):
+                def fake_urlopen(request, timeout, requests=requests):
                     requests.append(request)
                     self.assertEqual(timeout, 30)
                     if len(requests) == 1:
