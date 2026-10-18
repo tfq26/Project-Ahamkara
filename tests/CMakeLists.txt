@@ -1,6 +1,11 @@
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 add_test(
+    NAME flashback_build_scripts_tests
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_flashback_build_scripts.py
+)
+
+add_test(
     NAME caligo_asset_contract_tests
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/caligo_asset_test.py
 )
@@ -13,6 +18,10 @@ set_tests_properties(character_asset_contract_tests PROPERTIES
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 set_tests_properties(caligo_asset_contract_tests PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+set_tests_properties(flashback_build_scripts_tests PROPERTIES
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 

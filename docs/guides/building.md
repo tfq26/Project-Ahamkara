@@ -280,3 +280,51 @@ but remote clients do require that UDP port `7777` is reachable.
 **Window opens but shows a blank / black surface**
 → This is expected. The current client has no renderer — the window exists
 solely to capture input and the per-frame diagnostics appear on stdout.
+
+## Playable Flashback builds and rollback
+
+The Forgejo Actions workflow builds and tests the Linux release, compiles the
+runtime assets, and uploads a Flashback candidate named with its commit and
+platform. Each candidate contains the Flashback executable, the compiled asset
+registry and runtime assets, and a build-info.txt file with the source commit.
+Linux and macOS binaries are separate native builds; do not copy the Linux
+executable to the Mac.
+
+Build a native candidate from a clean checkout of the desired Forgejo commit:
+
+~~~sh
+cmake --preset release
+cmake --build --preset release --target flashback ahamkara_asset_importer
+./scripts/package_flashback.sh build/release build/artifacts
+~~~
+
+The package script runs the asset importer before staging the archive. It emits
+a .tar.gz archive and a SHA-256 sidecar in build/artifacts/. The included
+run-flashback.sh launches from the package root so relative runtime asset paths
+resolve.
+
+On servdesktop02, keep Linux builds under /home and promote only a candidate
+that has passed CI and a manual launch/play check:
+
+~~~sh
+./scripts/promote_flashback_build.sh \
+  build/artifacts/Flashback-linux-x86_64-<commit>.tar.gz \
+  /home/taufe/builds/flashback/linux
+/home/taufe/builds/flashback/linux/current/run-flashback.sh
+~~~
+
+Promotion installs an immutable directory under versions/<commit>, switches
+current atomically, and points backup at the previous current. If the new build
+fails during play, launch backup/run-flashback.sh; promoting the backup archive
+again also restores it as current. Do not edit files inside a versioned build.
+
+For the local Apple Silicon build, run the same commands on macOS from the same
+Forgejo commit, using the macos-arm64 platform name: Keep the extracted
+versioned build under ~/Games/Ahamkara/macos/versions/<commit> and make that
+the local current build. The server current and backup are Linux builds; the
+Mac current build is separately compiled from the matching commit. Run the
+package script with macos-arm64 as its third argument on the Mac.
+
+Forgejo Actions artifacts are short-lived CI candidates. For longer retention,
+keep promoted version directories on servdesktop02 and copy the matching macOS
+archive to the Mac; compare the commit in build-info.txt.

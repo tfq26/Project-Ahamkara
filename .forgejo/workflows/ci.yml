@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - "dev/**"
       - "agent/automerge/**"
   pull_request:
     branches: [main, develop]
@@ -128,7 +129,7 @@ jobs:
         run: ctest --test-dir build/debug-headless --output-on-failure
 
   package:
-    name: Package
+    name: Playable Flashback candidate (Linux)
     runs-on: ahamkara-ci
     needs: [build-and-test]
 
@@ -139,17 +140,20 @@ jobs:
           github-server-url: https://git.2helix.org
           persist-credentials: false
 
-      - name: Package
-        run: |
-          cmake --preset package
-          cmake --build --preset package
-          cpack --preset package
+      - name: Configure release build
+        run: cmake --preset release
 
-      - name: Upload package artifact
+      - name: Build Flashback and asset importer
+        run: cmake --build --preset release --target flashback ahamkara_asset_importer
+
+      - name: Package Flashback with runtime assets
+        run: ./scripts/package_flashback.sh build/release build/artifacts linux-x86_64
+
+      - name: Upload playable candidate
         uses: https://data.forgejo.org/actions/upload-artifact@c6a366c94c3e0affe28c06c8df20a878f24da3cf
         with:
-          name: ahamkara-package
-          path: build/package/*.tar.gz
+          name: flashback-linux-${{ forgejo.sha }}
+          path: build/artifacts/*
           if-no-files-found: error
 
   auto-merge:
