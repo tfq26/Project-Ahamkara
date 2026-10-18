@@ -67,6 +67,7 @@ struct LevelRenderInstance {
     TextureHandle normal_map {};
     TextureHandle orm_map {};
     TextureHandle emissive_map {};
+    bool has_material {false};
 };
 
 // A sorted (mesh, instance) pair produced by batch_level_draw_calls.

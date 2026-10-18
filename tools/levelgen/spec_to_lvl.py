@@ -23,6 +23,11 @@ JSON spec schema (all fields optional unless noted; 1:1 with `.lvl` capability):
          "top_y": 0.0, "bottom_y": -0.5,
          "wall": false, "jump_through": false, "auto_step": true, "surface": 0}
       ],
+      "collision_meshes": [
+        {"mesh": "assets/compiled/models/terrain.aemesh",
+         "pos": [0, 0, 0], "yaw": 0, "pitch": 0, "roll": 0,
+         "scale": [1, 1, 1]}
+      ],
       "meshes": [
         {"mesh": "asset/id-or-path", "material": "asset/id",
          "pos": [x, y, z], "yaw": 0.0, "pitch": 0.0, "roll": 0.0,
@@ -95,6 +100,19 @@ def spec_to_lvl_text(spec: dict, source_name: str = "") -> str:
             )
             lines.append(line)
 
+    collision_meshes = spec.get("collision_meshes", [])
+    if collision_meshes:
+        lines.append("")
+        lines.append("[collision_mesh]")
+        for m in collision_meshes:
+            pos = m.get("pos", [0.0, 0.0, 0.0])
+            scale = m.get("scale", [1.0, 1.0, 1.0])
+            lines.append(
+                f"mesh_id={m['mesh']} pos_x={_num(pos[0])} pos_y={_num(pos[1])} pos_z={_num(pos[2])} "
+                f"yaw={_num(m.get('yaw', 0.0))} pitch={_num(m.get('pitch', 0.0))} roll={_num(m.get('roll', 0.0))} "
+                f"scale_x={_num(scale[0])} scale_y={_num(scale[1])} scale_z={_num(scale[2])}"
+            )
+
     meshes = spec.get("meshes", [])
     if meshes:
         lines.append("")
@@ -118,7 +136,7 @@ def spec_to_lvl_text(spec: dict, source_name: str = "") -> str:
 
 def parse_lvl(text: str) -> dict:
     """Parse a `.lvl` back into a normalized spec dict (for roundtrip checks)."""
-    out: dict = {"spawns": [], "collision": [], "meshes": []}
+    out: dict = {"spawns": [], "collision": [], "collision_meshes": [], "meshes": []}
     section = None
     for raw in text.splitlines():
         line = raw.strip()
@@ -159,6 +177,18 @@ def parse_lvl(text: str) -> dict:
                 elif k == "surface":
                     box[k] = int(v)
             out["collision"].append(box)
+        elif section == "collision_mesh":
+            toks = line.split()
+            mesh: dict = {}
+            for t in toks:
+                k, _, v = t.partition("=")
+                if k == "mesh_id":
+                    mesh["mesh"] = v
+                elif k in ("pos_x", "pos_y", "pos_z", "yaw", "pitch", "roll", "scale_x", "scale_y", "scale_z"):
+                    mesh[k] = float(v)
+            mesh["pos"] = [mesh.pop("pos_x", 0.0), mesh.pop("pos_y", 0.0), mesh.pop("pos_z", 0.0)]
+            mesh["scale"] = [mesh.pop("scale_x", 1.0), mesh.pop("scale_y", 1.0), mesh.pop("scale_z", 1.0)]
+            out["collision_meshes"].append(mesh)
         elif section == "mesh":
             toks = line.split()
             mesh: dict = {}
@@ -201,6 +231,8 @@ def selftest(spec_path: Path) -> int:
         failures.append("spawn count mismatch")
     if len(parsed["collision"]) != len(spec.get("collision", [])):
         failures.append("collision count mismatch")
+    if len(parsed["collision_meshes"]) != len(spec.get("collision_meshes", [])):
+        failures.append("collision mesh count mismatch")
     if len(parsed["meshes"]) != len(spec.get("meshes", [])):
         failures.append("mesh count mismatch")
 

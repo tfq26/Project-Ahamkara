@@ -15,7 +15,9 @@ void update_camera_state(
     MovementSimState& sim_state,
     float delta_seconds,
     const PlayerInputCommand& input,
-    bool crouch_active) {
+    bool crouch_active,
+    bool on_ground,
+    const MovementConfig& config) {
 
     // Apply look delta (mouse input)
     anchor.yaw += input.look_delta.x;
@@ -41,15 +43,15 @@ void update_camera_state(
         player_state.velocity.x * player_state.velocity.x +
         player_state.velocity.z * player_state.velocity.z);
 
-    if (has_input && h_speed > 0.1F) {
+    if (on_ground && has_input && h_speed > 0.1F) {
         // Simple sine-based head bob
-        constexpr float kBobFreq = 10.0F;
-        constexpr float kBobAmp = 0.015F;
-        sim_state.head_bob_phase += delta_seconds * kBobFreq * std::min(h_speed / 6.0F, 1.0F);
-        float bob = std::sin(sim_state.head_bob_phase) * kBobAmp;
+        sim_state.head_bob_phase +=
+            delta_seconds * config.head_bob_frequency *
+            std::min(h_speed / std::max(config.sprint_speed, 0.001F), 1.0F);
+        float bob = std::sin(sim_state.head_bob_phase) * config.head_bob_amplitude;
         anchor.position.y += bob;
         // Slight horizontal sway
-        float sway = std::cos(sim_state.head_bob_phase * 0.5F) * kBobAmp * 0.5F;
+        float sway = std::cos(sim_state.head_bob_phase * 0.5F) * config.head_bob_amplitude * 0.5F;
         anchor.position.x += sway * std::sin(ae::to_radians(anchor.yaw + 90.0F));
         anchor.position.z += sway * std::cos(ae::to_radians(anchor.yaw + 90.0F));
     } else {
@@ -97,7 +99,8 @@ void fill_movement_debug(
     float slide_timer_seconds,
     float delta_seconds,
     const PlayerInputCommand& input,
-    bool on_ground) {
+    bool on_ground,
+    const MovementConfig& config) {
 
     (void)delta_seconds;
     (void)input;
@@ -107,18 +110,21 @@ void fill_movement_debug(
     debug.ground_material = sim_state.ground_material;
 
     // Jump buffer: 0..1 pct
-    float max_buffer = 0.15F;
-    debug.jump_buffer_pct = sim_state.jump_buffer_timer > 0.0F
-        ? sim_state.jump_buffer_timer / max_buffer : 0.0F;
+    float max_buffer = config.jump_buffer_time;
+    debug.jump_buffer_pct = sim_state.jump_buffer_timer > 0.0F && max_buffer > 0.0F
+                                ? sim_state.jump_buffer_timer / max_buffer
+                                : 0.0F;
 
     // Coyote timer: 0..1 pct
-    float max_coyote = 0.10F;
-    debug.coyote_pct = sim_state.coyote_timer > 0.0F
-        ? sim_state.coyote_timer / max_coyote : 0.0F;
+    float max_coyote = config.coyote_time;
+    debug.coyote_pct = sim_state.coyote_timer > 0.0F && max_coyote > 0.0F
+                           ? sim_state.coyote_timer / max_coyote
+                           : 0.0F;
 
     // Slide: 0..1 pct of max slide duration (0.45F)
-    debug.slide_pct = slide_timer_seconds > 0.0F
-        ? slide_timer_seconds / 0.45F : 0.0F;
+    debug.slide_pct = slide_timer_seconds > 0.0F && config.slide_duration > 0.0F
+                          ? slide_timer_seconds / config.slide_duration
+                          : 0.0F;
 
     debug.on_ground = on_ground;
     debug.on_ladder = sim_state.on_ladder;

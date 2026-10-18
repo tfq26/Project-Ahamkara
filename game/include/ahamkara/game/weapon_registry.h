@@ -21,12 +21,12 @@ constexpr std::size_t kWeaponRegistrySize = 3;
 //   Slot 2 (Heavy):     Rocket Launcher — 30 RPM, 1-round mag, 100 dmg projectile
 
 inline const std::array<WeaponDefinition, kWeaponRegistrySize> kWeaponRegistry = {{
-    // 0: AR-15 (primary) — 400 RPM automatic
+    // 0: AR-15 (primary) — 400 RPM physical ballistic rounds
     {
         .magazine_size = 50,
         .base_damage = 20.0F,
         .headshot_multiplier = 2.0F,
-        .fire_mode = FireMode::Automatic,
+        .fire_mode = FireMode::Projectile,
         .slot = WeaponSlot::Primary,
         .rpm = 400.0F,
         .reload_time_s = 2.0F,

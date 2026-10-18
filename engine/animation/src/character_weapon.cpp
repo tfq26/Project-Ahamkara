@@ -167,7 +167,7 @@ void evaluate_bob_layer(WeaponAnimState& state,
 }
 
 void fire_weapon_kick(WeaponAnimState& state) {
-    state.fire_anim_time = 0.05F;  // ~3 frames of visible kick
+    state.fire_anim_time = 0.11F;
 }
 
 void evaluate_recoil_kick_layer(WeaponAnimState& state,
@@ -181,12 +181,14 @@ void evaluate_recoil_kick_layer(WeaponAnimState& state,
         if (state.fire_anim_time < 0.0F) state.fire_anim_time = 0.0F;
     }
 
-    float kick = (state.fire_anim_time > 0.0F)
-                     ? (state.fire_anim_time / 0.05F) * 0.01F
-                     : 0.0F;
+    constexpr float kKickDuration = 0.11F;
+    const float normalized = std::clamp(state.fire_anim_time / kKickDuration, 0.0F, 1.0F);
+    const float kick = normalized * 0.055F;
 
     if (std::abs(kick) > kLayerEpsilon) {
-        out_offset = skeleton::Mat4::translation(0.0F, -kick, 0.0F);
+        // Backward slide plus a small rise gives the viewmodel a clear shot
+        // impulse without disconnecting the muzzle from the crosshair.
+        out_offset = skeleton::Mat4::translation(0.004F, -kick * 0.20F, -kick);
     }
 }
 

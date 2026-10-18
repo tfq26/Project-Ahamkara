@@ -7,6 +7,10 @@
 //
 // Usage (run from the repo root so the level's relative asset paths resolve):
 //   ./build/<preset>/samples/flashback/flashback [--level <path-to.aelevel>]
+//
+// With no --level, Flashback opens at its menu/Director and does not load a
+// gameplay level. Passing --level is an explicit developer shortcut for
+// starting directly in a level.
 
 #include "ahamkara/client/client_config.h"
 #include "ahamkara/client/client_entry.h"
@@ -20,8 +24,9 @@
 
 namespace {
 
-constexpr const char* kDefaultShowcaseLevel =
-    "assets/compiled/levels/prototype_box.aelevel";
+constexpr const char* kDefaultShowcaseLevel = nullptr;
+constexpr const char* kAutoplayLevel =
+    "assets/compiled/levels/caligo_surface_ruins.aelevel";
 
 }  // namespace
 
@@ -41,17 +46,20 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Defaults are fine for a demo; the real client loads these from config
-    // files, but Flashback just showcases the engine running a level.
     ahamkara::client::ClientConfig client_config {};
+    // Flashback owns the playable presentation now, including persisted field-
+    // suit customization authored in Character View.
+    (void)client_config.load_from_file("client/config/ahamkara.cfg");
     client_config.app_name = "Flashback";
     ahamkara::client::ControllerBindings controller_bindings {};
+    const char* autoplay_level = level_path != nullptr ? level_path : kAutoplayLevel;
     const auto autoplay_scenario = autoplay
-        ? ahamkara::client::make_default_autoplay_scenario(level_path)
+        ? ahamkara::client::make_default_autoplay_scenario(autoplay_level)
         : ahamkara::client::PlaytestScenario {};
 
-    ae::log_info(std::string("Flashback: booting the engine on level '") +
-                 level_path + "'. (Run from the repo root so assets resolve.)");
+    ae::log_info(std::string("Flashback: booting in menu mode") +
+                 (level_path != nullptr ? " with explicit level '" + std::string(level_path) + "'" : "") +
+                 ". (Run from the repo root so assets resolve.)");
 
     // Inject Flashback's own game module so the runtime lifecycle reflects
     // Flashback identity instead of the monolithic ahamkara_game library.
@@ -63,7 +71,7 @@ int main(int argc, char** argv) {
     const int result = run_local_client(
         client_config,
         controller_bindings,
-        level_path,
+        autoplay ? autoplay_level : level_path,
         autoplay ? &autoplay_scenario : nullptr,
         fb_module);
     ae::shutdown_file_logging();

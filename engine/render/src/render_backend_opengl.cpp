@@ -74,12 +74,21 @@ public:
         gladLoadGL(reinterpret_cast<GLADloadfunc>(glfwGetProcAddress));
 #endif
 
+        // Core-profile OpenGL requires a vertex array object for authored
+        // mesh draws. Keep one backend-owned VAO and describe each mesh's
+        // separate attribute buffers immediately before drawing.
+        glGenVertexArrays(1, &mesh_vao_);
+
         return true;
     }
 
     void shutdown() override {
         if (window_) {
             glfwMakeContextCurrent(window_);
+            if (mesh_vao_ != 0) {
+                glDeleteVertexArrays(1, &mesh_vao_);
+                mesh_vao_ = 0;
+            }
             buffers_.clear();
             shaders_.clear();
             queries_.clear();
@@ -193,6 +202,10 @@ public:
                         static_cast<GLsizeiptr>(size_bytes),
                         data);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
+    [[nodiscard]] std::uint32_t native_buffer_id(BufferHandle handle) const override {
+        return buffers_.lookup(handle.id);
     }
 
     // --- Shaders ---
@@ -393,12 +406,63 @@ public:
     }
 
     void draw_gpu_mesh_skinned(const GpuMesh& mesh) override {
-        // Flat-shaded via the compat path; skinning not yet ported, so static pose.
         if (mesh.vertex_count == 0) return;
-        const GLuint vbo_pos = buffers_.lookup(mesh.vbo_positions.id);
-        const GLuint ibo     = buffers_.lookup(mesh.ibo_indices.id);
-        ae::gl_compat::draw_user_arrays(vbo_pos, 0, 0, ibo, mesh.index_count,
-                                        GL_TRIANGLES, 0, mesh.vertex_count);
+        const GLuint vbo_pos     = buffers_.lookup(mesh.vbo_positions.id);
+        const GLuint vbo_joints  = buffers_.lookup(mesh.vbo_joints.id);
+        const GLuint vbo_weights = buffers_.lookup(mesh.vbo_weights.id);
+        const GLuint vbo_normals = buffers_.lookup(mesh.vbo_normals.id);
+        const GLuint ibo         = buffers_.lookup(mesh.ibo_indices.id);
+        if (vbo_pos == 0) return;
+
+        glBindVertexArray(mesh_vao_);
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        if (vbo_joints != 0) {
+            glBindBuffer(GL_ARRAY_BUFFER, vbo_joints);
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+        } else {
+            // Static meshes submitted to a character shader have no skin data.
+            // Keep the vertex layout valid; uUseSkinning bypasses these values.
+            glDisableVertexAttribArray(1);
+            glVertexAttrib4f(1, 0.0F, 0.0F, 0.0F, 0.0F);
+        }
+
+        if (vbo_weights != 0) {
+            glBindBuffer(GL_ARRAY_BUFFER, vbo_weights);
+            glEnableVertexAttribArray(2);
+            glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+        } else {
+            glDisableVertexAttribArray(2);
+            glVertexAttrib4f(2, 1.0F, 0.0F, 0.0F, 0.0F);
+        }
+
+        if (vbo_normals != 0) {
+            glBindBuffer(GL_ARRAY_BUFFER, vbo_normals);
+            glEnableVertexAttribArray(3);
+            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        } else {
+            glDisableVertexAttribArray(3);
+            glVertexAttrib3f(3, 0.0F, 1.0F, 0.0F);
+        }
+
+        if (ibo != 0 && mesh.index_count > 0) {
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+            glDrawElements(GL_TRIANGLES, mesh.index_count, GL_UNSIGNED_INT, nullptr);
+        } else {
+            glDrawArrays(GL_TRIANGLES, 0, mesh.vertex_count);
+        }
+
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(2);
+        glDisableVertexAttribArray(3);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
     }
 
     void draw_arrays_vnc(BufferHandle vbo_positions,
@@ -507,6 +571,7 @@ private:
     }
 
     GLFWwindow* window_ = nullptr;
+    GLuint mesh_vao_ = 0;
     HandlePool<GLuint> buffers_;
     HandlePool<GLuint> shaders_;
     HandlePool<GLuint> queries_;

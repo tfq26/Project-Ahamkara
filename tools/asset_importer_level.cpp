@@ -16,12 +16,14 @@ enum class Section {
     None,
     Spawn,
     Collision,
+    CollisionMesh,
     Mesh,
 };
 
 Section parse_section_header(const std::string& line) {
     if (line == "[spawn]") return Section::Spawn;
     if (line == "[collision]") return Section::Collision;
+    if (line == "[collision_mesh]") return Section::CollisionMesh;
     if (line == "[mesh]") return Section::Mesh;
     return Section::None;
 }
@@ -190,6 +192,25 @@ bool load_level_source(const std::filesystem::path& path, ae::render::LevelAsset
             cb.auto_step = parse_named_bool(tokens, "auto_step", true);
             cb.surface_material = static_cast<std::uint32_t>(parse_named_float(tokens, "surface", 0.0F));
             level.collision_boxes.push_back(cb);
+        } else if (section == Section::CollisionMesh) {
+            const auto tokens = split_tokens(line);
+            const auto mesh_id = parse_named_string(tokens, "mesh_id");
+            if (mesh_id.empty()) {
+                error = "Collision mesh needs mesh_id on line " + std::to_string(line_number);
+                return false;
+            }
+            ae::render::LevelCollisionMesh mesh;
+            mesh.mesh_asset_id = mesh_id;
+            mesh.pos_x = parse_named_float(tokens, "pos_x", 0.0F);
+            mesh.pos_y = parse_named_float(tokens, "pos_y", 0.0F);
+            mesh.pos_z = parse_named_float(tokens, "pos_z", 0.0F);
+            mesh.yaw = parse_named_float(tokens, "yaw", 0.0F);
+            mesh.pitch = parse_named_float(tokens, "pitch", 0.0F);
+            mesh.roll = parse_named_float(tokens, "roll", 0.0F);
+            mesh.scale_x = parse_named_float(tokens, "scale_x", 1.0F);
+            mesh.scale_y = parse_named_float(tokens, "scale_y", 1.0F);
+            mesh.scale_z = parse_named_float(tokens, "scale_z", 1.0F);
+            level.collision_meshes.push_back(mesh);
         } else if (section == Section::Mesh) {
             const auto tokens = split_tokens(line);
             const auto mesh_id = parse_named_string(tokens, "mesh_id");

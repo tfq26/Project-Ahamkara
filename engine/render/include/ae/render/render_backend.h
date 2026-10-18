@@ -157,6 +157,11 @@ public:
                                       std::size_t size_bytes,
                                       std::size_t offset = 0) = 0;
 
+    /// Return the backend-native vertex/index buffer name for a resource
+    /// handle. This is used by render passes that issue specialized GPU draws
+    /// while still keeping handle ownership inside the backend.
+    [[nodiscard]] virtual std::uint32_t native_buffer_id(BufferHandle handle) const = 0;
+
     // --- Shaders ---
     /// Compile and link a shader program.  Returns kInvalidShader on failure.
     virtual ShaderHandle create_shader_program(const ShaderProgramDesc& desc) = 0;

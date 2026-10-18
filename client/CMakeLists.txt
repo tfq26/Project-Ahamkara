@@ -8,6 +8,8 @@
 # declarations or a game-agnostic snapshot API) this can become PRIVATE,
 # which is the upstream goal for the Ahamkara package boundary.
 add_library(ahamkara_client_lib STATIC
+    src/animated_character.cpp
+    src/caligo_director.cpp
     src/client_config.cpp
     src/client_frame_pipeline.cpp
     src/client_menu_state.cpp

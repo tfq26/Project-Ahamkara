@@ -10,6 +10,8 @@
 
 namespace ahamkara::client {
 
+class AnimatedCharacter;
+
 struct DebugRenderSubmission {
     ae::render::DebugScene scene {};
     float listener_position[3] {0.0F, 0.0F, 0.0F};
@@ -32,6 +34,8 @@ void render_local_debug_frame(
     ae::render::ShadowPass& shadow_pass,
     ae::render::DebugRenderer& renderer,
     ae::render::PbrRenderer& pbr_renderer,
-    const ae::render::LevelRenderScene* level_scene);
+    const ae::render::LevelRenderScene* level_scene,
+    AnimatedCharacter* animated_character = nullptr,
+    const float* character_model_matrix = nullptr);
 
 }  // namespace ahamkara::client

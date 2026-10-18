@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ahamkara/client/client_config.h"
+#include "ahamkara/client/animated_character.h"
+#include "ahamkara/client/caligo_director.h"
 #include "ahamkara/client/client_menu_state.h"
 #include "ahamkara/client/controller_bindings.h"
 #include "ahamkara/client/debug_frontend_runtime.h"
@@ -60,9 +62,11 @@ public:
         ae::audio::AudioEngine& audio_engine,
         ae::render::ShadowPass& shadow_pass,
         ae::render::PbrRenderer& pbr_renderer,
-        const ae::render::LevelRenderScene* level_scene,
-        const ae::render::LevelAsset* level_asset,
+        ae::render::LevelRenderScene* level_scene,
+        ae::render::LevelAsset* level_asset,
         bool autoplay_mode = false);
+
+    void shutdown_render_resources();
 
     /// Run one full frame. Returns false when the window or application
     /// requests shutdown.
@@ -89,6 +93,10 @@ private:
     void stage_present();
     // Console overlay rendering (called from stage_render_ui)
     void render_console_overlay();
+    // Draw the avatar after ImGui, clipped to the Character View's central
+    // presentation bay. This gives the menu a deliberate three-layer depth:
+    // viewport backing → character → surrounding controls.
+    void render_character_view_foreground();
 
     // Stage 10 — apply post-frame actions
     void stage_post_frame();
@@ -106,8 +114,11 @@ private:
     ae::audio::AudioEngine& audio_engine_;
     ae::render::ShadowPass& shadow_pass_;
     ae::render::PbrRenderer& pbr_renderer_;
-    const ae::render::LevelRenderScene* level_scene_ {nullptr};
-    const ae::render::LevelAsset* level_asset_ {nullptr};
+    ae::render::LevelRenderScene* level_scene_ {nullptr};
+    ae::render::LevelAsset* level_asset_ {nullptr};
+    CaligoDirector caligo_director_ {};
+    AnimatedCharacter animated_character_ {};
+    float character_preview_model_matrix_[16] {};
     ae::input::InputMap input_map_ {};
 
     float smoothed_delta_ {0.0F};
@@ -127,6 +138,7 @@ private:
     bool gameplay_active_{false};
     bool menu_initialized_{false};
     bool hud_loaded_{false};
+    bool character_dance_active_{false};
     static constexpr int kConsoleBufSize = 512;
 
     // Authoring / tooling state

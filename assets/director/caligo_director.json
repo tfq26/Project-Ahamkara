@@ -1,0 +1,29 @@
+{
+  "id": "caligo",
+  "name": "CALIGO",
+  "subtitle": "THE BURIED WORLD",
+  "description": "A storm-worn desert world. Humanity survives beneath the crust.",
+  "exterior": {
+    "model": "assets/compiled/models/caligo_director.aemesh",
+    "lod1": "assets/compiled/models/caligo_director_lod1.aemesh",
+    "lod2": "assets/compiled/models/caligo_director_lod2.aemesh",
+    "camera": [0.0, 1.5, 14.0],
+    "target": [0.0, 0.0, 0.0]
+  },
+  "cutaway": {
+    "model": "assets/compiled/models/caligo_cutaway.aemesh",
+    "camera": [0.0, 1.4, 13.0],
+    "target": [0.0, 0.0, 0.0]
+  },
+  "crown": "habitat_crown_01",
+  "activities": [
+    {
+      "id": "surface_ruins",
+      "name": "SURFACE RUINS",
+      "description": "Explore the buried corporate research campus.",
+      "level": "assets/compiled/levels/caligo_surface_ruins.aelevel",
+      "status": "AVAILABLE"
+    }
+  ],
+  "layers": ["SURFACE", "HABITAT", "UNDERWORKS", "DEEP CALIGO"]
+}

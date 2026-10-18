@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <unordered_map>
 
 namespace ae::skeleton {
@@ -215,10 +216,17 @@ void evaluate_animation(
     const std::size_t joint_count = skin.joints.size();
     out_joint_matrices.resize(joint_count);
 
-    // Per-joint local transforms: start as identity
-    std::vector<Mat4> local_transforms(joint_count);
+    // Begin at each glTF joint's node-local rest transform. Keyed animation
+    // channels replace the affected TRS component, rather than composing an
+    // offset from identity. This is essential for Blender/MPFB rigs whose
+    // bones carry non-identity rest rotations and translations.
+    std::vector<std::array<float, 3>> translations(joint_count);
+    std::vector<std::array<float, 4>> rotations(joint_count);
+    std::vector<std::array<float, 3>> scales(joint_count);
     for (std::size_t j = 0; j < joint_count; ++j) {
-        local_transforms[j] = Mat4::identity();
+        translations[j] = skin.joints[j].bind_translation;
+        rotations[j] = skin.joints[j].bind_rotation;
+        scales[j] = skin.joints[j].bind_scale;
     }
 
     // Build node_index → joint_index mapping
@@ -273,9 +281,7 @@ void evaluate_animation(
                     tz = sampler.output_values[off0 + 2] +
                          blend * (sampler.output_values[off1 + 2] - sampler.output_values[off0 + 2]);
                 }
-                local_transforms[static_cast<std::size_t>(joint_idx)] =
-                    local_transforms[static_cast<std::size_t>(joint_idx)] *
-                    Mat4::translation(tx, ty, tz);
+                translations[static_cast<std::size_t>(joint_idx)] = {tx, ty, tz};
             }
         } else if (channel.path == "rotation") {
             // 4 floats per keyframe (quaternion)
@@ -294,9 +300,7 @@ void evaluate_animation(
                     quat_slerp(&sampler.output_values[off0],
                                &sampler.output_values[off1], blend, q);
                 }
-                local_transforms[static_cast<std::size_t>(joint_idx)] =
-                    local_transforms[static_cast<std::size_t>(joint_idx)] *
-                    Mat4::rotation_quat(q[0], q[1], q[2], q[3]);
+                rotations[static_cast<std::size_t>(joint_idx)] = {q[0], q[1], q[2], q[3]};
             }
         } else if (channel.path == "scale") {
             // 3 floats per keyframe
@@ -318,26 +322,51 @@ void evaluate_animation(
                     sz = sampler.output_values[off0 + 2] +
                          blend * (sampler.output_values[off1 + 2] - sampler.output_values[off0 + 2]);
                 }
-                local_transforms[static_cast<std::size_t>(joint_idx)] =
-                    local_transforms[static_cast<std::size_t>(joint_idx)] *
-                    Mat4::scale(sx, sy, sz);
+                scales[static_cast<std::size_t>(joint_idx)] = {sx, sy, sz};
             }
         }
     }
 
-    // Compute global transforms by traversing the hierarchy top-down.
-    // Joints are assumed to be stored in topological order (parents before children),
-    // which is the standard glTF convention.
-    std::vector<Mat4> global_transforms(joint_count);
+    std::vector<Mat4> local_transforms(joint_count);
     for (std::size_t j = 0; j < joint_count; ++j) {
-        const auto& joint = skin.joints[j];
-        Mat4 local = local_transforms[j];
-        if (joint.parent_index >= 0 &&
-            static_cast<std::size_t>(joint.parent_index) < joint_count) {
-            global_transforms[j] = global_transforms[static_cast<std::size_t>(joint.parent_index)] * local;
-        } else {
-            global_transforms[j] = local;
+        const auto& translation = translations[j];
+        const auto& rotation = rotations[j];
+        const auto& scale = scales[j];
+        local_transforms[j] = Mat4::translation(translation[0], translation[1], translation[2]) *
+                              Mat4::rotation_quat(rotation[0], rotation[1], rotation[2], rotation[3]) *
+                              Mat4::scale(scale[0], scale[1], scale[2]);
+    }
+
+    // Resolve globals through parent links instead of relying on joint-array
+    // order. glTF does not require a skin's `joints` array to be topological,
+    // and Blender 5 commonly exports children before their parents.
+    std::vector<Mat4> global_transforms(joint_count);
+    std::vector<unsigned char> resolve_state(joint_count, 0U);
+    std::function<void(std::size_t)> resolve_global = [&](std::size_t j) {
+        if (resolve_state[j] == 2U) {
+            return;
         }
+        if (resolve_state[j] == 1U) {
+            // Malformed cyclic hierarchy: preserve a stable local transform.
+            global_transforms[j] = local_transforms[j];
+            resolve_state[j] = 2U;
+            return;
+        }
+        resolve_state[j] = 1U;
+        const auto& joint = skin.joints[j];
+        if (joint.parent_index >= 0 &&
+            static_cast<std::size_t>(joint.parent_index) < joint_count &&
+            static_cast<std::size_t>(joint.parent_index) != j) {
+            const auto parent = static_cast<std::size_t>(joint.parent_index);
+            resolve_global(parent);
+            global_transforms[j] = global_transforms[parent] * local_transforms[j];
+        } else {
+            global_transforms[j] = local_transforms[j];
+        }
+        resolve_state[j] = 2U;
+    };
+    for (std::size_t j = 0; j < joint_count; ++j) {
+        resolve_global(j);
     }
 
     // Final joint matrix = global_transform * inverse_bind_matrix

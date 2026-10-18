@@ -34,6 +34,10 @@ public:
     /// Returns nullptr if no clip is active or no data loaded.
     [[nodiscard]] const ae::skeleton::Mat4* tick(float dt);
 
+    /// Evaluate the unanimated glTF bind pose. Useful for character/profile
+    /// presentation where the authored rest pose is the desired neutral pose.
+    [[nodiscard]] const ae::skeleton::Mat4* rest_pose();
+
     /// Number of joints in the loaded skeleton.
     [[nodiscard]] int joint_count() const { return joint_count_; }
 

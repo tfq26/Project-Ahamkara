@@ -26,10 +26,7 @@ public:
         float delta_seconds,
         bool on_ground,
         const Vec3& current_velocity,
-        float walk_speed,
-        float sprint_speed,
-        float jump_speed,
-        float gravity);
+        const MovementConfig& config);
 
     void finish_frame(
         ReplicatedPlayerState& player_state,
@@ -41,6 +38,8 @@ public:
         ae::collision::CharacterController* character);
 
     [[nodiscard]] const CameraAnchor& camera_anchor() const { return camera_anchor_; }
+    /// Applies an impulse after the player's look input has been processed.
+    void apply_camera_recoil(ReplicatedPlayerState& player_state, float pitch_delta, float yaw_delta);
     [[nodiscard]] const MovementDebugState& movement_debug() const { return movement_debug_; }
     [[nodiscard]] bool crouch_active() const { return crouch_active_; }
     [[nodiscard]] float player_visual_height() const { return crouch_active_ ? kCrouchingVisualHeight : kStandingVisualHeight; }
@@ -74,6 +73,7 @@ private:
     MovementDebugState movement_debug_ {};
     Vec3 desired_velocity_ {};
     float slide_timer_seconds_ {0.0F};
+    MovementConfig config_ {};
     bool crouch_active_ {false};
     bool on_ground_before_step_ {false};
     float previous_vertical_velocity_ {0.0F};

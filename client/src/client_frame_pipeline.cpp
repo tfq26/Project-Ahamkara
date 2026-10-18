@@ -20,6 +20,8 @@
 
 #include <GLFW/glfw3.h>
 #include <cmath>
+#include <cstdlib>
+#include <cstdio>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -27,6 +29,13 @@
 #define AE_LOG_CATEGORY "Client"
 
 namespace ahamkara::client {
+
+void ClientFramePipeline::shutdown_render_resources() {
+    if (renderer_.backend() != nullptr) {
+        animated_character_.destroy();
+        caligo_director_.destroy(*renderer_.backend());
+    }
+}
 
 ClientFramePipeline::ClientFramePipeline(
     ae::PlatformWindow& window,
@@ -42,8 +51,8 @@ ClientFramePipeline::ClientFramePipeline(
     ae::audio::AudioEngine& audio_engine,
     ae::render::ShadowPass& shadow_pass,
     ae::render::PbrRenderer& pbr_renderer,
-    const ae::render::LevelRenderScene* level_scene,
-    const ae::render::LevelAsset* level_asset,
+    ae::render::LevelRenderScene* level_scene,
+    ae::render::LevelAsset* level_asset,
     bool autoplay_mode)
     : window_(window)
     , application_(application)
@@ -61,6 +70,12 @@ ClientFramePipeline::ClientFramePipeline(
     , level_scene_(level_scene)
     , level_asset_(level_asset)
     , autoplay_mode_(autoplay_mode) {
+    caligo_director_.initialize(*renderer.backend());
+    animated_character_.initialize(
+        *renderer.backend(),
+        "assets/compiled/models/operative_human_base.aemesh",
+        "assets/compiled/models/operative_human_rifle_idle_static.aemesh");
+    animated_character_.set_appearance_source(client_config_.character);
     if (menu_system_.load_from_directory("assets/menus")) {
         // Seed settings from current config
         menu_system_.set_variable("gamma", client_config_.gamma);
@@ -69,10 +84,14 @@ ClientFramePipeline::ClientFramePipeline(
         menu_system_.set_variable("sfx_volume", client_config_.audio.sfx_volume);
         menu_system_.set_variable("audio_enabled", client_config_.audio.enabled ? 1.0f : 0.0f);
         menu_system_.set_variable("mouse_sensitivity", client_config_.mouse_sensitivity);
+        menu_system_.set_variable("suit_color_r", client_config_.character.suit_color_r);
+        menu_system_.set_variable("suit_color_g", client_config_.character.suit_color_g);
+        menu_system_.set_variable("suit_color_b", client_config_.character.suit_color_b);
+        menu_system_.set_variable("quest_first_contact", 0.65f);
+        menu_system_.set_variable("quest_first_contact_percent", 65.0f);
 
         // ── Gameplay actions ──────────────────────────────────────────
         menu_system_.register_action("start_game", [this](std::string_view param) {
-            gameplay_active_ = true;
             std::string path(param.empty() ? "assets/compiled/levels/javelin4.aelevel" : std::string(param));
             // Show loading screen while loading
             menu_system_.show_screen("loading_screen");
@@ -81,14 +100,39 @@ ClientFramePipeline::ClientFramePipeline(
             // Use a simple staged simulation: load level in background, then unpause
             simulation_.set_paused(true);
             bool loaded = simulation_.load_level(path);
-            simulation_.set_paused(!loaded);
+            if (loaded && level_scene_ != nullptr && level_asset_ != nullptr) {
+                ae::render::CompiledLevelLoader level_loader;
+                loaded = level_loader.load(path, *level_asset_);
+                if (loaded) {
+                    level_scene_->destroy(*renderer_.backend());
+                    level_scene_->build(*level_asset_, *renderer_.backend(), "");
+                    renderer_.set_level_environment(
+                        level_asset_->sky_color_r, level_asset_->sky_color_g, level_asset_->sky_color_b,
+                        level_asset_->ambient_r, level_asset_->ambient_g, level_asset_->ambient_b);
+                    renderer_.clear_level_skybox_texture();
+                    if (!level_asset_->skybox_material.empty()) {
+                        (void)renderer_.set_level_skybox_texture(level_asset_->skybox_material);
+                    }
+                }
+            }
+            gameplay_active_ = loaded;
             menu_system_.set_variable("loading_progress", loaded ? "1.0" : "0.5");
             menu_system_.set_variable("loading_status", loaded ? "Ready." : "Failed to load map.");
 
-            // Small delay so loading screen is visible, then pop to gameplay
-            // In production this would be async with progress callbacks
-            menu_system_.pop_to_root();
-            simulation_.set_paused(false);
+            if (loaded) {
+                // Small delay so loading screen is visible, then close every
+                // menu layer and enter gameplay. In production this would be
+                // async with progress callbacks.
+                menu_system_.pop_to_root();
+                menu_system_.pop_screen();
+                menu_state_.start_gameplay();
+                simulation_.set_paused(false);
+            } else {
+                // Keep the player in the Director when an activity cannot be
+                // loaded. Do not expose a partially initialized game world.
+                menu_system_.show_screen("director");
+                simulation_.set_paused(true);
+            }
         });
         menu_system_.register_action("start_sandbox", [this](std::string_view) {
             gameplay_active_ = true;
@@ -102,16 +146,32 @@ ClientFramePipeline::ClientFramePipeline(
         menu_system_.register_action("quit_application", [this](std::string_view) {
             application_.shutdown();
         });
+        menu_system_.register_action("director_exterior", [this](std::string_view) {
+            caligo_director_.set_view(CaligoDirector::View::Exterior);
+        });
+        menu_system_.register_action("director_cutaway", [this](std::string_view) {
+            caligo_director_.set_view(CaligoDirector::View::Cutaway);
+        });
 
         // ── Settings: apply immediately ───────────────────────────────
         auto apply_settings = [this]() {
             const auto& fv = menu_system_.float_vars();
             auto get = [&fv](const std::string& k, float def) { auto it = fv.find(k); return it != fv.end() ? it->second : def; };
             client_config_.gamma = get("gamma", 1.0f);
+            client_config_.fullscreen = get("fullscreen", 0.0f) > 0.5f;
             float master = get("master_volume", 1.0f);
             float sfx = get("sfx_volume", 1.0f);
             bool audio_on = get("audio_enabled", 1.0f) > 0.5f;
             float sens = get("mouse_sensitivity", 1.0f);
+            client_config_.character.suit_color_r = get("suit_color_r", 0.62F);
+            client_config_.character.suit_color_g = get("suit_color_g", 0.37F);
+            client_config_.character.suit_color_b = get("suit_color_b", 0.17F);
+            client_config_.character.suit_color_r =
+                clamp_character_color(client_config_.character.suit_color_r);
+            client_config_.character.suit_color_g =
+                clamp_character_color(client_config_.character.suit_color_g);
+            client_config_.character.suit_color_b =
+                clamp_character_color(client_config_.character.suit_color_b);
 
             audio_engine_.set_master_volume(audio_on ? master : 0.0f);
             client_config_.audio.master_volume = master;
@@ -123,16 +183,32 @@ ClientFramePipeline::ClientFramePipeline(
             }
 
             // Save to config file
-            client_config_.save_to_file("client/config/ahamkara.cfg");
+            (void)client_config_.save_to_file("client/config/ahamkara.cfg");
         };
         menu_system_.register_action("apply_settings", [apply_settings](std::string_view) { apply_settings(); });
         menu_system_.register_action("setting_changed", [apply_settings](std::string_view) { apply_settings(); });
-
+        menu_system_.register_action("suit_preset", [this, apply_settings](std::string_view preset) {
+            float red = 0.62F;
+            float green = 0.37F;
+            float blue = 0.17F;
+            if (preset == "storm") {
+                red = 0.16F; green = 0.30F; blue = 0.42F;
+            } else if (preset == "signal") {
+                red = 0.72F; green = 0.16F; blue = 0.08F;
+            } else if (preset == "bone") {
+                red = 0.70F; green = 0.64F; blue = 0.52F;
+            }
+            menu_system_.set_variable("suit_color_r", red);
+            menu_system_.set_variable("suit_color_g", green);
+            menu_system_.set_variable("suit_color_b", blue);
+            apply_settings();
+        });
         menu_initialized_ = true;
         menu_system_.show_screen("main_menu");
 
-        if (autoplay_mode_) {
+        if (autoplay_mode_ || (level_scene_ != nullptr && !level_scene_->empty())) {
             menu_system_.pop_to_root();
+            menu_system_.pop_screen();
             menu_state_.start_gameplay();
             gameplay_active_ = true;
         }
@@ -160,6 +236,30 @@ ClientFramePipeline::ClientFramePipeline(
         game_mcp_bridge_ = std::make_unique<GameMcpBridge>(std::move(*bridge_config));
         if (!game_mcp_bridge_->start()) {
             game_mcp_bridge_.reset();
+        }
+    }
+    if (game_mcp_bridge_ != nullptr) {
+        const char* start_screen = std::getenv("AHAMKARA_GAME_MCP_START_SCREEN");
+        if (start_screen != nullptr && std::string_view(start_screen) == "character_view") {
+            menu_system_.show_screen("character_view");
+            simulation_.set_paused(true);
+        }
+        const char* qa_color = std::getenv("AHAMKARA_GAME_MCP_SUIT_COLOR");
+        float red = 0.0F;
+        float green = 0.0F;
+        float blue = 0.0F;
+        if (qa_color != nullptr &&
+            std::sscanf(qa_color, "%f,%f,%f", &red, &green, &blue) == 3) {
+            red = clamp_character_color(red);
+            green = clamp_character_color(green);
+            blue = clamp_character_color(blue);
+            menu_system_.set_variable("suit_color_r", red);
+            menu_system_.set_variable("suit_color_g", green);
+            menu_system_.set_variable("suit_color_b", blue);
+        }
+        const char* start_emote = std::getenv("AHAMKARA_GAME_MCP_START_EMOTE");
+        if (start_emote != nullptr && std::string_view(start_emote) == "dance") {
+            character_dance_active_ = true;
         }
     }
 #endif
@@ -275,6 +375,18 @@ void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
         ae::log_info_cat("Client", inspector_.visible() ? "Inspector opened." : "Inspector closed.");
     }
 
+    // The emote is deliberately available in both the dedicated Character
+    // View and the developer third-person gameplay view. This lets art and
+    // animation be checked against the exact same skinned asset before a
+    // later gameplay-facing emote wheel is introduced.
+    if (window_.is_key_pressed(ae::KeyCode::F6)) {
+        character_dance_active_ = !character_dance_active_;
+        ae::log_info_cat(
+            "Character",
+            character_dance_active_ ? "Character dance emote enabled." :
+                                     "Character dance emote stopped.");
+    }
+
     const std::string base_title = client_config_.app_name;
     if (window_title_.empty()) {
         window_title_ = build_debug_window_title(base_title, frontend_state_.camera_mode,
@@ -301,7 +413,7 @@ void ClientFramePipeline::stage_gather_gameplay_input() {
 #else
     raw_input_ = input_provider_.gather_input(smoothed_delta_);
 #endif
-    if (menu_state_.gameplay_input_enabled()) {
+    if (gameplay_active_ && menu_state_.gameplay_input_enabled()) {
         simulation_.submit_input(raw_input_);
     }
 }
@@ -341,7 +453,11 @@ void ClientFramePipeline::stage_build_scene() {
                                    .metrics_visible = frontend_state_.metrics_visible,
                                    .gpu_profiler_visible = frontend_state_.gpu_profiler_visible,
                                    .always_day = frontend_state_.always_day,
-                                   .menu_visible = menu_state_.visible(),
+                                   // The JSON MenuSystem owns the menu UI when
+                                   // initialized. Keep the legacy renderer
+                                   // menu hidden so both systems do not stack
+                                   // over one another.
+                                   .menu_visible = menu_state_.visible() && !menu_initialized_,
                                    .menu_tab = ui_controller_.active_menu_tab(),
                                    .gamma = client_config_.gamma,
                                    .displayed_metrics = &frontend_state_.displayed_metrics,
@@ -544,9 +660,50 @@ void ClientFramePipeline::stage_build_scene() {
 
     render_submission_ = build_debug_render_submission(
         curr_snap_, window_.gamepad_state(), scene_);
+
+    // The JSON-driven HUD owns gameplay presentation. Keep the renderer's
+    // legacy diagnostic HUD disabled so health, ammo, and abilities are not
+    // drawn twice beneath the authored interface.
+    if (hud_loaded_) {
+        scene_.hud_visible = false;
+        render_submission_.scene.hud_visible = false;
+    }
+
+    const bool director_visible = menu_initialized_ && menu_system_.current_screen() == "director";
+    const bool menu_only_world = !gameplay_active_ || director_visible || menu_state_.visible();
+    if (menu_only_world) {
+        // The simulation snapshot is still available while menus are open,
+        // but it must never leak gameplay presentation into a menu frame.
+        scene_.show_player_marker = false;
+        scene_.show_crosshair = false;
+        scene_.draw_default_map = false;
+        scene_.debug_world_visible = false;
+        scene_.hud_visible = false;
+        scene_.metrics_visible = false;
+        scene_.gpu_profiler_visible = false;
+        scene_.level_box_count = 0;
+        scene_.dummy_count = 0;
+        scene_.projectile_count = 0;
+        scene_.particle_count = 0;
+        scene_.decal_count = 0;
+        scene_.hit_number_count = 0;
+        scene_.menu_visible = false;
+        render_submission_ = build_debug_render_submission(
+            curr_snap_, window_.gamepad_state(), scene_);
+    }
+
+    if (director_visible) {
+        caligo_director_.apply_camera(scene_);
+        render_submission_ = build_debug_render_submission(
+            curr_snap_, window_.gamepad_state(), scene_);
+    }
 }
 
 void ClientFramePipeline::stage_gameplay_audio() {
+    if (!gameplay_active_ || menu_state_.visible()) {
+        return;
+    }
+
     static float step_timer = 0.0F;
     float speed = std::sqrt(raw_input_.move_axis.x * raw_input_.move_axis.x +
                             raw_input_.move_axis.y * raw_input_.move_axis.y);
@@ -564,8 +721,114 @@ void ClientFramePipeline::stage_gameplay_audio() {
 }
 
 void ClientFramePipeline::stage_render_world() {
+    // MenuSystem is the sole menu renderer when its assets loaded. Enforce the
+    // boundary on the final submission as well as during scene construction so
+    // no legacy debug-menu state can leak into the world render pass.
+    if (menu_initialized_) {
+        render_submission_.scene.menu_visible = false;
+    }
+    const bool director_visible = menu_initialized_ && menu_system_.current_screen() == "director";
+    const bool character_view_visible = menu_initialized_ &&
+                                        menu_system_.current_screen() == "character_view";
+    const auto* render_scene = director_visible
+        ? caligo_director_.render_scene()
+        : (gameplay_active_ && !menu_state_.visible() ? level_scene_ : nullptr);
+
+    const bool third_person_character_visible = gameplay_active_ &&
+        !menu_state_.visible() &&
+        frontend_state_.camera_mode == CameraMode::DebugThirdPerson;
+    const bool character_visible = character_view_visible || third_person_character_visible;
+    animated_character_.set_motion(
+        character_dance_active_ && character_visible
+            ? AnimatedCharacter::Motion::Dance
+            : AnimatedCharacter::Motion::Idle);
+    animated_character_.tick(
+        character_visible && character_dance_active_ ? smoothed_delta_ : 0.0F);
+    static bool preview_was_visible = false;
+    if (character_view_visible && !preview_was_visible) {
+        ae::log_info_cat(
+            "Character",
+            "Character View preview active: ready=" +
+                std::to_string(animated_character_.ready() ? 1 : 0) +
+                " clip=" + std::string(animated_character_.current_clip()));
+    }
+    preview_was_visible = character_view_visible;
+
+    // Character View is a standalone 3D presentation pass. Its avatar reads
+    // ClientConfig::character directly, which is also the saved profile state.
+    if (character_view_visible) {
+        render_submission_.scene.debug_world_visible = false;
+        render_submission_.scene.director_space_background = false;
+        render_submission_.scene.character_presentation_background = true;
+        render_submission_.scene.show_player_marker = false;
+        render_submission_.scene.show_crosshair = false;
+        // Character View is intentionally a full-screen equipment showcase:
+        // the neutral operative gets the complete canvas, with no dashboard
+        // panels competing for silhouette or future armour customization.
+        render_submission_.scene.camera_position = {0.0F, 0.80F, -4.5F};
+        render_submission_.scene.camera_target = {0.0F, 0.80F, 0.0F};
+        render_submission_.scene.camera_fov_override_deg = 42.0F;
+        // Compiled mesh v3 preserves the glTF/Blender bind transforms, so the
+        // exported Y-up human base is presented directly. Do not apply the
+        // legacy 180-degree correction: it turns the upright operative upside
+        // down and pushes the head outside the profile frame.
+        const float preview[16] = {
+            1.0F, 0.0F, 0.0F, 0.0F,
+            0.0F, 1.0F, 0.0F, 0.0F,
+            0.0F, 0.0F, 1.0F, 0.0F,
+            0.0F, 0.0F, 0.0F, 1.0F,
+        };
+        std::memcpy(character_preview_model_matrix_, preview, sizeof(preview));
+    } else if (third_person_character_visible) {
+        // The default gameplay camera is first-person.  The existing V debug
+        // camera supplies the safe external view used to validate the player
+        // character until a production third-person mode is designed.
+        const float yaw = ae::to_radians(curr_snap_.player_state.yaw);
+        const float cosine = std::cos(yaw);
+        const float sine = std::sin(yaw);
+        const float player_model[16] = {
+             cosine, 0.0F, -sine, 0.0F,
+             0.0F,   1.0F,  0.0F, 0.0F,
+             sine,   0.0F,  cosine, 0.0F,
+             curr_snap_.player_position.x,
+             curr_snap_.player_position.y,
+             curr_snap_.player_position.z,
+             1.0F,
+        };
+        std::memcpy(character_preview_model_matrix_, player_model, sizeof(player_model));
+    }
+
+    bool mcp_visual_validation = false;
+#if defined(AHAMKARA_ENABLE_GAME_MCP)
+    mcp_visual_validation = game_mcp_bridge_ != nullptr &&
+                            !game_mcp_bridge_->first_person_camera();
+#endif
+    if (mcp_visual_validation && gameplay_active_ &&
+        !menu_state_.visible() && !menu_system_.is_visible()) {
+        const float yaw = ae::to_radians(curr_snap_.player_state.yaw);
+        const float forward_x = std::sin(yaw);
+        const float forward_z = std::cos(yaw);
+        render_submission_.scene.camera_position = {
+            curr_snap_.player_position.x - forward_x * 3.2F,
+            curr_snap_.player_position.y + 1.9F,
+            curr_snap_.player_position.z - forward_z * 3.2F,
+        };
+        render_submission_.scene.camera_target = {
+            curr_snap_.player_position.x,
+            curr_snap_.player_position.y + 0.9F,
+            curr_snap_.player_position.z,
+        };
+        render_submission_.scene.show_crosshair = false;
+    }
+    // Character View deliberately uses a later, clipped foreground pass so
+    // the surrounding menu is in front while its central presentation bay is
+    // behind the avatar. Gameplay third-person remains part of the world pass.
+    AnimatedCharacter* character = character_visible && !character_view_visible
+        ? &animated_character_
+        : nullptr;
     render_local_debug_frame(render_submission_, audio_engine_, shadow_pass_, renderer_,
-                             pbr_renderer_, level_scene_);
+                             pbr_renderer_, render_scene, character,
+                             character != nullptr ? character_preview_model_matrix_ : nullptr);
 }
 
 void ClientFramePipeline::stage_render_ui() {
@@ -585,9 +848,14 @@ void ClientFramePipeline::stage_render_ui() {
         menu_system_.set_variable("build_date", __DATE__ " " __TIME__);
         const int fps_int = static_cast<int>(frontend_state_.displayed_metrics.fps);
         menu_system_.set_variable("fps", static_cast<float>(fps_int));
+        menu_system_.set_variable("player_health", curr_snap_.player_state.health);
+        menu_system_.set_variable("weapon_name", ahamkara::game::weapon_name(curr_snap_.weapon_index));
+        menu_system_.set_variable("ammo_current", static_cast<float>(curr_snap_.ammo_current));
+        menu_system_.set_variable("ammo_max", static_cast<float>(curr_snap_.ammo_max));
+        menu_system_.set_variable("reserve_ammo", static_cast<float>(curr_snap_.reserve_ammo));
     }
 
-    // Render menus (main, pause, settings, map select, loading)
+    // Render menus (main, pause, character, director, loading)
     if (menu_initialized_ && menu_system_.is_visible()) {
         menu_system_.render();
     }
@@ -597,11 +865,14 @@ void ClientFramePipeline::stage_render_ui() {
         ae::ui::HudState hud_state;
         hud_state.health = curr_snap_.player_state.health;
         hud_state.max_health = 100.0f;
+        hud_state.shield = curr_snap_.player_state.shield;
+        hud_state.max_shield = 100.0f;
         hud_state.ammo_current = static_cast<int>(curr_snap_.ammo_current);
         hud_state.ammo_max = static_cast<int>(curr_snap_.ammo_max);
         hud_state.reserve_ammo = static_cast<int>(curr_snap_.reserve_ammo);
         hud_state.weapon_index = curr_snap_.weapon_index;
         hud_state.weapon_name = ahamkara::game::weapon_name(curr_snap_.weapon_index);
+        hud_state.is_reloading = weapon_animation_.reload_phase() != ReloadPhase::Idle;
         hud_state.crosshair_visible = render_submission_.scene.show_crosshair && !render_submission_.scene.menu_visible;
         hud_state.crosshair_spread = raw_input_.move_axis.x * raw_input_.move_axis.x + raw_input_.move_axis.y * raw_input_.move_axis.y;
 
@@ -628,6 +899,45 @@ void ClientFramePipeline::stage_render_ui() {
     }
 
     ae::ui::end_ui_frame();
+    render_character_view_foreground();
+}
+
+void ClientFramePipeline::render_character_view_foreground() {
+    const bool character_view_visible = menu_initialized_ &&
+        menu_system_.current_screen() == "character_view";
+    if (!character_view_visible || !animated_character_.ready() || renderer_.backend() == nullptr) {
+        return;
+    }
+
+    auto& io = ImGui::GetIO();
+    if (io.DisplaySize.x <= 0.0F || io.DisplaySize.y <= 0.0F) {
+        return;
+    }
+
+    int framebuffer_width = 0;
+    int framebuffer_height = 0;
+    renderer_.backend()->get_framebuffer_size(framebuffer_width, framebuffer_height);
+    if (framebuffer_width <= 0 || framebuffer_height <= 0) {
+        return;
+    }
+
+    // The page is a clean character stage, so the post-UI avatar draw owns the
+    // entire client area. The scissor remains explicit to keep this pass from
+    // escaping the game framebuffer on high-density displays.
+    const int scissor_x = 0;
+    const int scissor_y = 0;
+    const int scissor_width = framebuffer_width;
+    const int scissor_height = framebuffer_height;
+
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(scissor_x, scissor_y, scissor_width, scissor_height);
+    renderer_.backend()->set_depth_test(true);
+    renderer_.backend()->set_depth_func_lequal();
+    renderer_.backend()->set_depth_write(false);
+    animated_character_.render_static(renderer_.view_matrix(), renderer_.projection_matrix(),
+                                      character_preview_model_matrix_);
+    renderer_.backend()->set_depth_write(true);
+    glDisable(GL_SCISSOR_TEST);
 }
 
 void ClientFramePipeline::render_console_overlay() {

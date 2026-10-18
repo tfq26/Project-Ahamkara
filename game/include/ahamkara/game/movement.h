@@ -70,8 +70,8 @@ struct MovementConfig {
     float mantle_up_speed       = 3.0F;  // upward speed during mantle animation
 
     // -- Head bob (area 38) ------------------------------------------------
-    float head_bob_amplitude   = 0.025F; // meters vertical
-    float head_bob_frequency   = 8.0F;   // cycles per second at max speed
+    float head_bob_amplitude = 0.015F;   // meters vertical
+    float head_bob_frequency = 10.0F;    // cycles per second at max speed
     float head_bob_roll_amount = 0.015F; // radians
     float landing_impulse_mag  = 0.06F;  // meters downward jolt on landing
 

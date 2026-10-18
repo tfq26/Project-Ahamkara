@@ -54,10 +54,10 @@ void apply_recoil(World& world, const WeaponDefinition& def) {
     if (def.recoil_pattern.empty()) return;
     const std::size_t idx = static_cast<std::size_t>(world.recoil_index()) % def.recoil_pattern.size();
     const auto& entry = def.recoil_pattern[idx];
-    // Accumulate recoil offsets through the pattern deterministically.
-    // The look system reads accumulated pitch/yaw offsets each frame.
+    // Apply the exact deterministic pattern entry to the authoritative camera
+    // and retain it for smooth recovery on subsequent simulation ticks.
+    world.apply_weapon_camera_recoil(entry.pitch, entry.yaw);
     world.advance_recoil();
-    (void)entry;  // Recoil values available for camera system integration.
 }
 
 /// Deterministic spread helper — uses recoil index as seed for per-pellet offset
@@ -373,7 +373,10 @@ void step_projectiles(World& world, float delta_seconds) {
 
                 // Refined capsule check
                 float cy = d_center.y;
-                float t = proj_dist;
+                // A fast round may end this tick just past the target centre.
+                // Clamp to the swept segment so the capsule-radius broad phase
+                // becomes a real near-end hit instead of a tunnelling miss.
+                float t = std::clamp(proj_dist, 0.0F, ray_len);
 
                 // Check body hit
                 float bx = ray_start.x + ray_dir.x * t - d_center.x;
@@ -383,7 +386,7 @@ void step_projectiles(World& world, float delta_seconds) {
                 float dist_sq = bx * bx + (by - clamped_final_y) * (by - clamped_final_y) + bz * bz;
                 float hit_r = d_radius + 0.03F;
                 if (dist_sq <= hit_r * hit_r) {
-                    if (t > 0.0F && t < closest_t) {
+                    if (t >= 0.0F && t <= closest_t) {
                         closest_t = t;
                         hit_dummy_entity = dummy_entity;
                         hit_something = true;

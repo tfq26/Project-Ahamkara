@@ -13,6 +13,12 @@ model models/viewmodel_shotgun.gltf compiled/models/viewmodel_shotgun.aemesh
 model models/viewmodel_pistol.gltf compiled/models/viewmodel_pistol.aemesh
 model models/viewmodel_rocket_launcher.gltf compiled/models/viewmodel_rocket_launcher.aemesh
 texture textures/cube_albedo.tga compiled/textures/cube_albedo.aetex
+texture textures/flashback_menu_background.tga compiled/textures/flashback_menu_background.aetex
+texture textures/flashback_menu_sky.tga compiled/textures/flashback_menu_sky.aetex
+texture textures/flashback_menu_kingdom.tga compiled/textures/flashback_menu_kingdom.aetex
+texture textures/flashback_menu_foreground.tga compiled/textures/flashback_menu_foreground.aetex
+# CC0 source: Poly Haven "Goegap" by Greg Zaal — https://polyhaven.com/a/goegap
+texture textures/caligo_goegap_sky.tga compiled/textures/caligo_goegap_sky.aetex
 material materials/cube.mat compiled/materials/cube.aemat
 level levels/javelin4.lvl compiled/levels/javelin4.aelevel
 level levels/prototype_arena.lvl compiled/levels/prototype_arena.aelevel
@@ -23,3 +29,17 @@ model models/blood_gulch.gltf compiled/models/blood_gulch.aemesh
 model models/viewmodel_arms.gltf compiled/models/viewmodel_arms.aemesh
 model models/assault_rifle.gltf compiled/models/assault_rifle.aemesh
 model models/enemy_basic.gltf compiled/models/enemy_basic.aemesh
+model models/caligo_field_suit.gltf compiled/models/caligo_field_suit.aemesh
+model models/operative_human_base.gltf compiled/models/operative_human_base.aemesh
+model models/operative_human_profile_static.gltf compiled/models/operative_human_profile_static.aemesh
+model models/operative_human_rifle_idle_static.gltf compiled/models/operative_human_rifle_idle_static.aemesh
+model models/operative_carbine_tp.gltf compiled/models/operative_carbine_tp.aemesh
+model models/operative_mannequin.gltf compiled/models/operative_mannequin.aemesh
+model models/caligo_director.gltf compiled/models/caligo_director.aemesh
+model models/caligo_director_node.gltf compiled/models/caligo_director_node.aemesh
+model models/caligo_director_lod1.gltf compiled/models/caligo_director_lod1.aemesh
+model models/caligo_director_lod2.gltf compiled/models/caligo_director_lod2.aemesh
+model models/caligo_cutaway.gltf compiled/models/caligo_cutaway.aemesh
+model models/caligo_surface_ruins.gltf compiled/models/caligo_surface_ruins.aemesh
+level levels/caligo_surface_ruins.lvl compiled/levels/caligo_surface_ruins.aelevel
+data director/caligo_director.json compiled/director/caligo_director.json

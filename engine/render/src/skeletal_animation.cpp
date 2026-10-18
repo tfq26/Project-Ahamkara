@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <unordered_map>
 
 namespace ae::render {
@@ -320,19 +321,32 @@ void evaluate_animation(
         }
     }
 
-    // Compute global transforms by traversing the hierarchy top-down.
-    // Joints are assumed to be stored in topological order (parents before children),
-    // which is the standard glTF convention.
+    // Resolve globals through parent links; skin joint order is not guaranteed
+    // to be topological (Blender 5 commonly emits child-first arrays).
     std::vector<Mat4> global_transforms(joint_count);
-    for (std::size_t j = 0; j < joint_count; ++j) {
-        const auto& joint = skin.joints[j];
-        Mat4 local = local_transforms[j];
-        if (joint.parent_index >= 0 &&
-            static_cast<std::size_t>(joint.parent_index) < joint_count) {
-            global_transforms[j] = global_transforms[static_cast<std::size_t>(joint.parent_index)] * local;
-        } else {
-            global_transforms[j] = local;
+    std::vector<unsigned char> resolve_state(joint_count, 0U);
+    std::function<void(std::size_t)> resolve_global = [&](std::size_t j) {
+        if (resolve_state[j] == 2U) return;
+        if (resolve_state[j] == 1U) {
+            global_transforms[j] = local_transforms[j];
+            resolve_state[j] = 2U;
+            return;
         }
+        resolve_state[j] = 1U;
+        const auto& joint = skin.joints[j];
+        if (joint.parent_index >= 0 &&
+            static_cast<std::size_t>(joint.parent_index) < joint_count &&
+            static_cast<std::size_t>(joint.parent_index) != j) {
+            const auto parent = static_cast<std::size_t>(joint.parent_index);
+            resolve_global(parent);
+            global_transforms[j] = global_transforms[parent] * local_transforms[j];
+        } else {
+            global_transforms[j] = local_transforms[j];
+        }
+        resolve_state[j] = 2U;
+    };
+    for (std::size_t j = 0; j < joint_count; ++j) {
+        resolve_global(j);
     }
 
     // Final joint matrix = global_transform * inverse_bind_matrix

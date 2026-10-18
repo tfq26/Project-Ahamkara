@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "id": "operative_human_rifle",
+  "rig": "characters/operative_human.rig.json",
+  "weapon": "equipment/operative_carbine_tp.sockets.json",
+  "family": "rifle",
+  "attachments": {
+    "dominant_hand": "hand_r",
+    "support_hand": "hand_l",
+    "dominant_grip_socket": "right_hand_grip",
+    "support_grip_socket": "left_hand_grip",
+    "shoulder_socket": "stock_shoulder"
+  },
+  "layers": [
+    "locomotion",
+    "rifle_upper_body",
+    "aim_offset",
+    "support_hand_ik",
+    "recoil"
+  ],
+  "clips": {
+    "idle": "rifle_idle_tp",
+    "aim": "rifle_aim_tp",
+    "fire": "rifle_fire_tp",
+    "reload": "rifle_reload_tp"
+  },
+  "presentation_export": "models/operative_human_rifle_idle_static.gltf"
+}

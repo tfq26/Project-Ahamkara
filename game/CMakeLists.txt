@@ -22,6 +22,7 @@ add_library(ahamkara_game STATIC
     src/ai_combatant.cpp
     src/encounter_scripting.cpp
     ../engine/render/src/compiled_level.cpp
+    ../engine/render/src/compiled_mesh.cpp
     src/animation_adapter.cpp
     src/adapters/wish_session_adapter.cpp
     src/rewind.cpp
@@ -39,6 +40,7 @@ target_include_directories(ahamkara_game
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../engine/render/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../engine/animation/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/collision/include
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/../engine/collision/src
 )

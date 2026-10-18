@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "id": "operative_human_base",
+  "skeleton_asset": "models/operative_human_base.gltf",
+  "retarget_root": "pelvis",
+  "chains": {
+    "spine": ["pelvis", "spine_01", "spine_02", "spine_03", "neck_01", "head"],
+    "left_arm": ["clavicle_l", "upperarm_l", "lowerarm_l", "hand_l"],
+    "right_arm": ["clavicle_r", "upperarm_r", "lowerarm_r", "hand_r"],
+    "left_leg": ["thigh_l", "calf_l", "foot_l", "ball_l"],
+    "right_leg": ["thigh_r", "calf_r", "foot_r", "ball_r"]
+  },
+  "equipment_attachments": {
+    "dominant_hand": "hand_r",
+    "support_hand": "hand_l"
+  },
+  "finger_chains": {
+    "left": {
+      "index": ["index_01_l", "index_02_l", "index_03_l"],
+      "middle": ["middle_01_l", "middle_02_l", "middle_03_l"],
+      "ring": ["ring_01_l", "ring_02_l", "ring_03_l"],
+      "pinky": ["pinky_01_l", "pinky_02_l", "pinky_03_l"]
+    },
+    "right": {
+      "index": ["index_01_r", "index_02_r", "index_03_r"],
+      "middle": ["middle_01_r", "middle_02_r", "middle_03_r"],
+      "ring": ["ring_01_r", "ring_02_r", "ring_03_r"],
+      "pinky": ["pinky_01_r", "pinky_02_r", "pinky_03_r"]
+    }
+  },
+  "notes": "Canonical humanoid contract for gameplay, menus, armor, retargeted animation and full weapon-hand poses."
+}

@@ -2,6 +2,7 @@
 #include "ae/render/compiled_material.h"
 #include "ae/render/compiled_mesh.h"
 #include "ae/render/compiled_texture.h"
+#include "ae/render/gltf_loader.h"
 #include "ae/render/humanoid_mesh.h"
 
 #include <cstdint>
@@ -58,6 +59,27 @@ bool model_equal(const ae::render::GltfModel& lhs, const ae::render::GltfModel& 
     for (std::size_t i = 0; i < lhs.meshes.size(); ++i) {
         if (!mesh_equal(lhs.meshes[i], rhs.meshes[i])) {
             return false;
+        }
+    }
+
+    for (std::size_t skin_index = 0; skin_index < lhs.skins.size(); ++skin_index) {
+        const auto& left_skin = lhs.skins[skin_index];
+        const auto& right_skin = rhs.skins[skin_index];
+        if (left_skin.joints.size() != right_skin.joints.size()) {
+            return false;
+        }
+        for (std::size_t joint_index = 0; joint_index < left_skin.joints.size(); ++joint_index) {
+            const auto& left_joint = left_skin.joints[joint_index];
+            const auto& right_joint = right_skin.joints[joint_index];
+            if (left_joint.name != right_joint.name ||
+                left_joint.node_index != right_joint.node_index ||
+                left_joint.parent_index != right_joint.parent_index ||
+                left_joint.bind_translation != right_joint.bind_translation ||
+                left_joint.bind_rotation != right_joint.bind_rotation ||
+                left_joint.bind_scale != right_joint.bind_scale ||
+                !vector_equal(left_joint.inverse_bind_matrix, right_joint.inverse_bind_matrix)) {
+                return false;
+            }
         }
     }
 
@@ -894,6 +916,75 @@ int test_compiled_mesh_uv_roundtrip() {
     return 0;
 }
 
+int test_gltf_loader_preserves_unnormalized_u16_indices_and_static_node_transforms() {
+    const auto temp_root = std::filesystem::temp_directory_path() /
+        "ahamkara_gltf_u16_index_test";
+    std::error_code error;
+    std::filesystem::remove_all(temp_root, error);
+    std::filesystem::create_directories(temp_root, error);
+    if (error) {
+        return fail("failed to create u16 glTF test directory");
+    }
+
+    const auto bin_path = temp_root / "mesh.bin";
+    const auto gltf_path = temp_root / "mesh.gltf";
+    {
+        std::ofstream bin(bin_path, std::ios::binary);
+        const float positions[9] = {
+            0.0F, 0.0F, 0.0F,
+            1.0F, 0.0F, 0.0F,
+            0.0F, 1.0F, 0.0F,
+        };
+        const std::uint16_t indices[3] = {0, 257, 513};
+        bin.write(reinterpret_cast<const char*>(positions), sizeof(positions));
+        bin.write(reinterpret_cast<const char*>(indices), sizeof(indices));
+    }
+    {
+        std::ofstream gltf(gltf_path);
+        gltf << R"({
+  "asset":{"version":"2.0"},
+  "buffers":[{"uri":"mesh.bin","byteLength":42}],
+  "bufferViews":[
+    {"buffer":0,"byteOffset":0,"byteLength":36},
+    {"buffer":0,"byteOffset":36,"byteLength":6}
+  ],
+  "accessors":[
+    {"bufferView":0,"componentType":5126,"count":3,"type":"VEC3"},
+    {"bufferView":1,"componentType":5123,"count":3,"type":"SCALAR"}
+  ],
+  "meshes":[{"primitives":[{"attributes":{"POSITION":0},"indices":1}]}],
+  "nodes":[
+    {"translation":[10,0,0],"children":[1]},
+    {"mesh":0,"translation":[2,3,4],"rotation":[0,0,0.70710678,0.70710678],"scale":[2,3,1]}
+  ],
+  "scenes":[{"nodes":[0]}],
+  "scene":0
+})";
+    }
+
+    ae::render::GltfLoader loader;
+    ae::render::GltfModel model;
+    if (!loader.load(gltf_path.string(), model)) {
+        std::filesystem::remove_all(temp_root, error);
+        return fail("u16 glTF fixture failed to load: " + loader.last_error());
+    }
+    std::filesystem::remove_all(temp_root, error);
+
+    const std::vector<std::uint32_t> expected {0, 257, 513};
+    if (model.meshes.size() != 1 || model.meshes[0].indices != expected) {
+        return fail("unnormalized u16 glTF indices were not preserved");
+    }
+    const std::vector<float> expected_positions {
+        12.0F, 3.0F, 4.0F,
+        12.0F, 5.0F, 4.0F,
+        9.0F, 3.0F, 4.0F,
+    };
+    if (!vector_equal(model.meshes[0].positions, expected_positions)) {
+        return fail("static glTF node transforms were not baked into mesh positions");
+    }
+    return 0;
+}
+
 } // namespace
 
 int main() {
@@ -902,6 +993,10 @@ int main() {
     }
 
     if (const int result = test_compiled_mesh_uv_roundtrip(); result != 0) {
+        return result;
+    }
+
+    if (const int result = test_gltf_loader_preserves_unnormalized_u16_indices_and_static_node_transforms(); result != 0) {
         return result;
     }
 

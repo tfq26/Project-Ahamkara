@@ -18,7 +18,9 @@ void update_camera_state(
     MovementSimState& sim_state,
     float delta_seconds,
     const PlayerInputCommand& input,
-    bool crouch_active);
+    bool crouch_active,
+    bool on_ground,
+    const MovementConfig& config);
 
 void resolve_movement_state(
     ReplicatedPlayerState& player_state,
@@ -34,6 +36,7 @@ void fill_movement_debug(
     float slide_timer_seconds,
     float delta_seconds,
     const PlayerInputCommand& input,
-    bool on_ground);
+    bool on_ground,
+    const MovementConfig& config);
 
 }  // namespace ahamkara::game

@@ -196,6 +196,8 @@ ae::render::DebugScene build_debug_scene(
         if (projectile.alive) {
             scene.projectile_positions[i] = {
                 projectile.position.x, projectile.position.y, projectile.position.z};
+            scene.projectile_velocities[i] = {
+                projectile.velocity.x, projectile.velocity.y, projectile.velocity.z};
         }
     }
 

@@ -21,6 +21,13 @@ struct AudioConfig {
     float    ambient_volume    {1.0f};   ///< World ambient
 };
 
+/// Player-authored presentation settings shared by gameplay and menu previews.
+struct CharacterCustomization {
+    float suit_color_r {0.62F};
+    float suit_color_g {0.37F};
+    float suit_color_b {0.17F};
+};
+
 /// Client startup configuration loaded from an optional config file.
 /// Every field has a sensible default so a missing file degrades gracefully.
 struct ClientConfig {
@@ -39,6 +46,9 @@ struct ClientConfig {
     // --- Audio ---------------------------------------------------------------
     AudioConfig audio {};
 
+    // --- Character -----------------------------------------------------------
+    CharacterCustomization character {};
+
     // --- Identity ------------------------------------------------------------
     std::string app_name {"Ahamkara"};
 
@@ -48,5 +58,9 @@ struct ClientConfig {
     [[nodiscard]] bool load_from_file(const std::string& path);
     [[nodiscard]] bool save_to_file(const std::string& path) const;
 };
+
+[[nodiscard]] constexpr float clamp_character_color(float value) {
+    return value < 0.0F ? 0.0F : (value > 1.0F ? 1.0F : value);
+}
 
 }  // namespace ahamkara::client

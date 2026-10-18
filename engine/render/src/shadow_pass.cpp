@@ -124,14 +124,15 @@ struct ShadowPass::Impl {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
         // Shadow shader
-        const char* vert_src = R"(
-            #version 330 core
+        const char* vert_src = R"(#version 330 core
             layout(location = 0) in vec3 aPosition;
             uniform mat4 uLightSpace;
             uniform mat4 uModel;
             void main() { gl_Position = uLightSpace * uModel * vec4(aPosition, 1.0); }
         )";
-        const char* frag_src = R"(#version 330 core\nvoid main(){}\n)";
+        const char* frag_src = R"(#version 330 core
+            void main() {}
+        )";
         int attrib_locs[] = {0};
         const char* attrib_names[] = {"aPosition"};
         ShaderProgramDesc desc{vert_src, frag_src, attrib_locs, attrib_names, 1};

@@ -1,4 +1,5 @@
 #include "ae/core/log.h"
+#include "ae/ui/ahamkara_ui.h"
 #include "ae/ui/hud_element.h"
 
 #include <algorithm>
@@ -17,6 +18,80 @@
 #define AE_LOG_CATEGORY "UI"
 
 namespace ae::ui {
+
+namespace {
+
+constexpr ImU32 kHudPanelTop = IM_COL32(12, 20, 30, 214);
+constexpr ImU32 kHudPanelBottom = IM_COL32(5, 10, 17, 232);
+constexpr ImU32 kHudLine = IM_COL32(117, 151, 164, 104);
+constexpr ImU32 kHudText = IM_COL32(240, 244, 245, 248);
+constexpr ImU32 kHudMuted = IM_COL32(154, 169, 174, 220);
+constexpr ImU32 kHudDim = IM_COL32(92, 108, 115, 190);
+constexpr ImU32 kHudAmber = IM_COL32(244, 169, 60, 250);
+constexpr ImU32 kHudCyan = IM_COL32(92, 196, 211, 245);
+constexpr ImU32 kHudDanger = IM_COL32(238, 75, 65, 250);
+
+void draw_text(ImDrawList* dl, ImFont* font, float size, ImVec2 position,
+               ImU32 color, const char* text) {
+    if (font != nullptr) {
+        dl->AddText(font, size, position, color, text);
+    } else {
+        dl->AddText(position, color, text);
+    }
+}
+
+void draw_ability_glyph(ImDrawList* dl, HudAbilityIcon::AbilityType type,
+                        ImVec2 center, float radius, ImU32 color) {
+    const float thickness = 1.7F;
+    switch (type) {
+        case HudAbilityIcon::Grenade:
+            dl->AddCircle(center, radius * 0.62F, color, 20, thickness);
+            dl->AddLine({center.x - radius * 0.72F, center.y},
+                        {center.x + radius * 0.72F, center.y}, color, thickness);
+            dl->AddLine({center.x, center.y - radius * 0.72F},
+                        {center.x, center.y + radius * 0.72F}, color, thickness);
+            break;
+        case HudAbilityIcon::Special:
+            dl->PathLineTo({center.x + radius * 0.10F, center.y - radius * 0.82F});
+            dl->PathLineTo({center.x - radius * 0.48F, center.y + radius * 0.02F});
+            dl->PathLineTo({center.x - radius * 0.02F, center.y + radius * 0.02F});
+            dl->PathLineTo({center.x - radius * 0.16F, center.y + radius * 0.82F});
+            dl->PathLineTo({center.x + radius * 0.52F, center.y - radius * 0.14F});
+            dl->PathLineTo({center.x + radius * 0.08F, center.y - radius * 0.14F});
+            dl->PathStroke(color, ImDrawFlags_Closed, thickness);
+            break;
+        case HudAbilityIcon::Artifact:
+            dl->AddCircle(center, radius * 0.72F, color, 24, thickness);
+            dl->AddCircle(center, radius * 0.32F, color, 16, thickness);
+            dl->AddCircleFilled(center, radius * 0.10F, color, 12);
+            break;
+        case HudAbilityIcon::Ultimate:
+            dl->AddQuad({center.x, center.y - radius * 0.82F},
+                        {center.x + radius * 0.82F, center.y},
+                        {center.x, center.y + radius * 0.82F},
+                        {center.x - radius * 0.82F, center.y}, color, thickness);
+            dl->AddCircleFilled(center, radius * 0.22F, color, 16);
+            break;
+    }
+}
+
+void draw_weapon_silhouette(ImDrawList* dl, ImVec2 origin, float scale, ImU32 color) {
+    const float x = origin.x;
+    const float y = origin.y;
+    dl->AddRectFilled({x, y + 8.0F * scale},
+                      {x + 62.0F * scale, y + 17.0F * scale}, color, 1.0F);
+    dl->AddTriangleFilled({x + 10.0F * scale, y + 17.0F * scale},
+                          {x + 26.0F * scale, y + 17.0F * scale},
+                          {x + 19.0F * scale, y + 29.0F * scale}, color);
+    dl->AddRectFilled({x + 60.0F * scale, y + 10.0F * scale},
+                      {x + 88.0F * scale, y + 14.0F * scale}, color);
+    dl->AddRectFilled({x - 13.0F * scale, y + 10.0F * scale},
+                      {x + 3.0F * scale, y + 17.0F * scale}, color);
+    dl->AddRectFilled({x + 31.0F * scale, y + 2.0F * scale},
+                      {x + 49.0F * scale, y + 7.0F * scale}, color, 1.0F);
+}
+
+}  // namespace
 
 // ── HudElement base ───────────────────────────────────────────────────────────
 
@@ -249,16 +324,287 @@ void HudAbilityIcon::render(float sw, float sh, const HudState& state) {
 void HudCrosshair::render(float sw, float sh, const HudState& state) {
     if (!visible_ || !state.crosshair_visible) return;
     float cx = sw * 0.5f, cy = sh * 0.5f;
-    float gap = 8.0f + state.crosshair_spread * 20.0f;
-    float len = 12.0f;
-    float thickness = 2.0f;
-    ImU32 color = IM_COL32(255, 255, 255, 200);
+    const float spread = std::clamp(state.crosshair_spread, 0.0F, 1.0F);
+    const float gap = 5.0F + spread * 8.0F;
+    const float len = 7.0F;
+    const ImU32 outline = IM_COL32(0, 0, 0, 180);
+    const ImU32 color = IM_COL32(235, 242, 243, 225);
 
     ImDrawList* dl = ImGui::GetForegroundDrawList();
-    dl->AddLine({cx - gap - len, cy}, {cx - gap, cy}, color, thickness);
-    dl->AddLine({cx + gap, cy}, {cx + gap + len, cy}, color, thickness);
-    dl->AddLine({cx, cy - gap - len}, {cx, cy - gap}, color, thickness);
-    dl->AddLine({cx, cy + gap}, {cx, cy + gap + len}, color, thickness);
+    const auto arm = [&](ImVec2 a, ImVec2 b) {
+        dl->AddLine(a, b, outline, 3.0F);
+        dl->AddLine(a, b, color, 1.25F);
+    };
+    arm({cx - gap - len, cy}, {cx - gap, cy});
+    arm({cx + gap, cy}, {cx + gap + len, cy});
+    arm({cx, cy - gap - len}, {cx, cy - gap});
+    arm({cx, cy + gap}, {cx, cy + gap + len});
+    dl->AddCircleFilled({cx, cy}, 1.7F, outline, 12);
+    dl->AddCircleFilled({cx, cy}, 0.85F, kHudCyan, 12);
+}
+
+// ── Consolidated Combat Cluster ──────────────────────────────────────────────
+
+void HudCombatCluster::render(float sw, float sh, const HudState& state) {
+    if (!visible_) return;
+
+    const float responsive = std::clamp(sw / 1600.0F, 0.78F, 1.0F);
+    const float panel_w = std::min(560.0F * responsive, sw - 48.0F);
+    const float panel_h = 132.0F * responsive;
+    const float x = std::max(24.0F, layout_x_ * sw);
+    const float bottom = std::min(sh - 24.0F, layout_y_ * sh);
+    const float y = bottom - panel_h;
+    const float u = responsive;
+
+    ImDrawList* dl = ImGui::GetForegroundDrawList();
+    ImFont* small_font = menu_font_for_role("small");
+    ImFont* body_font = menu_font_for_role("body");
+    ImFont* header_font = menu_font_for_role("header");
+
+    // A restrained glass panel with a short angled tail. It remains legible
+    // over bright terrain without becoming an opaque rectangular dashboard.
+    dl->AddRectFilledMultiColor(
+        {x, y + 12.0F * u}, {x + panel_w, y + panel_h},
+        kHudPanelTop, kHudPanelTop, kHudPanelBottom, kHudPanelBottom);
+    dl->AddTriangleFilled(
+        {x + panel_w, y + 12.0F * u},
+        {x + panel_w + 18.0F * u, y + 12.0F * u},
+        {x + panel_w, y + 32.0F * u}, kHudPanelTop);
+    dl->AddLine({x, y + panel_h}, {x + panel_w, y + panel_h}, kHudLine, 1.0F);
+
+    const float health_pct = state.max_health > 0.0F
+        ? std::clamp(state.health / state.max_health, 0.0F, 1.0F) : 0.0F;
+    const bool critical_health = health_pct <= 0.25F;
+    const ImU32 health_color = critical_health ? kHudDanger : kHudAmber;
+    const float health_y = y + 2.0F * u;
+    const float health_h = 7.0F * u;
+    dl->AddRectFilled({x, health_y}, {x + panel_w, health_y + health_h},
+                      IM_COL32(27, 38, 46, 215));
+    dl->AddRectFilled({x, health_y},
+                      {x + panel_w * health_pct, health_y + health_h}, health_color);
+
+    if (state.max_shield > 0.0F && state.shield > 0.0F) {
+        const float shield_pct = std::clamp(state.shield / state.max_shield, 0.0F, 1.0F);
+        dl->AddRectFilled({x, health_y - 3.0F * u},
+                          {x + panel_w * shield_pct, health_y - 1.0F * u}, kHudCyan);
+    }
+
+    char value[32] {};
+    std::snprintf(value, sizeof(value), "%.0f", state.health);
+    draw_text(dl, small_font, 12.0F * u, {x, y - 14.0F * u},
+              critical_health ? kHudDanger : kHudMuted, "VITALS");
+    draw_text(dl, small_font, 12.0F * u, {x + 47.0F * u, y - 14.0F * u},
+              kHudText, value);
+
+    const float content_y = y + 24.0F * u;
+    const float ability_size = 43.0F * u;
+    const float ability_gap = 5.0F * u;
+    const HudAbilityIcon::AbilityType ability_types[] = {
+        HudAbilityIcon::Grenade, HudAbilityIcon::Special,
+        HudAbilityIcon::Artifact, HudAbilityIcon::Ultimate
+    };
+    const char* keys[] = {"Q", "E", "C", "F"};
+    const float cooldowns[] = {
+        state.grenade_cooldown, state.special_cooldown,
+        state.artifact_cooldown, 1.0F - state.ultimate_charge
+    };
+    const bool available[] = {
+        state.grenade_available, state.special_available,
+        state.artifact_available, state.ultimate_ready
+    };
+
+    for (int i = 0; i < 4; ++i) {
+        const float ax = x + i * (ability_size + ability_gap);
+        const float cd = std::clamp(cooldowns[i], 0.0F, 1.0F);
+        const ImU32 tint = available[i] ? (i == 3 ? kHudAmber : kHudCyan) : kHudDim;
+        dl->AddRectFilled({ax, content_y}, {ax + ability_size, content_y + ability_size},
+                          IM_COL32(18, 31, 43, 218), 2.0F * u);
+        if (!available[i] && cd > 0.0F) {
+            dl->AddRectFilled({ax, content_y + ability_size * (1.0F - cd)},
+                              {ax + ability_size, content_y + ability_size},
+                              IM_COL32(4, 8, 13, 180), 2.0F * u);
+        }
+        dl->AddRect({ax, content_y}, {ax + ability_size, content_y + ability_size},
+                    tint, 2.0F * u, 0, available[i] ? 1.4F : 1.0F);
+        draw_ability_glyph(dl, ability_types[i],
+                           {ax + ability_size * 0.5F, content_y + ability_size * 0.48F},
+                           ability_size * 0.25F, tint);
+        draw_text(dl, small_font, 10.0F * u,
+                  {ax + 4.0F * u, content_y + ability_size - 13.0F * u}, kHudMuted, keys[i]);
+
+        if (i == 0 && state.grenade_count > 0) {
+            std::snprintf(value, sizeof(value), "%d", state.grenade_count);
+            draw_text(dl, small_font, 10.0F * u,
+                      {ax + ability_size - 12.0F * u, content_y + 3.0F * u}, kHudText, value);
+        }
+    }
+
+    const float divider_x = x + 207.0F * u;
+    dl->AddLine({divider_x, content_y}, {divider_x, y + panel_h - 14.0F * u},
+                kHudLine, 1.0F);
+
+    const float weapon_x = divider_x + 16.0F * u;
+    draw_text(dl, small_font, 11.0F * u, {weapon_x, content_y - 1.0F * u},
+              kHudMuted, "PRIMARY // AUTO");
+    draw_weapon_silhouette(dl, {weapon_x + 8.0F * u, content_y + 27.0F * u},
+                           0.72F * u, kHudText);
+    draw_text(dl, small_font, 11.0F * u,
+              {weapon_x, y + panel_h - 24.0F * u}, kHudMuted, state.weapon_name);
+
+    const float ammo_x = x + panel_w - 128.0F * u;
+    dl->AddLine({ammo_x - 13.0F * u, content_y},
+                {ammo_x - 13.0F * u, y + panel_h - 14.0F * u}, kHudLine, 1.0F);
+    std::snprintf(value, sizeof(value), "%d", state.ammo_current);
+    const ImU32 ammo_color = state.ammo_current <= 5 ? kHudDanger : kHudText;
+    draw_text(dl, header_font, 38.0F * u, {ammo_x, content_y - 7.0F * u},
+              ammo_color, value);
+    std::snprintf(value, sizeof(value), "/ %d", state.reserve_ammo);
+    draw_text(dl, body_font, 16.0F * u,
+              {ammo_x + 4.0F * u, content_y + 42.0F * u}, kHudMuted, value);
+
+    const float mag_pct = state.ammo_max > 0
+        ? std::clamp(static_cast<float>(state.ammo_current) /
+                         static_cast<float>(state.ammo_max), 0.0F, 1.0F)
+        : 0.0F;
+    const float mag_y = y + panel_h - 18.0F * u;
+    const float mag_w = 98.0F * u;
+    dl->AddRectFilled({ammo_x, mag_y}, {ammo_x + mag_w, mag_y + 3.0F * u},
+                      IM_COL32(43, 55, 62, 220));
+    dl->AddRectFilled({ammo_x, mag_y},
+                      {ammo_x + mag_w * mag_pct, mag_y + 3.0F * u},
+                      state.ammo_current <= 5 ? kHudDanger : kHudAmber);
+}
+
+// ── Field Optic HUD ──────────────────────────────────────────────────────────
+
+void HudFieldFrame::render(float sw, float sh, const HudState& state) {
+    if (!visible_) return;
+
+    constexpr float kSectionScale = 1.30F;
+    const float u = std::clamp(sw / 1920.0F, 0.74F, 1.12F) * kSectionScale;
+    const float safe = std::max(22.0F, 30.0F * u);
+    const float baseline = sh - safe;
+    const float left = safe;
+    const float right = sw - safe;
+    ImDrawList* dl = ImGui::GetForegroundDrawList();
+    ImFont* small_font = menu_font_for_role("small");
+    ImFont* body_font = menu_font_for_role("body");
+    ImFont* header_font = menu_font_for_role("header");
+
+    const float health_pct = state.max_health > 0.0F
+        ? std::clamp(state.health / state.max_health, 0.0F, 1.0F) : 0.0F;
+    const float shield_pct = state.max_shield > 0.0F
+        ? std::clamp(state.shield / state.max_shield, 0.0F, 1.0F) : 0.0F;
+    const bool critical = health_pct <= 0.25F;
+    const ImU32 vital_color = critical ? kHudDanger : kHudAmber;
+    char value[32] {};
+
+    // Left: survival strip. The angled cap and segmented bar read as an
+    // instrument instead of an opaque dashboard over the game world.
+    const float vital_w = 236.0F * u;
+    const float vital_y = baseline - 92.0F * u;
+    dl->AddRectFilledMultiColor(
+        {left, vital_y}, {left + vital_w, baseline - 36.0F * u},
+        IM_COL32(5, 11, 17, 112), IM_COL32(5, 11, 17, 164),
+        IM_COL32(5, 11, 17, 184), IM_COL32(5, 11, 17, 122));
+    dl->AddLine({left, vital_y}, {left + vital_w - 18.0F * u, vital_y}, kHudLine, 1.0F * u);
+    dl->AddLine({left, vital_y}, {left, baseline - 36.0F * u}, kHudLine, 1.0F * u);
+    dl->AddLine({left, baseline - 36.0F * u}, {left + vital_w, baseline - 36.0F * u}, kHudLine, 1.0F * u);
+    dl->AddLine({left + vital_w - 18.0F * u, vital_y}, {left + vital_w, vital_y + 18.0F * u}, kHudLine, 1.0F * u);
+
+    draw_text(dl, small_font, 10.0F * u, {left + 12.0F * u, vital_y + 10.0F * u}, kHudMuted, "OPERATIVE // VITALS");
+    std::snprintf(value, sizeof(value), "%03.0f", std::max(state.health, 0.0F));
+    draw_text(dl, header_font, 31.0F * u, {left + 11.0F * u, vital_y + 23.0F * u}, vital_color, value);
+    draw_text(dl, small_font, 11.0F * u, {left + 86.0F * u, vital_y + 43.0F * u}, kHudMuted, "HEALTH");
+
+    const float bar_x = left + 12.0F * u;
+    const float health_y = baseline - 29.0F * u;
+    const float bar_w = vital_w - 24.0F * u;
+    constexpr int kHealthSegments = 12;
+    for (int i = 0; i < kHealthSegments; ++i) {
+        const float segment_x = bar_x + (bar_w / kHealthSegments) * static_cast<float>(i);
+        const float segment_w = bar_w / kHealthSegments - 2.0F * u;
+        const float threshold = static_cast<float>(i + 1) / static_cast<float>(kHealthSegments);
+        dl->AddRectFilled({segment_x, health_y}, {segment_x + segment_w, health_y + 4.0F * u},
+                          threshold <= health_pct ? vital_color : IM_COL32(35, 48, 54, 190));
+    }
+    if (shield_pct > 0.0F) {
+        dl->AddRectFilled({bar_x, health_y - 7.0F * u},
+                          {bar_x + bar_w * shield_pct, health_y - 5.0F * u}, kHudCyan);
+    }
+
+    // The ability rail uses distinct geometric glyphs plus key labels; color
+    // reinforces readiness but is never the only state cue.
+    const float ability_y = baseline - 25.0F * u;
+    const float ability_x = left + vital_w + 14.0F * u;
+    const float ability_size = 32.0F * u;
+    const HudAbilityIcon::AbilityType ability_types[] = {
+        HudAbilityIcon::Grenade, HudAbilityIcon::Special,
+        HudAbilityIcon::Artifact, HudAbilityIcon::Ultimate};
+    const char* keys[] = {"Q", "E", "C", "F"};
+    const float cooldowns[] = {
+        state.grenade_cooldown, state.special_cooldown,
+        state.artifact_cooldown, 1.0F - state.ultimate_charge};
+    const bool available[] = {
+        state.grenade_available, state.special_available,
+        state.artifact_available, state.ultimate_ready};
+    for (int i = 0; i < 4; ++i) {
+        const float ax = ability_x + static_cast<float>(i) * (ability_size + 7.0F * u);
+        const float cooldown = std::clamp(cooldowns[i], 0.0F, 1.0F);
+        const ImU32 tint = available[i] ? (i == 3 ? kHudAmber : kHudCyan) : kHudDim;
+        dl->AddRectFilled({ax, ability_y - ability_size}, {ax + ability_size, ability_y},
+                          IM_COL32(7, 16, 24, 194), 1.0F * u);
+        dl->AddRect({ax, ability_y - ability_size}, {ax + ability_size, ability_y}, tint, 1.0F * u);
+        if (!available[i] && cooldown > 0.0F) {
+            dl->AddRectFilled({ax, ability_y - ability_size},
+                              {ax + ability_size, ability_y - ability_size * (1.0F - cooldown)},
+                              IM_COL32(2, 6, 10, 156));
+        }
+        draw_ability_glyph(dl, ability_types[i],
+                           {ax + ability_size * 0.5F, ability_y - ability_size * 0.57F},
+                           ability_size * 0.28F, tint);
+        draw_text(dl, small_font, 9.0F * u, {ax + 3.0F * u, ability_y - 12.0F * u}, kHudMuted, keys[i]);
+    }
+
+    // Right: weapon telemetry. The magazine count is the dominant cue; labels
+    // and the segmented meter remain secondary so the view stays readable.
+    const float weapon_w = 248.0F * u;
+    const float weapon_x = right - weapon_w;
+    const float weapon_y = baseline - 92.0F * u;
+    dl->AddRectFilledMultiColor(
+        {weapon_x, weapon_y}, {right, baseline - 36.0F * u},
+        IM_COL32(5, 11, 17, 164), IM_COL32(5, 11, 17, 112),
+        IM_COL32(5, 11, 17, 122), IM_COL32(5, 11, 17, 184));
+    dl->AddLine({weapon_x + 18.0F * u, weapon_y}, {right, weapon_y}, kHudLine, 1.0F * u);
+    dl->AddLine({right, weapon_y}, {right, baseline - 36.0F * u}, kHudLine, 1.0F * u);
+    dl->AddLine({weapon_x, baseline - 36.0F * u}, {right, baseline - 36.0F * u}, kHudLine, 1.0F * u);
+    dl->AddLine({weapon_x + 18.0F * u, weapon_y}, {weapon_x, weapon_y + 18.0F * u}, kHudLine, 1.0F * u);
+    draw_text(dl, small_font, 10.0F * u, {weapon_x + 12.0F * u, weapon_y + 10.0F * u},
+              kHudMuted, state.is_reloading ? "WEAPON // RELOADING" : "WEAPON // PRIMARY");
+    draw_weapon_silhouette(dl, {weapon_x + 13.0F * u, weapon_y + 32.0F * u}, 0.60F * u, kHudText);
+    draw_text(dl, small_font, 11.0F * u, {weapon_x + 12.0F * u, baseline - 52.0F * u}, kHudMuted, state.weapon_name);
+
+    const float ammo_x = right - 94.0F * u;
+    const ImU32 ammo_color = state.ammo_current <= 5 ? kHudDanger : kHudText;
+    std::snprintf(value, sizeof(value), "%02d", std::max(0, state.ammo_current));
+    draw_text(dl, header_font, 40.0F * u, {ammo_x, weapon_y + 23.0F * u}, ammo_color, value);
+    std::snprintf(value, sizeof(value), "/ %03d", std::max(0, state.reserve_ammo));
+    draw_text(dl, body_font, 15.0F * u, {ammo_x + 4.0F * u, weapon_y + 62.0F * u}, kHudMuted, value);
+
+    const float magazine_pct = state.ammo_max > 0
+        ? std::clamp(static_cast<float>(state.ammo_current) / static_cast<float>(state.ammo_max), 0.0F, 1.0F)
+        : 0.0F;
+    const float mag_x = weapon_x + 12.0F * u;
+    const float mag_y = baseline - 28.0F * u;
+    const float mag_w = weapon_w - 24.0F * u;
+    constexpr int kMagazineSegments = 10;
+    for (int i = 0; i < kMagazineSegments; ++i) {
+        const float segment_x = mag_x + (mag_w / kMagazineSegments) * static_cast<float>(i);
+        const float segment_w = mag_w / kMagazineSegments - 2.0F * u;
+        const float threshold = static_cast<float>(i + 1) / static_cast<float>(kMagazineSegments);
+        dl->AddRectFilled({segment_x, mag_y}, {segment_x + segment_w, mag_y + 3.0F * u},
+                          threshold <= magazine_pct ? kHudAmber : IM_COL32(35, 48, 54, 190));
+    }
 }
 
 // ── Factory ───────────────────────────────────────────────────────────────────
@@ -287,6 +633,8 @@ namespace {
             r.register_type("health_bar",   [] { return std::make_unique<HudHealthBar>(); });
             r.register_type("ammo_counter", [] { return std::make_unique<HudAmmoCounter>(); });
             r.register_type("crosshair",    [] { return std::make_unique<HudCrosshair>(); });
+            r.register_type("combat_cluster", [] { return std::make_unique<HudCombatCluster>(); });
+            r.register_type("field_frame", [] { return std::make_unique<HudFieldFrame>(); });
             r.register_type("grenade",      [] { return std::make_unique<HudAbilityIcon>(HudAbilityIcon::Grenade); });
             r.register_type("special",      [] { return std::make_unique<HudAbilityIcon>(HudAbilityIcon::Special); });
             r.register_type("artifact",     [] { return std::make_unique<HudAbilityIcon>(HudAbilityIcon::Artifact); });

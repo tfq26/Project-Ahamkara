@@ -1,73 +1,112 @@
 {
     "name": "Main Menu",
-    "background": [0.04, 0.06, 0.10, 1.0],
+    "background_layers": [
+        {
+            "image": "assets/compiled/textures/flashback_menu_sky.aetex",
+            "drift": 0.012,
+            "zoom": 1.040,
+            "phase": 0.3
+        },
+        {
+            "image": "assets/compiled/textures/flashback_menu_kingdom.aetex",
+            "drift": 0.024,
+            "zoom": 1.055,
+            "phase": 1.4,
+            "offset_y": 0.055
+        },
+        {
+            "image": "assets/compiled/textures/flashback_menu_foreground.aetex",
+            "drift": 0.038,
+            "zoom": 1.085,
+            "phase": 2.5
+        }
+    ],
+    "cinematic_background": true,
+    "background_drift": 0.036,
+    "background_zoom": 1.055,
+    "background": [0.006, 0.012, 0.020, 0.12],
     "elements": [
         {
             "type": "panel",
-            "x": 0.5, "y": 0.50,
+            "x": 0.82, "y": 0.50,
             "anchor": "center",
-            "width": 480, "height": 520,
-            "rounding": 8,
-            "color": "panel",
+            "width": 390, "height": 620,
+            "color": "none",
             "elements": [
+                {
+                    "type": "text",
+                    "content": "A HAMKARA EXPERIENCE",
+                    "font": "small",
+                    "color": "accent",
+                    "x": 0.5, "y": 38,
+                    "anchor": "top_center"
+                },
                 {
                     "type": "text",
                     "content": "FLASHBACK",
                     "font": "title",
                     "color": "text_primary",
-                    "x": 0.5, "y": 60,
+                    "x": 0.5, "y": 68,
                     "anchor": "top_center"
                 },
                 {
                     "type": "text",
-                    "content": "Ahamkara Engine Tech Demo",
+                    "content": "TACTICAL COMBAT SIMULATION",
                     "font": "small",
                     "color": "text_secondary",
-                    "x": 0.5, "y": 112,
-                    "anchor": "top_center"
-                },
-                { "type": "spacer", "height": 40 },
-                {
-                    "type": "button",
-                    "label": "PLAY",
-                    "style": "primary",
-                    "action": "push_screen:map_select",
-                    "x": 0.5, "y": 180,
+                    "x": 0.5, "y": 142,
                     "anchor": "top_center"
                 },
                 {
                     "type": "button",
-                    "label": "SETTINGS",
-                    "style": "secondary",
-                    "action": "push_screen:settings",
-                    "x": 0.5, "y": 240,
+                    "label": "DEPLOY",
+                    "style": "menu",
+                    "action": "push_screen:director",
+                    "x": 0.5, "y": 226,
+                    "width": 320, "height": 48,
                     "anchor": "top_center"
                 },
                 {
                     "type": "button",
                     "label": "SANDBOX",
-                    "style": "secondary",
+                    "style": "menu",
                     "action": "start_sandbox",
-                    "x": 0.5, "y": 300,
+                    "x": 0.5, "y": 282,
+                    "width": 320, "height": 48,
                     "anchor": "top_center"
                 },
-                { "type": "spacer", "height": 20 },
-                { "type": "separator" },
-                { "type": "spacer", "height": 10 },
+                {
+                    "type": "button",
+                    "label": "CHARACTER",
+                    "style": "menu",
+                    "action": "push_screen:character_view",
+                    "x": 0.5, "y": 338,
+                    "width": 320, "height": 48,
+                    "anchor": "top_center"
+                },
                 {
                     "type": "button",
                     "label": "QUIT TO DESKTOP",
-                    "style": "secondary",
+                    "style": "menu",
                     "action": "quit_application",
-                    "x": 0.5, "y": 400,
+                    "x": 0.5, "y": 394,
+                    "width": 320, "height": 48,
                     "anchor": "top_center"
                 },
                 {
                     "type": "text",
-                    "content": "Build {build_date}  |  {fps} FPS",
+                    "content": "ONLINE  //  READY",
                     "font": "small",
-                    "color": "text_secondary",
-                    "x": 0.5, "y": 490,
+                    "color": "success",
+                    "x": 0.5, "y": 530,
+                    "anchor": "top_center"
+                },
+                {
+                    "type": "text",
+                    "content": "LOCAL BUILD  //  {build_date}",
+                    "font": "small",
+                    "color": "text_muted",
+                    "x": 0.5, "y": 558,
                     "anchor": "top_center"
                 }
             ]

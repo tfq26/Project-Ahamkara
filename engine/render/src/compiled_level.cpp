@@ -240,6 +240,47 @@ bool read_mesh_instances(std::ifstream& file, LevelAsset& level, std::string& er
     return true;
 }
 
+bool write_collision_meshes(std::ofstream& file, const LevelAsset& level, std::string& error) {
+    const auto count = checked_count(level.collision_meshes.size(), "collision mesh");
+    if (!write_value(file, count)) {
+        error = "Failed to write collision mesh count";
+        return false;
+    }
+    for (const auto& mesh : level.collision_meshes) {
+        if (!write_string(file, mesh.mesh_asset_id) ||
+            !write_value(file, mesh.pos_x) || !write_value(file, mesh.pos_y) ||
+            !write_value(file, mesh.pos_z) || !write_value(file, mesh.yaw) ||
+            !write_value(file, mesh.pitch) || !write_value(file, mesh.roll) ||
+            !write_value(file, mesh.scale_x) || !write_value(file, mesh.scale_y) ||
+            !write_value(file, mesh.scale_z)) {
+            error = "Failed to write collision mesh";
+            return false;
+        }
+    }
+    return true;
+}
+
+bool read_collision_meshes(std::ifstream& file, LevelAsset& level, std::string& error) {
+    std::uint32_t count = 0;
+    if (!read_value(file, count) || !validate_count(count, "collision mesh", error, 4096)) {
+        if (error.empty()) error = "Failed to read collision mesh count";
+        return false;
+    }
+    level.collision_meshes.resize(count);
+    for (auto& mesh : level.collision_meshes) {
+        if (!read_string(file, mesh.mesh_asset_id, error) ||
+            !read_value(file, mesh.pos_x) || !read_value(file, mesh.pos_y) ||
+            !read_value(file, mesh.pos_z) || !read_value(file, mesh.yaw) ||
+            !read_value(file, mesh.pitch) || !read_value(file, mesh.roll) ||
+            !read_value(file, mesh.scale_x) || !read_value(file, mesh.scale_y) ||
+            !read_value(file, mesh.scale_z)) {
+            if (error.empty()) error = "Failed to read collision mesh";
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace
 
 bool save_compiled_level(const std::string& path, const LevelAsset& level, std::string& error) {
@@ -267,6 +308,7 @@ bool save_compiled_level(const std::string& path, const LevelAsset& level, std::
             !write_world_settings(file, level, error) ||
             !write_spawn_points(file, level, error) ||
             !write_collision_boxes(file, level, error) ||
+            !write_collision_meshes(file, level, error) ||
             !write_mesh_instances(file, level, error)) {
             if (error.empty()) {
                 error = "Failed to write compiled level";
@@ -303,15 +345,20 @@ bool CompiledLevelLoader::load(const std::string& path, LevelAsset& level) {
         return false;
     }
 
-    if (version != CompiledLevelFormat::version) {
+    if (version == 0 || version > CompiledLevelFormat::version) {
         error_ = "Unsupported compiled level version";
         return false;
     }
 
     if (!read_world_settings(file, level, error_) ||
         !read_spawn_points(file, level, error_) ||
-        !read_collision_boxes(file, level, error_) ||
-        !read_mesh_instances(file, level, error_)) {
+        !read_collision_boxes(file, level, error_)) {
+        return false;
+    }
+    if (version >= 2 && !read_collision_meshes(file, level, error_)) {
+        return false;
+    }
+    if (!read_mesh_instances(file, level, error_)) {
         return false;
     }
 

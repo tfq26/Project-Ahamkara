@@ -124,8 +124,7 @@ struct PbrRenderer::Impl {
         backend = be;
 
         // ── Vertex shader: skinning + CSM light-space outputs ─────────────
-        const char* vert_src = R"(
-            #version 330 core
+        const char* vert_src = R"(#version 330 core
             layout(location = 0) in vec3 aPosition;
             layout(location = 1) in vec3 aNormal;
             layout(location = 2) in vec4 aJointIndices;
@@ -164,8 +163,7 @@ struct PbrRenderer::Impl {
         )";
 
         // ── Fragment shader: multi-light PBR + CSM + IBL ──────────────────
-        const char* frag_src = R"(
-            #version 330 core
+        const char* frag_src = R"(#version 330 core
             #define MAX_LIGHTS 12
             #define MAX_CSM 4
             #define MAX_PROBES 4
@@ -695,33 +693,33 @@ struct PbrRenderer::Impl {
 
         // Draw
         auto& mesh = *dc.mesh;
-        glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo_positions.id);
+        glBindBuffer(GL_ARRAY_BUFFER, backend->native_buffer_id(mesh.vbo_positions));
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
         glEnableVertexAttribArray(0);
 
         if (mesh.vbo_normals.id) {
-            glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo_normals.id);
+            glBindBuffer(GL_ARRAY_BUFFER, backend->native_buffer_id(mesh.vbo_normals));
             glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
             glEnableVertexAttribArray(1);
         }
 
         bool has_uv = mesh.vbo_texcoords.id != 0;
         if (has_uv) {
-            glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo_texcoords.id);
+            glBindBuffer(GL_ARRAY_BUFFER, backend->native_buffer_id(mesh.vbo_texcoords));
             glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
             glEnableVertexAttribArray(4);
         }
 
         if (mesh.vbo_joints.id && skin) {
-            glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo_joints.id);
+            glBindBuffer(GL_ARRAY_BUFFER, backend->native_buffer_id(mesh.vbo_joints));
             glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
             glEnableVertexAttribArray(2);
-            glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo_weights.id);
+            glBindBuffer(GL_ARRAY_BUFFER, backend->native_buffer_id(mesh.vbo_weights));
             glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
             glEnableVertexAttribArray(3);
         }
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ibo_indices.id);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, backend->native_buffer_id(mesh.ibo_indices));
         glDrawElements(GL_TRIANGLES, mesh.index_count, GL_UNSIGNED_INT, nullptr);
 
         glDisableVertexAttribArray(0);

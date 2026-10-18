@@ -48,28 +48,37 @@ except ImportError as exc:
 
 # ── Transform helper ───────────────────────────────────────────────────────────
 
+# Weapon specifications use the engine/glTF convention (X right, Y up, Z
+# forward).  Blender authoring is Z-up, and the glTF exporter converts Blender
+# coordinates back to Y-up.  Keeping this mapping here means JSON positions and
+# rotations retain their documented meaning instead of depending on Blender's
+# local axes.
+_CANONICAL_TO_BLENDER = Matrix.Rotation(math.pi / 2.0, 4, "X")
+_BLENDER_TO_CANONICAL = _CANONICAL_TO_BLENDER.inverted()
+
 
 def _transform_matrix(
     location: tuple[float, float, float],
     rotation: tuple[float, float, float],
     scale: tuple[float, float, float],
+    base_rotation: Matrix | None = None,
 ) -> Matrix:
-    return (
+    canonical = (
         Matrix.Translation(Vector(location))
         @ Euler(rotation, "XYZ").to_matrix().to_4x4()
+        @ (base_rotation if base_rotation is not None else Matrix.Identity(4))
         @ Matrix.Diagonal((scale[0], scale[1], scale[2], 1.0))
     )
+    return _CANONICAL_TO_BLENDER @ canonical @ _BLENDER_TO_CANONICAL
 
 
 # ── Primitive builders ─────────────────────────────────────────────────────────
 
 
 def _add_box(bm: bmesh.types.BMesh, comp: dict) -> int:
-    vert_start = len(bm.verts)
-    face_start = len(bm.faces)
-    bmesh.ops.create_cube(bm, size=2.0)
-    new_verts = bm.verts[vert_start:]
-    new_faces = bm.faces[face_start:]
+    created = bmesh.ops.create_cube(bm, size=2.0)
+    new_verts = created["verts"]
+    new_faces = {face for vertex in new_verts for face in vertex.link_faces}
 
     pos = comp.get("pos", (0, 0, 0))
     rot = tuple(comp.get("rot", (0, 0, 0)))
@@ -83,13 +92,11 @@ def _add_box(bm: bmesh.types.BMesh, comp: dict) -> int:
 
 
 def _add_cylinder(bm: bmesh.types.BMesh, comp: dict) -> int:
-    vert_start = len(bm.verts)
-    face_start = len(bm.faces)
     radius = comp.get("radius", 0.05)
     depth = comp.get("depth", 0.5)
     verts_count = comp.get("verts", 16)
 
-    bmesh.ops.create_cone(
+    created = bmesh.ops.create_cone(
         bm,
         segments=verts_count,
         radius1=radius,
@@ -97,12 +104,23 @@ def _add_cylinder(bm: bmesh.types.BMesh, comp: dict) -> int:
         depth=depth,
         cap_ends=True,
     )
-    new_verts = bm.verts[vert_start:]
-    new_faces = bm.faces[face_start:]
+    new_verts = created["verts"]
+    new_faces = {face for vertex in new_verts for face in vertex.link_faces}
 
     pos = comp.get("pos", (0, 0, 0))
     rot = tuple(comp.get("rot", (0, 0, 0)))
-    bmesh.ops.transform(bm, matrix=_transform_matrix(pos, rot, (1.0, 1.0, 1.0)), verts=new_verts)
+    # bmesh cones are aligned to Blender Z.  In canonical space that would be
+    # vertical (+Y), while the JSON convention specifies barrels along +X.
+    bmesh.ops.transform(
+        bm,
+        matrix=_transform_matrix(
+            pos,
+            rot,
+            (1.0, 1.0, 1.0),
+            Matrix.Rotation(-math.pi / 2.0, 4, "Z"),
+        ),
+        verts=new_verts,
+    )
 
     mat_idx = comp.get("material", 0)
     for face in new_faces:
@@ -111,14 +129,12 @@ def _add_cylinder(bm: bmesh.types.BMesh, comp: dict) -> int:
 
 
 def _add_cone(bm: bmesh.types.BMesh, comp: dict) -> int:
-    vert_start = len(bm.verts)
-    face_start = len(bm.faces)
     r1 = comp.get("radius1", 0.08)
     r2 = comp.get("radius2", 0.02)
     depth = comp.get("depth", 0.2)
     verts_count = comp.get("verts", 12)
 
-    bmesh.ops.create_cone(
+    created = bmesh.ops.create_cone(
         bm,
         segments=verts_count,
         radius1=r1,
@@ -126,12 +142,21 @@ def _add_cone(bm: bmesh.types.BMesh, comp: dict) -> int:
         depth=depth,
         cap_ends=True,
     )
-    new_verts = bm.verts[vert_start:]
-    new_faces = bm.faces[face_start:]
+    new_verts = created["verts"]
+    new_faces = {face for vertex in new_verts for face in vertex.link_faces}
 
     pos = comp.get("pos", (0, 0, 0))
     rot = tuple(comp.get("rot", (0, 0, 0)))
-    bmesh.ops.transform(bm, matrix=_transform_matrix(pos, rot, (1.0, 1.0, 1.0)), verts=new_verts)
+    bmesh.ops.transform(
+        bm,
+        matrix=_transform_matrix(
+            pos,
+            rot,
+            (1.0, 1.0, 1.0),
+            Matrix.Rotation(-math.pi / 2.0, 4, "Z"),
+        ),
+        verts=new_verts,
+    )
 
     mat_idx = comp.get("material", 0)
     for face in new_faces:

@@ -126,6 +126,9 @@ bool write_skins(std::ofstream& file, const GltfModel& model, std::string& error
             if (!write_string(file, joint.name) ||
                 !write_value(file, joint.node_index) ||
                 !write_value(file, joint.parent_index) ||
+                !write_value(file, joint.bind_translation) ||
+                !write_value(file, joint.bind_rotation) ||
+                !write_value(file, joint.bind_scale) ||
                 !write_value(file, matrix_count) ||
                 !write_vector(file, joint.inverse_bind_matrix)) {
                 error = "Failed to write joint data";
@@ -137,7 +140,7 @@ bool write_skins(std::ofstream& file, const GltfModel& model, std::string& error
     return true;
 }
 
-bool read_skins(std::ifstream& file, GltfModel& model, std::string& error) {
+bool read_skins(std::ifstream& file, GltfModel& model, std::uint32_t version, std::string& error) {
     std::uint32_t skin_count = 0;
     if (!read_value(file, skin_count) || !validate_count(skin_count, "skin", error)) {
         if (error.empty()) {
@@ -161,8 +164,22 @@ bool read_skins(std::ifstream& file, GltfModel& model, std::string& error) {
             std::uint32_t matrix_count = 0;
             if (!read_string(file, joint.name, error) ||
                 !read_value(file, joint.node_index) ||
-                !read_value(file, joint.parent_index) ||
-                !read_value(file, matrix_count) ||
+                !read_value(file, joint.parent_index)) {
+                if (error.empty()) {
+                    error = "Failed to read joint data";
+                }
+                return false;
+            }
+            if (version >= 3 &&
+                (!read_value(file, joint.bind_translation) ||
+                 !read_value(file, joint.bind_rotation) ||
+                 !read_value(file, joint.bind_scale))) {
+                if (error.empty()) {
+                    error = "Failed to read joint bind transform";
+                }
+                return false;
+            }
+            if (!read_value(file, matrix_count) ||
                 !read_vector(file, joint.inverse_bind_matrix, matrix_count, "inverse bind matrix", error)) {
                 if (error.empty()) {
                     error = "Failed to read joint data";
@@ -347,7 +364,7 @@ bool CompiledMeshLoader::load(const std::string& path, GltfModel& model) {
     }
 
     if (!read_meshes(file, model, version, error_) ||
-        !read_skins(file, model, error_) ||
+        !read_skins(file, model, version, error_) ||
         !read_animations(file, model, error_)) {
         log_error_cat(AE_LOG_CATEGORY, "CompiledMeshLoader: " + error_);
         return false;

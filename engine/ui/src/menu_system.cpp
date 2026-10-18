@@ -1,10 +1,15 @@
 #include "ae/ui/menu_system.h"
+#include "ae/ui/ahamkara_ui.h"
 
 #include "ae/core/log.h"
+#include "ae/render/compiled_texture.h"
+#include "ae/render/gl_platform.h"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <chrono>
+#include <cfloat>
 #include <cmath>
 #include <cstring>
 #include <fstream>
@@ -150,7 +155,32 @@ static void parse_screen_body(MiniJson& j, MenuSystem::ParsedScreen& screen) {
         if (j.next() != ':') break;
         if (key == "name") screen.name = j.read_string();
         else if (key == "overlay") screen.overlay = j.read_bool();
+        else if (key == "cinematic_background") screen.cinematic_background = j.read_bool();
+        else if (key == "background_drift") screen.background_drift = j.read_number();
+        else if (key == "background_zoom") screen.background_zoom = j.read_number();
         else if (key == "background") screen.background = j.read_float_array();
+        else if (key == "background_image") screen.background_image = j.read_string();
+        else if (key == "background_layers" && j.peek() == '[') {
+            j.next();
+            while (j.peek() != ']') {
+                if (j.next() != '{') break;
+                MenuSystem::ParsedScreen::BackgroundLayer layer;
+                while (j.peek() != '}') {
+                    std::string layer_key = j.read_string();
+                    if (layer_key.empty() || j.next() != ':') break;
+                    if (layer_key == "image") layer.image = j.read_string();
+                    else if (layer_key == "drift") layer.drift = j.read_number();
+                    else if (layer_key == "zoom") layer.zoom = j.read_number();
+                    else if (layer_key == "phase") layer.phase = j.read_number();
+                    else if (layer_key == "opacity") layer.opacity = j.read_number();
+                    else if (layer_key == "offset_y") layer.offset_y = j.read_number();
+                    else j.skip_value();
+                }
+                j.next(); // }
+                if (!layer.image.empty()) screen.background_layers.push_back(std::move(layer));
+            }
+            j.next(); // ]
+        }
         else if (key == "elements" && j.peek() == '[') {
             j.next();
             while (j.peek() != ']') {
@@ -209,6 +239,53 @@ static void parse_theme(MenuSystem::ParsedTheme& theme, MiniJson& j) {
 // ── MenuSystem ─────────────────────────────────────────────────────────────────
 
 MenuSystem::MenuSystem() {}
+
+MenuSystem::~MenuSystem() {
+    for (const auto& [path, texture] : textures_) {
+        (void)path;
+        if (texture.id != 0) {
+            const GLuint id = texture.id;
+            glDeleteTextures(1, &id);
+        }
+    }
+}
+
+const MenuSystem::MenuTexture* MenuSystem::texture_for_path(const std::string& path) {
+    if (path.empty()) return nullptr;
+
+    const auto cached = textures_.find(path);
+    if (cached != textures_.end()) {
+        return cached->second.id != 0 ? &cached->second : nullptr;
+    }
+
+    ae::render::TextureAsset asset;
+    ae::render::CompiledTextureLoader loader;
+    if (!loader.load(path, asset)) {
+        log_error_cat(AE_LOG_CATEGORY,
+                      "Menu background failed to load '" + path + "': " + loader.last_error());
+        textures_[path] = {};
+        return nullptr;
+    }
+
+    GLuint id = 0;
+    glGenTextures(1, &id);
+    glBindTexture(GL_TEXTURE_2D, id);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+                 static_cast<GLsizei>(asset.width), static_cast<GLsizei>(asset.height),
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, asset.pixels.data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    auto [it, inserted] = textures_.emplace(
+        path, MenuTexture{id, static_cast<int>(asset.width), static_cast<int>(asset.height)});
+    (void)inserted;
+    log_info_cat(AE_LOG_CATEGORY, "Loaded menu background: " + path);
+    return &it->second;
+}
 
 bool MenuSystem::load_from_directory(const std::string& dir_path) {
     screen_dir_ = dir_path;
@@ -304,96 +381,254 @@ void MenuSystem::render() {
     float sw = io.DisplaySize.x;
     float sh = io.DisplaySize.y;
 
-    // Background
-    if (!screen.background.empty() && screen.background.size() >= 4) {
-        ImGui::SetNextWindowPos({0, 0});
-        ImGui::SetNextWindowSize({sw, sh});
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(screen.background[0], screen.background[1], screen.background[2], screen.background[3]));
-        ImGui::Begin(("##bg_" + name).c_str(), nullptr,
-                     ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                     ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBringToFrontOnFocus);
+    // Use one transparent full-screen host window for all menu widgets. The
+    // previous implementation created a separate ImGui window for every
+    // panel, then positioned children with screen coordinates inside those
+    // windows. On macOS/Retina that combination could leave the panel
+    // background visible while clipping every child widget.
+    ImGui::SetNextWindowPos({0.0f, 0.0f}, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({sw, sh}, ImGuiCond_Always);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, {0.0f, 0.0f, 0.0f, 0.0f});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    const auto host_flags = ImGuiWindowFlags_NoDecoration |
+                            ImGuiWindowFlags_NoMove |
+                            ImGuiWindowFlags_NoResize |
+                            ImGuiWindowFlags_NoSavedSettings |
+                            ImGuiWindowFlags_NoBringToFrontOnFocus;
+    if (!ImGui::Begin("##flashback_menu_host", nullptr, host_flags)) {
         ImGui::End();
+        ImGui::PopStyleVar();
         ImGui::PopStyleColor();
+        return;
+    }
+
+    auto* draw_list = ImGui::GetWindowDrawList();
+    const float time = static_cast<float>(ImGui::GetTime());
+    const auto draw_background_layer = [&](const MenuTexture& texture, float drift,
+                                           float base_zoom, float phase, float opacity,
+                                           float offset_y) {
+        // Crop rather than stretch so authored 16:9 layers fill every aspect
+        // ratio. Each plane receives a distinct offset, making the sky, far
+        // kingdom, and foreground ridge move at perceptibly different depths.
+        const float screen_aspect = sw / std::max(sh, 1.0f);
+        const float image_aspect = static_cast<float>(texture.width) /
+                                   std::max(static_cast<float>(texture.height), 1.0f);
+        const float clamped_drift = std::clamp(drift, 0.0f, 0.12f);
+        const float clamped_zoom = std::clamp(base_zoom, 1.0f, 1.20f);
+        const float zoom = clamped_zoom + (screen.cinematic_background
+            ? 0.006f * std::sin(time * 0.17f + phase)
+            : 0.0f);
+        ImVec2 uv_min{0.0f, 0.0f};
+        ImVec2 uv_max{1.0f, 1.0f};
+        if (screen_aspect > image_aspect) {
+            const float visible = image_aspect / screen_aspect / zoom;
+            const float centre = 0.5f + clamped_drift * 0.30f * std::sin(time * 0.11f + phase);
+            uv_min.y = std::clamp(centre - visible * 0.5f, 0.0f, 1.0f - visible);
+            uv_max.y = uv_min.y + visible;
+        } else {
+            const float visible = screen_aspect / image_aspect / zoom;
+            const float centre = 0.5f + clamped_drift * std::sin(time * 0.13f + phase);
+            uv_min.x = std::clamp(centre - visible * 0.5f, 0.0f, 1.0f - visible);
+            uv_max.x = uv_min.x + visible;
+        }
+        const float pixel_offset_y = std::clamp(offset_y, -0.20f, 0.20f) * sh;
+        draw_list->AddImage(static_cast<ImTextureID>(texture.id),
+                            {0.0f, pixel_offset_y}, {sw, sh + pixel_offset_y}, uv_min, uv_max,
+                            ImGui::ColorConvertFloat4ToU32(
+                                {1.0f, 1.0f, 1.0f, std::clamp(opacity, 0.0f, 1.0f)}));
+    };
+    if (!screen.background_layers.empty()) {
+        for (const auto& layer : screen.background_layers) {
+            if (const auto* texture = texture_for_path(layer.image)) {
+                draw_background_layer(*texture, layer.drift, layer.zoom, layer.phase,
+                                      layer.opacity, layer.offset_y);
+            }
+        }
+    } else if (const auto* texture = texture_for_path(screen.background_image)) {
+        draw_background_layer(*texture, screen.background_drift, screen.background_zoom,
+                              0.0f, 1.0f, 0.0f);
+    }
+    if (screen.cinematic_background && (!screen.background_layers.empty() ||
+                                        !screen.background_image.empty())) {
+            // Sparse, low-alpha dust gives the static key art depth while
+            // preserving text legibility and a low GPU/UI cost.
+            for (int index = 0; index < 18; ++index) {
+                const float seed = static_cast<float>(index) * 19.37f;
+                const float x = std::fmod(seed * 71.0f + time * (10.0f + std::fmod(seed, 7.0f)),
+                                           std::max(sw, 1.0f));
+                const float y = std::fmod(seed * 43.0f + time * (4.0f + std::fmod(seed, 5.0f)),
+                                           std::max(sh, 1.0f));
+                const float radius = 0.8f + std::fmod(seed, 3.0f) * 0.45f;
+                const float alpha = 0.018f + 0.020f * (0.5f + 0.5f * std::sin(time * 0.7f + seed));
+                draw_list->AddCircleFilled({x, y}, radius,
+                    ImGui::ColorConvertFloat4ToU32({0.95f, 0.76f, 0.48f, alpha}));
+            }
+            const float pulse = 0.015f + 0.012f * (0.5f + 0.5f * std::sin(time * 0.32f));
+            draw_list->AddRectFilledMultiColor(
+                {0.0f, 0.0f}, {sw, sh},
+                ImGui::ColorConvertFloat4ToU32({0.72f, 0.42f, 0.16f, pulse}),
+                ImGui::ColorConvertFloat4ToU32({0.00f, 0.00f, 0.00f, 0.0f}),
+                ImGui::ColorConvertFloat4ToU32({0.00f, 0.00f, 0.00f, 0.0f}),
+                ImGui::ColorConvertFloat4ToU32({0.30f, 0.48f, 0.76f, pulse * 0.50f}));
+    }
+    if (screen.background_layers.empty() && !screen.background_image.empty()) {
+        draw_list->AddRectFilledMultiColor(
+            {0.0f, 0.0f}, {sw, sh},
+            ImGui::ColorConvertFloat4ToU32({0.01f, 0.02f, 0.03f, 0.08f}),
+            ImGui::ColorConvertFloat4ToU32({0.01f, 0.02f, 0.03f, 0.76f}),
+            ImGui::ColorConvertFloat4ToU32({0.01f, 0.02f, 0.03f, 0.86f}),
+            ImGui::ColorConvertFloat4ToU32({0.01f, 0.02f, 0.03f, 0.18f}));
+    }
+    if (!screen.background.empty() && screen.background.size() >= 4) {
+        draw_list->AddRectFilled(
+            {0.0f, 0.0f}, {sw, sh},
+            ImGui::ColorConvertFloat4ToU32(
+                {screen.background[0], screen.background[1],
+                 screen.background[2], screen.background[3]}));
+    }
+    if (screen.overlay) {
+        draw_list->AddRectFilled(
+            {0.0f, 0.0f}, {sw, sh},
+            ImGui::ColorConvertFloat4ToU32({0.0f, 0.0f, 0.0f, 0.62f}));
     }
 
     for (const auto& el : screen.elements) {
         render_element(el, 0, 0, sw, sh);
     }
+
+    ImGui::End();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
 }
 
 void MenuSystem::render_element(const ParsedElement& el, float offset_x, float offset_y, float parent_w, float parent_h) {
     auto& io = ImGui::GetIO();
-    float scale = io.DisplayFramebufferScale.x > 0 ? io.DisplayFramebufferScale.x : 1.0f;
+    // ImGui positions and sizes are expressed in logical display units. The
+    // OpenGL framebuffer scale is only relevant to the backing pixel buffer;
+    // applying it here doubles menu geometry on Retina displays and can push
+    // panels/buttons off-screen.
+    constexpr float scale = 1.0f;
 
     float el_w = el.width > 0 ? el.width * scale : 0;
     float el_h = el.height > 0 ? el.height * scale : 0;
-    float btn_w = get_theme_float(theme_.spacing, "button_width", 280) * scale;
-    float btn_h = get_theme_float(theme_.spacing, "button_height", 48) * scale;
+    float btn_w = (el.width > 0 ? el.width : get_theme_float(theme_.spacing, "button_width", 280)) * scale;
+    float btn_h = (el.height > 0 ? el.height : get_theme_float(theme_.spacing, "button_height", 48)) * scale;
 
     if (el.type == "spacer") {
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + el.height * scale);
+        const auto cursor = ImGui::GetCursorScreenPos();
+        ImGui::SetCursorScreenPos({cursor.x, cursor.y + el.height * scale});
         return;
     }
 
     if (el.type == "separator") {
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
+        const auto cursor = ImGui::GetCursorScreenPos();
+        const float line_x = offset_x + 24.0f;
+        const float line_y = cursor.y + 4.0f;
+        auto color = get_theme_color(theme_.colors, "divider", {0.20f, 0.28f, 0.36f, 1.0f});
+        ImGui::GetWindowDrawList()->AddLine(
+            {line_x, line_y}, {offset_x + parent_w - 24.0f, line_y},
+            ImGui::ColorConvertFloat4ToU32(color), 1.0f);
+        ImGui::SetCursorScreenPos({cursor.x, line_y + 8.0f});
         return;
     }
 
     if (el.type == "panel") {
-        auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor, offset_x, offset_y, parent_w, parent_h, el_w, el_h);
+        auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
+                                    menu_coordinate_to_pixels(el.y, parent_h),
+                                    el.anchor, offset_x, offset_y,
+                                    parent_w, parent_h, el_w, el_h);
 
-        if (el.color == "none") {
-            ImGui::SetNextWindowPos({pos.x, pos.y});
-            ImGui::SetNextWindowSize({el_w, el_h});
-        } else {
-            auto bg = get_theme_color(theme_.colors, el.color != "none" ? el.color : "panel");
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, bg);
-            if (el.rounding > 0) ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, (float)el.rounding);
-            ImGui::SetNextWindowPos({pos.x, pos.y});
-            ImGui::SetNextWindowSize({el_w, el_h});
-        }
-
-        std::string win_name = "##panel_" + std::to_string(reinterpret_cast<uintptr_t>(&el));
-        if (ImGui::Begin(win_name.c_str(), nullptr,
-                         ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                         ImGuiWindowFlags_NoBringToFrontOnFocus)) {
-            for (const auto& child : el.elements) {
-                render_element(child, pos.x, pos.y, el_w, el_h);
-            }
-        }
-        ImGui::End();
         if (el.color != "none") {
-            if (el.rounding > 0) ImGui::PopStyleVar();
-            if (el.color != "none") ImGui::PopStyleColor();
+            auto bg = get_theme_color(theme_.colors, el.color != "none" ? el.color : "panel");
+            ImGui::GetWindowDrawList()->AddRectFilled(
+                {pos.x, pos.y}, {pos.x + el_w, pos.y + el_h},
+                ImGui::ColorConvertFloat4ToU32(bg), static_cast<float>(el.rounding));
+        }
+
+        for (const auto& child : el.elements) {
+            render_element(child, pos.x, pos.y, el_w, el_h);
+        }
+        return;
+    }
+
+    // Character View uses a deliberately framed, transparent presentation bay.
+    // The world-rendered avatar remains visible through it, while the brackets,
+    // floor line, and header make it read as a profile preview rather than a
+    // character standing behind arbitrary menu panels.
+    if (el.type == "character_viewport") {
+        const auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
+                                          menu_coordinate_to_pixels(el.y, parent_h),
+                                          el.anchor, offset_x, offset_y,
+                                          parent_w, parent_h, el_w, el_h);
+        auto backdrop = get_theme_color(theme_.colors, "panel", {0.015f, 0.025f, 0.04f, 1.0f});
+        backdrop.w = 0.20f;
+        auto frame = get_theme_color(theme_.colors, "accent_cool", {0.20f, 0.82f, 0.95f, 1.0f});
+        frame.w = 0.68f;
+        auto divider = get_theme_color(theme_.colors, "divider", {0.20f, 0.28f, 0.36f, 1.0f});
+        divider.w = 0.72f;
+
+        auto* draw_list = ImGui::GetWindowDrawList();
+        constexpr float corner = 12.0f;
+        constexpr float header_h = 38.0f;
+        constexpr float footer_h = 34.0f;
+        draw_list->AddRectFilled({pos.x, pos.y}, {pos.x + el_w, pos.y + el_h},
+                                 ImGui::ColorConvertFloat4ToU32(backdrop), 8.0f);
+        draw_list->AddRect({pos.x, pos.y}, {pos.x + el_w, pos.y + el_h},
+                           ImGui::ColorConvertFloat4ToU32(divider), 8.0f, 0, 1.0f);
+        draw_list->AddLine({pos.x + 18.0f, pos.y + header_h},
+                           {pos.x + el_w - 18.0f, pos.y + header_h},
+                           ImGui::ColorConvertFloat4ToU32(divider), 1.0f);
+        draw_list->AddLine({pos.x + 18.0f, pos.y + el_h - footer_h},
+                           {pos.x + el_w - 18.0f, pos.y + el_h - footer_h},
+                           ImGui::ColorConvertFloat4ToU32(divider), 1.0f);
+        // Four compact HUD-style brackets keep the preview visually contained
+        // without covering the avatar with an opaque card.
+        for (const auto& [x, y, sx, sy] : {
+                 std::array<float, 4>{pos.x, pos.y, 1.0f, 1.0f},
+                 std::array<float, 4>{pos.x + el_w, pos.y, -1.0f, 1.0f},
+                 std::array<float, 4>{pos.x, pos.y + el_h, 1.0f, -1.0f},
+                 std::array<float, 4>{pos.x + el_w, pos.y + el_h, -1.0f, -1.0f},
+             }) {
+            draw_list->AddLine({x, y}, {x + sx * corner, y},
+                               ImGui::ColorConvertFloat4ToU32(frame), 2.0f);
+            draw_list->AddLine({x, y}, {x, y + sy * corner},
+                               ImGui::ColorConvertFloat4ToU32(frame), 2.0f);
+        }
+
+        ImFont* label_font = menu_font_for_role("small");
+        const float label_size = get_theme_float(theme_.fonts, "small", 16.0f);
+        draw_list->AddText(label_font, label_size, {pos.x + 18.0f, pos.y + 11.0f},
+                           ImGui::ColorConvertFloat4ToU32(frame), "OPERATIVE // LIVE PREVIEW");
+        for (const auto& child : el.elements) {
+            render_element(child, pos.x, pos.y, el_w, el_h);
         }
         return;
     }
 
     if (el.type == "text") {
         std::string text = resolve_variable(el.content);
-        float font_size = get_theme_float(theme_.fonts, el.font, 1.0f);
+        const float font_size = get_theme_float(theme_.fonts, el.font, 22.0f);
+        ImFont* font = menu_font_for_role(el.font);
         auto color = get_theme_color(theme_.colors, el.color, {1,1,1,1});
 
-        float tw = ImGui::CalcTextSize(text.c_str()).x * font_size;
-        auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
-                                     offset_x, offset_y, parent_w, parent_h, tw, font_size * 20);
+        const ImVec2 text_size = font != nullptr
+            ? font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, text.c_str())
+            : ImGui::CalcTextSize(text.c_str());
+        auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
+                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
+                                     offset_x, offset_y, parent_w, parent_h,
+                                     text_size.x, text_size.y);
 
-        ImGui::SetCursorScreenPos({pos.x, pos.y});
-        ImGui::PushStyleColor(ImGuiCol_Text, color);
-        if (font_size != 1.0f) ImGui::SetWindowFontScale(font_size);
-        ImGui::TextUnformatted(text.c_str());
-        if (font_size != 1.0f) ImGui::SetWindowFontScale(1.0f);
-        ImGui::PopStyleColor();
+        ImGui::GetWindowDrawList()->AddText(
+            font, font_size,
+            {pos.x, pos.y}, ImGui::ColorConvertFloat4ToU32(color), text.c_str());
         return;
     }
 
     if (el.type == "button") {
-        auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
+        auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
+                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
                                      offset_x, offset_y, parent_w, parent_h, btn_w, btn_h);
-        ImGui::SetCursorScreenPos({pos.x, pos.y});
 
         auto c_normal  = get_theme_color(theme_.colors, "button_" + el.style);
         auto c_hover   = get_theme_color(theme_.colors, "button_" + el.style + "_hover", c_normal);
@@ -405,19 +640,52 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         }
         if (c_normal.x == 0 && c_normal.y == 0 && c_normal.z == 0) c_normal = c_primary;
 
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-        ImGui::PushStyleColor(ImGuiCol_Button, c_normal);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, c_hover);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, c_normal);
+        const float button_font_size = get_theme_float(theme_.fonts, "button", 22.0f);
+        ImFont* button_font = menu_font_for_role("button");
+        const std::string button_id = "##menu_button_" +
+                                      std::to_string(reinterpret_cast<std::uintptr_t>(&el));
+        ImGui::SetCursorScreenPos({pos.x, pos.y});
+        const bool clicked = ImGui::InvisibleButton(button_id.c_str(), {btn_w, btn_h});
+        const bool hovered = ImGui::IsItemHovered();
 
-        float font_scale = get_theme_float(theme_.fonts, "button", 1.05f);
-        if (font_scale != 1.0f) ImGui::SetWindowFontScale(font_scale);
+        auto* draw_list = ImGui::GetWindowDrawList();
+        const ImVec2 label_size = button_font != nullptr
+            ? button_font->CalcTextSizeA(button_font_size, FLT_MAX, 0.0f, el.label.c_str())
+            : ImGui::CalcTextSize(el.label.c_str());
+        const float label_width = label_size.x;
+        const float label_height = label_size.y;
+        const auto text_primary = get_theme_color(theme_.colors, "text_primary", {1, 1, 1, 1});
+        const auto text_secondary = get_theme_color(theme_.colors, "text_secondary", text_primary);
 
-        bool clicked = ImGui::Button(el.label.c_str(), {btn_w, btn_h});
-
-        if (font_scale != 1.0f) ImGui::SetWindowFontScale(1.0f);
-        ImGui::PopStyleColor(3);
-        ImGui::PopStyleVar();
+        if (el.style == "menu") {
+            const auto hover_fill = get_theme_color(
+                theme_.colors, "button_menu_hover", {0.02f, 0.04f, 0.06f, 0.36f});
+            if (hovered) {
+                draw_list->AddRectFilled(
+                    {pos.x, pos.y}, {pos.x + btn_w, pos.y + btn_h},
+                    ImGui::ColorConvertFloat4ToU32(hover_fill), 3.0f);
+                const auto accent = get_theme_color(theme_.colors, "accent", text_primary);
+                const float cy = pos.y + btn_h * 0.5f;
+                draw_list->AddTriangleFilled(
+                    {pos.x + 8.0f, cy}, {pos.x + 17.0f, cy - 5.0f},
+                    {pos.x + 17.0f, cy + 5.0f}, ImGui::ColorConvertFloat4ToU32(accent));
+            }
+            draw_list->AddText(
+                button_font, button_font_size,
+                {pos.x + 30.0f, pos.y + (btn_h - label_height) * 0.5f},
+                ImGui::ColorConvertFloat4ToU32(hovered ? text_primary : text_secondary),
+                el.label.c_str());
+        } else {
+            const auto button_color = hovered ? c_hover : c_normal;
+            draw_list->AddRectFilled(
+                {pos.x, pos.y}, {pos.x + btn_w, pos.y + btn_h},
+                ImGui::ColorConvertFloat4ToU32(button_color), 4.0f);
+            draw_list->AddText(
+                button_font, button_font_size,
+                {pos.x + (btn_w - label_width) * 0.5f,
+                 pos.y + (btn_h - label_height) * 0.5f},
+                ImGui::ColorConvertFloat4ToU32(text_primary), el.label.c_str());
+        }
 
         if (clicked && !el.action.empty()) {
             execute_action(el.action);
@@ -426,7 +694,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
     }
 
     if (el.type == "map_card") {
-        auto pos = compute_position(el.x * parent_w + offset_x, el.y * parent_h + offset_y, el.anchor,
+        auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
+                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
                                      offset_x, offset_y, parent_w, parent_h, el_w, el_h);
         ImGui::SetCursorScreenPos({pos.x, pos.y});
 
@@ -470,7 +739,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
     if (el.type == "progress_bar") {
         float bar_w = el.width > 0 ? el.width * scale : 300 * scale;
         float bar_h = el.height > 0 ? el.height * scale : 8 * scale;
-        auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
+        auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
+                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
                                      offset_x, offset_y, parent_w, parent_h, bar_w, bar_h);
         ImGui::SetCursorScreenPos({pos.x, pos.y});
 
@@ -481,16 +751,50 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         ImDrawList* dl = ImGui::GetWindowDrawList();
         dl->AddRectFilled({pos.x, pos.y}, {pos.x + bar_w, pos.y + bar_h},
                           ImGui::ColorConvertFloat4ToU32(bg), r);
-        float prog = std::clamp(loading_progress_, 0.0f, 1.0f);
+        float progress_value = loading_progress_;
+        if (!el.setting.empty()) {
+            const auto progress_it = float_vars_.find(el.setting);
+            if (progress_it != float_vars_.end()) progress_value = progress_it->second;
+        }
+        float prog = std::clamp(progress_value, 0.0f, 1.0f);
         dl->AddRectFilled({pos.x, pos.y}, {pos.x + bar_w * prog, pos.y + bar_h},
                           ImGui::ColorConvertFloat4ToU32(fill), r);
+        return;
+    }
+
+    if (el.type == "color_swatch") {
+        const float swatch_w = el.width > 0 ? el.width * scale : 240.0F;
+        const float swatch_h = el.height > 0 ? el.height * scale : 52.0F;
+        const auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
+                                          menu_coordinate_to_pixels(el.y, parent_h),
+                                          el.anchor, offset_x, offset_y,
+                                          parent_w, parent_h, swatch_w, swatch_h);
+        const auto read = [this](const char* key, float fallback) {
+            const auto it = float_vars_.find(key);
+            return it == float_vars_.end() ? fallback : std::clamp(it->second, 0.0F, 1.0F);
+        };
+        const ImVec4 color {
+            read("suit_color_r", 0.62F),
+            read("suit_color_g", 0.37F),
+            read("suit_color_b", 0.17F),
+            1.0F,
+        };
+        auto* swatch_draw_list = ImGui::GetWindowDrawList();
+        swatch_draw_list->AddRectFilled(
+            {pos.x, pos.y}, {pos.x + swatch_w, pos.y + swatch_h},
+            ImGui::ColorConvertFloat4ToU32(color), 6.0F);
+        swatch_draw_list->AddRect(
+            {pos.x, pos.y}, {pos.x + swatch_w, pos.y + swatch_h},
+            ImGui::ColorConvertFloat4ToU32({1.0F, 1.0F, 1.0F, 0.34F}),
+            6.0F, 0, 1.0F);
         return;
     }
 
     if (el.type == "spinner") {
         float r = el.radius > 0 ? el.radius * scale : 10.0f * scale;
         float t = el.thickness > 0 ? el.thickness * scale : 2.5f * scale;
-        auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
+        auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
+                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
                                      offset_x, offset_y, parent_w, parent_h, r * 2, r * 2);
         pos.x += r;
         pos.y += r;
@@ -512,6 +816,87 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         return;
     }
 
+    if (el.type == "tab_view") {
+        if (el.elements.empty()) return;
+
+        const float view_w = el.width > 0 ? el.width : parent_w;
+        const float view_h = el.height > 0 ? el.height : parent_h;
+        const auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
+                                          menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
+                                          offset_x, offset_y, parent_w, parent_h, view_w, view_h);
+        const std::string state_key = "tab_active_" +
+            (el.id.empty() ? std::to_string(reinterpret_cast<std::uintptr_t>(&el)) : el.id);
+        const auto active_it = float_vars_.find(state_key);
+        int active_index = active_it != float_vars_.end()
+            ? static_cast<int>(active_it->second)
+            : 0;
+        active_index = std::clamp(active_index, 0, static_cast<int>(el.elements.size()) - 1);
+
+        constexpr float tab_bar_height = 62.0f;
+        auto* draw_list = ImGui::GetWindowDrawList();
+        const auto panel = get_theme_color(theme_.colors, "panel", {0.03f, 0.05f, 0.08f, 0.96f});
+        const auto elevated = get_theme_color(theme_.colors, "panel_elevated", panel);
+        const auto accent = get_theme_color(theme_.colors, "accent", {1.0f, 0.7f, 0.3f, 1.0f});
+        const auto text_primary = get_theme_color(theme_.colors, "text_primary", {1, 1, 1, 1});
+        const auto text_secondary = get_theme_color(theme_.colors, "text_secondary", text_primary);
+
+        // A tab view can opt out of the content backdrop so a live 3D preview
+        // remains visible between its authored side panels. The tab bar stays
+        // opaque for navigation contrast.
+        if (el.color != "none") {
+            draw_list->AddRectFilled({pos.x, pos.y}, {pos.x + view_w, pos.y + view_h},
+                                     ImGui::ColorConvertFloat4ToU32(panel), 8.0f);
+        }
+        draw_list->AddRectFilled({pos.x, pos.y}, {pos.x + view_w, pos.y + tab_bar_height},
+                                 ImGui::ColorConvertFloat4ToU32(elevated), 8.0f,
+                                 ImDrawFlags_RoundCornersTop);
+
+        const float tab_width = view_w / static_cast<float>(el.elements.size());
+        ImFont* tab_font = menu_font_for_role("button");
+        const float tab_font_size = get_theme_float(theme_.fonts, "button", 22.0f);
+        for (int i = 0; i < static_cast<int>(el.elements.size()); ++i) {
+            const auto& tab = el.elements[static_cast<std::size_t>(i)];
+            const float tab_x = pos.x + tab_width * static_cast<float>(i);
+            const std::string tab_id = "##character_tab_" + state_key + "_" + std::to_string(i);
+            ImGui::SetCursorScreenPos({tab_x, pos.y});
+            if (ImGui::InvisibleButton(tab_id.c_str(), {tab_width, tab_bar_height})) {
+                float_vars_[state_key] = static_cast<float>(i);
+                active_index = i;
+            }
+            const bool active = i == active_index;
+            const bool hovered = ImGui::IsItemHovered();
+            if (hovered && !active) {
+                draw_list->AddRectFilled(
+                    {tab_x + 4.0f, pos.y + 4.0f},
+                    {tab_x + tab_width - 4.0f, pos.y + tab_bar_height - 4.0f},
+                    ImGui::ColorConvertFloat4ToU32({1.0f, 1.0f, 1.0f, 0.035f}), 4.0f);
+            }
+
+            const ImVec2 label_size = tab_font != nullptr
+                ? tab_font->CalcTextSizeA(tab_font_size, FLT_MAX, 0.0f, tab.label.c_str())
+                : ImGui::CalcTextSize(tab.label.c_str());
+            draw_list->AddText(
+                tab_font, tab_font_size,
+                {tab_x + (tab_width - label_size.x) * 0.5f,
+                 pos.y + (tab_bar_height - label_size.y) * 0.5f - 2.0f},
+                ImGui::ColorConvertFloat4ToU32(active ? text_primary : text_secondary),
+                tab.label.c_str());
+            if (active) {
+                draw_list->AddRectFilled(
+                    {tab_x + 28.0f, pos.y + tab_bar_height - 3.0f},
+                    {tab_x + tab_width - 28.0f, pos.y + tab_bar_height},
+                    ImGui::ColorConvertFloat4ToU32(accent), 2.0f);
+            }
+        }
+
+        const float content_y = pos.y + tab_bar_height;
+        const float content_h = view_h - tab_bar_height;
+        for (const auto& child : el.elements[static_cast<std::size_t>(active_index)].elements) {
+            render_element(child, pos.x, content_y, view_w, content_h);
+        }
+        return;
+    }
+
     if (el.type == "docs_viewer") {
         // Determine active section index from float_vars convention.
         std::string var_name = "docs_active_" + std::to_string(reinterpret_cast<uintptr_t>(&el));
@@ -519,13 +904,14 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         int active_idx = var_it != float_vars_.end() ? static_cast<int>(var_it->second) : 0;
         active_idx = std::clamp(active_idx, 0, static_cast<int>(el.elements.size()) - 1);
 
-        float el_w_scaled = el.width > 0 ? el.width * io.DisplayFramebufferScale.x : 800;
-        float el_h_scaled = el.height > 0 ? el.height * io.DisplayFramebufferScale.y : 500;
-        auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
+        float el_w_scaled = el.width > 0 ? el.width : 800;
+        float el_h_scaled = el.height > 0 ? el.height : 500;
+        auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
+                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
                                      offset_x, offset_y, parent_w, parent_h, el_w_scaled, el_h_scaled);
 
         // Split: sidebar (left 220px) + content area
-        float sidebar_w = 220.0f * io.DisplayFramebufferScale.x;
+        float sidebar_w = 220.0f;
         float content_x = pos.x + sidebar_w + 4.0f;
         float content_w = el_w_scaled - sidebar_w - 4.0f;
 
@@ -737,7 +1123,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
 
     if (el.type == "slider") {
         float w = el.width > 0 ? el.width * scale : 300 * scale;
-        auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
+        auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
+                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
                                      offset_x, offset_y, parent_w, parent_h, w, 40);
         ImGui::SetCursorScreenPos({pos.x, pos.y});
         ImGui::PushStyleColor(ImGuiCol_Text, get_theme_color(theme_.colors, "text_primary"));
@@ -746,7 +1133,7 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
 
         auto it = float_vars_.find(el.setting);
         float val = it != float_vars_.end() ? it->second : el.min;
-        ImGui::SetCursorScreenPos({pos.x, pos.y + 18});
+        ImGui::SetCursorScreenPos({pos.x, pos.y + 32});
         ImGui::SetNextItemWidth(w);
         if (ImGui::SliderFloat(("##slider_" + el.setting).c_str(), &val, el.min, el.max, "%.2f")) {
             float_vars_[el.setting] = val;
@@ -757,7 +1144,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
 
     if (el.type == "toggle") {
         float w = el.width > 0 ? el.width * scale : 300 * scale;
-        auto pos = compute_position(el.x * parent_w, el.y * parent_h, el.anchor,
+        auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
+                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
                                      offset_x, offset_y, parent_w, parent_h, w, 30);
         ImGui::SetCursorScreenPos({pos.x, pos.y});
         ImGui::PushStyleColor(ImGuiCol_Text, get_theme_color(theme_.colors, "text_primary"));
@@ -795,11 +1183,6 @@ void MenuSystem::execute_action(std::string_view action) {
         pop_to_root();
         return;
     }
-    if (name == "setting_changed") {
-        // Handled internally by slider/toggle rendering above
-        return;
-    }
-
     auto it = actions_.find(std::string(name));
     if (it != actions_.end()) {
         it->second(param);
@@ -807,9 +1190,13 @@ void MenuSystem::execute_action(std::string_view action) {
 }
 
 void MenuSystem::push_screen(const std::string& name) {
-    if (screens_.find(name) == screens_.end()) return;
+    if (screens_.find(name) == screens_.end()) {
+        log_warning_cat(AE_LOG_CATEGORY, "Cannot open unknown menu screen: " + name);
+        return;
+    }
     screen_stack_.push_back(name);
     current_screen_ = name;
+    log_info_cat(AE_LOG_CATEGORY, "Opened menu screen: " + name);
 }
 
 void MenuSystem::pop_screen() {

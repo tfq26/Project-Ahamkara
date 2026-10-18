@@ -231,12 +231,14 @@ struct GltfAccessor {
     int count {0};
     std::string type;
     int byte_offset {0};
+    bool normalized {false};
 };
 
 struct GltfBufferView {
     int buffer {0};
     int byte_offset {0};
     int byte_length {0};
+    int byte_stride {0};
 };
 
 struct GltfBuffer {
@@ -260,8 +262,80 @@ struct GltfMeshInfo {
 
 struct GltfNode {
     int mesh {-1};
+    int skin {-1};
     std::vector<int> children;
+    std::array<float, 3> translation {0.0F, 0.0F, 0.0F};
+    std::array<float, 4> rotation {0.0F, 0.0F, 0.0F, 1.0F};
+    std::array<float, 3> scale {1.0F, 1.0F, 1.0F};
 };
+
+std::array<float, 3> rotate_vector(const std::array<float, 4>& rotation,
+                                   const std::array<float, 3>& vector) {
+    const float qx = rotation[0];
+    const float qy = rotation[1];
+    const float qz = rotation[2];
+    const float qw = rotation[3];
+    const float tx = 2.0F * (qy * vector[2] - qz * vector[1]);
+    const float ty = 2.0F * (qz * vector[0] - qx * vector[2]);
+    const float tz = 2.0F * (qx * vector[1] - qy * vector[0]);
+    return {
+        vector[0] + qw * tx + (qy * tz - qz * ty),
+        vector[1] + qw * ty + (qz * tx - qx * tz),
+        vector[2] + qw * tz + (qx * ty - qy * tx),
+    };
+}
+
+void apply_node_transform(std::array<float, 3>& value, const std::vector<GltfNode>& nodes,
+                          const std::vector<int>& parents, int node_index, bool normal) {
+    constexpr float kMinimumScale = 0.000001F;
+    for (int current = node_index; current >= 0 && static_cast<std::size_t>(current) < nodes.size();
+         current = parents[static_cast<std::size_t>(current)]) {
+        const auto& node = nodes[static_cast<std::size_t>(current)];
+        if (normal) {
+            for (std::size_t axis = 0; axis < value.size(); ++axis) {
+                const float scale = node.scale[axis];
+                value[axis] /= std::fabs(scale) > kMinimumScale ? scale : 1.0F;
+            }
+        } else {
+            for (std::size_t axis = 0; axis < value.size(); ++axis) {
+                value[axis] *= node.scale[axis];
+            }
+        }
+        value = rotate_vector(node.rotation, value);
+        if (!normal) {
+            for (std::size_t axis = 0; axis < value.size(); ++axis) {
+                value[axis] += node.translation[axis];
+            }
+        }
+    }
+
+    if (normal) {
+        const float length = std::sqrt(value[0] * value[0] + value[1] * value[1] + value[2] * value[2]);
+        if (length > kMinimumScale) {
+            for (float& component : value) {
+                component /= length;
+            }
+        }
+    }
+}
+
+void bake_static_node_transform(GltfMesh& mesh, const std::vector<GltfNode>& nodes,
+                                const std::vector<int>& parents, int node_index) {
+    for (std::size_t offset = 0; offset + 2 < mesh.positions.size(); offset += 3) {
+        std::array<float, 3> position {mesh.positions[offset], mesh.positions[offset + 1], mesh.positions[offset + 2]};
+        apply_node_transform(position, nodes, parents, node_index, false);
+        mesh.positions[offset] = position[0];
+        mesh.positions[offset + 1] = position[1];
+        mesh.positions[offset + 2] = position[2];
+    }
+    for (std::size_t offset = 0; offset + 2 < mesh.normals.size(); offset += 3) {
+        std::array<float, 3> normal {mesh.normals[offset], mesh.normals[offset + 1], mesh.normals[offset + 2]};
+        apply_node_transform(normal, nodes, parents, node_index, true);
+        mesh.normals[offset] = normal[0];
+        mesh.normals[offset + 1] = normal[1];
+        mesh.normals[offset + 2] = normal[2];
+    }
+}
 
 struct GltfMaterial {
     float base_color_r {1.0F};
@@ -306,7 +380,8 @@ void read_accessor_data(const std::vector<std::uint8_t>& buffer_data,
                          std::vector<T>& out) {
     const int comp_size = component_size(accessor.component_type);
     const int comp_count = component_count(accessor.type);
-    const int stride = comp_size * comp_count;
+    const int packed_stride = comp_size * comp_count;
+    const int stride = buffer_view.byte_stride > 0 ? buffer_view.byte_stride : packed_stride;
     const std::size_t offset = static_cast<std::size_t>(buffer_view.byte_offset + accessor.byte_offset);
     const std::size_t total_bytes = static_cast<std::size_t>(accessor.count) * static_cast<std::size_t>(stride);
 
@@ -317,23 +392,40 @@ void read_accessor_data(const std::vector<std::uint8_t>& buffer_data,
             const std::size_t byte_pos = offset + static_cast<std::size_t>(i * stride + c * comp_size);
             if (byte_pos + comp_size > buffer_data.size()) return;
 
-            float val = 0.0F;
+            double val = 0.0;
             if (accessor.component_type == 5126) { // FLOAT
-                std::uint32_t bits = 0;
-                std::memcpy(&bits, &buffer_data[byte_pos], 4);
-                val = *reinterpret_cast<const float*>(&bits);
+                float bits = 0.0F;
+                std::memcpy(&bits, &buffer_data[byte_pos], sizeof(bits));
+                val = bits;
             } else if (accessor.component_type == 5123) { // UNSIGNED_SHORT
                 std::uint16_t bits = 0;
                 std::memcpy(&bits, &buffer_data[byte_pos], 2);
-                val = static_cast<float>(bits) / 65535.0F;
+                val = accessor.normalized
+                    ? static_cast<double>(bits) / 65535.0
+                    : static_cast<double>(bits);
             } else if (accessor.component_type == 5121) { // UNSIGNED_BYTE
-                val = static_cast<float>(buffer_data[byte_pos]) / 255.0F;
+                const auto bits = buffer_data[byte_pos];
+                val = accessor.normalized
+                    ? static_cast<double>(bits) / 255.0
+                    : static_cast<double>(bits);
             } else if (accessor.component_type == 5125) { // UNSIGNED_INT
                 std::uint32_t bits = 0;
                 std::memcpy(&bits, &buffer_data[byte_pos], 4);
-                val = static_cast<float>(bits);
+                val = static_cast<double>(bits);
+            } else if (accessor.component_type == 5122) { // SHORT
+                std::int16_t bits = 0;
+                std::memcpy(&bits, &buffer_data[byte_pos], 2);
+                val = accessor.normalized
+                    ? std::max(static_cast<double>(bits) / 32767.0, -1.0)
+                    : static_cast<double>(bits);
+            } else if (accessor.component_type == 5120) { // BYTE
+                std::int8_t bits = 0;
+                std::memcpy(&bits, &buffer_data[byte_pos], 1);
+                val = accessor.normalized
+                    ? std::max(static_cast<double>(bits) / 127.0, -1.0)
+                    : static_cast<double>(bits);
             }
-            out[static_cast<std::size_t>(i * comp_count + c)] = val;
+            out[static_cast<std::size_t>(i * comp_count + c)] = static_cast<T>(val);
         }
     }
 }
@@ -390,6 +482,7 @@ bool GltfLoader::load_from_string(const std::string& json, const std::string& ba
             view.buffer = json_get_int(bv, "buffer");
             view.byte_offset = json_get_int(bv, "byteOffset");
             view.byte_length = json_get_int(bv, "byteLength");
+            view.byte_stride = json_get_int(bv, "byteStride");
             buffer_views.push_back(view);
         }
     }
@@ -404,6 +497,7 @@ bool GltfLoader::load_from_string(const std::string& json, const std::string& ba
             acc.count = json_get_int(a, "count");
             acc.type = json_get_string(a, "type");
             acc.byte_offset = json_get_int(a, "byteOffset");
+            acc.normalized = json_get_bool(a, "normalized", false);
             accessors.push_back(acc);
         }
     }
@@ -457,6 +551,22 @@ bool GltfLoader::load_from_string(const std::string& json, const std::string& ba
         for (const auto& n : ns->array_val) {
             GltfNode node;
             node.mesh = json_get_int(n, "mesh", -1);
+            node.skin = json_get_int(n, "skin", -1);
+            if (const auto* translation = json_get_array(n, "translation")) {
+                for (std::size_t i = 0; i < node.translation.size() && i < translation->array_val.size(); ++i) {
+                    node.translation[i] = static_cast<float>(translation->array_val[i].number_val);
+                }
+            }
+            if (const auto* rotation = json_get_array(n, "rotation")) {
+                for (std::size_t i = 0; i < node.rotation.size() && i < rotation->array_val.size(); ++i) {
+                    node.rotation[i] = static_cast<float>(rotation->array_val[i].number_val);
+                }
+            }
+            if (const auto* scale = json_get_array(n, "scale")) {
+                for (std::size_t i = 0; i < node.scale.size() && i < scale->array_val.size(); ++i) {
+                    node.scale[i] = static_cast<float>(scale->array_val[i].number_val);
+                }
+            }
             if (const auto* children = json_get_array(n, "children")) {
                 for (const auto& c : children->array_val) {
                     if (c.type == JsonType::Number) {
@@ -465,6 +575,15 @@ bool GltfLoader::load_from_string(const std::string& json, const std::string& ba
                 }
             }
             nodes.push_back(node);
+        }
+    }
+
+    std::vector<int> node_parents(nodes.size(), -1);
+    for (std::size_t parent_index = 0; parent_index < nodes.size(); ++parent_index) {
+        for (const int child_index : nodes[parent_index].children) {
+            if (child_index >= 0 && static_cast<std::size_t>(child_index) < node_parents.size()) {
+                node_parents[static_cast<std::size_t>(child_index)] = static_cast<int>(parent_index);
+            }
         }
     }
 
@@ -542,6 +661,10 @@ bool GltfLoader::load_from_string(const std::string& json, const std::string& ba
                 int node_idx = joint_node_indices[ji];
                 joint.node_index = node_idx;
                 if (node_idx >= 0 && static_cast<std::size_t>(node_idx) < nodes.size()) {
+                    const auto& node = nodes[static_cast<std::size_t>(node_idx)];
+                    joint.bind_translation = node.translation;
+                    joint.bind_rotation = node.rotation;
+                    joint.bind_scale = node.scale;
                     // Determine parent index from node hierarchy within the skin
                     bool found_parent = false;
                     for (std::size_t pj = 0; pj < joint_node_indices.size(); ++pj) {
@@ -731,6 +854,15 @@ bool GltfLoader::load_from_string(const std::string& json, const std::string& ba
                 mesh.color_g = mat.base_color_g;
                 mesh.color_b = mat.base_color_b;
                 mesh.has_material_color = true;
+            }
+
+            // Blender exports static objects as mesh-local vertices plus node
+            // transforms. Bake those transforms into the compiled geometry so
+            // static level meshes and their Jolt collision share the same
+            // world-space placement. Skinned meshes retain their bind-space
+            // vertices; their transforms are evaluated by the skeletal path.
+            if (node.skin < 0) {
+                bake_static_node_transform(mesh, nodes, node_parents, node_idx);
             }
 
             if (!mesh.positions.empty()) {

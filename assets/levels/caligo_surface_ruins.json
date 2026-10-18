@@ -1,0 +1,19 @@
+{
+  "name": "Caligo Surface Ruins",
+  "sky_color": [0.20, 0.09, 0.04],
+  "skybox_material": "assets/compiled/textures/caligo_goegap_sky.aetex",
+  "ambient": [0.12, 0.07, 0.04],
+  "gravity": 20.0,
+  "spawns": [
+    {"pos": [0, 2.0, -12], "yaw": 0, "team": 0}
+  ],
+  "collision": [
+    {"min": [-2048, -2048], "max": [2048, 2048], "top_y": 0, "bottom_y": -1, "wall": false}
+  ],
+  "collision_meshes": [
+    {"mesh": "assets/compiled/models/caligo_surface_ruins.aemesh", "pos": [0, 0, 0], "scale": [0.45, 0.45, 0.45]}
+  ],
+  "meshes": [
+    {"mesh": "assets/compiled/models/caligo_surface_ruins.aemesh", "pos": [0, 0, 0], "scale": [0.45, 0.45, 0.45]}
+  ]
+}

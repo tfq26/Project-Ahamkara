@@ -68,6 +68,8 @@ private:
                        const ahamkara::game::PlayerInputCommand& input);
 
     int active_weapon_index_ {-1};
+    float previous_ammo_ {0.0F};
+    bool has_previous_ammo_ {false};
     bool has_transform_ {false};
 
     ae::animation::WeaponAnimState anim_state_ {};

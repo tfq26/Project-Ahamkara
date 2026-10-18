@@ -79,7 +79,9 @@ int run_local_client(
     renderer.set_auto_present(false);
 
     ae::render::PbrRenderer pbr_renderer;
-    pbr_renderer.initialize(renderer.backend());
+    if (!pbr_renderer.initialize(renderer.backend())) {
+        ae::log_error("Failed to initialize PBR renderer; 3D Director and level meshes will be unavailable.");
+    }
     ae::render::ShadowPass shadow_pass;
     shadow_pass.initialize(renderer.backend(), 2048);
 
@@ -96,7 +98,10 @@ int run_local_client(
 
     ae::render::LevelRenderScene level_scene;
     ae::render::LevelAsset loaded_level_asset;
-    const ae::render::LevelAsset* loaded_level_asset_view = nullptr;
+    // Keep storage available for deferred activity loads. The asset remains
+    // empty until the player deploys from the Director, so this pointer does
+    // not imply that a gameplay level is active at startup.
+    ae::render::LevelAsset* loaded_level_asset_view = &loaded_level_asset;
     if (level_path != nullptr && level_path[0] != '\0') {
         simulation.load_level(level_path);
         ae::render::CompiledLevelLoader level_loader;
@@ -106,6 +111,10 @@ int run_local_client(
             renderer.set_level_environment(
                 loaded_level_asset.sky_color_r, loaded_level_asset.sky_color_g, loaded_level_asset.sky_color_b,
                 loaded_level_asset.ambient_r, loaded_level_asset.ambient_g, loaded_level_asset.ambient_b);
+            renderer.clear_level_skybox_texture();
+            if (!loaded_level_asset.skybox_material.empty()) {
+                (void)renderer.set_level_skybox_texture(loaded_level_asset.skybox_material);
+            }
             ae::log_info("Loaded level '" + loaded_level_asset.name + "' from " +
                 std::string(level_path) + " (" +
                 std::to_string(loaded_level_asset.mesh_instances.size()) + " mesh instances in spec, " +
@@ -183,6 +192,7 @@ int run_local_client(
 
     // ── Shutdown ────────────────────────────────────────────────────────
     simulation.stop();
+    pipeline.shutdown_render_resources();
     level_scene.destroy(*renderer.backend());
     pbr_renderer.shutdown();
     renderer.shutdown();

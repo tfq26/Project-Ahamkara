@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 
 namespace ae::render {
 
@@ -40,6 +41,15 @@ struct DebugScene {
     bool show_player_marker {true};
     bool show_crosshair {false};
     bool draw_default_map {true};
+    // Disable the legacy debug grid, axes, and debug entities while a product
+    // menu or another presentation-only world is active. External world
+    // passes (for example the Caligo Director PBR scene) still render.
+    bool debug_world_visible {true};
+    bool director_space_background {false};
+    // A neutral character-presentation canvas: no sky gradient, sun, moon,
+    // stars, or director navigation decoration. The renderer clears to a
+    // uniform charcoal so menu avatars are isolated from game environments.
+    bool character_presentation_background {false};
     bool hud_visible {true};
     const char* camera_mode_name {"3P"};
     const char* overlay_title {nullptr};
@@ -103,6 +113,7 @@ struct DebugScene {
     unsigned int controller_buttons {0}; // bitmask of pressed buttons
     int projectile_count {0};
     Vec3 projectile_positions[64] {};
+    Vec3 projectile_velocities[64] {};
     bool projectile_hit[64] {};
     float hud_brightness {1.0F}; // day/night factor for HUD alpha
     float gamma {1.0F};          // user brightness adjustment
@@ -248,6 +259,13 @@ class DebugRenderer {
                                float ambient_r, float ambient_g, float ambient_b);
     /// Revert to the built-in day/night environment.
     void clear_level_environment();
+
+    /// Load an equirectangular compiled texture for the active level's sky.
+    /// The texture must be an RGBA8 `.aetex` asset. Returns false when it
+    /// cannot be loaded; the procedural sky remains available as a fallback.
+    [[nodiscard]] bool set_level_skybox_texture(const std::string& texture_path);
+    /// Remove the active level skybox texture and use the procedural sky.
+    void clear_level_skybox_texture();
 
     // Camera matrices used by the most recent render() call. Column-major,
     // 16 floats. Valid after render() has run at least once; lets external

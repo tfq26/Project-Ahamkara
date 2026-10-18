@@ -1,35 +1,40 @@
 {
-    "name": "Default",
+    "name": "Flashback Tactical",
     "colors": {
-        "bg":           [0.06, 0.08, 0.12, 0.94],
-        "panel":        [0.08, 0.10, 0.16, 0.94],
-        "accent":       [0.20, 0.55, 0.90, 1.00],
-        "success":      [0.25, 0.78, 0.35, 1.00],
-        "danger":       [0.88, 0.22, 0.22, 1.00],
-        "warning":      [0.92, 0.62, 0.10, 1.00],
-        "text_primary": [0.94, 0.95, 0.97, 1.00],
-        "text_secondary":[0.55, 0.58, 0.65, 1.00],
-        "button_primary":        [0.20, 0.55, 0.90, 0.85],
-        "button_primary_hover":  [0.30, 0.65, 1.00, 0.95],
-        "button_secondary":      [0.18, 0.20, 0.28, 0.70],
-        "button_secondary_hover":[0.24, 0.27, 0.38, 0.85],
-        "button_danger":         [0.85, 0.25, 0.25, 1.00],
-        "divider":      [0.15, 0.18, 0.25, 1.00],
-        "progress_fill":[0.20, 0.55, 0.90, 1.00],
-        "progress_bg":  [0.15, 0.18, 0.25, 0.80]
+        "bg":           [0.018, 0.027, 0.045, 0.97],
+        "panel":        [0.035, 0.055, 0.085, 0.97],
+        "panel_elevated":[0.055, 0.080, 0.115, 0.98],
+        "accent":       [0.96, 0.69, 0.34, 1.00],
+        "accent_cool":  [0.44, 0.76, 0.82, 1.00],
+        "success":      [0.28, 0.82, 0.48, 1.00],
+        "danger":       [0.93, 0.30, 0.25, 1.00],
+        "warning":      [0.98, 0.70, 0.18, 1.00],
+        "text_primary": [0.96, 0.97, 0.98, 1.00],
+        "text_secondary":[0.76, 0.79, 0.80, 0.92],
+        "text_muted":   [0.48, 0.53, 0.56, 0.88],
+        "button_primary":        [0.86, 0.46, 0.12, 0.96],
+        "button_primary_hover":  [1.00, 0.63, 0.20, 1.00],
+        "button_secondary":      [0.08, 0.13, 0.19, 0.98],
+        "button_secondary_hover":[0.13, 0.22, 0.29, 1.00],
+        "button_danger":         [0.60, 0.15, 0.14, 0.96],
+        "button_menu":           [0.01, 0.02, 0.03, 0.00],
+        "button_menu_hover":     [0.02, 0.04, 0.06, 0.48],
+        "divider":      [0.14, 0.22, 0.28, 1.00],
+        "progress_fill":[0.96, 0.63, 0.20, 1.00],
+        "progress_bg":  [0.10, 0.15, 0.20, 0.90]
     },
     "fonts": {
-        "title": 2.8,
-        "header": 1.6,
-        "body": 1.0,
-        "small": 0.85,
-        "button": 1.05
+        "title": 66,
+        "header": 35,
+        "body": 22,
+        "small": 16,
+        "button": 22
     },
     "spacing": {
-        "padding": 16,
-        "button_width": 280,
-        "button_height": 48,
-        "small_button_width": 180,
-        "small_button_height": 36
+        "padding": 24,
+        "button_width": 340,
+        "button_height": 52,
+        "small_button_width": 200,
+        "small_button_height": 38
     }
 }

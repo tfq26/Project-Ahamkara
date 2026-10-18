@@ -123,6 +123,8 @@ WeaponAnimProfile WeaponAnimationController::make_rl_profile() {
 
 void WeaponAnimationController::reset() {
     active_weapon_index_ = -1;
+    previous_ammo_ = 0.0F;
+    has_previous_ammo_ = false;
     has_transform_ = false;
     reload_active_ = false;
     reload_timer_ = 0.0F;
@@ -165,6 +167,12 @@ void WeaponAnimationController::tick(float dt,
         melee_timer_ = 0.0F;
         melee_phase_ = 0;
         anim_state_ = {};
+        previous_ammo_ = snapshot.ammo_current;
+        has_previous_ammo_ = true;
+    } else if (has_previous_ammo_ && snapshot.ammo_current < previous_ammo_) {
+        // Ammo only decreases after the authoritative weapon simulation has
+        // accepted a shot, so this never animates dry-fire attempts.
+        notify_fired();
     }
 
     has_transform_ = false;
@@ -173,6 +181,8 @@ void WeaponAnimationController::tick(float dt,
     }
 
     update_weapon(dt, snapshot, input);
+    previous_ammo_ = snapshot.ammo_current;
+    has_previous_ammo_ = true;
     has_transform_ = true;
 }
 

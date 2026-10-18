@@ -178,6 +178,7 @@ void LevelRenderScene::build(const LevelAsset& level, RenderBackend& backend, co
             MaterialAsset material;
             if (resolve_asset_path(mi.material_asset_id, asset_root, mat_path) &&
                 mat_loader.load(mat_path, material)) {
+                instance.has_material = true;
                 const PbrMaterialParams params = material_to_pbr_params(material);
                 instance.albedo[0] = params.albedo[0];
                 instance.albedo[1] = params.albedo[1];
@@ -227,6 +228,11 @@ PbrDrawCall make_level_draw_call(const LevelRenderInstance& instance, GpuMesh& m
     draw_call.emissive_color[2] = 0.0F;
     draw_call.emissive_intensity = 0.0F;
     draw_call.emissive_map = instance.emissive_map;
+    if (!instance.has_material && mesh.color_r != 1.0F && mesh.color_g != 1.0F && mesh.color_b != 1.0F) {
+        draw_call.albedo[0] = mesh.color_r;
+        draw_call.albedo[1] = mesh.color_g;
+        draw_call.albedo[2] = mesh.color_b;
+    }
     return draw_call;
 }
 

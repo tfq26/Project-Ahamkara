@@ -14,17 +14,6 @@ namespace {
 
 constexpr float kStandingEyeHeight = 0.58F;
 constexpr float kCrouchingEyeHeight = 0.32F;
-constexpr float kSlideDurationSeconds = 0.45F;
-
-constexpr float kGroundAccel = 12.0F;
-constexpr float kAirAccel = 1.5F;
-constexpr float kGroundFriction = 8.0F;
-constexpr float kAirFriction = 0.5F;
-constexpr float kMaxAirSpeed = 30.0F;
-constexpr float kJumpBufferTime = 0.15F;
-constexpr float kCoyoteTime = 0.10F;
-constexpr float kSlideSpeed = 10.0F;
-
 }  // namespace
 
 void PlayerMovementController::reset_to_spawn(const PlayerSpawnDefinition& spawn) {
@@ -46,17 +35,19 @@ void PlayerMovementController::begin_frame(
     float delta_seconds,
     bool on_ground,
     const Vec3& current_velocity,
-    float walk_speed,
-    float sprint_speed,
-    float jump_speed,
-    float gravity) {
+    const MovementConfig& config) {
 
+    config_ = config;
     previous_vertical_velocity_ = current_velocity.y;
     on_ground_before_step_ = on_ground;
 
     slide_timer_seconds_ = std::max(0.0F, slide_timer_seconds_ - delta_seconds);
-    if (input.slide_pressed && on_ground && has_move_input(input)) {
-        slide_timer_seconds_ = kSlideDurationSeconds;
+    movement_sim_state_.slide_cooldown_timer = std::max(
+        0.0F, movement_sim_state_.slide_cooldown_timer - delta_seconds);
+    if (input.slide_pressed && on_ground && has_move_input(input) &&
+        movement_sim_state_.slide_cooldown_timer <= 0.0F) {
+        slide_timer_seconds_ = config_.slide_duration;
+        movement_sim_state_.slide_cooldown_timer = config_.slide_cooldown;
     }
 
     crouch_active_ = input.crouch_held || slide_timer_seconds_ > 0.0F;
@@ -70,23 +61,23 @@ void PlayerMovementController::begin_frame(
     const float input_magnitude = std::min(
         std::sqrt(input.move_axis.x * input.move_axis.x + input.move_axis.y * input.move_axis.y),
         1.0F);
-    float move_speed = walk_speed;
+    float move_speed = config_.walk_speed;
     if (slide_timer_seconds_ > 0.0F) {
-        move_speed = kSlideSpeed;
+        move_speed = config_.slide_speed;
     } else if (input.sprint_held) {
-        move_speed = sprint_speed;
+        move_speed = config_.sprint_speed;
     }
     const float wish_speed = move_speed * input_magnitude;
 
     if (input.jump_pressed) {
-        movement_sim_state_.jump_buffer_timer = kJumpBufferTime;
+        movement_sim_state_.jump_buffer_timer = config_.jump_buffer_time;
     } else if (movement_sim_state_.jump_buffer_timer > 0.0F) {
         movement_sim_state_.jump_buffer_timer =
             std::max(0.0F, movement_sim_state_.jump_buffer_timer - delta_seconds);
     }
 
     if (!on_ground && movement_sim_state_.was_on_ground) {
-        movement_sim_state_.coyote_timer = kCoyoteTime;
+        movement_sim_state_.coyote_timer = config_.coyote_time;
     } else if (movement_sim_state_.coyote_timer > 0.0F) {
         movement_sim_state_.coyote_timer =
             std::max(0.0F, movement_sim_state_.coyote_timer - delta_seconds);
@@ -100,19 +91,19 @@ void PlayerMovementController::begin_frame(
     float desired_vz = current_velocity.z;
 
     if (want_jump && can_jump && slide_timer_seconds_ <= 0.0F) {
-        desired_vy = jump_speed;
+        desired_vy = config_.jump_speed;
         movement_sim_state_.jump_buffer_timer = 0.0F;
         movement_sim_state_.coyote_timer = 0.0F;
     } else if (!on_ground) {
-        desired_vy -= gravity * delta_seconds;
+        desired_vy -= config_.gravity * delta_seconds;
     } else {
         desired_vy = 0.0F;
     }
 
-    float surf_speed_mult = surface_speed_multiplier(movement_sim_state_.ground_material, MovementConfig{});
-    float surf_fric_mult = surface_friction_multiplier(movement_sim_state_.ground_material, MovementConfig{});
+    float surf_speed_mult = surface_speed_multiplier(movement_sim_state_.ground_material, config_);
+    float surf_fric_mult = surface_friction_multiplier(movement_sim_state_.ground_material, config_);
 
-    if (input_magnitude > 0.001F && slide_timer_seconds_ <= 0.0F) {
+    if (input_magnitude > 0.001F) {
         const float inv_mag = 1.0F / input_magnitude;
         const float wish_x = input.move_axis.x * inv_mag;
         const float wish_y = input.move_axis.y * inv_mag;
@@ -122,8 +113,9 @@ void PlayerMovementController::begin_frame(
         const float current_speed = desired_vx * wish_dir_x + desired_vz * wish_dir_z;
         const float add_speed = wish_speed * surf_speed_mult - current_speed;
         if (add_speed > 0.0F) {
-            float accel_rate = on_ground ? kGroundAccel : kAirAccel;
-            if (input.sprint_held && on_ground) accel_rate *= 1.0F;
+            float accel_rate = on_ground ? config_.ground_accel : config_.air_accel;
+            if (input.sprint_held && on_ground)
+                accel_rate *= config_.sprint_accel_mult;
             float accel_speed = accel_rate * delta_seconds * wish_speed * surf_speed_mult;
             if (accel_speed > add_speed) {
                 accel_speed = add_speed;
@@ -134,7 +126,7 @@ void PlayerMovementController::begin_frame(
     } else if (on_ground) {
         float h_speed = std::sqrt(desired_vx * desired_vx + desired_vz * desired_vz);
         if (h_speed > 0.001F) {
-            float drop = kGroundFriction * surf_fric_mult * delta_seconds * h_speed;
+            float drop = config_.ground_friction * surf_fric_mult * delta_seconds * h_speed;
             if (drop > h_speed) drop = h_speed;
             float scale = (h_speed - drop) / h_speed;
             desired_vx *= scale;
@@ -143,7 +135,7 @@ void PlayerMovementController::begin_frame(
     } else {
         float h_speed = std::sqrt(desired_vx * desired_vx + desired_vz * desired_vz);
         if (h_speed > 0.001F) {
-            float drop = kAirFriction * delta_seconds * h_speed;
+            float drop = config_.air_friction * delta_seconds * h_speed;
             if (drop > h_speed) drop = h_speed;
             float scale = (h_speed - drop) / h_speed;
             desired_vx *= scale;
@@ -153,8 +145,8 @@ void PlayerMovementController::begin_frame(
 
     if (!on_ground) {
         float total_speed = std::sqrt(desired_vx * desired_vx + desired_vy * desired_vy + desired_vz * desired_vz);
-        if (total_speed > kMaxAirSpeed) {
-            float scale = kMaxAirSpeed / total_speed;
+        if (total_speed > config_.max_air_speed) {
+            float scale = config_.max_air_speed / total_speed;
             desired_vx *= scale;
             desired_vy *= scale;
             desired_vz *= scale;
@@ -183,7 +175,7 @@ void PlayerMovementController::finish_frame(
     update_camera_and_debug(player_state, input, delta_seconds, on_ground);
 
     if (on_ground && !on_ground_before_step_ && previous_vertical_velocity_ < -0.01F) {
-        Vec3 landing = compute_landing_impulse(std::abs(previous_vertical_velocity_), MovementConfig{});
+        Vec3 landing = compute_landing_impulse(std::abs(previous_vertical_velocity_), config_);
         camera_anchor_.position.x += landing.x;
         camera_anchor_.position.y += landing.y;
     }
@@ -240,7 +232,7 @@ void PlayerMovementController::resolve_ladder_and_ledge(
     }
     if (movement_sim_state_.on_ladder && character) {
         ae::Vec3 vel = character->get_linear_velocity();
-        character->set_linear_velocity(ae::Vec3 {vel.x, input.move_axis.y * 4.0F, vel.z});
+        character->set_linear_velocity(ae::Vec3 {vel.x, input.move_axis.y * config_.ladder_speed, vel.z});
     }
 }
 
@@ -250,9 +242,23 @@ void PlayerMovementController::update_camera_and_debug(
     float delta_seconds,
     bool on_ground) {
 
-    update_camera_state(camera_anchor_, player_state, movement_sim_state_, delta_seconds, input, crouch_active_);
+    update_camera_state(
+        camera_anchor_, player_state, movement_sim_state_, delta_seconds, input, crouch_active_, on_ground, config_);
     resolve_movement_state(player_state, slide_timer_seconds_, movement_sim_state_, input, on_ground);
-    fill_movement_debug(movement_debug_, player_state, movement_sim_state_, slide_timer_seconds_, delta_seconds, input, on_ground);
+    fill_movement_debug(
+        movement_debug_, player_state, movement_sim_state_, slide_timer_seconds_, delta_seconds, input, on_ground, config_);
+}
+
+void PlayerMovementController::apply_camera_recoil(
+    ReplicatedPlayerState& player_state, float pitch_delta, float yaw_delta) {
+    player_state.yaw += yaw_delta;
+    camera_anchor_.yaw += yaw_delta;
+    camera_anchor_.pitch = std::clamp(camera_anchor_.pitch + pitch_delta, -89.0F, 89.0F);
+    camera_anchor_.yaw = std::fmod(camera_anchor_.yaw + 180.0F, 360.0F);
+    if (camera_anchor_.yaw < 0.0F) {
+        camera_anchor_.yaw += 360.0F;
+    }
+    camera_anchor_.yaw -= 180.0F;
 }
 
 }  // namespace ahamkara::game

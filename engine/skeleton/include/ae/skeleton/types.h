@@ -31,6 +31,10 @@ struct Joint {
     std::string name;
     int node_index {-1}; // original graph node index (optional)
     int parent_index {-1};
+    // Rest-local glTF TRS. Animation channels replace these component values.
+    std::array<float, 3> bind_translation {0.0F, 0.0F, 0.0F};
+    std::array<float, 4> bind_rotation {0.0F, 0.0F, 0.0F, 1.0F};
+    std::array<float, 3> bind_scale {1.0F, 1.0F, 1.0F};
     Mat4 inverse_bind_matrix;
 };
 

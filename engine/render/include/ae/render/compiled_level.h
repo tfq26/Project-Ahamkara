@@ -41,6 +41,22 @@ struct LevelMeshInstance {
     float scale_z {1.0F};
 };
 
+// Static triangle geometry used for terrain and architectural collision.
+// This intentionally mirrors LevelMeshInstance's transform contract while
+// remaining separate from render-only mesh instances.
+struct LevelCollisionMesh {
+    std::string mesh_asset_id {};
+    float pos_x {0.0F};
+    float pos_y {0.0F};
+    float pos_z {0.0F};
+    float yaw {0.0F};
+    float pitch {0.0F};
+    float roll {0.0F};
+    float scale_x {1.0F};
+    float scale_y {1.0F};
+    float scale_z {1.0F};
+};
+
 struct LevelAsset {
     std::string name {};
     float sky_color_r {0.3F};
@@ -54,12 +70,13 @@ struct LevelAsset {
     std::string ground_material {};
     std::vector<LevelSpawnPoint> spawn_points;
     std::vector<LevelCollisionBox> collision_boxes;
+    std::vector<LevelCollisionMesh> collision_meshes;
     std::vector<LevelMeshInstance> mesh_instances;
 };
 
 struct CompiledLevelFormat {
     static constexpr std::uint32_t magic = 0x5654454C;  // "LEVEL"
-    static constexpr std::uint32_t version = 1;
+    static constexpr std::uint32_t version = 2;
 };
 
 [[nodiscard]] bool save_compiled_level(const std::string& path, const LevelAsset& level, std::string& error);

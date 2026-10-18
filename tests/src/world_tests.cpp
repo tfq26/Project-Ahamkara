@@ -232,6 +232,55 @@ void test_bullet_magnetism() {
     std::cout << "test_bullet_magnetism passed.\n";
 }
 
+void test_primary_projectile_and_recoil_feedback() {
+    const ahamkara::game::MapDefinition map {
+        "projectile_recoil_test", "Projectile Recoil Test", ahamkara::game::MapCategory::Sandbox, nullptr, 0};
+    ahamkara::game::TargetDummyState target {};
+    target.dummy_id = 1;
+    target.position = {0.0F, 0.35F, 5.0F};
+    target.start_position = target.position;
+    target.health = 150.0F;
+    target.alive = true;
+    const ahamkara::game::WorldDefinition definition {
+        "projectile_recoil_test", "Projectile Recoil Test", &map,
+        {{0.0F, 0.0F, 0.0F}, 0.0F}, &target, 1};
+    ahamkara::game::World world(definition);
+    world.set_is_client(true);
+    world.set_colliders(nullptr, 0);
+
+    ahamkara::game::PlayerInputCommand settle {};
+    world.tick(0.016F, settle);
+    const float pitch_before_fire = world.get_camera_anchor().pitch;
+    const int ammo_before_fire = world.get_ammo_current();
+
+    ahamkara::game::PlayerInputCommand fire {};
+    fire.fire_held = true;
+    world.tick(0.016F, fire);
+    assert(world.get_ammo_current() == ammo_before_fire - 1);
+    assert(world.get_camera_anchor().pitch < pitch_before_fire);
+    assert(world.camera_recoil_pitch() < 0.0F);
+
+    fire.fire_held = false;
+    world.tick(0.016F, fire);
+    assert(world.get_projectile_count() > 0);
+    const auto& round = world.get_projectiles()[0];
+    assert(round.alive);
+    const float speed_sq = round.velocity.x * round.velocity.x +
+                           round.velocity.y * round.velocity.y +
+                           round.velocity.z * round.velocity.z;
+    assert(speed_sq > 1000.0F);
+
+    const float health_before_impact = world.get_dummies()[0].health;
+    for (int tick = 0; tick < 8; ++tick) {
+        world.tick(1.0F / 60.0F, fire);
+    }
+    assert(world.get_dummies()[0].health < health_before_impact);
+
+    world.tick(0.25F, fire);
+    assert(std::abs(world.camera_recoil_pitch()) < 0.25F);
+    std::cout << "test_primary_projectile_and_recoil_feedback passed.\n";
+}
+
 void test_rollback_lag_compensation() {
     ahamkara::game::World world;
     world.set_is_client(true);
@@ -570,6 +619,7 @@ int main() {
     test_world_wall_collision();
     test_world_jump_through();
     test_bullet_magnetism();
+    test_primary_projectile_and_recoil_feedback();
     test_rollback_lag_compensation();
     test_first_snapshot_reconciliation();
     test_prediction_state_capture();

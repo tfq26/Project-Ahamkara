@@ -1,7 +1,9 @@
 #include "ae/core/log.h"
 #include "ahamkara/client/debug_render_runtime.h"
+#include "ahamkara/client/animated_character.h"
 
 #include "ae/core/math.h"
+
 
 #define AE_LOG_CATEGORY "Client"
 
@@ -61,7 +63,9 @@ void render_local_debug_frame(
     ae::render::ShadowPass& shadow_pass,
     ae::render::DebugRenderer& renderer,
     ae::render::PbrRenderer& pbr_renderer,
-    const ae::render::LevelRenderScene* level_scene) {
+    const ae::render::LevelRenderScene* level_scene,
+    AnimatedCharacter* animated_character,
+    const float* character_model_matrix) {
     audio_engine.set_listener(
         submission.listener_position[0], submission.listener_position[1], submission.listener_position[2],
         submission.listener_forward[0], submission.listener_forward[1], submission.listener_forward[2],
@@ -79,17 +83,40 @@ void render_local_debug_frame(
     // they render before DebugRenderer's screen-space overlays (HUD, crosshair,
     // menus) and cannot overwrite them. Uses the camera matrices the debug
     // renderer computes this frame so meshes align with the world.
-    if (level_scene != nullptr && !level_scene->empty()) {
+    const bool has_level = level_scene != nullptr && !level_scene->empty();
+    const bool has_character = animated_character != nullptr &&
+                               animated_character->ready() &&
+                               character_model_matrix != nullptr;
+    if (has_level || has_character) {
         renderer.render(scene, [&]() {
             if (ae::render::RenderBackend* backend = renderer.backend()) {
                 backend->set_depth_test(true);
                 backend->set_depth_write(true);
                 backend->set_depth_func_lequal();
             }
+            ae::render::PbrLight stage_light;
+            stage_light.direction[0] = 0.35F;
+            stage_light.direction[1] = -0.78F;
+            stage_light.direction[2] = 0.50F;
+            stage_light.color[0] = 0.92F;
+            stage_light.color[1] = 0.94F;
+            stage_light.color[2] = 1.0F;
+            stage_light.intensity = scene.character_presentation_background ? 0.65F : 2.2F;
+            stage_light.ambient = scene.character_presentation_background ? 0.48F : 0.28F;
+            stage_light.cast_shadows = false;
+            pbr_renderer.set_lights(&stage_light, 1);
             pbr_renderer.begin_frame(renderer.view_matrix(), renderer.projection_matrix(),
                                      renderer.camera_position(), &shadow_pass);
-            level_scene->submit(pbr_renderer, renderer.camera_position());
+            if (has_level) {
+                level_scene->submit(pbr_renderer, renderer.camera_position());
+            }
             pbr_renderer.end_frame();
+            if (has_character) {
+                animated_character->render(
+                    renderer.view_matrix(),
+                    renderer.projection_matrix(),
+                    character_model_matrix);
+            }
         });
     } else {
         renderer.render(scene);

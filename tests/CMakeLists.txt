@@ -1,5 +1,21 @@
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
+add_test(
+    NAME caligo_asset_contract_tests
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/caligo_asset_test.py
+)
+
+add_test(
+    NAME character_asset_contract_tests
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/character_asset_test.py
+)
+set_tests_properties(character_asset_contract_tests PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+set_tests_properties(caligo_asset_contract_tests PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
 add_executable(ahamkara_smoke_tests
     src/network_smoke_tests.cpp
     src/camera_smoke_tests.cpp
@@ -873,3 +889,28 @@ target_include_directories(ahamkara_docs_viewer_tests
 )
 
 add_test(NAME ahamkara_docs_viewer_tests COMMAND ahamkara_docs_viewer_tests)
+
+# --- Data-driven menu layout ---
+add_executable(ahamkara_menu_layout_tests
+    src/menu_layout_tests.cpp
+)
+target_compile_features(ahamkara_menu_layout_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_menu_layout_tests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/ui
+        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/ui/include
+)
+target_link_libraries(ahamkara_menu_layout_tests PRIVATE ae_ui)
+add_test(NAME ahamkara_menu_layout_tests COMMAND ahamkara_menu_layout_tests)
+
+add_executable(ahamkara_client_config_tests
+    src/client_config_tests.cpp
+    ../client/src/client_config.cpp
+)
+target_compile_features(ahamkara_client_config_tests PRIVATE cxx_std_20)
+target_include_directories(ahamkara_client_config_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../client/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../engine/core/include
+)
+target_link_libraries(ahamkara_client_config_tests PRIVATE ae_core)
+add_test(NAME ahamkara_client_config_tests COMMAND ahamkara_client_config_tests)

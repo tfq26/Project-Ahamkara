@@ -11,6 +11,7 @@
 #include "ahamkara/game/player_movement_controller.h"
 #include "ahamkara/game/worlds/world_definition.h"
 #include "ae/render/compiled_level.h"
+#include "ae/collision/types.h"
 
 #include <entt/entt.hpp>
 
@@ -209,6 +210,9 @@ public:
     [[nodiscard]] int recoil_index() const { return fire_recoil_index_; }
     void advance_recoil() { ++fire_recoil_index_; }
     void reset_recoil() { fire_recoil_index_ = 0; }
+    void apply_weapon_camera_recoil(float pitch_up_degrees, float yaw_degrees);
+    [[nodiscard]] float camera_recoil_pitch() const { return camera_recoil_pitch_; }
+    [[nodiscard]] float camera_recoil_yaw() const { return camera_recoil_yaw_; }
 
     static constexpr int kMaxParticles = 256;
     [[nodiscard]] const ParticleState* get_particles() const { return particles_; }
@@ -337,12 +341,15 @@ private:
     const ColliderBox* colliders_ {nullptr};
     std::size_t collider_count_ {0};
     std::vector<ColliderBox> owned_colliders_;
+    std::vector<ae::collision::Triangle> owned_collision_triangles_;
     static constexpr int kMaxProjectiles = 64;
     // Registry-backed projection of projectile state (refreshed per tick).
     // The EnTT registry is the authoritative store; this is a render cache.
     std::vector<ProjectileState> projectiles_;
 
     int fire_recoil_index_ {0};
+    float camera_recoil_pitch_ {0.0F};
+    float camera_recoil_yaw_ {0.0F};
     bool reload_key_was_down_ {false};
     bool weapon_switch_queued_ {false};
     int queued_weapon_slot_ {-1};

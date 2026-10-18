@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -36,6 +37,11 @@ struct GltfJoint {
     std::string name;
     int node_index {-1};   // glTF node index in the scene graph
     int parent_index {-1};  // -1 = root joint
+    // Node-local rest transform. Animation channels replace individual TRS
+    // components; they are not offsets from an identity bind pose.
+    std::array<float, 3> bind_translation {0.0F, 0.0F, 0.0F};
+    std::array<float, 4> bind_rotation {0.0F, 0.0F, 0.0F, 1.0F};
+    std::array<float, 3> bind_scale {1.0F, 1.0F, 1.0F};
     std::vector<float> inverse_bind_matrix; // 16 floats (column-major 4x4)
 };
 

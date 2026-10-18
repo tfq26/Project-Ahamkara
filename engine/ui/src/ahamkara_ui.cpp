@@ -19,6 +19,28 @@ namespace {
 
 bool g_initialized = false;
 
+struct MenuFonts {
+    ImFont* title{nullptr};
+    ImFont* header{nullptr};
+    ImFont* body{nullptr};
+    ImFont* small{nullptr};
+    ImFont* button{nullptr};
+};
+
+MenuFonts g_menu_fonts;
+
+ImFont* load_inter_font(ImGuiIO& io, float logical_size, float density,
+                        const char* debug_name) {
+    ImFontConfig config;
+    config.RasterizerDensity = density;
+    config.OversampleH = 2;
+    config.OversampleV = 1;
+    std::snprintf(config.Name, IM_ARRAYSIZE(config.Name), "%s", debug_name);
+    return io.Fonts->AddFontFromFileTTF(
+        "assets/fonts/InterVariable.ttf", logical_size, &config,
+        io.Fonts->GetGlyphRangesDefault());
+}
+
 // --- Color palette -----------------------------------------------------------
 
 static constexpr ImVec4 kAccent      {0.20F, 0.55F, 0.90F, 1.00F};  // blue
@@ -125,6 +147,31 @@ bool initialize_ui(GLFWwindow* window, const char* glsl_version) {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.IniFilename = nullptr;
 
+    int window_width = 0;
+    int window_height = 0;
+    int framebuffer_width = 0;
+    int framebuffer_height = 0;
+    glfwGetWindowSize(window, &window_width, &window_height);
+    glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
+    const float density_x = window_width > 0
+        ? static_cast<float>(framebuffer_width) / static_cast<float>(window_width)
+        : 1.0F;
+    const float density_y = window_height > 0
+        ? static_cast<float>(framebuffer_height) / static_cast<float>(window_height)
+        : 1.0F;
+    const float font_density = std::clamp(std::max(density_x, density_y), 1.0F, 3.0F);
+
+    g_menu_fonts.body = load_inter_font(io, 22.0F, font_density, "Inter Body 22");
+    g_menu_fonts.title = load_inter_font(io, 66.0F, font_density, "Inter Title 66");
+    g_menu_fonts.header = load_inter_font(io, 35.0F, font_density, "Inter Header 35");
+    g_menu_fonts.small = load_inter_font(io, 16.0F, font_density, "Inter Small 16");
+    g_menu_fonts.button = load_inter_font(io, 22.0F, font_density, "Inter Button 22");
+    if (g_menu_fonts.body != nullptr) {
+        io.FontDefault = g_menu_fonts.body;
+    } else {
+        fprintf(stderr, "[UI] Inter font unavailable; using ImGui's fallback font.\n");
+    }
+
     ImGui::StyleColorsDark();
 
     ImGuiStyle& style = ImGui::GetStyle();
@@ -208,6 +255,15 @@ void end_ui_frame() {
     if (!g_initialized) return;
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+ImFont* menu_font_for_role(std::string_view role) {
+    if (role == "title" && g_menu_fonts.title != nullptr) return g_menu_fonts.title;
+    if (role == "header" && g_menu_fonts.header != nullptr) return g_menu_fonts.header;
+    if (role == "small" && g_menu_fonts.small != nullptr) return g_menu_fonts.small;
+    if (role == "button" && g_menu_fonts.button != nullptr) return g_menu_fonts.button;
+    if (g_menu_fonts.body != nullptr) return g_menu_fonts.body;
+    return ImGui::GetCurrentContext() != nullptr ? ImGui::GetFont() : nullptr;
 }
 
 bool wants_capture_mouse() {

@@ -2,8 +2,10 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 struct GLFWwindow;
+struct ImFont;
 
 namespace ahamkara::client { struct ClientConfig; struct AudioConfig; }
 
@@ -38,6 +40,11 @@ bool initialize_ui(GLFWwindow* window, const char* glsl_version);
 void shutdown_ui();
 void begin_ui_frame();
 void end_ui_frame();
+
+// Menu fonts are rasterized independently at their authored sizes and at the
+// display's framebuffer density. This avoids enlarging a small bitmap font on
+// high-DPI displays.
+ImFont* menu_font_for_role(std::string_view role);
 
 // Feed current keyboard/mouse state from the application into ImGui IO.
 // Call before begin_ui_frame() when using manual input forwarding (i.e. when

@@ -90,4 +90,13 @@ const ae::skeleton::Mat4* AnimationClipPlayer::tick(float dt) {
     return joint_matrices_.data();
 }
 
+const ae::skeleton::Mat4* AnimationClipPlayer::rest_pose() {
+    if (joint_count_ <= 0) {
+        return nullptr;
+    }
+    const ae::skeleton::AnimationClipData empty_clip {};
+    ae::skeleton::evaluate_animation(empty_clip, skin_, 0.0F, joint_matrices_);
+    return joint_matrices_.data();
+}
+
 } // namespace ae::animation

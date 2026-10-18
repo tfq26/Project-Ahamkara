@@ -1,0 +1,46 @@
+{
+    "name": "Caligo Director",
+    "background": [0.002, 0.004, 0.012, 0.04],
+    "elements": [
+        {
+            "type": "panel",
+            "x": 42, "y": 28,
+            "anchor": "top_left",
+            "width": 600, "height": 126,
+            "color": "none",
+            "elements": [
+                {"type": "text", "content": "CALIGO", "font": "header", "color": "text_primary", "x": 0, "y": 0, "anchor": "top_left"},
+                {"type": "text", "content": "THE BURIED WORLD  //  DESTINATION DIRECTOR", "font": "small", "color": "accent", "x": 2, "y": 42, "anchor": "top_left"},
+                {"type": "text", "content": "STORM FRONT: ACTIVE     CROWN NETWORK: DEGRADED", "font": "small", "color": "text_secondary", "x": 2, "y": 72, "anchor": "top_left"},
+                {"type": "button", "label": "INSPECT CROWN", "style": "menu", "action": "director_cutaway", "x": 0, "y": 96, "width": 240, "height": 34, "anchor": "top_left"}
+            ]
+        },
+        {
+            "type": "panel",
+            "x": 0.5, "y": 0.93,
+            "anchor": "bottom_center",
+            "width": 640, "height": 38,
+            "color": "none",
+            "elements": [
+                {"type": "text", "content": "LMB SELECT DESTINATION     RMB ROTATE     SCROLL ZOOM     ESC BACK", "font": "small", "color": "text_muted", "x": 0.5, "y": 4, "anchor": "top_center"}
+            ]
+        },
+        {
+            "type": "panel",
+            "x": 0.86, "y": 0.53,
+            "anchor": "center",
+            "width": 372, "height": 350,
+            "color": "panel",
+            "elements": [
+                {"type": "text", "content": "DESTINATION", "font": "header", "color": "text_primary", "x": 24, "y": 22, "anchor": "top_left"},
+                {"type": "separator"},
+                {"type": "text", "content": "SURFACE RUINS", "font": "button", "color": "accent", "x": 24, "y": 82, "anchor": "top_left"},
+                {"type": "text", "content": "BURIED CORPORATE RESEARCH CAMPUS", "font": "small", "color": "text_secondary", "x": 24, "y": 118, "anchor": "top_left"},
+                {"type": "text", "content": "CROWN 01  //  POWER UNSTABLE", "font": "small", "color": "accent_cool", "x": 24, "y": 148, "anchor": "top_left"},
+                {"type": "text", "content": "THREE HERO BUILDINGS  //  STORM EXPOSURE 74%", "font": "small", "color": "text_muted", "x": 24, "y": 178, "anchor": "top_left"},
+                {"type": "button", "label": "DEPLOY", "style": "primary", "action": "start_game:assets/compiled/levels/caligo_surface_ruins.aelevel", "x": 0.5, "y": 222, "width": 300, "height": 50, "anchor": "top_center"},
+                {"type": "button", "label": "BACK", "style": "secondary", "action": "pop_screen", "x": 0.5, "y": 290, "width": 180, "height": 40, "anchor": "top_center"}
+            ]
+        }
+    ]
+}

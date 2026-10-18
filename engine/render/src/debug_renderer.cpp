@@ -1,6 +1,7 @@
 #include "ae/render/debug_renderer.h"
 
 #include "ae/core/log.h"
+#include "ae/render/compiled_texture.h"
 #include "ae/render/font_atlas.h"
 #include "ae/render/humanoid_mesh.h"
 #include "ae/render/map_geometry.h"
@@ -438,6 +439,24 @@ void draw_ground_grid(int half_extent, float spacing, float brightness) {
         verts.push_back({offset, 0.0F,  extent, g, g, g, 1.0F});
     }
     draw_world_vertices(verts.data(), static_cast<int>(verts.size()), GL_LINES);
+}
+
+void draw_continuous_ground(const Vec3& camera_position) {
+    constexpr float kExtent = 2048.0F;
+    constexpr float kGroundY = -0.015F;
+    const float min_x = camera_position.x - kExtent;
+    const float max_x = camera_position.x + kExtent;
+    const float min_z = camera_position.z - kExtent;
+    const float max_z = camera_position.z + kExtent;
+    const WorldVertex ground[] = {
+        {min_x, kGroundY, min_z, 0.13F, 0.055F, 0.020F, 1.0F},
+        {max_x, kGroundY, min_z, 0.13F, 0.055F, 0.020F, 1.0F},
+        {max_x, kGroundY, max_z, 0.13F, 0.055F, 0.020F, 1.0F},
+        {min_x, kGroundY, min_z, 0.13F, 0.055F, 0.020F, 1.0F},
+        {max_x, kGroundY, max_z, 0.13F, 0.055F, 0.020F, 1.0F},
+        {min_x, kGroundY, max_z, 0.13F, 0.055F, 0.020F, 1.0F},
+    };
+    draw_world_vertices(ground, 6, GL_TRIANGLES);
 }
 
 void draw_axes() {
@@ -1022,6 +1041,16 @@ struct DebugRenderer::Impl {
     bool has_level_env {false};
     float level_sky[3] {0.3F, 0.4F, 0.6F};
     float level_ambient[3] {0.05F, 0.05F, 0.1F};
+    GLuint skybox_texture {0};
+    GLuint skybox_program {0};
+    GLuint skybox_vao {0};
+    GLuint skybox_vbo {0};
+    GLint skybox_forward_loc {-1};
+    GLint skybox_right_loc {-1};
+    GLint skybox_up_loc {-1};
+    GLint skybox_aspect_loc {-1};
+    GLint skybox_tan_half_fov_loc {-1};
+    GLint skybox_texture_loc {-1};
     ShaderHandle shader_program;
     ShaderHandle depth_program;  // depth-only pre-pass shader
     int u_color_loc {-1};
@@ -1260,6 +1289,72 @@ bool DebugRenderer::initialize(ae::PlatformWindow& window) {
         impl_->u_projection_loc    = impl_->backend->get_uniform_location(impl_->shader_program, "uProjection");
     }
 
+    // --- Equirectangular skybox program ---
+    // Level sky textures are authored as 2:1 equirectangular panoramas. The
+    // shader reconstructs a camera ray per pixel, so the panorama stays fixed
+    // in world space while the player looks around.
+    {
+        const char* skybox_vs =
+            "#version 330 core\n"
+            "layout(location = 0) in vec2 aPosition;\n"
+            "out vec2 vNdc;\n"
+            "void main() { vNdc = aPosition; gl_Position = vec4(aPosition, 0.0, 1.0); }\n";
+        const char* skybox_fs =
+            "#version 330 core\n"
+            "in vec2 vNdc;\n"
+            "uniform sampler2D uSkybox;\n"
+            "uniform vec3 uForward;\n"
+            "uniform vec3 uRight;\n"
+            "uniform vec3 uUp;\n"
+            "uniform float uAspect;\n"
+            "uniform float uTanHalfFov;\n"
+            "out vec4 fragColor;\n"
+            "const float PI = 3.14159265358979323846;\n"
+            "void main() {\n"
+            "  vec3 ray = normalize(uForward + uRight * (vNdc.x * uAspect * uTanHalfFov) + uUp * (vNdc.y * uTanHalfFov));\n"
+            "  float u = atan(ray.z, ray.x) / (2.0 * PI) + 0.5;\n"
+            "  float v = acos(clamp(ray.y, -1.0, 1.0)) / PI;\n"
+            "  fragColor = vec4(texture(uSkybox, vec2(u, v)).rgb, 1.0);\n"
+            "}\n";
+
+        const float quad[] = {-1.0F, -1.0F, 1.0F, -1.0F, -1.0F, 1.0F, 1.0F, 1.0F};
+        GLuint vs = compile_overlay_shader(GL_VERTEX_SHADER, skybox_vs);
+        GLuint fs = compile_overlay_shader(GL_FRAGMENT_SHADER, skybox_fs);
+        if (vs != 0 && fs != 0) {
+            impl_->skybox_program = glCreateProgram();
+            glAttachShader(impl_->skybox_program, vs);
+            glAttachShader(impl_->skybox_program, fs);
+            glLinkProgram(impl_->skybox_program);
+            GLint linked = GL_FALSE;
+            glGetProgramiv(impl_->skybox_program, GL_LINK_STATUS, &linked);
+            if (linked == GL_FALSE) {
+                char log[1024] {};
+                glGetProgramInfoLog(impl_->skybox_program, sizeof(log), nullptr, log);
+                log_warning(std::string("Skybox program link failed: ") + log);
+                glDeleteProgram(impl_->skybox_program);
+                impl_->skybox_program = 0;
+            } else {
+                impl_->skybox_forward_loc = glGetUniformLocation(impl_->skybox_program, "uForward");
+                impl_->skybox_right_loc = glGetUniformLocation(impl_->skybox_program, "uRight");
+                impl_->skybox_up_loc = glGetUniformLocation(impl_->skybox_program, "uUp");
+                impl_->skybox_aspect_loc = glGetUniformLocation(impl_->skybox_program, "uAspect");
+                impl_->skybox_tan_half_fov_loc = glGetUniformLocation(impl_->skybox_program, "uTanHalfFov");
+                impl_->skybox_texture_loc = glGetUniformLocation(impl_->skybox_program, "uSkybox");
+                glGenVertexArrays(1, &impl_->skybox_vao);
+                glGenBuffers(1, &impl_->skybox_vbo);
+                glBindVertexArray(impl_->skybox_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, impl_->skybox_vbo);
+                glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW);
+                glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, nullptr);
+                glEnableVertexAttribArray(0);
+                glBindVertexArray(0);
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
+            }
+        }
+        if (vs != 0) glDeleteShader(vs);
+        if (fs != 0) glDeleteShader(fs);
+    }
+
     // --- Depth-only pre-pass shader ---
     {
         const char* depth_vs =
@@ -1376,6 +1471,11 @@ void DebugRenderer::shutdown() {
     impl_->shader_program = kInvalidShader;
     impl_->depth_program = kInvalidShader;
 
+    if (impl_->skybox_texture != 0) glDeleteTextures(1, &impl_->skybox_texture);
+    if (impl_->skybox_program != 0) glDeleteProgram(impl_->skybox_program);
+    if (impl_->skybox_vbo != 0) glDeleteBuffers(1, &impl_->skybox_vbo);
+    if (impl_->skybox_vao != 0) glDeleteVertexArrays(1, &impl_->skybox_vao);
+
     impl_->map_geometry.destroy();
 
     impl_->backend->destroy_buffer(impl_->ground_grid_vbo);
@@ -1426,6 +1526,114 @@ RenderBackend* DebugRenderer::backend() {
 
 void DebugRenderer::Impl::draw_sky_pass(const DebugScene& scene, int width, int height,
                    float cr, float cg, float cb, float day_factor, double cycle, double current_time) {
+    if (scene.director_space_background) {
+        const float zenith_r = 0.002F;
+        const float zenith_g = 0.004F;
+        const float zenith_b = 0.014F;
+        const OverlayVertex director_sky[] = {
+            {0.0F, 0.0F, zenith_r, zenith_g, zenith_b, 1.0F},
+            {static_cast<float>(width), 0.0F, zenith_r, zenith_g, zenith_b, 1.0F},
+            {static_cast<float>(width), static_cast<float>(height), cr, cg, cb, 1.0F},
+            {0.0F, static_cast<float>(height), cr, cg, cb, 1.0F},
+        };
+        draw_overlay_vertices(director_sky, 4, GL_TRIANGLE_FAN);
+
+        // Sparse, cool stars keep the background alive without competing with
+        // the planet or the destination markers.
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        glPointSize(1.4F);
+        std::vector<OverlayVertex> stars;
+        stars.reserve(180);
+        for (int i = 0; i < 180; ++i) {
+            const float sx = std::fmod(static_cast<float>(i * 7919 + 104729), static_cast<float>(width));
+            const float sy = std::fmod(static_cast<float>(i * 6271 + 224737), static_cast<float>(height));
+            const float pulse = 0.45F + 0.25F * std::sin(static_cast<float>(current_time * 0.8 + i * 0.37));
+            stars.push_back({sx, sy, 0.42F, 0.62F, 0.88F, pulse});
+        }
+        draw_overlay_vertices(stars.data(), static_cast<int>(stars.size()), GL_POINTS);
+
+        // Director navigation layer: thin orbital lanes and route links sit
+        // behind the 3D globe, giving the screen the readable spatial grammar
+        // of a destination director without replacing the planet with UI.
+        const float map_cx = static_cast<float>(width) * 0.37F;
+        const float map_cy = static_cast<float>(height) * 0.56F;
+        glLineWidth(1.0F);
+        for (const auto& orbit : {210.0F, 158.0F, 106.0F}) {
+            std::vector<OverlayVertex> ring;
+            ring.reserve(73);
+            for (int i = 0; i <= 72; ++i) {
+                const float a = static_cast<float>(i) / 72.0F * 2.0F * kPi;
+                ring.push_back({map_cx + std::cos(a) * orbit,
+                                map_cy + std::sin(a) * orbit * 0.42F,
+                                0.20F, 0.52F, 0.76F, 0.24F});
+            }
+            draw_overlay_vertices(ring.data(), static_cast<int>(ring.size()), GL_LINE_STRIP);
+        }
+
+        const OverlayVertex routes[] = {
+            {map_cx - 204.0F, map_cy + 58.0F, 0.35F, 0.68F, 0.82F, 0.30F},
+            {map_cx - 78.0F, map_cy - 42.0F, 0.35F, 0.68F, 0.82F, 0.30F},
+            {map_cx + 38.0F, map_cy + 18.0F, 0.35F, 0.68F, 0.82F, 0.30F},
+            {map_cx + 128.0F, map_cy - 70.0F, 0.35F, 0.68F, 0.82F, 0.30F},
+            {map_cx + 38.0F, map_cy + 18.0F, 0.35F, 0.68F, 0.82F, 0.30F},
+            {map_cx + 204.0F, map_cy + 52.0F, 0.35F, 0.68F, 0.82F, 0.30F},
+        };
+        draw_overlay_vertices(routes, static_cast<int>(std::size(routes)), GL_LINES);
+
+        const struct DirectorNode { float x; float y; float r; float g; float b; float a; } nodes[] = {
+            {-204.0F, 58.0F, 0.36F, 0.70F, 0.86F, 0.95F},
+            {-78.0F, -42.0F, 0.96F, 0.69F, 0.30F, 0.95F},
+            {38.0F, 18.0F, 0.96F, 0.69F, 0.30F, 0.95F},
+            {128.0F, -70.0F, 0.36F, 0.70F, 0.86F, 0.95F},
+            {204.0F, 52.0F, 0.36F, 0.70F, 0.86F, 0.95F},
+        };
+        for (const auto& node : nodes) {
+            const float x = map_cx + node.x;
+            const float y = map_cy + node.y;
+            std::vector<OverlayVertex> halo;
+            halo.reserve(25);
+            halo.push_back({x, y, node.r, node.g, node.b, 0.04F});
+            for (int i = 0; i <= 22; ++i) {
+                const float a = static_cast<float>(i) / 22.0F * 2.0F * kPi;
+                halo.push_back({x + std::cos(a) * 13.0F, y + std::sin(a) * 13.0F,
+                                node.r, node.g, node.b, 0.08F});
+            }
+            draw_overlay_vertices(halo.data(), static_cast<int>(halo.size()), GL_TRIANGLE_FAN);
+            const OverlayVertex point[] = {
+                {x, y, node.r, node.g, node.b, node.a},
+            };
+            glPointSize(node.x == 38.0F ? 9.0F : 5.0F);
+            draw_overlay_vertices(point, 1, GL_POINTS);
+        }
+        glDisable(GL_BLEND);
+        return;
+    }
+
+    if (skybox_texture != 0 && skybox_program != 0 && skybox_vao != 0) {
+        const Vec3 forward = normalize(subtract(scene.camera_target, scene.camera_position));
+        const Vec3 world_up {0.0F, 1.0F, 0.0F};
+        const Vec3 right = normalize(cross(world_up, forward));
+        const Vec3 up = normalize(cross(forward, right));
+        const float fov_deg = scene.camera_fov_override_deg > 0.0F ? scene.camera_fov_override_deg : 60.0F;
+        const float tan_half_fov = std::tan(fov_deg * kPi / 360.0F);
+
+        glUseProgram(skybox_program);
+        glUniform3f(skybox_forward_loc, forward.x, forward.y, forward.z);
+        glUniform3f(skybox_right_loc, right.x, right.y, right.z);
+        glUniform3f(skybox_up_loc, up.x, up.y, up.z);
+        glUniform1f(skybox_aspect_loc, static_cast<float>(width) / static_cast<float>(height));
+        glUniform1f(skybox_tan_half_fov_loc, tan_half_fov);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, skybox_texture);
+        glUniform1i(skybox_texture_loc, 0);
+        glBindVertexArray(skybox_vao);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glBindVertexArray(0);
+        glUseProgram(0);
+        return;
+    }
+
     float zenith_r = cr * 0.35F;
     float zenith_g = cg * 0.35F;
     float zenith_b = cb * 0.55F;
@@ -1534,6 +1742,7 @@ void DebugRenderer::Impl::draw_sky_pass(const DebugScene& scene, int width, int 
 
 void DebugRenderer::Impl::draw_depth_pre_pass(const DebugScene& scene, const Frustum& frustum) {
     if (!depth_program) return;
+    if (!scene.debug_world_visible) return;
 
     if (gpu_timers_supported) {
         backend->begin_query(gpu_timer_queries[1]);
@@ -1541,6 +1750,8 @@ void DebugRenderer::Impl::draw_depth_pre_pass(const DebugScene& scene, const Fru
     backend->set_color_write(false, false, false, false);
     backend->set_depth_func_less();
     backend->use_shader(depth_program);
+
+    draw_continuous_ground(scene.camera_position);
 
     // Draw map cells
     {
@@ -1599,6 +1810,10 @@ void DebugRenderer::Impl::draw_depth_pre_pass(const DebugScene& scene, const Fru
 
 void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
                           const Frustum& frustum, const LocalMat4& view, float day_factor) {
+    if (!scene.debug_world_visible) return;
+
+    draw_continuous_ground(scene.camera_position);
+
     // Ground grid + axes
     if (ground_grid_vbo && ground_grid_vertex_count > 0) {
         float b = 0.20F + 0.80F * static_cast<float>(day_factor);
@@ -1731,7 +1946,8 @@ void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
             float my = scene.camera_position.y + fy * 0.6F - 0.15F;
             float mz = scene.camera_position.z + fz * 0.6F + rz * 0.15F;
 
-            float r = 0.06F * scene.muzzle_flash_time;
+            const float flash_strength = std::clamp(scene.muzzle_flash_time / 0.05F, 0.0F, 1.0F);
+            float r = 0.025F + 0.14F * flash_strength;
             const WorldVertex muzzle[] = {
                 {mx, my + r, mz, 1.0F, 0.8F, 0.1F, 1.0F}, {mx, my, mz + r, 1.0F, 0.8F, 0.1F, 1.0F}, {mx + r, my, mz, 1.0F, 0.8F, 0.1F, 1.0F},
                 {mx, my + r, mz, 1.0F, 0.8F, 0.1F, 1.0F}, {mx + r, my, mz, 1.0F, 0.8F, 0.1F, 1.0F}, {mx, my, mz - r, 1.0F, 0.8F, 0.1F, 1.0F},
@@ -1752,7 +1968,24 @@ void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
         }
         render_stats.drawn_projectiles++;
 
-        const float r = 0.08F;
+        const auto& velocity = scene.projectile_velocities[i];
+        const float velocity_length = std::sqrt(
+            velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z);
+        if (velocity_length > 0.001F) {
+            const float trail_length = 0.70F;
+            const float tx = pp.x - velocity.x / velocity_length * trail_length;
+            const float ty = pp.y - velocity.y / velocity_length * trail_length;
+            const float tz = pp.z - velocity.z / velocity_length * trail_length;
+            const WorldVertex tracer[] = {
+                {tx, ty, tz, 1.0F, 0.25F, 0.03F, 0.18F},
+                {pp.x, pp.y, pp.z, 1.0F, 0.86F, 0.22F, 1.0F},
+            };
+            glLineWidth(3.0F);
+            draw_world_vertices(tracer, 2, GL_LINES);
+            glLineWidth(1.0F);
+        }
+
+        const float r = 0.10F;
         const WorldVertex projectile[] = {
             {pp.x, pp.y + r, pp.z, 1.0F, 0.55F, 0.1F, 1.0F}, {pp.x, pp.y, pp.z + r, 1.0F, 0.55F, 0.1F, 1.0F}, {pp.x + r, pp.y, pp.z, 1.0F, 0.55F, 0.1F, 1.0F},
             {pp.x, pp.y + r, pp.z, 1.0F, 0.55F, 0.1F, 1.0F}, {pp.x + r, pp.y, pp.z, 1.0F, 0.55F, 0.1F, 1.0F}, {pp.x, pp.y, pp.z - r, 1.0F, 0.55F, 0.1F, 1.0F},
@@ -1810,21 +2043,21 @@ void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
         // the idle bob or recoil kick computations.
         const Vec3 vm_offset = scene.viewmodel_position_offset;
         const Vec3 weapon_pos {
-            camera_pos.x + forward.x * (0.47F - recoil_kick * 0.04F)
-                - right.x * (0.30F + idle_bob_x)
-                - up.x * (0.24F + idle_bob_y + recoil_kick * 0.03F)
+            camera_pos.x + forward.x * (0.58F - recoil_kick * 0.04F)
+                + right.x * (0.12F + idle_bob_x)
+                - up.x * (0.20F + idle_bob_y + recoil_kick * 0.03F)
                 + forward.x * vm_offset.z
                 + right.x * vm_offset.x
                 + up.x * vm_offset.y,
-            camera_pos.y + forward.y * (0.47F - recoil_kick * 0.04F)
-                - right.y * (0.30F + idle_bob_x)
-                - up.y * (0.24F + idle_bob_y + recoil_kick * 0.03F)
+            camera_pos.y + forward.y * (0.58F - recoil_kick * 0.04F)
+                + right.y * (0.12F + idle_bob_x)
+                - up.y * (0.20F + idle_bob_y + recoil_kick * 0.03F)
                 + forward.y * vm_offset.z
                 + right.y * vm_offset.x
                 + up.y * vm_offset.y,
-            camera_pos.z + forward.z * (0.47F - recoil_kick * 0.04F)
-                - right.z * (0.30F + idle_bob_x)
-                - up.z * (0.24F + idle_bob_y + recoil_kick * 0.03F)
+            camera_pos.z + forward.z * (0.58F - recoil_kick * 0.04F)
+                + right.z * (0.12F + idle_bob_x)
+                - up.z * (0.20F + idle_bob_y + recoil_kick * 0.03F)
                 + forward.z * vm_offset.z
                 + right.z * vm_offset.x
                 + up.z * vm_offset.y,
@@ -1845,7 +2078,7 @@ void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
             viewmodel = viewmodel * ae::gl_compat::mat4_rotate(-10.0F - idle_bob_x * 65.0F, 0.0F, 1.0F, 0.0F);
             viewmodel = viewmodel * ae::gl_compat::mat4_rotate(2.5F + idle_bob_y * 40.0F, 0.0F, 0.0F, 1.0F);
         }
-        viewmodel = viewmodel * ae::gl_compat::mat4_scale(0.62F, 0.62F, 0.62F);
+        viewmodel = viewmodel * ae::gl_compat::mat4_scale(0.48F, 0.48F, 0.48F);
 
         // Apply authored-to-view-space barrel correction (-90° Y) plus
         // per-weapon pitch/yaw/roll adjustments from scene data.  See the
@@ -1951,6 +2184,15 @@ void DebugRenderer::render(DebugScene& scene, const std::function<void()>& draw_
         cg = impl_->level_sky[1];
         cb = impl_->level_sky[2];
     }
+    if (scene.character_presentation_background) {
+        cr = 0.055F;
+        cg = 0.058F;
+        cb = 0.062F;
+    } else if (scene.director_space_background) {
+        cr = 0.006F;
+        cg = 0.012F;
+        cb = 0.030F;
+    }
     glClearColor(cr, cg, cb, 1.0F);
 
     int framebuffer_width = 1;
@@ -1989,7 +2231,10 @@ void DebugRenderer::render(DebugScene& scene, const std::function<void()>& draw_
         const MatrixSnapshot screen_snapshot = begin_screen_space(width, height);
         glDisable(GL_DEPTH_TEST);
 
-        impl_->draw_sky_pass(scene, width, height, cr, cg, cb, static_cast<float>(day_factor), cycle, current_time);
+        if (!scene.character_presentation_background) {
+            impl_->draw_sky_pass(scene, width, height, cr, cg, cb,
+                                 static_cast<float>(day_factor), cycle, current_time);
+        }
 
         glEnable(GL_DEPTH_TEST);
         end_matrix_snapshot(screen_snapshot);
@@ -2325,6 +2570,44 @@ void DebugRenderer::set_level_environment(float sky_r, float sky_g, float sky_b,
 void DebugRenderer::clear_level_environment() {
     if (impl_ != nullptr) {
         impl_->has_level_env = false;
+    }
+}
+
+bool DebugRenderer::set_level_skybox_texture(const std::string& texture_path) {
+    if (impl_ == nullptr || texture_path.empty()) {
+        return false;
+    }
+
+    CompiledTextureLoader loader;
+    TextureAsset texture;
+    if (!loader.load(texture_path, texture) || texture.pixels.empty()) {
+        log_warning("Unable to load level skybox '" + texture_path + "': " + loader.last_error());
+        return false;
+    }
+
+    GLuint texture_id = 0;
+    glGenTextures(1, &texture_id);
+    glBindTexture(GL_TEXTURE_2D, texture_id);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, static_cast<GLsizei>(texture.width),
+                 static_cast<GLsizei>(texture.height), 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.pixels.data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    if (impl_->skybox_texture != 0) {
+        glDeleteTextures(1, &impl_->skybox_texture);
+    }
+    impl_->skybox_texture = texture_id;
+    return true;
+}
+
+void DebugRenderer::clear_level_skybox_texture() {
+    if (impl_ != nullptr && impl_->skybox_texture != 0) {
+        glDeleteTextures(1, &impl_->skybox_texture);
+        impl_->skybox_texture = 0;
     }
 }
 

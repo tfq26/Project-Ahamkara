@@ -11,6 +11,8 @@
 #include "world_camera.h"
 
 #include "ae/collision/character.h"
+#include "ae/core/log.h"
+#include "ae/render/compiled_mesh.h"
 
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
@@ -19,6 +21,7 @@
 #include <cmath>
 #include <limits>
 #include <vector>
+#include <filesystem>
 
 namespace ahamkara::game {
 namespace {
@@ -230,6 +233,15 @@ void World::advance_sim(float delta_seconds) {
     if (muzzle_flash_timer_ > 0.0F) {
         muzzle_flash_timer_ = std::max(0.0F, muzzle_flash_timer_ - delta_seconds);
     }
+    if (!players_.empty() &&
+        (std::abs(camera_recoil_pitch_) > 0.0001F || std::abs(camera_recoil_yaw_) > 0.0001F)) {
+        const float recovery = std::min(1.0F, delta_seconds * 10.0F);
+        const float pitch_step = camera_recoil_pitch_ * recovery;
+        const float yaw_step = camera_recoil_yaw_ * recovery;
+        movement_controller_.apply_camera_recoil(players_[0].state(), -pitch_step, -yaw_step);
+        camera_recoil_pitch_ -= pitch_step;
+        camera_recoil_yaw_ -= yaw_step;
+    }
 
     int active_numbers = 0;
     for (int idx = 0; idx < damage_number_count_; ++idx) {
@@ -300,16 +312,19 @@ void World::apply_input(ae::u32 player_index, float delta_seconds, const PlayerI
     const ae::Vec3 ae_vel = jolt_->character->get_linear_velocity();
     const Vec3 current_vel {ae_vel.x, ae_vel.y, ae_vel.z};
 
+    MovementConfig movement_config {};
+    movement_config.walk_speed = cfg_walk_speed();
+    movement_config.sprint_speed = cfg_sprint_speed();
+    movement_config.jump_speed = cfg_jump_speed();
+    movement_config.gravity = cfg_gravity();
+
     movement_controller_.begin_frame(
         player.state(),
         input,
         delta_seconds,
         on_ground,
         current_vel,
-        cfg_walk_speed(),
-        cfg_sprint_speed(),
-        cfg_jump_speed(),
-        cfg_gravity());
+        movement_config);
 
     bool want_crouch = movement_controller_.crouch_active();
     {
@@ -334,7 +349,7 @@ void World::apply_input(ae::u32 player_index, float delta_seconds, const PlayerI
 
     jolt_->character->extended_update(
         delta_seconds,
-        ae::Vec3 {0.0F, -cfg_gravity(), 0.0F},
+        ae::Vec3 {0.0F, -movement_config.gravity, 0.0F},
         0.4F, // walk_stairs_step_up
         0.35F // stick_to_floor_step_down
     );
@@ -351,10 +366,9 @@ void World::apply_input(ae::u32 player_index, float delta_seconds, const PlayerI
         ae::Vec3 ae_gn = jolt_->character->get_ground_normal();
         Vec3 ground_normal = {ae_gn.x, ae_gn.y, ae_gn.z};
         float slope_deg = compute_slope_angle(ground_normal);
-        constexpr MovementConfig kDefaultCfg;
-        if (slope_deg > kDefaultCfg.max_walkable_slope) {
+        if (slope_deg > movement_config.max_walkable_slope) {
             Vec3 vel_slide = player.state().velocity;
-            apply_slope_physics(vel_slide, ground_normal, delta_seconds, kDefaultCfg);
+            apply_slope_physics(vel_slide, ground_normal, delta_seconds, movement_config);
             player.state().velocity = vel_slide;
             jolt_->character->set_linear_velocity(ae::Vec3 {vel_slide.x, vel_slide.y, vel_slide.z});
         }
@@ -452,6 +466,7 @@ bool World::is_on_ground() const {
 }
 
 void World::set_colliders(const ColliderBox* colliders, std::size_t count) {
+    owned_collision_triangles_.clear();
     colliders_ = colliders;
     collider_count_ = count;
     recreate_physics_colliders();
@@ -459,7 +474,7 @@ void World::set_colliders(const ColliderBox* colliders, std::size_t count) {
 }
 
 bool World::load_colliders_from_level(const ae::render::LevelAsset& level) {
-    if (level.collision_boxes.empty()) return false;
+    if (level.collision_boxes.empty() && level.collision_meshes.empty()) return false;
     std::vector<ColliderBox> boxes;
     boxes.reserve(level.collision_boxes.size());
     for (const auto& lcb : level.collision_boxes) {
@@ -481,7 +496,82 @@ bool World::load_colliders_from_level(const ae::render::LevelAsset& level) {
         if (jolt_ && jolt_->character)
             jolt_->character->set_position({sp.pos_x, sp.pos_y, sp.pos_z});
     }
+    if (level.name == "Caligo Surface Ruins") {
+        // The current Caligo slice doubles as a compact combat proving ground.
+        // Its targets must live in front of the authored landing position, not
+        // at the unrelated default-world locations.
+        const Vec3 target_positions[] = {
+            {0.0F, 0.35F, -9.0F},
+            {-3.0F, 0.35F, -7.0F},
+            {3.0F, 0.35F, -6.0F},
+        };
+        auto targets = registry_.view<TargetDummyComponent>();
+        int target_index = 0;
+        for (const auto entity : targets) {
+            if (target_index >= static_cast<int>(std::size(target_positions))) {
+                registry_.destroy(entity);
+                continue;
+            }
+            auto& target = targets.get<TargetDummyComponent>(entity).state;
+            target.dummy_id = static_cast<ae::u32>(target_index + 1);
+            target.position = target_positions[target_index];
+            target.start_position = target.position;
+            target.health = 150.0F;
+            target.armor = 0.0F;
+            target.alive = true;
+            target.respawn_timer = 0.0F;
+            ++target_index;
+        }
+        sync_dummies_to_array();
+    }
     owned_colliders_ = std::move(boxes);
+    owned_collision_triangles_.clear();
+    for (const auto& collision_mesh : level.collision_meshes) {
+        std::filesystem::path mesh_path(collision_mesh.mesh_asset_id);
+        if (!std::filesystem::exists(mesh_path)) {
+            mesh_path = std::filesystem::path("assets/compiled/models") / mesh_path.filename();
+        }
+        ae::render::GltfModel model;
+        ae::render::CompiledMeshLoader loader;
+        if (!loader.load(mesh_path.string(), model)) {
+            ae::log_warning_cat("Game", "Skipping collision mesh " + collision_mesh.mesh_asset_id + ": " + loader.last_error());
+            continue;
+        }
+
+        const float yaw = collision_mesh.yaw * ae::pi / 180.0F;
+        const float pitch = collision_mesh.pitch * ae::pi / 180.0F;
+        const float roll = collision_mesh.roll * ae::pi / 180.0F;
+        const float cy = std::cos(yaw), sy = std::sin(yaw);
+        const float cp = std::cos(pitch), sp = std::sin(pitch);
+        const float cr = std::cos(roll), sr = std::sin(roll);
+        const auto transform = [&](float x, float y, float z) {
+            // Match render-side Ry * Rx * Rz composition.
+            const float rz_x = cr * x - sr * y;
+            const float rz_y = sr * x + cr * y;
+            const float rz_z = z;
+            const float rx_x = rz_x;
+            const float rx_y = cp * rz_y - sp * rz_z;
+            const float rx_z = sp * rz_y + cp * rz_z;
+            return ae::Vec3{
+                cy * rx_x + sy * rx_z + collision_mesh.pos_x,
+                rx_y + collision_mesh.pos_y,
+                -sy * rx_x + cy * rx_z + collision_mesh.pos_z};
+        };
+        for (const auto& mesh : model.meshes) {
+            if (mesh.positions.size() < 3 || mesh.indices.size() < 3) continue;
+            for (std::size_t i = 0; i + 2 < mesh.indices.size(); i += 3) {
+                const auto vertex = [&](std::uint32_t index) {
+                    const std::size_t offset = static_cast<std::size_t>(index) * 3;
+                    if (offset + 2 >= mesh.positions.size()) return ae::Vec3{};
+                    return transform(mesh.positions[offset] * collision_mesh.scale_x,
+                                     mesh.positions[offset + 1] * collision_mesh.scale_y,
+                                     mesh.positions[offset + 2] * collision_mesh.scale_z);
+                };
+                owned_collision_triangles_.push_back({
+                    vertex(mesh.indices[i]), vertex(mesh.indices[i + 1]), vertex(mesh.indices[i + 2])});
+            }
+        }
+    }
     colliders_ = owned_colliders_.data();
     collider_count_ = owned_colliders_.size();
     recreate_physics_colliders();
@@ -533,7 +623,8 @@ void World::tick_weapon(float delta_seconds, bool fire_held, ae::u32 index) {
 
 void World::recreate_physics_colliders() {
     if (!jolt_) return;
-    rebuild_jolt_colliders(*jolt_, colliders_, collider_count_, dummies_, dummy_count_, jolt_->standing_shape);
+    rebuild_jolt_colliders(*jolt_, colliders_, collider_count_, owned_collision_triangles_.data(),
+                           owned_collision_triangles_.size(), dummies_, dummy_count_, jolt_->standing_shape);
 }
 
 // --- Projectiles (delegated) --------------------------------------------------
@@ -639,6 +730,19 @@ HistoricalState World::get_historical_state(ae::u32 target_tick) const {
         }
     }
     return history_buffer_[best_idx];
+}
+
+void World::apply_weapon_camera_recoil(float pitch_up_degrees, float yaw_degrees) {
+    if (players_.empty()) {
+        return;
+    }
+    // Positive authored pitch means the muzzle climbs. Camera pitch uses the
+    // opposite sign (negative pitch looks upward), so retain the applied
+    // offsets and ease them back during advance_sim().
+    const float pitch_delta = -pitch_up_degrees;
+    camera_recoil_pitch_ += pitch_delta;
+    camera_recoil_yaw_ += yaw_degrees;
+    movement_controller_.apply_camera_recoil(players_[0].state(), pitch_delta, yaw_degrees);
 }
 
 void World::spawn_muzzle_particles(const Vec3& position, const Vec3& forward) {

@@ -31,6 +31,9 @@ inline ae::skeleton::Skin to_skeleton_skin(const GltfSkin& skin) {
         j.name = joint.name;
         j.node_index = joint.node_index;
         j.parent_index = joint.parent_index;
+        j.bind_translation = joint.bind_translation;
+        j.bind_rotation = joint.bind_rotation;
+        j.bind_scale = joint.bind_scale;
         j.inverse_bind_matrix = ae::skeleton::Mat4::identity();
         if (joint.inverse_bind_matrix.size() >= 16U) {
             for (int e = 0; e < 16; ++e) {

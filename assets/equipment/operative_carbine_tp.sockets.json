@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "asset": "models/operative_carbine_tp.gltf",
+  "coordinate_space": "weapon_local_meters",
+  "sockets": {
+    "weapon_root": [0.0, 0.0, 0.0],
+    "right_hand_grip": [0.0, 0.0, 0.0],
+    "left_hand_grip": [0.255, 0.0, 0.075],
+    "stock_shoulder": [-0.245, 0.0, 0.055],
+    "muzzle": [0.61, 0.0, 0.12],
+    "optic": [0.02, 0.0, 0.15],
+    "magazine": [0.15, 0.0, -0.09]
+  },
+  "notes": "The weapon root is the dominant-hand pistol grip. The stock_shoulder socket is seated first; both hands are then solved to their authored grip sockets."
+}

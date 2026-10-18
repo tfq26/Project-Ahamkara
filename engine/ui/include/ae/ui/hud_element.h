@@ -23,6 +23,7 @@ struct HudState {
     int reserve_ammo{150};
     int weapon_index{0};
     const char* weapon_name{"AR-15"};
+    bool is_reloading{false};
 
     // Abilities
     bool grenade_available{true};
@@ -100,6 +101,22 @@ private:
 };
 
 class HudCrosshair : public HudElement {
+public:
+    void render(float sw, float sh, const HudState& state) override;
+};
+
+/// Consolidated lower-left combat readout. Keeps vitals, abilities, weapon
+/// identity, and ammunition in one visual scan path instead of scattering
+/// unrelated widgets around the viewport.
+class HudCombatCluster : public HudElement {
+public:
+    void render(float sw, float sh, const HudState& state) override;
+};
+
+/// A split, low-profile first-person HUD: survivability and abilities sit at
+/// lower-left, while weapon telemetry stays lower-right. The center remains
+/// intentionally clear for target acquisition.
+class HudFieldFrame : public HudElement {
 public:
     void render(float sw, float sh, const HudState& state) override;
 };

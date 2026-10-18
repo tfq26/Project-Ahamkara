@@ -8,8 +8,8 @@ namespace ae::render {
 
 struct CompiledMeshFormat {
     static constexpr std::uint32_t magic = 0x4853454D;
-    // v2 appends per-mesh UVs at the end of each mesh record (v1 is a prefix).
-    static constexpr std::uint32_t version = 2;
+    // v2 appends per-mesh UVs; v3 preserves each skin joint's bind-pose TRS.
+    static constexpr std::uint32_t version = 3;
 };
 
 [[nodiscard]] bool save_compiled_mesh(const std::string& path, const GltfModel& model, std::string& error);

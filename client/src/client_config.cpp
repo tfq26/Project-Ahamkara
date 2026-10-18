@@ -118,6 +118,20 @@ void apply_line(std::string_view line, ClientConfig& config) {
         return;
     }
 
+    auto parse_character_color = [&](float& target) {
+        const std::string value_str {value};
+        char* end = nullptr;
+        const float parsed = std::strtof(value_str.c_str(), &end);
+        if (end != value_str.c_str() && parsed >= 0.0F && parsed <= 1.0F) {
+            target = parsed;
+        } else {
+            ae::log_warning("Config character color is out of range, keeping default.");
+        }
+    };
+    if (key == "suit_color_r") { parse_character_color(config.character.suit_color_r); return; }
+    if (key == "suit_color_g") { parse_character_color(config.character.suit_color_g); return; }
+    if (key == "suit_color_b") { parse_character_color(config.character.suit_color_b); return; }
+
     // --- Audio keys ---
     auto parse_audio_float = [&](float& target, float min_val, float max_val) {
         const std::string value_str {value};
@@ -181,6 +195,9 @@ bool ClientConfig::save_to_file(const std::string& path) const {
     file << "gamma=" << gamma << "\n";
     file << "mouse_sensitivity=" << mouse_sensitivity << "\n";
     file << "server_ip=" << server_ip << "\n";
+    file << "suit_color_r=" << character.suit_color_r << "\n";
+    file << "suit_color_g=" << character.suit_color_g << "\n";
+    file << "suit_color_b=" << character.suit_color_b << "\n";
     file << "audio_enabled=" << (audio.enabled ? "true" : "false") << "\n";
     file << "audio_master_volume=" << audio.master_volume << "\n";
     file << "audio_sfx_volume=" << audio.sfx_volume << "\n";

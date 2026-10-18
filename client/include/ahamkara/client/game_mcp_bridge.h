@@ -23,6 +23,9 @@ class GameMcpBridge final {
         std::filesystem::path root;
         std::string token;
         std::size_t max_commands_per_frame {1};
+        /// Keeps the ordinary player camera for opt-in first-person visual QA.
+        /// Default MCP captures use the safer external validation camera.
+        bool first_person_camera {false};
     };
 
     static std::optional<Config> config_from_environment();
@@ -53,6 +56,10 @@ class GameMcpBridge final {
 
     [[nodiscard]] bool running() const {
         return running_;
+    }
+
+    [[nodiscard]] bool first_person_camera() const {
+        return config_.first_person_camera;
     }
 
   private:

@@ -104,6 +104,7 @@ std::optional<GameMcpBridge::Config> GameMcpBridge::config_from_environment() {
     Config config;
     config.root = std::filesystem::absolute(root);
     config.token = token;
+    config.first_person_camera = enabled_value(std::getenv("AHAMKARA_GAME_MCP_FIRST_PERSON"));
     return config;
 }
 

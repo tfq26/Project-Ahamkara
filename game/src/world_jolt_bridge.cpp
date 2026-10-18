@@ -7,6 +7,8 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 
+#include <limits>
+
 namespace ahamkara::game {
 
 // ============================================================
@@ -76,6 +78,8 @@ void rebuild_jolt_colliders(
     JoltWorldImpl& jolt,
     const ColliderBox* colliders,
     std::size_t collider_count,
+    const ae::collision::Triangle* collision_triangles,
+    std::size_t collision_triangle_count,
     const TargetDummyState* dummies,
     int dummy_count,
     const JPH::RefConst<JPH::Shape>& /*standing_shape*/) {
@@ -127,6 +131,34 @@ void rebuild_jolt_colliders(
 
         JPH::BodyID body_id = bi.CreateAndAddBody(body_settings, JPH::EActivation::DontActivate);
         jolt.map_bodies.push_back(body_id);
+    }
+
+    if (collision_triangles && collision_triangle_count > 0) {
+        JPH::VertexList vertices;
+        JPH::IndexedTriangleList indices;
+        vertices.reserve(collision_triangle_count * 3);
+        indices.reserve(collision_triangle_count);
+        for (std::size_t i = 0; i < collision_triangle_count; ++i) {
+            const auto& triangle = collision_triangles[i];
+            vertices.push_back({triangle.v0.x, triangle.v0.y, triangle.v0.z});
+            vertices.push_back({triangle.v1.x, triangle.v1.y, triangle.v1.z});
+            vertices.push_back({triangle.v2.x, triangle.v2.y, triangle.v2.z});
+            indices.emplace_back(static_cast<JPH::uint32>(i * 3),
+                                 static_cast<JPH::uint32>(i * 3 + 1),
+                                 static_cast<JPH::uint32>(i * 3 + 2), 0);
+        }
+        JPH::MeshShapeSettings shape_settings(std::move(vertices), std::move(indices));
+        const auto shape_result = shape_settings.Create();
+        if (shape_result.IsValid()) {
+            JPH::BodyCreationSettings body_settings(
+                shape_result.Get(), JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
+                JPH::EMotionType::Static,
+                ae::collision::jolt_helpers::kJoltLayerStatic);
+            // Mesh bodies do not map to jump-through box metadata.
+            body_settings.mUserData = std::numeric_limits<JPH::uint64>::max();
+            const JPH::BodyID body_id = bi.CreateAndAddBody(body_settings, JPH::EActivation::DontActivate);
+            jolt.map_bodies.push_back(body_id);
+        }
     }
 
     // Create dummy bodies (kinematic capsules) using engine-defined layers

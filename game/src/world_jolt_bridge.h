@@ -7,6 +7,7 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
@@ -78,6 +79,8 @@ void rebuild_jolt_colliders(
     JoltWorldImpl& jolt,
     const ColliderBox* colliders,
     std::size_t collider_count,
+    const ae::collision::Triangle* collision_triangles,
+    std::size_t collision_triangle_count,
     const TargetDummyState* dummies,
     int dummy_count,
     const JPH::RefConst<JPH::Shape>& standing_shape);
