@@ -177,10 +177,10 @@ static void test_console_unregister_command() {
     // Register a test command
     bool called = false;
     console.register_command("test_cmd", "Test command",
-        [&called](const std::vector<std::string>&, ae::Console& self) {
-            called = true;
-            self.print("test_cmd executed");
-        });
+                             [&called](const std::vector<std::string>&, ae::Console& self) {
+                                 called = true;
+                                 self.print("test_cmd executed");
+                             });
 
     console.execute("test_cmd");
     TEST("registered command executes");
@@ -284,9 +284,7 @@ static void test_config_reload_invalid_file_preserves_old_state() {
 
     // Register a test cvar
     std::string current_value = "original";
-    registry.register_var("test.reload_var",
-        [&current_value](std::string_view v) { current_value = std::string(v); },
-        [&current_value]() { return current_value; });
+    registry.register_var("test.reload_var", [&current_value](std::string_view v) { current_value = std::string(v); }, [&current_value]() { return current_value; });
 
     // Create a temp valid config file
     std::string tmp_path = std::filesystem::temp_directory_path().string() + "/ahamkara_test_config.cfg";
@@ -344,9 +342,7 @@ static void test_config_reload_nonexistent_file() {
 
     // Register a test cvar
     std::string current_value = "persistent_value";
-    registry.register_var("test.nonexistent_reload",
-        [&current_value](std::string_view v) { current_value = std::string(v); },
-        [&current_value]() { return current_value; });
+    registry.register_var("test.nonexistent_reload", [&current_value](std::string_view v) { current_value = std::string(v); }, [&current_value]() { return current_value; });
 
     // Try to reload from a nonexistent file
     std::string bad_path = "/tmp/ahamkara_nonexistent_file_xyz.cfg";

@@ -33,4 +33,4 @@ inline constexpr bool is_abi_compatible(AbiVersion consumer, AbiVersion producer
            consumer.patch <= producer.patch;
 }
 
-}  // namespace ae
+} // namespace ae

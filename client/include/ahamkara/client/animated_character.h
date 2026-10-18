@@ -18,7 +18,7 @@ struct CharacterCustomization;
 /// world assets while CharacterCustomization remains the one appearance source
 /// shared by every presentation instance.
 class AnimatedCharacter {
-public:
+  public:
     enum class Motion {
         Idle,
         Walk,
@@ -49,12 +49,20 @@ public:
                        const float* projection_matrix,
                        const float* model_matrix);
 
-    [[nodiscard]] bool ready() const { return ready_; }
-    [[nodiscard]] int joint_count() const { return animation_.joint_count(); }
-    [[nodiscard]] std::string_view current_clip() const { return animation_.current_clip(); }
-    [[nodiscard]] Motion motion() const { return motion_; }
+    [[nodiscard]] bool ready() const {
+        return ready_;
+    }
+    [[nodiscard]] int joint_count() const {
+        return animation_.joint_count();
+    }
+    [[nodiscard]] std::string_view current_clip() const {
+        return animation_.current_clip();
+    }
+    [[nodiscard]] Motion motion() const {
+        return motion_;
+    }
 
-private:
+  private:
     ae::render::RenderBackend* backend_ {nullptr};
     ae::render::GltfModel cpu_model_ {};
     ae::render::GpuModel gpu_model_ {};

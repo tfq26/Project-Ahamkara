@@ -401,13 +401,13 @@ void read_accessor_data(const std::vector<std::uint8_t>& buffer_data,
                 std::uint16_t bits = 0;
                 std::memcpy(&bits, &buffer_data[byte_pos], 2);
                 val = accessor.normalized
-                    ? static_cast<double>(bits) / 65535.0
-                    : static_cast<double>(bits);
+                          ? static_cast<double>(bits) / 65535.0
+                          : static_cast<double>(bits);
             } else if (accessor.component_type == 5121) { // UNSIGNED_BYTE
                 const auto bits = buffer_data[byte_pos];
                 val = accessor.normalized
-                    ? static_cast<double>(bits) / 255.0
-                    : static_cast<double>(bits);
+                          ? static_cast<double>(bits) / 255.0
+                          : static_cast<double>(bits);
             } else if (accessor.component_type == 5125) { // UNSIGNED_INT
                 std::uint32_t bits = 0;
                 std::memcpy(&bits, &buffer_data[byte_pos], 4);
@@ -416,14 +416,14 @@ void read_accessor_data(const std::vector<std::uint8_t>& buffer_data,
                 std::int16_t bits = 0;
                 std::memcpy(&bits, &buffer_data[byte_pos], 2);
                 val = accessor.normalized
-                    ? std::max(static_cast<double>(bits) / 32767.0, -1.0)
-                    : static_cast<double>(bits);
+                          ? std::max(static_cast<double>(bits) / 32767.0, -1.0)
+                          : static_cast<double>(bits);
             } else if (accessor.component_type == 5120) { // BYTE
                 std::int8_t bits = 0;
                 std::memcpy(&bits, &buffer_data[byte_pos], 1);
                 val = accessor.normalized
-                    ? std::max(static_cast<double>(bits) / 127.0, -1.0)
-                    : static_cast<double>(bits);
+                          ? std::max(static_cast<double>(bits) / 127.0, -1.0)
+                          : static_cast<double>(bits);
             }
             out[static_cast<std::size_t>(i * comp_count + c)] = static_cast<T>(val);
         }

@@ -32,7 +32,7 @@ static void test_menu_screen_enum_has_docs() {
 }
 
 static void test_menu_state_defaults() {
-    ae::ui::MenuState state{};
+    ae::ui::MenuState state {};
     assert(!state.visible);
     assert(state.screen == ae::ui::MenuScreen::MainMenu);
     std::cout << "test_menu_state_defaults passed.\n";
@@ -42,7 +42,7 @@ static void test_render_docs_viewer_back_navigation() {
     // Simulate the back-button contract: render_docs_viewer sets screen to
     // PauseOverlay when the back button is pressed. We can't easily instantiate
     // ImGui in a unit test, so we verify the public API contract via the enum.
-    ae::ui::MenuState state{};
+    ae::ui::MenuState state {};
     state.screen = ae::ui::MenuScreen::Docs;
     state.visible = true;
 
@@ -56,7 +56,7 @@ static void test_render_docs_viewer_back_navigation() {
 
 static void test_docs_screen_transition_from_pause() {
     // Validate that the Docs screen can be reached from PauseOverlay.
-    ae::ui::MenuState state{};
+    ae::ui::MenuState state {};
     state.screen = ae::ui::MenuScreen::PauseOverlay;
     state.screen = ae::ui::MenuScreen::Docs;
     assert(state.screen == ae::ui::MenuScreen::Docs);

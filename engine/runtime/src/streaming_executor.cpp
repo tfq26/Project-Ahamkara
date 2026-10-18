@@ -10,7 +10,7 @@ namespace ae {
 // =============================================================================
 
 StreamingResidencyExecutor::StreamingResidencyExecutor()
-    : StreamingResidencyExecutor(Config{}) {}
+    : StreamingResidencyExecutor(Config {}) {}
 
 StreamingResidencyExecutor::StreamingResidencyExecutor(Config config)
     : config_(config) {}
@@ -32,8 +32,7 @@ void StreamingResidencyExecutor::set_loader(std::unique_ptr<IRegionLoader> loade
 }
 
 void StreamingResidencyExecutor::process_transitions(
-    const std::vector<RegionTransition>& transitions)
-{
+    const std::vector<RegionTransition>& transitions) {
     for (const auto& t : transitions) {
         if (t.load) {
             // --- Load transition ---
@@ -64,7 +63,8 @@ void StreamingResidencyExecutor::process_transitions(
         } else {
             // --- Unload transition ---
             RegionEntry* existing = find_entry(t.coord);
-            if (!existing) continue;  // Nothing to unload.
+            if (!existing)
+                continue; // Nothing to unload.
 
             switch (existing->state) {
             case RegionState::Requested:
@@ -98,7 +98,8 @@ void StreamingResidencyExecutor::process_transitions(
 }
 
 void StreamingResidencyExecutor::tick() {
-    if (!loader_) return;
+    if (!loader_)
+        return;
 
     // -----------------------------------------------------------------
     // 1. Drain completion queue
@@ -111,7 +112,8 @@ void StreamingResidencyExecutor::tick() {
         }
         for (auto& pc : batch) {
             RegionEntry* entry = find_entry(pc.coord);
-            if (!entry) continue;
+            if (!entry)
+                continue;
 
             if (entry->state == RegionState::Loading) {
                 if (pc.success) {
@@ -141,8 +143,7 @@ void StreamingResidencyExecutor::tick() {
     // -----------------------------------------------------------------
     for (auto& entry : regions_) {
         if (entry.state == RegionState::Failed &&
-            entry.retry_count < config_.max_retry_count)
-        {
+            entry.retry_count < config_.max_retry_count) {
             entry.state = RegionState::Requested;
         }
     }
@@ -170,8 +171,7 @@ void StreamingResidencyExecutor::tick() {
     // -----------------------------------------------------------------
     for (auto& entry : regions_) {
         if (entry.state == RegionState::Requested &&
-            in_flight_count_ < config_.max_in_flight_loads)
-        {
+            in_flight_count_ < config_.max_in_flight_loads) {
             try_dispatch_load(entry);
             // If dispatch succeeded, in_flight_count_ is incremented and
             // state is now Loading.  Check budget again for next entry.
@@ -213,7 +213,8 @@ void StreamingResidencyExecutor::commit() {
 
 RegionState StreamingResidencyExecutor::state(RegionCoord coord) const {
     for (const auto& entry : regions_) {
-        if (entry.coord == coord) return entry.state;
+        if (entry.coord == coord)
+            return entry.state;
     }
     return RegionState::None;
 }
@@ -230,7 +231,8 @@ RegionData StreamingResidencyExecutor::data(RegionCoord coord) const {
 int StreamingResidencyExecutor::resident_count() const {
     int n = 0;
     for (const auto& entry : regions_) {
-        if (entry.state == RegionState::Resident) ++n;
+        if (entry.state == RegionState::Resident)
+            ++n;
     }
     return n;
 }
@@ -240,7 +242,8 @@ int StreamingResidencyExecutor::resident_count() const {
 StreamingResidencyExecutor::RegionEntry*
 StreamingResidencyExecutor::find_entry(RegionCoord coord) {
     for (auto& entry : regions_) {
-        if (entry.coord == coord) return &entry;
+        if (entry.coord == coord)
+            return &entry;
     }
     return nullptr;
 }
@@ -248,12 +251,14 @@ StreamingResidencyExecutor::find_entry(RegionCoord coord) {
 StreamingResidencyExecutor::RegionEntry&
 StreamingResidencyExecutor::get_or_create_entry(RegionCoord coord) {
     RegionEntry* existing = find_entry(coord);
-    if (existing) return *existing;
+    if (existing)
+        return *existing;
     return regions_.emplace_back();
 }
 
 void StreamingResidencyExecutor::try_dispatch_load(RegionEntry& entry) {
-    if (!loader_) return;
+    if (!loader_)
+        return;
 
     auto on_complete = [this, coord = entry.coord](RegionData loaded_data) {
         PendingCompletion pc;
@@ -306,4 +311,4 @@ void StreamingResidencyExecutor::discard_entry(RegionEntry& entry) {
     entry.retry_count = 0;
 }
 
-}  // namespace ae
+} // namespace ae

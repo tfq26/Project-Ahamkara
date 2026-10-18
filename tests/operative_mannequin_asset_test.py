@@ -4,7 +4,6 @@
 import json
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 ASSET = ROOT / "assets/models/operative_mannequin.gltf"
 
@@ -16,8 +15,14 @@ def main() -> int:
     assert 15 <= len(joints) <= 32
     animations = {animation["name"]: animation for animation in model.get("animations", [])}
     required = {
-        "profile_stance", "crouch_idle", "jump_takeoff", "airborne_loop",
-        "float_loop", "land_soft", "locomotion_walk", "dance_placeholder",
+        "profile_stance",
+        "crouch_idle",
+        "jump_takeoff",
+        "airborne_loop",
+        "float_loop",
+        "land_soft",
+        "locomotion_walk",
+        "dance_placeholder",
     }
     assert required <= animations.keys()
     assert all(len(animations[name]["channels"]) >= len(joints) * 3 for name in required)

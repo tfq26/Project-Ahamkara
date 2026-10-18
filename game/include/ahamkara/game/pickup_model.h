@@ -20,28 +20,28 @@ namespace ahamkara::game {
 /// loadout, and ability state.
 enum class PickupType : std::uint8_t {
     // --- Ammo ---
-    PrimaryAmmo = 0,     ///< Primary weapon ammo (e.g. auto rifle rounds)
-    SecondaryAmmo = 1,   ///< Secondary weapon ammo (e.g. sidearm rounds)
-    HeavyAmmo = 2,       ///< Heavy weapon ammo (e.g. rocket, sniper)
-    SpecialAmmo = 3,     ///< Special weapon ammo (e.g. fusion, grenade launcher)
+    PrimaryAmmo = 0,   ///< Primary weapon ammo (e.g. auto rifle rounds)
+    SecondaryAmmo = 1, ///< Secondary weapon ammo (e.g. sidearm rounds)
+    HeavyAmmo = 2,     ///< Heavy weapon ammo (e.g. rocket, sniper)
+    SpecialAmmo = 3,   ///< Special weapon ammo (e.g. fusion, grenade launcher)
 
     // --- Health & Shield ---
-    HealthPack = 4,      ///< Small health restore (e.g. +30 HP)
-    LargeHealth = 5,     ///< Full health restore
-    ShieldCharge = 6,    ///< Shield restoration (e.g. +50 shield)
+    HealthPack = 4,   ///< Small health restore (e.g. +30 HP)
+    LargeHealth = 5,  ///< Full health restore
+    ShieldCharge = 6, ///< Shield restoration (e.g. +50 shield)
 
     // --- Equipment ---
-    WeaponDrop = 7,      ///< A new weapon item
-    ArmorDrop = 8,       ///< A new armor piece
-    PerkDrop = 9,        ///< A perk/mod item
+    WeaponDrop = 7, ///< A new weapon item
+    ArmorDrop = 8,  ///< A new armor piece
+    PerkDrop = 9,   ///< A perk/mod item
 
     // --- Ability Charges ---
     GrenadeCharge = 10,  ///< Restores one grenade charge
     UltimateEnergy = 11, ///< Grants ultimate energy (0.0 – 1.0)
 
     // --- Progression Currency ---
-    XPOrb = 12,          ///< Experience point award
-    Currency = 13,       ///< In-game currency (glimmer, credits)
+    XPOrb = 12,    ///< Experience point award
+    Currency = 13, ///< In-game currency (glimmer, credits)
 
     // Sentinel — not a real pickup
     Count = 14
@@ -49,12 +49,12 @@ enum class PickupType : std::uint8_t {
 
 /// Result of attempting to grant a reward to a player.
 enum class GrantResult : std::uint8_t {
-    Granted = 0,          ///< Reward was successfully applied
-    InventoryFull = 1,    ///< Inventory has no capacity for this item
-    Duplicate = 2,        ///< This grant was already processed (idempotency)
-    AtCap = 3,            ///< Resource is at its maximum (e.g. full health, max ammo)
-    Blocked = 4,          ///< Game rules prevent granting this reward
-    Invalid = 5,          ///< Grant parameters are invalid
+    Granted = 0,       ///< Reward was successfully applied
+    InventoryFull = 1, ///< Inventory has no capacity for this item
+    Duplicate = 2,     ///< This grant was already processed (idempotency)
+    AtCap = 3,         ///< Resource is at its maximum (e.g. full health, max ammo)
+    Blocked = 4,       ///< Game rules prevent granting this reward
+    Invalid = 5,       ///< Grant parameters are invalid
 };
 
 // ===========================================================================
@@ -67,9 +67,9 @@ enum class GrantResult : std::uint8_t {
 /// is unique across the entire game lifetime.  Every grant is recorded in the
 /// progression snapshot so replays and reconnections never double-grant.
 struct GrantId {
-    ae::u64 source_id {0};         ///< Entity/event that generated this grant
-    ae::u32 play_session_id {0};   ///< The play session that produced it
-    ae::u32 sequence {0};          ///< Monotonic counter within the session
+    ae::u64 source_id {0};       ///< Entity/event that generated this grant
+    ae::u32 play_session_id {0}; ///< The play session that produced it
+    ae::u32 sequence {0};        ///< Monotonic counter within the session
 
     /// Human-readable string suitable for storage keys.
     [[nodiscard]] std::string to_string() const;
@@ -84,7 +84,9 @@ struct GrantId {
                play_session_id == o.play_session_id &&
                sequence == o.sequence;
     }
-    bool operator!=(const GrantId& o) const { return !(*this == o); }
+    bool operator!=(const GrantId& o) const {
+        return !(*this == o);
+    }
 };
 
 // ===========================================================================
@@ -92,10 +94,10 @@ struct GrantId {
 // ===========================================================================
 
 struct RewardGrant {
-    GrantId id {};                        ///< Stable identity for idempotency
-    PickupType type {PickupType::Count};  ///< What kind of reward
-    float quantity {0.0F};                ///< Amount (ammo count, health, XP, etc.)
-    ae::u32 item_def_id {0};              ///< Item definition ID (for WeaponDrop/ArmorDrop/PerkDrop)
+    GrantId id {};                       ///< Stable identity for idempotency
+    PickupType type {PickupType::Count}; ///< What kind of reward
+    float quantity {0.0F};               ///< Amount (ammo count, health, XP, etc.)
+    ae::u32 item_def_id {0};             ///< Item definition ID (for WeaponDrop/ArmorDrop/PerkDrop)
 
     /// Returns true if the grant has a valid type and positive quantity.
     [[nodiscard]] bool is_valid() const;
@@ -107,9 +109,9 @@ struct RewardGrant {
 
 /// Limits for inventory sizing.
 struct InventoryLimits {
-    static constexpr ae::u32 kMaxWeaponSlots = 10;      ///< Max unique weapon items
-    static constexpr ae::u32 kMaxArmorSlots = 5;        ///< One per armor slot
-    static constexpr ae::u32 kMaxPerks = 20;             ///< Passive perks/mods
+    static constexpr ae::u32 kMaxWeaponSlots = 10;         ///< Max unique weapon items
+    static constexpr ae::u32 kMaxArmorSlots = 5;           ///< One per armor slot
+    static constexpr ae::u32 kMaxPerks = 20;               ///< Passive perks/mods
     static constexpr ae::u32 kMaxProcessedGrantIds = 1024; ///< Idempotency ring buffer size
 
     /// Max number of inventory entries for a given item type.
@@ -117,15 +119,17 @@ struct InventoryLimits {
 };
 
 struct InventoryEntry {
-    ae::u32 item_definition_id {0};  ///< Item definition (from ItemRegistry)
-    ae::u32 stack_count {1};         ///< Stack count (for consumables)
-    bool is_equipped {false};        ///< Currently equipped in loadout
-    ae::u64 instance_id {0};         ///< Unique instance identifier
+    ae::u32 item_definition_id {0}; ///< Item definition (from ItemRegistry)
+    ae::u32 stack_count {1};        ///< Stack count (for consumables)
+    bool is_equipped {false};       ///< Currently equipped in loadout
+    ae::u64 instance_id {0};        ///< Unique instance identifier
 
     bool operator==(const InventoryEntry& o) const {
         return instance_id == o.instance_id;
     }
-    bool operator!=(const InventoryEntry& o) const { return !(*this == o); }
+    bool operator!=(const InventoryEntry& o) const {
+        return !(*this == o);
+    }
 };
 
 // ===========================================================================
@@ -133,80 +137,156 @@ struct InventoryEntry {
 // ===========================================================================
 
 class Inventory {
-public:
+  public:
     Inventory() = default;
 
     // --- Weapon inventory ---
-    [[nodiscard]] const std::vector<InventoryEntry>& weapons() const { return weapons_; }
-    [[nodiscard]] std::vector<InventoryEntry>& weapons() { return weapons_; }
+    [[nodiscard]] const std::vector<InventoryEntry>& weapons() const {
+        return weapons_;
+    }
+    [[nodiscard]] std::vector<InventoryEntry>& weapons() {
+        return weapons_;
+    }
     [[nodiscard]] bool has_weapon(ae::u32 definition_id) const;
     [[nodiscard]] bool weapons_full() const;
     bool add_weapon(const InventoryEntry& entry);
     bool remove_weapon(ae::u64 instance_id);
 
     // --- Armor inventory ---
-    [[nodiscard]] const std::vector<InventoryEntry>& armor() const { return armor_; }
-    [[nodiscard]] std::vector<InventoryEntry>& armor() { return armor_; }
+    [[nodiscard]] const std::vector<InventoryEntry>& armor() const {
+        return armor_;
+    }
+    [[nodiscard]] std::vector<InventoryEntry>& armor() {
+        return armor_;
+    }
     [[nodiscard]] bool has_armor(ae::u32 definition_id) const;
     [[nodiscard]] bool armor_full() const;
     bool add_armor(const InventoryEntry& entry);
     bool remove_armor(ae::u64 instance_id);
 
     // --- Perk inventory ---
-    [[nodiscard]] const std::vector<InventoryEntry>& perks() const { return perks_; }
-    [[nodiscard]] std::vector<InventoryEntry>& perks() { return perks_; }
+    [[nodiscard]] const std::vector<InventoryEntry>& perks() const {
+        return perks_;
+    }
+    [[nodiscard]] std::vector<InventoryEntry>& perks() {
+        return perks_;
+    }
     [[nodiscard]] bool has_perk(ae::u32 definition_id) const;
     [[nodiscard]] bool perks_full() const;
     bool add_perk(const InventoryEntry& entry);
     bool remove_perk(ae::u64 instance_id);
 
     // --- Per-resource caps ---
-    [[nodiscard]] float current_health() const { return current_health_; }
-    void set_current_health(float v) { current_health_ = v; }
-    [[nodiscard]] float max_health() const { return max_health_; }
-    void set_max_health(float v) { max_health_ = v; }
+    [[nodiscard]] float current_health() const {
+        return current_health_;
+    }
+    void set_current_health(float v) {
+        current_health_ = v;
+    }
+    [[nodiscard]] float max_health() const {
+        return max_health_;
+    }
+    void set_max_health(float v) {
+        max_health_ = v;
+    }
 
-    [[nodiscard]] float current_shield() const { return current_shield_; }
-    void set_current_shield(float v) { current_shield_ = v; }
-    [[nodiscard]] float max_shield() const { return max_shield_; }
-    void set_max_shield(float v) { max_shield_ = v; }
+    [[nodiscard]] float current_shield() const {
+        return current_shield_;
+    }
+    void set_current_shield(float v) {
+        current_shield_ = v;
+    }
+    [[nodiscard]] float max_shield() const {
+        return max_shield_;
+    }
+    void set_max_shield(float v) {
+        max_shield_ = v;
+    }
 
-    [[nodiscard]] int primary_ammo() const { return ammo_primary_; }
-    void set_primary_ammo(int v) { ammo_primary_ = std::max(0, v); }
-    [[nodiscard]] int max_primary_ammo() const { return max_ammo_primary_; }
-    void set_max_primary_ammo(int v) { max_ammo_primary_ = v; }
+    [[nodiscard]] int primary_ammo() const {
+        return ammo_primary_;
+    }
+    void set_primary_ammo(int v) {
+        ammo_primary_ = std::max(0, v);
+    }
+    [[nodiscard]] int max_primary_ammo() const {
+        return max_ammo_primary_;
+    }
+    void set_max_primary_ammo(int v) {
+        max_ammo_primary_ = v;
+    }
 
-    [[nodiscard]] int secondary_ammo() const { return ammo_secondary_; }
-    void set_secondary_ammo(int v) { ammo_secondary_ = std::max(0, v); }
-    [[nodiscard]] int max_secondary_ammo() const { return max_ammo_secondary_; }
-    void set_max_secondary_ammo(int v) { max_ammo_secondary_ = v; }
+    [[nodiscard]] int secondary_ammo() const {
+        return ammo_secondary_;
+    }
+    void set_secondary_ammo(int v) {
+        ammo_secondary_ = std::max(0, v);
+    }
+    [[nodiscard]] int max_secondary_ammo() const {
+        return max_ammo_secondary_;
+    }
+    void set_max_secondary_ammo(int v) {
+        max_ammo_secondary_ = v;
+    }
 
-    [[nodiscard]] int heavy_ammo() const { return ammo_heavy_; }
-    void set_heavy_ammo(int v) { ammo_heavy_ = std::max(0, v); }
-    [[nodiscard]] int max_heavy_ammo() const { return max_ammo_heavy_; }
-    void set_max_heavy_ammo(int v) { max_ammo_heavy_ = v; }
+    [[nodiscard]] int heavy_ammo() const {
+        return ammo_heavy_;
+    }
+    void set_heavy_ammo(int v) {
+        ammo_heavy_ = std::max(0, v);
+    }
+    [[nodiscard]] int max_heavy_ammo() const {
+        return max_ammo_heavy_;
+    }
+    void set_max_heavy_ammo(int v) {
+        max_ammo_heavy_ = v;
+    }
 
-    [[nodiscard]] int special_ammo() const { return ammo_special_; }
-    void set_special_ammo(int v) { ammo_special_ = std::max(0, v); }
-    [[nodiscard]] int max_special_ammo() const { return max_ammo_special_; }
-    void set_max_special_ammo(int v) { max_ammo_special_ = v; }
+    [[nodiscard]] int special_ammo() const {
+        return ammo_special_;
+    }
+    void set_special_ammo(int v) {
+        ammo_special_ = std::max(0, v);
+    }
+    [[nodiscard]] int max_special_ammo() const {
+        return max_ammo_special_;
+    }
+    void set_max_special_ammo(int v) {
+        max_ammo_special_ = v;
+    }
 
-    [[nodiscard]] int grenade_count() const { return grenade_count_; }
-    void set_grenade_count(int v) { grenade_count_ = std::max(0, v); }
+    [[nodiscard]] int grenade_count() const {
+        return grenade_count_;
+    }
+    void set_grenade_count(int v) {
+        grenade_count_ = std::max(0, v);
+    }
     static constexpr int kMaxGrenades = 2;
 
-    [[nodiscard]] float ultimate_charge() const { return ultimate_charge_; }
-    void set_ultimate_charge(float v) { ultimate_charge_ = std::clamp(v, 0.0F, 1.0F); }
+    [[nodiscard]] float ultimate_charge() const {
+        return ultimate_charge_;
+    }
+    void set_ultimate_charge(float v) {
+        ultimate_charge_ = std::clamp(v, 0.0F, 1.0F);
+    }
 
-    [[nodiscard]] ae::u64 xp() const { return xp_; }
-    void set_xp(ae::u64 v) { xp_ = v; }
-    [[nodiscard]] ae::u64 currency() const { return currency_; }
-    void set_currency(ae::u64 v) { currency_ = v; }
+    [[nodiscard]] ae::u64 xp() const {
+        return xp_;
+    }
+    void set_xp(ae::u64 v) {
+        xp_ = v;
+    }
+    [[nodiscard]] ae::u64 currency() const {
+        return currency_;
+    }
+    void set_currency(ae::u64 v) {
+        currency_ = v;
+    }
 
     // --- Clear everything ---
     void reset();
 
-private:
+  private:
     // Item collections
     std::vector<InventoryEntry> weapons_;
     std::vector<InventoryEntry> armor_;
@@ -248,7 +328,7 @@ private:
 /// `process_grant()` and receives a GrantResult.  The processor never
 /// silently discards or duplicates rewards.
 class PickupProcessor {
-public:
+  public:
     PickupProcessor() = default;
 
     /// Process a single reward grant against the given inventory.
@@ -274,7 +354,7 @@ public:
         return processed_grants_;
     }
 
-private:
+  private:
     // Ring buffer of processed grant IDs (for idempotency).
     // Implemented as a flat vector for simplicity; we linear-scan on insert.
     // This is bounded by InventoryLimits::kMaxProcessedGrantIds.
@@ -317,11 +397,11 @@ struct ProgressionSnapshot {
     /// The oldest version we can migrate from.
     static constexpr ae::u32 kMinSupportedVersion = 1;
 
-    ae::u32 version {kCurrentVersion};  ///< Schema version for migration.
+    ae::u32 version {kCurrentVersion}; ///< Schema version for migration.
 
     // --- Timestamps ---
-    ae::u64 total_play_time_seconds {0};  ///< Cumulative play time.
-    ae::u32 last_session_id {0};          ///< The most recent play session.
+    ae::u64 total_play_time_seconds {0}; ///< Cumulative play time.
+    ae::u32 last_session_id {0};         ///< The most recent play session.
 
     // --- Progression resources ---
     ae::u64 xp {0};

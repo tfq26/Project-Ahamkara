@@ -119,8 +119,10 @@ void parse_element(MiniJson& j, MenuSystem::ParsedElement& el) {
         else if (key == "map_id") el.map_id = j.read_string();
         else if (key == "description") el.description = j.read_string();
         else if (key == "players") el.players = j.read_string();
-        else if (key == "id") el.id = j.read_string();
-        else if (key == "language") el.language = j.read_string();
+        else if (key == "id")
+            el.id = j.read_string();
+        else if (key == "language")
+            el.language = j.read_string();
         else if (key == "anchor") el.anchor = j.read_string();
         else if (key == "x") el.x = j.read_number();
         else if (key == "y") el.y = j.read_number();
@@ -155,33 +157,46 @@ static void parse_screen_body(MiniJson& j, MenuSystem::ParsedScreen& screen) {
         if (j.next() != ':') break;
         if (key == "name") screen.name = j.read_string();
         else if (key == "overlay") screen.overlay = j.read_bool();
-        else if (key == "cinematic_background") screen.cinematic_background = j.read_bool();
-        else if (key == "background_drift") screen.background_drift = j.read_number();
-        else if (key == "background_zoom") screen.background_zoom = j.read_number();
+        else if (key == "cinematic_background")
+            screen.cinematic_background = j.read_bool();
+        else if (key == "background_drift")
+            screen.background_drift = j.read_number();
+        else if (key == "background_zoom")
+            screen.background_zoom = j.read_number();
         else if (key == "background") screen.background = j.read_float_array();
-        else if (key == "background_image") screen.background_image = j.read_string();
+        else if (key == "background_image")
+            screen.background_image = j.read_string();
         else if (key == "background_layers" && j.peek() == '[') {
             j.next();
             while (j.peek() != ']') {
-                if (j.next() != '{') break;
+                if (j.next() != '{')
+                    break;
                 MenuSystem::ParsedScreen::BackgroundLayer layer;
                 while (j.peek() != '}') {
                     std::string layer_key = j.read_string();
-                    if (layer_key.empty() || j.next() != ':') break;
-                    if (layer_key == "image") layer.image = j.read_string();
-                    else if (layer_key == "drift") layer.drift = j.read_number();
-                    else if (layer_key == "zoom") layer.zoom = j.read_number();
-                    else if (layer_key == "phase") layer.phase = j.read_number();
-                    else if (layer_key == "opacity") layer.opacity = j.read_number();
-                    else if (layer_key == "offset_y") layer.offset_y = j.read_number();
-                    else j.skip_value();
+                    if (layer_key.empty() || j.next() != ':')
+                        break;
+                    if (layer_key == "image")
+                        layer.image = j.read_string();
+                    else if (layer_key == "drift")
+                        layer.drift = j.read_number();
+                    else if (layer_key == "zoom")
+                        layer.zoom = j.read_number();
+                    else if (layer_key == "phase")
+                        layer.phase = j.read_number();
+                    else if (layer_key == "opacity")
+                        layer.opacity = j.read_number();
+                    else if (layer_key == "offset_y")
+                        layer.offset_y = j.read_number();
+                    else
+                        j.skip_value();
                 }
                 j.next(); // }
-                if (!layer.image.empty()) screen.background_layers.push_back(std::move(layer));
+                if (!layer.image.empty())
+                    screen.background_layers.push_back(std::move(layer));
             }
             j.next(); // ]
-        }
-        else if (key == "elements" && j.peek() == '[') {
+        } else if (key == "elements" && j.peek() == '[') {
             j.next();
             while (j.peek() != ']') {
                 if (j.next() != '{') break;
@@ -191,8 +206,8 @@ static void parse_screen_body(MiniJson& j, MenuSystem::ParsedScreen& screen) {
                 j.next();
             }
             j.next();
-        }
-        else j.skip_value();
+        } else
+            j.skip_value();
     }
 }
 
@@ -251,7 +266,8 @@ MenuSystem::~MenuSystem() {
 }
 
 const MenuSystem::MenuTexture* MenuSystem::texture_for_path(const std::string& path) {
-    if (path.empty()) return nullptr;
+    if (path.empty())
+        return nullptr;
 
     const auto cached = textures_.find(path);
     if (cached != textures_.end()) {
@@ -281,7 +297,7 @@ const MenuSystem::MenuTexture* MenuSystem::texture_for_path(const std::string& p
     glBindTexture(GL_TEXTURE_2D, 0);
 
     auto [it, inserted] = textures_.emplace(
-        path, MenuTexture{id, static_cast<int>(asset.width), static_cast<int>(asset.height)});
+        path, MenuTexture {id, static_cast<int>(asset.width), static_cast<int>(asset.height)});
     (void)inserted;
     log_info_cat(AE_LOG_CATEGORY, "Loaded menu background: " + path);
     return &it->second;
@@ -416,10 +432,10 @@ void MenuSystem::render() {
         const float clamped_drift = std::clamp(drift, 0.0f, 0.12f);
         const float clamped_zoom = std::clamp(base_zoom, 1.0f, 1.20f);
         const float zoom = clamped_zoom + (screen.cinematic_background
-            ? 0.006f * std::sin(time * 0.17f + phase)
-            : 0.0f);
-        ImVec2 uv_min{0.0f, 0.0f};
-        ImVec2 uv_max{1.0f, 1.0f};
+                                               ? 0.006f * std::sin(time * 0.17f + phase)
+                                               : 0.0f);
+        ImVec2 uv_min {0.0f, 0.0f};
+        ImVec2 uv_max {1.0f, 1.0f};
         if (screen_aspect > image_aspect) {
             const float visible = image_aspect / screen_aspect / zoom;
             const float centre = 0.5f + clamped_drift * 0.30f * std::sin(time * 0.11f + phase);
@@ -450,26 +466,26 @@ void MenuSystem::render() {
     }
     if (screen.cinematic_background && (!screen.background_layers.empty() ||
                                         !screen.background_image.empty())) {
-            // Sparse, low-alpha dust gives the static key art depth while
-            // preserving text legibility and a low GPU/UI cost.
-            for (int index = 0; index < 18; ++index) {
-                const float seed = static_cast<float>(index) * 19.37f;
-                const float x = std::fmod(seed * 71.0f + time * (10.0f + std::fmod(seed, 7.0f)),
-                                           std::max(sw, 1.0f));
-                const float y = std::fmod(seed * 43.0f + time * (4.0f + std::fmod(seed, 5.0f)),
-                                           std::max(sh, 1.0f));
-                const float radius = 0.8f + std::fmod(seed, 3.0f) * 0.45f;
-                const float alpha = 0.018f + 0.020f * (0.5f + 0.5f * std::sin(time * 0.7f + seed));
-                draw_list->AddCircleFilled({x, y}, radius,
-                    ImGui::ColorConvertFloat4ToU32({0.95f, 0.76f, 0.48f, alpha}));
-            }
-            const float pulse = 0.015f + 0.012f * (0.5f + 0.5f * std::sin(time * 0.32f));
-            draw_list->AddRectFilledMultiColor(
-                {0.0f, 0.0f}, {sw, sh},
-                ImGui::ColorConvertFloat4ToU32({0.72f, 0.42f, 0.16f, pulse}),
-                ImGui::ColorConvertFloat4ToU32({0.00f, 0.00f, 0.00f, 0.0f}),
-                ImGui::ColorConvertFloat4ToU32({0.00f, 0.00f, 0.00f, 0.0f}),
-                ImGui::ColorConvertFloat4ToU32({0.30f, 0.48f, 0.76f, pulse * 0.50f}));
+        // Sparse, low-alpha dust gives the static key art depth while
+        // preserving text legibility and a low GPU/UI cost.
+        for (int index = 0; index < 18; ++index) {
+            const float seed = static_cast<float>(index) * 19.37f;
+            const float x = std::fmod(seed * 71.0f + time * (10.0f + std::fmod(seed, 7.0f)),
+                                      std::max(sw, 1.0f));
+            const float y = std::fmod(seed * 43.0f + time * (4.0f + std::fmod(seed, 5.0f)),
+                                      std::max(sh, 1.0f));
+            const float radius = 0.8f + std::fmod(seed, 3.0f) * 0.45f;
+            const float alpha = 0.018f + 0.020f * (0.5f + 0.5f * std::sin(time * 0.7f + seed));
+            draw_list->AddCircleFilled({x, y}, radius,
+                                       ImGui::ColorConvertFloat4ToU32({0.95f, 0.76f, 0.48f, alpha}));
+        }
+        const float pulse = 0.015f + 0.012f * (0.5f + 0.5f * std::sin(time * 0.32f));
+        draw_list->AddRectFilledMultiColor(
+            {0.0f, 0.0f}, {sw, sh},
+            ImGui::ColorConvertFloat4ToU32({0.72f, 0.42f, 0.16f, pulse}),
+            ImGui::ColorConvertFloat4ToU32({0.00f, 0.00f, 0.00f, 0.0f}),
+            ImGui::ColorConvertFloat4ToU32({0.00f, 0.00f, 0.00f, 0.0f}),
+            ImGui::ColorConvertFloat4ToU32({0.30f, 0.48f, 0.76f, pulse * 0.50f}));
     }
     if (screen.background_layers.empty() && !screen.background_image.empty()) {
         draw_list->AddRectFilledMultiColor(
@@ -584,10 +600,10 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         // Four compact HUD-style brackets keep the preview visually contained
         // without covering the avatar with an opaque card.
         for (const auto& [x, y, sx, sy] : {
-                 std::array<float, 4>{pos.x, pos.y, 1.0f, 1.0f},
-                 std::array<float, 4>{pos.x + el_w, pos.y, -1.0f, 1.0f},
-                 std::array<float, 4>{pos.x, pos.y + el_h, 1.0f, -1.0f},
-                 std::array<float, 4>{pos.x + el_w, pos.y + el_h, -1.0f, -1.0f},
+                 std::array<float, 4> {pos.x, pos.y, 1.0f, 1.0f},
+                 std::array<float, 4> {pos.x + el_w, pos.y, -1.0f, 1.0f},
+                 std::array<float, 4> {pos.x, pos.y + el_h, 1.0f, -1.0f},
+                 std::array<float, 4> {pos.x + el_w, pos.y + el_h, -1.0f, -1.0f},
              }) {
             draw_list->AddLine({x, y}, {x + sx * corner, y},
                                ImGui::ColorConvertFloat4ToU32(frame), 2.0f);
@@ -612,12 +628,12 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         auto color = get_theme_color(theme_.colors, el.color, {1,1,1,1});
 
         const ImVec2 text_size = font != nullptr
-            ? font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, text.c_str())
-            : ImGui::CalcTextSize(text.c_str());
+                                     ? font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, text.c_str())
+                                     : ImGui::CalcTextSize(text.c_str());
         auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
-                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
-                                     offset_x, offset_y, parent_w, parent_h,
-                                     text_size.x, text_size.y);
+                                    menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
+                                    offset_x, offset_y, parent_w, parent_h,
+                                    text_size.x, text_size.y);
 
         ImGui::GetWindowDrawList()->AddText(
             font, font_size,
@@ -627,8 +643,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
 
     if (el.type == "button") {
         auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
-                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
-                                     offset_x, offset_y, parent_w, parent_h, btn_w, btn_h);
+                                    menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
+                                    offset_x, offset_y, parent_w, parent_h, btn_w, btn_h);
 
         auto c_normal  = get_theme_color(theme_.colors, "button_" + el.style);
         auto c_hover   = get_theme_color(theme_.colors, "button_" + el.style + "_hover", c_normal);
@@ -650,8 +666,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
 
         auto* draw_list = ImGui::GetWindowDrawList();
         const ImVec2 label_size = button_font != nullptr
-            ? button_font->CalcTextSizeA(button_font_size, FLT_MAX, 0.0f, el.label.c_str())
-            : ImGui::CalcTextSize(el.label.c_str());
+                                      ? button_font->CalcTextSizeA(button_font_size, FLT_MAX, 0.0f, el.label.c_str())
+                                      : ImGui::CalcTextSize(el.label.c_str());
         const float label_width = label_size.x;
         const float label_height = label_size.y;
         const auto text_primary = get_theme_color(theme_.colors, "text_primary", {1, 1, 1, 1});
@@ -695,8 +711,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
 
     if (el.type == "map_card") {
         auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
-                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
-                                     offset_x, offset_y, parent_w, parent_h, el_w, el_h);
+                                    menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
+                                    offset_x, offset_y, parent_w, parent_h, el_w, el_h);
         ImGui::SetCursorScreenPos({pos.x, pos.y});
 
         auto bg = get_theme_color(theme_.colors, "button_secondary");
@@ -740,8 +756,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         float bar_w = el.width > 0 ? el.width * scale : 300 * scale;
         float bar_h = el.height > 0 ? el.height * scale : 8 * scale;
         auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
-                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
-                                     offset_x, offset_y, parent_w, parent_h, bar_w, bar_h);
+                                    menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
+                                    offset_x, offset_y, parent_w, parent_h, bar_w, bar_h);
         ImGui::SetCursorScreenPos({pos.x, pos.y});
 
         auto fill = get_theme_color(theme_.colors, "progress_fill");
@@ -754,7 +770,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         float progress_value = loading_progress_;
         if (!el.setting.empty()) {
             const auto progress_it = float_vars_.find(el.setting);
-            if (progress_it != float_vars_.end()) progress_value = progress_it->second;
+            if (progress_it != float_vars_.end())
+                progress_value = progress_it->second;
         }
         float prog = std::clamp(progress_value, 0.0f, 1.0f);
         dl->AddRectFilled({pos.x, pos.y}, {pos.x + bar_w * prog, pos.y + bar_h},
@@ -794,8 +811,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         float r = el.radius > 0 ? el.radius * scale : 10.0f * scale;
         float t = el.thickness > 0 ? el.thickness * scale : 2.5f * scale;
         auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
-                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
-                                     offset_x, offset_y, parent_w, parent_h, r * 2, r * 2);
+                                    menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
+                                    offset_x, offset_y, parent_w, parent_h, r * 2, r * 2);
         pos.x += r;
         pos.y += r;
 
@@ -817,7 +834,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
     }
 
     if (el.type == "tab_view") {
-        if (el.elements.empty()) return;
+        if (el.elements.empty())
+            return;
 
         const float view_w = el.width > 0 ? el.width : parent_w;
         const float view_h = el.height > 0 ? el.height : parent_h;
@@ -825,11 +843,11 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
                                           menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
                                           offset_x, offset_y, parent_w, parent_h, view_w, view_h);
         const std::string state_key = "tab_active_" +
-            (el.id.empty() ? std::to_string(reinterpret_cast<std::uintptr_t>(&el)) : el.id);
+                                      (el.id.empty() ? std::to_string(reinterpret_cast<std::uintptr_t>(&el)) : el.id);
         const auto active_it = float_vars_.find(state_key);
         int active_index = active_it != float_vars_.end()
-            ? static_cast<int>(active_it->second)
-            : 0;
+                               ? static_cast<int>(active_it->second)
+                               : 0;
         active_index = std::clamp(active_index, 0, static_cast<int>(el.elements.size()) - 1);
 
         constexpr float tab_bar_height = 62.0f;
@@ -873,8 +891,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
             }
 
             const ImVec2 label_size = tab_font != nullptr
-                ? tab_font->CalcTextSizeA(tab_font_size, FLT_MAX, 0.0f, tab.label.c_str())
-                : ImGui::CalcTextSize(tab.label.c_str());
+                                          ? tab_font->CalcTextSizeA(tab_font_size, FLT_MAX, 0.0f, tab.label.c_str())
+                                          : ImGui::CalcTextSize(tab.label.c_str());
             draw_list->AddText(
                 tab_font, tab_font_size,
                 {tab_x + (tab_width - label_size.x) * 0.5f,
@@ -907,8 +925,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         float el_w_scaled = el.width > 0 ? el.width : 800;
         float el_h_scaled = el.height > 0 ? el.height : 500;
         auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
-                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
-                                     offset_x, offset_y, parent_w, parent_h, el_w_scaled, el_h_scaled);
+                                    menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
+                                    offset_x, offset_y, parent_w, parent_h, el_w_scaled, el_h_scaled);
 
         // Split: sidebar (left 220px) + content area
         float sidebar_w = 220.0f;
@@ -1008,8 +1026,7 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
             "struct", "switch", "template", "this", "throw", "true", "try", "typedef",
             "typeid", "typename", "union", "unsigned", "using", "virtual", "void",
             "volatile", "while", "override", "final", "default", "delete", "include",
-            "define", "ifdef", "endif", "pragma"
-        };
+            "define", "ifdef", "endif", "pragma"};
 
         auto code_bg = ImVec4(0.07f, 0.08f, 0.12f, 0.95f);
         float avail_w = ImGui::GetContentRegionAvail().x;
@@ -1039,7 +1056,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
                 // Skip whitespace
                 if (*p == ' ' || *p == '\t') {
                     const char* ws_start = p;
-                    while (*p == ' ' || *p == '\t') ++p;
+                    while (*p == ' ' || *p == '\t')
+                        ++p;
                     ImGui::TextUnformatted(std::string(ws_start, p - ws_start).c_str());
                     ImGui::SameLine(0, 0);
                     continue;
@@ -1051,21 +1069,27 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
                     continue;
                 }
                 // Comment (line)
-                if (*p == '/' && *(p+1) == '/') {
+                if (*p == '/' && *(p + 1) == '/') {
                     const char* comment_start = p;
-                    while (*p && *p != '\n') ++p;
+                    while (*p && *p != '\n')
+                        ++p;
                     ImGui::PushStyleColor(ImGuiCol_Text, comment_col);
                     ImGui::TextUnformatted(std::string(comment_start, p - comment_start).c_str());
                     ImGui::PopStyleColor();
-                    if (*p == '\n') { ImGui::TextUnformatted(""); ++p; }
+                    if (*p == '\n') {
+                        ImGui::TextUnformatted("");
+                        ++p;
+                    }
                     continue;
                 }
                 // String literal
                 if (*p == '"') {
                     const char* str_start = p;
                     ++p; // skip opening "
-                    while (*p && (*p != '"' || *(p-1) == '\\')) ++p;
-                    if (*p == '"') ++p;
+                    while (*p && (*p != '"' || *(p - 1) == '\\'))
+                        ++p;
+                    if (*p == '"')
+                        ++p;
                     ImGui::PushStyleColor(ImGuiCol_Text, string_col);
                     ImGui::TextUnformatted(std::string(str_start, p - str_start).c_str());
                     ImGui::PopStyleColor();
@@ -1073,11 +1097,13 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
                     continue;
                 }
                 // Number
-                if (std::isdigit(*p) || (*p == '-' && std::isdigit(*(p+1)))) {
+                if (std::isdigit(*p) || (*p == '-' && std::isdigit(*(p + 1)))) {
                     const char* num_start = p;
-                    if (*p == '-') ++p;
+                    if (*p == '-')
+                        ++p;
                     while (std::isalnum(*p) || *p == '.' || *p == 'x' || *p == 'X' ||
-                           *p == 'u' || *p == 'U' || *p == 'f' || *p == 'F') ++p;
+                           *p == 'u' || *p == 'U' || *p == 'f' || *p == 'F')
+                        ++p;
                     ImGui::PushStyleColor(ImGuiCol_Text, number_col);
                     ImGui::TextUnformatted(std::string(num_start, p - num_start).c_str());
                     ImGui::PopStyleColor();
@@ -1087,11 +1113,15 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
                 // Identifier / keyword
                 if (std::isalpha(*p) || *p == '_' || *p == '#') {
                     const char* ident_start = p;
-                    while (std::isalnum(*p) || *p == '_') ++p;
+                    while (std::isalnum(*p) || *p == '_')
+                        ++p;
                     std::string token(ident_start, p - ident_start);
                     bool is_keyword = false;
                     for (const char* kw : keywords) {
-                        if (token == kw) { is_keyword = true; break; }
+                        if (token == kw) {
+                            is_keyword = true;
+                            break;
+                        }
                     }
                     if (is_keyword) {
                         ImGui::PushStyleColor(ImGuiCol_Text, keyword_col);
@@ -1124,8 +1154,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
     if (el.type == "slider") {
         float w = el.width > 0 ? el.width * scale : 300 * scale;
         auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
-                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
-                                     offset_x, offset_y, parent_w, parent_h, w, 40);
+                                    menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
+                                    offset_x, offset_y, parent_w, parent_h, w, 40);
         ImGui::SetCursorScreenPos({pos.x, pos.y});
         ImGui::PushStyleColor(ImGuiCol_Text, get_theme_color(theme_.colors, "text_primary"));
         ImGui::TextUnformatted(el.label.c_str());
@@ -1145,8 +1175,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
     if (el.type == "toggle") {
         float w = el.width > 0 ? el.width * scale : 300 * scale;
         auto pos = compute_position(menu_coordinate_to_pixels(el.x, parent_w),
-                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
-                                     offset_x, offset_y, parent_w, parent_h, w, 30);
+                                    menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
+                                    offset_x, offset_y, parent_w, parent_h, w, 30);
         ImGui::SetCursorScreenPos({pos.x, pos.y});
         ImGui::PushStyleColor(ImGuiCol_Text, get_theme_color(theme_.colors, "text_primary"));
         ImGui::TextUnformatted(el.label.c_str());

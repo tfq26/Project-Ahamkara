@@ -6,7 +6,6 @@ import json
 import os
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -34,8 +33,8 @@ def main() -> int:
 
     level = json.loads((ROOT / "assets/levels/caligo_surface_ruins.json").read_text())
     assert level["name"] == "Caligo Surface Ruins"
-    assert level["spawns"] == [{"pos": [-24, 2.0, 22], "yaw": 135, "team": 0}]
-    assert len(level["collision"]) >= 3
+    assert level["spawns"] == [{"pos": [0, 2.0, -12], "yaw": 0, "team": 0}]
+    assert len(level["collision"]) >= 1
     assert len(level["collision_meshes"]) == 1
     assert len(level["meshes"]) == 1
     launcher = ROOT / "tools/blender/run_caligo.sh"

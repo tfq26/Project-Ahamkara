@@ -40,13 +40,13 @@ def main():
         for section_id, name in REQUIRED_SECTIONS:
             if f'id="{section_id}"' not in content:
                 errors.append(f"MISSING section '{name}' (id={section_id})")
-        if '<!DOCTYPE html>' not in content:
+        if "<!DOCTYPE html>" not in content:
             errors.append("MISSING DOCTYPE")
         if 'name="viewport"' not in content:
             errors.append("MISSING viewport meta tag")
-        imgs = re.findall(r'<img[^>]+>', content)
+        imgs = re.findall(r"<img[^>]+>", content)
         for img in imgs:
-            if 'alt=""' in img or 'alt=' not in img:
+            if 'alt=""' in img or "alt=" not in img:
                 errors.append(f"Image missing alt text: {img[:80]}")
         if "@media" not in open(os.path.join(SITE_DIR, "styles.css")).read():
             errors.append("CSS missing media queries")

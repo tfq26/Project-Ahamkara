@@ -17,7 +17,6 @@ from pathlib import Path
 import bpy
 from mathutils import Vector
 
-
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "assets" / "models"
 RADIUS = 5.0
@@ -136,7 +135,9 @@ def add_beveled_cube(name, loc, scale, mat, col, bevel=0.05):
 
 
 def add_torus(name, loc, major, minor, mat, col, normal=None):
-    bpy.ops.mesh.primitive_torus_add(major_radius=major, minor_radius=minor, major_segments=64, minor_segments=12, location=loc)
+    bpy.ops.mesh.primitive_torus_add(
+        major_radius=major, minor_radius=minor, major_segments=64, minor_segments=12, location=loc
+    )
     obj = move_to(bpy.context.object, col)
     obj.name = name
     obj.data.materials.append(mat)
@@ -170,7 +171,15 @@ def add_landmark(name, lat, lon, height, width, mat, col):
 
 
 def create_planet(cols, mats):
-    planet = add_uv_sphere("CALIGO / displaced storm desert planet", (0, 0, 0), (RADIUS, RADIUS, RADIUS), mats["planet"], cols["00_PLANET"], 160, 96)
+    planet = add_uv_sphere(
+        "CALIGO / displaced storm desert planet",
+        (0, 0, 0),
+        (RADIUS, RADIUS, RADIUS),
+        mats["planet"],
+        cols["00_PLANET"],
+        160,
+        96,
+    )
     # Real geometric relief keeps the .blend inspectable even without textures.
     for vertex in planet.data.vertices:
         p = vertex.co.normalized()
@@ -182,7 +191,15 @@ def create_planet(cols, mats):
     # Vitrified scar bands and a few bright storm fronts.
     for i, lon in enumerate((-48, -12, 26, 64)):
         point, normal = surface_point(4 + i * 3, lon, RADIUS + 0.025)
-        add_torus(f"vitrified electrical scar {i + 1:02d}", point, 1.12 + i * 0.19, 0.025, mats["scar"], cols["01_STORM_SHELLS"], normal)
+        add_torus(
+            f"vitrified electrical scar {i + 1:02d}",
+            point,
+            1.12 + i * 0.19,
+            0.025,
+            mats["scar"],
+            cols["01_STORM_SHELLS"],
+            normal,
+        )
     for i, lon in enumerate((-35, 18, 72)):
         points = []
         for step in range(18):
@@ -209,18 +226,48 @@ def create_landmarks(cols, mats):
 
     for index, (lat, lon) in enumerate(((8, -80), (-12, -5), (23, 42))):
         point, normal = surface_point(lat, lon, RADIUS + 0.10)
-        add_torus(f"Habitat Crown {index + 1:02d} / buried access ring", point, 0.36, 0.045, mats["crown"], cols["03_HABITAT_CROWNS"], normal)
-        add_curve(f"Crown {index + 1:02d} grounding trace", [point * 0.996, point * 1.04], mats["crown"], cols["03_HABITAT_CROWNS"], 0.018)
+        add_torus(
+            f"Habitat Crown {index + 1:02d} / buried access ring",
+            point,
+            0.36,
+            0.045,
+            mats["crown"],
+            cols["03_HABITAT_CROWNS"],
+            normal,
+        )
+        add_curve(
+            f"Crown {index + 1:02d} grounding trace",
+            [point * 0.996, point * 1.04],
+            mats["crown"],
+            cols["03_HABITAT_CROWNS"],
+            0.018,
+        )
 
     # Forbidden borehole: visible as a dark, glowing wound, not an explorable site.
     point, normal = surface_point(-38, -124, RADIUS + 0.06)
     add_torus("FORBIDDEN CORE BOREHOLE / sealed", point, 0.56, 0.10, mats["borehole"], cols["04_CORE_BOREHOLE"], normal)
-    bore = add_uv_sphere("borehole depth marker", point + normal * 0.04, (0.38, 0.38, 0.05), mats["borehole"], cols["04_CORE_BOREHOLE"], 32, 16)
+    bore = add_uv_sphere(
+        "borehole depth marker",
+        point + normal * 0.04,
+        (0.38, 0.38, 0.05),
+        mats["borehole"],
+        cols["04_CORE_BOREHOLE"],
+        32,
+        16,
+    )
     orient_to_normal(bore, normal)
 
 
 def create_atmosphere(cols, mats):
-    atmosphere = add_uv_sphere("amber corrosive atmosphere / inspection shell", (0, 0, 0), (5.27, 5.27, 5.27), mats["atmosphere"], cols["01_STORM_SHELLS"], 96, 48)
+    atmosphere = add_uv_sphere(
+        "amber corrosive atmosphere / inspection shell",
+        (0, 0, 0),
+        (5.27, 5.27, 5.27),
+        mats["atmosphere"],
+        cols["01_STORM_SHELLS"],
+        96,
+        48,
+    )
     mat = mats["atmosphere"]
     try:
         mat.surface_render_method = "DITHERED"
@@ -234,7 +281,12 @@ def create_atmosphere(cols, mats):
 
 def setup_presentation(cols, mats):
     scene = bpy.context.scene
-    scene.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in {item.identifier for item in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items} else "BLENDER_EEVEE"
+    scene.render.engine = (
+        "BLENDER_EEVEE_NEXT"
+        if "BLENDER_EEVEE_NEXT"
+        in {item.identifier for item in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items}
+        else "BLENDER_EEVEE"
+    )
     scene.render.resolution_x = 1280
     scene.render.resolution_y = 720
     scene.render.resolution_percentage = 100
@@ -283,7 +335,9 @@ def setup_presentation(cols, mats):
 
     # Large transparent-ish dust discs provide a readable storm silhouette.
     for i, z in enumerate((-3.5, -1.8, 0.2, 2.0, 3.7)):
-        bpy.ops.mesh.primitive_torus_add(major_radius=7.1 + i * 0.12, minor_radius=0.015, major_segments=96, minor_segments=6, location=(0, 0, z))
+        bpy.ops.mesh.primitive_torus_add(
+            major_radius=7.1 + i * 0.12, minor_radius=0.015, major_segments=96, minor_segments=6, location=(0, 0, z)
+        )
         ring = move_to(bpy.context.object, cols["01_STORM_SHELLS"])
         ring.name = f"dust shell latitude {i + 1}"
         ring.data.materials.append(mats["dust"])
@@ -291,7 +345,17 @@ def setup_presentation(cols, mats):
 
 def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    cols = {name: collection(name) for name in ("00_PLANET", "01_STORM_SHELLS", "02_COLONIAL_LANDMARKS", "03_HABITAT_CROWNS", "04_CORE_BOREHOLE", "05_PRESENTATION")}
+    cols = {
+        name: collection(name)
+        for name in (
+            "00_PLANET",
+            "01_STORM_SHELLS",
+            "02_COLONIAL_LANDMARKS",
+            "03_HABITAT_CROWNS",
+            "04_CORE_BOREHOLE",
+            "05_PRESENTATION",
+        )
+    }
     mats = {
         "planet": planet_material(),
         "ruin": mat_principled("Colonial ruin / vitrified concrete", (0.12, 0.055, 0.028), 0.86, 0.2),
@@ -300,7 +364,9 @@ def main():
         "crown": emission_mat("Habitat Crown / survivor signal", (0.02, 0.65, 0.85), 10.0),
         "borehole": emission_mat("Core borehole / forbidden red", (0.42, 0.008, 0.002), 3.5),
         "dust": mat_principled("Dust shell", (0.32, 0.055, 0.012), 1.0),
-        "atmosphere": mat_principled("Atmosphere / amber haze", (0.48, 0.035, 0.008), 1.0, 0.0, (0.18, 0.008, 0.001), 0.25),
+        "atmosphere": mat_principled(
+            "Atmosphere / amber haze", (0.48, 0.035, 0.008), 1.0, 0.0, (0.18, 0.008, 0.001), 0.25
+        ),
     }
     create_planet(cols, mats)
     create_landmarks(cols, mats)
@@ -309,7 +375,9 @@ def main():
 
     scene = bpy.context.scene
     scene["caligo_asset_role"] = "Director planet inspection source"
-    scene["caligo_notes"] = "Open collections to inspect planet, storm shells, landmarks, Habitat Crowns and sealed core borehole."
+    scene["caligo_notes"] = (
+        "Open collections to inspect planet, storm shells, landmarks, Habitat Crowns and sealed core borehole."
+    )
     OUT.mkdir(parents=True, exist_ok=True)
     blend_path = OUT / "caligo_director_inspect.blend"
     bpy.ops.wm.save_as_mainfile(filepath=str(blend_path))

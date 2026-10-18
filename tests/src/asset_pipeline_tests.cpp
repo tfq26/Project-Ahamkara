@@ -918,7 +918,7 @@ int test_compiled_mesh_uv_roundtrip() {
 
 int test_gltf_loader_preserves_unnormalized_u16_indices_and_static_node_transforms() {
     const auto temp_root = std::filesystem::temp_directory_path() /
-        "ahamkara_gltf_u16_index_test";
+                           "ahamkara_gltf_u16_index_test";
     std::error_code error;
     std::filesystem::remove_all(temp_root, error);
     std::filesystem::create_directories(temp_root, error);
@@ -931,9 +931,15 @@ int test_gltf_loader_preserves_unnormalized_u16_indices_and_static_node_transfor
     {
         std::ofstream bin(bin_path, std::ios::binary);
         const float positions[9] = {
-            0.0F, 0.0F, 0.0F,
-            1.0F, 0.0F, 0.0F,
-            0.0F, 1.0F, 0.0F,
+            0.0F,
+            0.0F,
+            0.0F,
+            1.0F,
+            0.0F,
+            0.0F,
+            0.0F,
+            1.0F,
+            0.0F,
         };
         const std::uint16_t indices[3] = {0, 257, 513};
         bin.write(reinterpret_cast<const char*>(positions), sizeof(positions));
@@ -975,9 +981,15 @@ int test_gltf_loader_preserves_unnormalized_u16_indices_and_static_node_transfor
         return fail("unnormalized u16 glTF indices were not preserved");
     }
     const std::vector<float> expected_positions {
-        12.0F, 3.0F, 4.0F,
-        12.0F, 5.0F, 4.0F,
-        9.0F, 3.0F, 4.0F,
+        12.0F,
+        3.0F,
+        4.0F,
+        12.0F,
+        5.0F,
+        4.0F,
+        9.0F,
+        3.0F,
+        4.0F,
     };
     if (!vector_equal(model.meshes[0].positions, expected_positions)) {
         return fail("static glTF node transforms were not baked into mesh positions");

@@ -117,21 +117,21 @@ std::string format_operation_record(const OperationRecord& record) {
            << " outcome=";
 
     switch (record.outcome) {
-        case OperationOutcome::Success:
-            stream << "SUCCESS";
-            break;
-        case OperationOutcome::Failed:
-            stream << "FAILED";
-            break;
-        case OperationOutcome::Retrying:
-            stream << "RETRYING";
-            break;
-        case OperationOutcome::Abandoned:
-            stream << "ABANDONED";
-            break;
-        case OperationOutcome::IdempotentReplay:
-            stream << "IDEMPOTENT_REPLAY";
-            break;
+    case OperationOutcome::Success:
+        stream << "SUCCESS";
+        break;
+    case OperationOutcome::Failed:
+        stream << "FAILED";
+        break;
+    case OperationOutcome::Retrying:
+        stream << "RETRYING";
+        break;
+    case OperationOutcome::Abandoned:
+        stream << "ABANDONED";
+        break;
+    case OperationOutcome::IdempotentReplay:
+        stream << "IDEMPOTENT_REPLAY";
+        break;
     }
 
     stream << " retries=" << record.retry_count
@@ -186,7 +186,8 @@ std::string format_support_bundle(const SupportBundle& bundle) {
     }
 
     if (!bundle.notes.empty()) {
-        stream << "\n-- Notes --\n" << bundle.notes << "\n";
+        stream << "\n-- Notes --\n"
+               << bundle.notes << "\n";
     }
 
     stream << "=== End Bundle ===";

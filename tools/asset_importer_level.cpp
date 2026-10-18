@@ -23,7 +23,8 @@ enum class Section {
 Section parse_section_header(const std::string& line) {
     if (line == "[spawn]") return Section::Spawn;
     if (line == "[collision]") return Section::Collision;
-    if (line == "[collision_mesh]") return Section::CollisionMesh;
+    if (line == "[collision_mesh]")
+        return Section::CollisionMesh;
     if (line == "[mesh]") return Section::Mesh;
     return Section::None;
 }

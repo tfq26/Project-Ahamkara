@@ -22,7 +22,6 @@ from pathlib import Path
 import bpy
 from mathutils import Vector
 
-
 ASSET_NAME = "operative_human_base"
 TARGET_RIG_NAME = "Ahamkara_Operative_GameRig"
 TARGET_MESH_NAME = "Ahamkara_Operative_Human_Base"

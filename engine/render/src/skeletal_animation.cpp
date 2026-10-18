@@ -326,7 +326,8 @@ void evaluate_animation(
     std::vector<Mat4> global_transforms(joint_count);
     std::vector<unsigned char> resolve_state(joint_count, 0U);
     std::function<void(std::size_t)> resolve_global = [&](std::size_t j) {
-        if (resolve_state[j] == 2U) return;
+        if (resolve_state[j] == 2U)
+            return;
         if (resolve_state[j] == 1U) {
             global_transforms[j] = local_transforms[j];
             resolve_state[j] = 2U;

@@ -56,8 +56,8 @@ CorrelatedFailure correlate_envelope_failure(
 
     CorrelatedFailure failure {};
     failure.correlation_id = envelope.incident_id.empty()
-        ? generate_correlation_id(source_component)
-        : std::string("CORR-") + envelope.incident_id;
+                                 ? generate_correlation_id(source_component)
+                                 : std::string("CORR-") + envelope.incident_id;
     failure.wish_error_code = envelope.error_code;
     failure.engine_error_code = engine_error_code;
     failure.message = std::string(message);
@@ -109,7 +109,8 @@ std::string format_structured_event(const StructuredLogEvent& event) {
         stream << ",\"metadata\":{";
         bool first = true;
         for (const auto& [key, value] : event.metadata) {
-            if (!first) stream << ",";
+            if (!first)
+                stream << ",";
             stream << "\"" << key << "\":\"" << value << "\"";
             first = false;
         }

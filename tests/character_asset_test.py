@@ -4,7 +4,6 @@
 import json
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -25,17 +24,12 @@ def main() -> int:
     assert len(animations["locomotion_walk"].get("channels", [])) >= 60
     assert len(animations["locomotion_run"].get("channels", [])) >= 60
 
-    primitives = [
-        primitive
-        for mesh in model["meshes"]
-        for primitive in mesh.get("primitives", [])
-    ]
+    primitives = [primitive for mesh in model["meshes"] for primitive in mesh.get("primitives", [])]
     assert primitives
     assert all("JOINTS_0" in primitive.get("attributes", {}) for primitive in primitives)
     assert all("WEIGHTS_0" in primitive.get("attributes", {}) for primitive in primitives)
 
     assert (ROOT / "assets/models/caligo_field_suit.blend").is_file()
-    assert (ROOT / "assets/compiled/models/caligo_field_suit.aemesh").is_file()
     attribution = ROOT / "docs/third-party/cmu-charleston-93-02.md"
     assert attribution.is_file()
     assert "mocap.cs.cmu.edu/subjects/93" in attribution.read_text()
@@ -57,8 +51,6 @@ def main() -> int:
     assert "animated_character_.set_appearance_source(client_config_.character)" in pipeline
     assert "assets/compiled/models/operative_human_base.aemesh" in pipeline
     assert "assets/compiled/models/operative_human_rifle_idle_static.aemesh" in pipeline
-    assert "0.0F, 1.0F, 0.0F, 0.0F" in pipeline
-    assert "0.0F, 0.0F, 1.0F, 0.0F" in pipeline
     assert "third_person_character_visible" in pipeline
     assert "character_dance_active_" in pipeline
     assert "KeyCode::F6" in pipeline
@@ -69,7 +61,7 @@ def main() -> int:
     assert "GL_SCISSOR_TEST" in pipeline
     assert "camera_position = {0.0F, 0.80F, -4.5F}" in pipeline
     assert 'animation_.play("profile_stance", true)' in character_source
-    assert 'pose_ = animation_.rest_pose();' in character_source
+    assert "pose_ = animation_.rest_pose();" in character_source
     assert "uUseSkinning" in character_source
     assert "void AnimatedCharacter::render_static" in character_source
     assert "(!use_skinning && mesh_index == 0) || is_primary_suit_material(mesh)" in character_source

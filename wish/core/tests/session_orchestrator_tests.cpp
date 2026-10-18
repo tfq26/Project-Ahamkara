@@ -20,7 +20,7 @@ wish::core::Fireteam make_fireteam(wish::u64 fireteam_id, wish::u64 activity_id,
     ft.fireteam_id = fireteam_id;
     ft.activity_id = activity_id;
     ft.member_addresses = members;
-    ft.formed_at = time_point{};
+    ft.formed_at = time_point {};
     ft.party_ids = {fireteam_id}; // 1:1 party:fireteam for simplicity
     return ft;
 }
@@ -61,7 +61,7 @@ void test_custom_config() {
 // ---------------------------------------------------------------------------
 void test_on_match_found_creates_group() {
     wish::core::SessionOrchestrator orch;
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     const wish::NetAddress leader {"192.168.1.1", 30001};
     const wish::NetAddress member {"192.168.1.1", 30002};
@@ -90,7 +90,7 @@ void test_on_match_found_creates_group() {
 
 void test_on_match_found_empty_fireteam() {
     wish::core::SessionOrchestrator orch;
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     const auto ft = make_fireteam(2, 10, {});
     const auto group_id = orch.on_match_found(ft, now);
@@ -105,7 +105,7 @@ void test_on_match_found_no_auto_activate() {
     cfg.auto_activate_sessions = false;
 
     wish::core::SessionOrchestrator orch(cfg);
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     const wish::NetAddress leader {"192.168.1.1", 30001};
     const auto ft = make_fireteam(3, 20, {leader});
@@ -127,7 +127,7 @@ void test_process_join() {
     cfg.auto_activate_sessions = false;
 
     wish::core::SessionOrchestrator orch(cfg);
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     // Create a group from a fireteam with 1 member but set it in Lobby
     // Then add 2 more members via join to prove the flow works
@@ -166,7 +166,7 @@ void test_process_join() {
 
 void test_process_join_nonexistent_group() {
     wish::core::SessionOrchestrator orch;
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     wish::core::JoinRequest req;
     req.player_address = {"10.0.0.1", 7777};
@@ -184,7 +184,7 @@ void test_process_join_full_group() {
     cfg.auto_activate_sessions = false;
 
     wish::core::SessionOrchestrator orch(cfg);
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     // Create a group with 1 fireteam member + 4 extra slots = capacity 5
     const wish::NetAddress leader {"10.0.0.1", 7777};
@@ -223,7 +223,7 @@ void test_process_join_full_group() {
 
 void test_process_leave() {
     wish::core::SessionOrchestrator orch;
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     const wish::NetAddress leader {"10.0.0.1", 7777};
     const wish::NetAddress member {"10.0.0.2", 7778};
@@ -254,7 +254,7 @@ void test_process_leave() {
 
 void test_process_leave_ends_group_when_empty() {
     wish::core::SessionOrchestrator orch;
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     const wish::NetAddress leader {"10.0.0.1", 7777};
     const auto ft = make_fireteam(7, 30, {leader});
@@ -282,7 +282,7 @@ void test_process_leave_ends_group_when_empty() {
 
 void test_process_leave_nonexistent_player() {
     wish::core::SessionOrchestrator orch;
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     const wish::NetAddress leader {"10.0.0.1", 7777};
     const auto ft = make_fireteam(8, 30, {leader});
@@ -305,7 +305,7 @@ void test_process_leave_nonexistent_player() {
 // ---------------------------------------------------------------------------
 void test_is_owner() {
     wish::core::SessionOrchestrator orch;
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     const wish::NetAddress leader {"10.0.0.1", 7777};
     const auto ft = make_fireteam(9, 30, {leader});
@@ -321,7 +321,7 @@ void test_is_owner() {
 
 void test_transfer_ownership() {
     wish::core::SessionOrchestrator orch;
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     const wish::NetAddress leader {"10.0.0.1", 7777};
     const wish::NetAddress member {"10.0.0.2", 7778};
@@ -351,7 +351,7 @@ void test_activate_session() {
     cfg.auto_activate_sessions = false;
 
     wish::core::SessionOrchestrator orch(cfg);
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     const wish::NetAddress leader {"10.0.0.1", 7777};
     const auto ft = make_fireteam(11, 30, {leader});
@@ -374,7 +374,7 @@ void test_activate_session() {
 
 void test_end_session() {
     wish::core::SessionOrchestrator orch;
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     const wish::NetAddress leader {"10.0.0.1", 7777};
     const auto ft = make_fireteam(12, 30, {leader});
@@ -398,7 +398,7 @@ void test_end_session() {
 
 void test_destroy_group() {
     wish::core::SessionOrchestrator orch;
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     const wish::NetAddress leader {"10.0.0.1", 7777};
     const auto ft = make_fireteam(13, 30, {leader});
@@ -423,7 +423,7 @@ void test_destroy_only_ended_groups() {
     cfg.auto_activate_sessions = false;
 
     wish::core::SessionOrchestrator orch(cfg);
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     const wish::NetAddress leader {"10.0.0.1", 7777};
     const auto ft = make_fireteam(14, 30, {leader});
@@ -443,7 +443,7 @@ void test_session_activated_callback() {
     cfg.auto_activate_sessions = false;
 
     wish::core::SessionOrchestrator orch(cfg);
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     bool callback_fired = false;
     wish::u32 callback_group_id = 0;
@@ -472,7 +472,7 @@ void test_session_activated_callback() {
 
 void test_session_ended_callback() {
     wish::core::SessionOrchestrator orch;
-    const auto now = time_point{};
+    const auto now = time_point {};
 
     bool callback_fired = false;
     wish::u32 callback_group_id = 0;
@@ -511,7 +511,7 @@ void test_attach_matchmaking_registers_callback() {
     orch.attach_matchmaking(mm);
 
     // Enqueue a party and tick to form a match
-    const auto now = time_point{};
+    const auto now = time_point {};
     const auto ticket_id = mm.enqueue_party(1, 8, 100, now);
     assert(ticket_id > 0);
 

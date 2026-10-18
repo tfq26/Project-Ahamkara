@@ -17,10 +17,7 @@ WishSessionAdapter::WishSessionAdapter(
     wish::core::AuthValidator& auth_validator,
     wish::core::SessionAdmissionService& admission_service,
     wish::core::MatchResultReporter& result_reporter)
-    : activity_mgr_(activity_mgr)
-    , auth_validator_(auth_validator)
-    , admission_service_(admission_service)
-    , result_reporter_(result_reporter) {
+    : activity_mgr_(activity_mgr), auth_validator_(auth_validator), admission_service_(admission_service), result_reporter_(result_reporter) {
 }
 
 // ===========================================================================
@@ -38,7 +35,7 @@ WishSessionAdapter::AdmissionResult WishSessionAdapter::admit_session(
 
     // 1. Authenticate via the Wish auth validator.
     const wish::core::AuthResult auth = auth_validator_.validate(
-        wish::core::AuthRequest{
+        wish::core::AuthRequest {
             .token = auth_token,
             .remote_endpoint = remote_endpoint,
         });
@@ -46,15 +43,14 @@ WishSessionAdapter::AdmissionResult WishSessionAdapter::admit_session(
     if (!auth.accepted) {
         result.error = make_service_error(
             wish::WishErrorCode::kAuthRejected,
-            /*incident_id=*/{});
+            /*incident_id=*/ {});
         result.error.message_key = "errors.auth.rejected";
-        ae::log_warning(std::string("WishSessionAdapter: auth rejected for player=")
-                        + player_id + " reason=" + auth.error_message);
+        ae::log_warning(std::string("WishSessionAdapter: auth rejected for player=") + player_id + " reason=" + auth.error_message);
         return result;
     }
 
     // 2. Admit through the session admission service.
-    const wish::core::SessionAdmissionRequest admit_req{
+    const wish::core::SessionAdmissionRequest admit_req {
         .player_id = auth.player_id,
         .session_id = auth.session_id,
         .remote_endpoint = remote_endpoint,
@@ -66,10 +62,9 @@ WishSessionAdapter::AdmissionResult WishSessionAdapter::admit_session(
     if (!admit.admitted) {
         result.error = make_service_error(
             wish::WishErrorCode::kSessionAdmissionRejected,
-            /*incident_id=*/{});
+            /*incident_id=*/ {});
         result.error.message_key = "errors.admission.rejected";
-        ae::log_warning(std::string("WishSessionAdapter: admission rejected for player=")
-                        + player_id);
+        ae::log_warning(std::string("WishSessionAdapter: admission rejected for player=") + player_id);
         return result;
     }
 
@@ -80,14 +75,13 @@ WishSessionAdapter::AdmissionResult WishSessionAdapter::admit_session(
     if (!activity) {
         result.error = make_service_error(
             wish::WishErrorCode::kActivityUnavailable,
-            /*incident_id=*/{});
+            /*incident_id=*/ {});
         result.error.message_key = "errors.activity.unavailable";
-        ae::log_warning(std::string("WishSessionAdapter: activity ")
-                        + std::to_string(activity_id) + " not found");
+        ae::log_warning(std::string("WishSessionAdapter: activity ") + std::to_string(activity_id) + " not found");
         return result;
     }
 
-    const wish::core::SessionAdmissionRequest player_admit_req{
+    const wish::core::SessionAdmissionRequest player_admit_req {
         .player_id = auth.player_id,
         .session_id = auth.session_id,
         .remote_endpoint = remote_endpoint,
@@ -96,31 +90,28 @@ WishSessionAdapter::AdmissionResult WishSessionAdapter::admit_session(
     if (!activity->admit_player(player_admit_req)) {
         result.error = make_service_error(
             wish::WishErrorCode::kCapacityExceeded,
-            /*incident_id=*/{});
+            /*incident_id=*/ {});
         result.error.message_key = "errors.capacity.exceeded";
-        ae::log_warning(std::string("WishSessionAdapter: activity ")
-                        + std::to_string(activity_id) + " rejected player="
-                        + auth.player_id);
+        ae::log_warning(std::string("WishSessionAdapter: activity ") + std::to_string(activity_id) + " rejected player=" + auth.player_id);
         return result;
     }
 
     // 4. Create a stable session entry.
-    const wish::session::SessionId sid{
-        .value = static_cast<std::uint64_t>(sessions_.size() + 1)
-    };
+    const wish::session::SessionId sid {
+        .value = static_cast<std::uint64_t>(sessions_.size() + 1)};
 
-    SessionEntry entry{};
+    SessionEntry entry {};
     entry.session_id = sid;
     entry.activity_id = activity_id;
     entry.player_id = auth.player_id;
     entry.admitted = true;
     entry.admitted_at = now;
-    entry.identity_token = auth_token;  // stable identity for reconnect guard
+    entry.identity_token = auth_token; // stable identity for reconnect guard
     sessions_.push_back(std::move(entry));
 
     // 5. Map the remote endpoint address to this session.
-    AddressEntry addr_entry{};
-    addr_entry.address = wish::NetAddress{};
+    AddressEntry addr_entry {};
+    addr_entry.address = wish::NetAddress {};
     addr_entry.session_id = sid;
     addr_entry.last_seen = now;
     addr_entry.disconnected = false;
@@ -146,9 +137,7 @@ WishSessionAdapter::AdmissionResult WishSessionAdapter::admit_session(
     result.activity_id = activity_id;
     result.session_id = sid;
 
-    ae::log_info(std::string("WishSessionAdapter: admitted session ")
-                 + std::to_string(sid.value) + " player=" + auth.player_id
-                 + " activity=" + std::to_string(activity_id));
+    ae::log_info(std::string("WishSessionAdapter: admitted session ") + std::to_string(sid.value) + " player=" + auth.player_id + " activity=" + std::to_string(activity_id));
 
     return result;
 }
@@ -165,16 +154,16 @@ bool WishSessionAdapter::remove_session(wish::session::SessionId sid) {
 
     // Remove from address map.
     auto ait = std::remove_if(address_map_.begin(), address_map_.end(),
-                               [sid](const AddressEntry& e) {
-                                   return e.session_id.value == sid.value;
-                               });
+                              [sid](const AddressEntry& e) {
+                                  return e.session_id.value == sid.value;
+                              });
     address_map_.erase(ait, address_map_.end());
 
     // Remove from sessions.
     auto sit = std::remove_if(sessions_.begin(), sessions_.end(),
-                               [sid](const SessionEntry& e) {
-                                   return e.session_id.value == sid.value;
-                               });
+                              [sid](const SessionEntry& e) {
+                                  return e.session_id.value == sid.value;
+                              });
     bool found = (sit != sessions_.end());
     sessions_.erase(sit, sessions_.end());
 
@@ -187,8 +176,7 @@ bool WishSessionAdapter::remove_session(wish::session::SessionId sid) {
     }
 
     if (found) {
-        ae::log_info(std::string("WishSessionAdapter: removed session ")
-                     + std::to_string(sid.value));
+        ae::log_info(std::string("WishSessionAdapter: removed session ") + std::to_string(sid.value));
     }
     return found;
 }
@@ -200,7 +188,7 @@ bool WishSessionAdapter::remove_session(wish::session::SessionId sid) {
 WishSessionAdapter::SessionRouting WishSessionAdapter::resolve_routing(
     const wish::NetAddress& address) const {
 
-    SessionRouting routing{};
+    SessionRouting routing {};
 
     // Find by address in address_map_.
     for (const auto& ae : address_map_) {
@@ -288,8 +276,7 @@ void WishSessionAdapter::mark_disconnected(wish::session::SessionId sid, time_po
         activity->remove_player(sid);
     }
 
-    ae::log_info(std::string("WishSessionAdapter: session ")
-                 + std::to_string(sid.value) + " disconnected (grace period started)");
+    ae::log_info(std::string("WishSessionAdapter: session ") + std::to_string(sid.value) + " disconnected (grace period started)");
 }
 
 bool WishSessionAdapter::handle_reconnect(
@@ -299,8 +286,7 @@ bool WishSessionAdapter::handle_reconnect(
 
     auto* entry = find_session_entry(sid);
     if (!entry) {
-        ae::log_warning(std::string("WishSessionAdapter: reconnect failed — ")
-                        + "session " + std::to_string(sid.value) + " not found");
+        ae::log_warning(std::string("WishSessionAdapter: reconnect failed — ") + "session " + std::to_string(sid.value) + " not found");
         return false;
     }
 
@@ -308,22 +294,19 @@ bool WishSessionAdapter::handle_reconnect(
     // The reconnecting identity MUST match the original. This prevents a
     // stale/disconnected session from being hijacked by a different identity.
     if (entry->player_id != player_id) {
-        ae::log_warning(std::string("WishSessionAdapter: reconnect rejected — ")
-                        + "identity mismatch for session " + std::to_string(sid.value)
-                        + " (expected=" + entry->player_id + ", got=" + player_id + ")");
+        ae::log_warning(std::string("WishSessionAdapter: reconnect rejected — ") + "identity mismatch for session " + std::to_string(sid.value) + " (expected=" + entry->player_id + ", got=" + player_id + ")");
         return false;
     }
 
     // Check grace period expiry.
-    if (entry->disconnected_at != time_point{} &&
+    if (entry->disconnected_at != time_point {} &&
         (now - entry->disconnected_at) > grace_period_) {
-        ae::log_warning(std::string("WishSessionAdapter: reconnect rejected — ")
-                        + "grace period expired for session " + std::to_string(sid.value));
+        ae::log_warning(std::string("WishSessionAdapter: reconnect rejected — ") + "grace period expired for session " + std::to_string(sid.value));
         return false;
     }
 
     // Clear the disconnected flag — session is active again.
-    entry->disconnected_at = time_point{};
+    entry->disconnected_at = time_point {};
 
     // Update the address mapping.
     auto* addr_entry = find_address_entry_by_session(sid);
@@ -332,8 +315,7 @@ bool WishSessionAdapter::handle_reconnect(
         addr_entry->last_seen = now;
     }
 
-    ae::log_info(std::string("WishSessionAdapter: session ")
-                 + std::to_string(sid.value) + " reconnected successfully");
+    ae::log_info(std::string("WishSessionAdapter: session ") + std::to_string(sid.value) + " reconnected successfully");
     return true;
 }
 
@@ -355,15 +337,14 @@ void WishSessionAdapter::report_session_result(wish::session::SessionId sid) {
         return;
     }
 
-    result_reporter_.report_match_result(wish::core::MatchResult{
+    result_reporter_.report_match_result(wish::core::MatchResult {
         .match_id = std::to_string(entry->activity_id),
         .player_id = entry->player_id,
         .completed = true,
         .summary = "match completed",
     });
 
-    ae::log_info(std::string("WishSessionAdapter: reported result for session ")
-                 + std::to_string(sid.value));
+    ae::log_info(std::string("WishSessionAdapter: reported result for session ") + std::to_string(sid.value));
 }
 
 // ===========================================================================
@@ -374,7 +355,7 @@ wish::ErrorEnvelope WishSessionAdapter::make_protocol_error(
     wish::WishErrorCode code,
     const std::string& incident_id) {
 
-    wish::ErrorEnvelope env{};
+    wish::ErrorEnvelope env {};
     env.version = wish::kErrorEnvelopeVersion;
     env.error_code = static_cast<std::uint32_t>(code);
     env.incident_id = incident_id.empty() ? "NOC" : incident_id;
@@ -399,7 +380,7 @@ wish::ErrorEnvelope WishSessionAdapter::make_service_error(
     wish::WishErrorCode code,
     const std::string& incident_id) {
 
-    wish::ErrorEnvelope env{};
+    wish::ErrorEnvelope env {};
     env.version = wish::kErrorEnvelopeVersion;
     env.error_code = static_cast<std::uint32_t>(code);
     env.incident_id = incident_id.empty() ? "NOC" : incident_id;
@@ -478,4 +459,4 @@ WishSessionAdapter::AddressEntry* WishSessionAdapter::find_address_entry_by_sess
     return nullptr;
 }
 
-}  // namespace ahamkara::game::adapters
+} // namespace ahamkara::game::adapters

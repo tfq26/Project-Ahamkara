@@ -13,7 +13,7 @@ using namespace ahamkara::game;
 // ===================================================================
 
 void test_item_instance_defaults() {
-    ItemInstance inst{};
+    ItemInstance inst {};
     assert(inst.instance_id == 0);
     assert(inst.definition_id == 0);
     assert(inst.perk_ids.empty());
@@ -22,7 +22,7 @@ void test_item_instance_defaults() {
 }
 
 void test_item_instance_with_values() {
-    ItemInstance inst{42, 2001, {1001, 1002}, {}};
+    ItemInstance inst {42, 2001, {1001, 1002}, {}};
     assert(inst.instance_id == 42);
     assert(inst.definition_id == 2001);
     assert(inst.perk_ids.size() == 2);
@@ -37,7 +37,7 @@ void test_item_instance_with_values() {
 // ===================================================================
 
 void test_progression_defaults() {
-    ProgressionState prog{};
+    ProgressionState prog {};
     assert(prog.level == 1);
     assert(prog.xp == 0);
     assert(prog.xp_to_next_level == 1000);
@@ -45,7 +45,7 @@ void test_progression_defaults() {
 }
 
 void test_progression_add_xp_no_level() {
-    ProgressionState prog{};
+    ProgressionState prog {};
     bool leveled = prog.add_xp(500);
     assert(!leveled);
     assert(prog.xp == 500);
@@ -54,7 +54,7 @@ void test_progression_add_xp_no_level() {
 }
 
 void test_progression_add_xp_level_up() {
-    ProgressionState prog{};
+    ProgressionState prog {};
     bool leveled = prog.add_xp(1000);
     assert(leveled);
     assert(prog.xp == 0);
@@ -65,20 +65,20 @@ void test_progression_add_xp_level_up() {
 }
 
 void test_progression_add_xp_multi_level() {
-    ProgressionState prog{};
+    ProgressionState prog {};
     // Add enough XP to level up multiple times
-    bool leveled = prog.add_xp(2500);  // 1000 + 1150 + 350
+    bool leveled = prog.add_xp(2500); // 1000 + 1150 + 350
     assert(leveled);
     // Should have gained 2 levels (1000 → level 2, 1150 → level 3)
     assert(prog.level == 3);
-    assert(prog.xp == 350);  // 2500 - 1000 - 1150
+    assert(prog.xp == 350); // 2500 - 1000 - 1150
     // Curve: 1000 * 1.15^(3-1) = 1000 * 1.3225 = 1322 (truncated)
     assert(prog.xp_to_next_level == 1322);
     std::cout << "test_progression_add_xp_multi_level passed.\n";
 }
 
 void test_progression_set_level() {
-    ProgressionState prog{};
+    ProgressionState prog {};
     prog.set_level(5);
     assert(prog.level == 5);
     assert(prog.xp == 0);
@@ -88,15 +88,15 @@ void test_progression_set_level() {
 }
 
 void test_progression_set_level_zero() {
-    ProgressionState prog{};
-    prog.set_level(0);  // clamped to 1
+    ProgressionState prog {};
+    prog.set_level(0); // clamped to 1
     assert(prog.level == 1);
     assert(prog.xp_to_next_level == 1000);
     std::cout << "test_progression_set_level_zero passed.\n";
 }
 
 void test_progression_exact_boundary() {
-    ProgressionState prog{};
+    ProgressionState prog {};
     // Exactly at boundary — levels up
     assert(prog.add_xp(1000));
     assert(prog.level == 2);
@@ -109,13 +109,13 @@ void test_progression_exact_boundary() {
 // ===================================================================
 
 void test_currency_defaults() {
-    CurrencyState cur{};
+    CurrencyState cur {};
     assert(cur.glimmer == 0);
     std::cout << "test_currency_defaults passed.\n";
 }
 
 void test_currency_earn() {
-    CurrencyState cur{};
+    CurrencyState cur {};
     cur.earn_glimmer(500);
     assert(cur.glimmer == 500);
     cur.earn_glimmer(250);
@@ -124,7 +124,7 @@ void test_currency_earn() {
 }
 
 void test_currency_spend_sufficient() {
-    CurrencyState cur{};
+    CurrencyState cur {};
     cur.earn_glimmer(1000);
     bool ok = cur.spend_glimmer(600);
     assert(ok);
@@ -133,16 +133,16 @@ void test_currency_spend_sufficient() {
 }
 
 void test_currency_spend_insufficient() {
-    CurrencyState cur{};
+    CurrencyState cur {};
     cur.earn_glimmer(100);
     bool ok = cur.spend_glimmer(200);
     assert(!ok);
-    assert(cur.glimmer == 100);  // unchanged
+    assert(cur.glimmer == 100); // unchanged
     std::cout << "test_currency_spend_insufficient passed.\n";
 }
 
 void test_currency_spend_exact() {
-    CurrencyState cur{};
+    CurrencyState cur {};
     cur.earn_glimmer(500);
     assert(cur.spend_glimmer(500));
     assert(cur.glimmer == 0);
@@ -154,7 +154,7 @@ void test_currency_spend_exact() {
 // ===================================================================
 
 void test_inventory_initial_state() {
-    Inventory inv{};
+    Inventory inv {};
     assert(inv.item_count() == 0);
     assert(!inv.is_full());
     assert(inv.max_items() == 50);
@@ -163,7 +163,7 @@ void test_inventory_initial_state() {
 }
 
 void test_inventory_add_item() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id = inv.add_item(2001);
     assert(id != 0);
     assert(inv.item_count() == 1);
@@ -178,7 +178,7 @@ void test_inventory_add_item() {
 }
 
 void test_inventory_add_multiple_items() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id1 = inv.add_item(2001);
     ae::u32 id2 = inv.add_item(2002);
     ae::u32 id3 = inv.add_item(2003);
@@ -194,7 +194,7 @@ void test_inventory_add_multiple_items() {
 }
 
 void test_inventory_remove_item() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id = inv.add_item(2001);
     assert(inv.item_count() == 1);
 
@@ -206,20 +206,20 @@ void test_inventory_remove_item() {
 }
 
 void test_inventory_remove_nonexistent() {
-    Inventory inv{};
+    Inventory inv {};
     bool ok = inv.remove_item(9999);
     assert(!ok);
     std::cout << "test_inventory_remove_nonexistent passed.\n";
 }
 
 void test_inventory_get_nonexistent() {
-    const Inventory inv{};
+    const Inventory inv {};
     assert(inv.get_item(9999) == nullptr);
     std::cout << "test_inventory_get_nonexistent passed.\n";
 }
 
 void test_inventory_max_items() {
-    Inventory inv{};
+    Inventory inv {};
     inv.set_max_items(3);
     assert(inv.max_items() == 3);
 
@@ -236,7 +236,7 @@ void test_inventory_max_items() {
 }
 
 void test_inventory_clear() {
-    Inventory inv{};
+    Inventory inv {};
     inv.add_item(2001);
     inv.add_item(2002);
     inv.add_item(2003);
@@ -268,7 +268,7 @@ void test_inventory_items_by_type() {
     helmet.slot = ItemSlot::ArmorHelmet;
     registry.register_item(helmet);
 
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 w_id = inv.add_item(9001);
     ae::u32 a_id = inv.add_item(9002);
 
@@ -304,7 +304,7 @@ void test_inventory_items_by_slot() {
     helmet.slot = ItemSlot::ArmorHelmet;
     registry.register_item(helmet);
 
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 ar_id = inv.add_item(9011);
     inv.add_item(9012);
 
@@ -321,7 +321,7 @@ void test_inventory_items_by_slot() {
 // ===================================================================
 
 void test_inventory_equip_item() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id = inv.add_item(2001);
 
     bool ok = inv.equip_item(id, ItemSlot::WeaponPrimary);
@@ -336,14 +336,14 @@ void test_inventory_equip_item() {
 }
 
 void test_inventory_equip_nonexistent() {
-    Inventory inv{};
+    Inventory inv {};
     bool ok = inv.equip_item(9999, ItemSlot::WeaponPrimary);
     assert(!ok);
     std::cout << "test_inventory_equip_nonexistent passed.\n";
 }
 
 void test_inventory_equip_invalid_slot() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id = inv.add_item(2001);
     // Use ItemSlot::None which is beyond valid range
     bool ok = inv.equip_item(id, static_cast<ItemSlot>(99));
@@ -352,7 +352,7 @@ void test_inventory_equip_invalid_slot() {
 }
 
 void test_inventory_equip_displaces() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id1 = inv.add_item(2001);
     ae::u32 id2 = inv.add_item(2002);
 
@@ -369,7 +369,7 @@ void test_inventory_equip_displaces() {
 }
 
 void test_inventory_unequip() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id = inv.add_item(2001);
     inv.equip_item(id, ItemSlot::WeaponPrimary);
     assert(inv.get_equipped(ItemSlot::WeaponPrimary) != nullptr);
@@ -385,14 +385,14 @@ void test_inventory_unequip() {
 }
 
 void test_inventory_unequip_invalid_slot() {
-    Inventory inv{};
+    Inventory inv {};
     bool ok = inv.unequip_item(static_cast<ItemSlot>(99));
     assert(!ok);
     std::cout << "test_inventory_unequip_invalid_slot passed.\n";
 }
 
 void test_inventory_equip_remove_unequips() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id = inv.add_item(2001);
     inv.equip_item(id, ItemSlot::WeaponPrimary);
     assert(inv.get_equipped(ItemSlot::WeaponPrimary) != nullptr);
@@ -403,7 +403,7 @@ void test_inventory_equip_remove_unequips() {
 }
 
 void test_inventory_equip_multiple_slots() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 weapon_id = inv.add_item(2001);
     ae::u32 helmet_id = inv.add_item(3001);
 
@@ -420,7 +420,7 @@ void test_inventory_equip_multiple_slots() {
 // ===================================================================
 
 void test_inventory_attach_perk() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id = inv.add_item(2001);
 
     bool ok = inv.attach_perk(id, 1001);
@@ -433,26 +433,26 @@ void test_inventory_attach_perk() {
 }
 
 void test_inventory_attach_perk_duplicate() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id = inv.add_item(2001);
     inv.attach_perk(id, 1001);
 
     bool ok = inv.attach_perk(id, 1001);
-    assert(!ok);  // duplicate
+    assert(!ok); // duplicate
 
     assert(inv.get_item(id)->perk_ids.size() == 1);
     std::cout << "test_inventory_attach_perk_duplicate passed.\n";
 }
 
 void test_inventory_attach_perk_nonexistent_item() {
-    Inventory inv{};
+    Inventory inv {};
     bool ok = inv.attach_perk(9999, 1001);
     assert(!ok);
     std::cout << "test_inventory_attach_perk_nonexistent_item passed.\n";
 }
 
 void test_inventory_remove_perk() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id = inv.add_item(2001);
     inv.attach_perk(id, 1001);
     inv.attach_perk(id, 1002);
@@ -468,7 +468,7 @@ void test_inventory_remove_perk() {
 }
 
 void test_inventory_remove_perk_nonexistent() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id = inv.add_item(2001);
 
     bool ok = inv.remove_perk(id, 9999);
@@ -477,7 +477,7 @@ void test_inventory_remove_perk_nonexistent() {
 }
 
 void test_inventory_attach_mod() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id = inv.add_item(2001);
 
     bool ok = inv.attach_mod(id, 5001);
@@ -490,7 +490,7 @@ void test_inventory_attach_mod() {
 }
 
 void test_inventory_attach_mod_duplicate() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id = inv.add_item(2001);
     inv.attach_mod(id, 5001);
 
@@ -501,7 +501,7 @@ void test_inventory_attach_mod_duplicate() {
 }
 
 void test_inventory_remove_mod() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id = inv.add_item(2001);
     inv.attach_mod(id, 5001);
     inv.attach_mod(id, 5002);
@@ -517,7 +517,7 @@ void test_inventory_remove_mod() {
 }
 
 void test_inventory_perks_and_mods_independent() {
-    Inventory inv{};
+    Inventory inv {};
     ae::u32 id = inv.add_item(2001);
 
     inv.attach_perk(id, 1001);
@@ -529,7 +529,7 @@ void test_inventory_perks_and_mods_independent() {
 
     inv.remove_perk(id, 1001);
     assert(item->perk_ids.empty());
-    assert(item->mod_ids.size() == 1);  // mods unaffected
+    assert(item->mod_ids.size() == 1); // mods unaffected
 
     std::cout << "test_inventory_perks_and_mods_independent passed.\n";
 }
@@ -539,7 +539,7 @@ void test_inventory_perks_and_mods_independent() {
 // ===================================================================
 
 void test_inventory_iteration() {
-    Inventory inv{};
+    Inventory inv {};
     const ae::u32 id1 = inv.add_item(2001);
     const ae::u32 id2 = inv.add_item(2002);
     const ae::u32 id3 = inv.add_item(2003);
@@ -547,9 +547,12 @@ void test_inventory_iteration() {
     bool found1 = false, found2 = false, found3 = false;
     int count = 0;
     for (auto it = inv.begin(); it != inv.end(); ++it) {
-        if (it->second.instance_id == id1) found1 = true;
-        if (it->second.instance_id == id2) found2 = true;
-        if (it->second.instance_id == id3) found3 = true;
+        if (it->second.instance_id == id1)
+            found1 = true;
+        if (it->second.instance_id == id2)
+            found2 = true;
+        if (it->second.instance_id == id3)
+            found3 = true;
         ++count;
     }
     assert(count == 3);
@@ -558,12 +561,12 @@ void test_inventory_iteration() {
 }
 
 void test_inventory_empty_iteration() {
-    const Inventory inv{};
+    const Inventory inv {};
     assert(inv.begin() == inv.end());
     std::cout << "test_inventory_empty_iteration passed.\n";
 }
 
-}  // namespace
+} // namespace
 
 int main() {
     // ItemInstance

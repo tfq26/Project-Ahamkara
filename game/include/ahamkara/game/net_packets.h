@@ -221,19 +221,11 @@ inline bool read_player_state(ByteReader& reader, ReplicatedPlayerState& state) 
 }
 
 inline bool write_vfx_feedback(ByteWriter& writer, const VfxFeedback& feedback) {
-    return writer.write(feedback.screen_shake_intensity)
-        && writer.write(feedback.screen_shake_duration)
-        && writer.write(feedback.damage_flash_intensity)
-        && writer.write(feedback.damage_flash_duration)
-        && writer.write(feedback.event_id);
+    return writer.write(feedback.screen_shake_intensity) && writer.write(feedback.screen_shake_duration) && writer.write(feedback.damage_flash_intensity) && writer.write(feedback.damage_flash_duration) && writer.write(feedback.event_id);
 }
 
 inline bool read_vfx_feedback(ByteReader& reader, VfxFeedback& feedback) {
-    return reader.read(feedback.screen_shake_intensity)
-        && reader.read(feedback.screen_shake_duration)
-        && reader.read(feedback.damage_flash_intensity)
-        && reader.read(feedback.damage_flash_duration)
-        && reader.read(feedback.event_id);
+    return reader.read(feedback.screen_shake_intensity) && reader.read(feedback.screen_shake_duration) && reader.read(feedback.damage_flash_intensity) && reader.read(feedback.damage_flash_duration) && reader.read(feedback.event_id);
 }
 
 inline bool write_snapshot(ByteWriter& writer, const ServerSnapshot& snapshot) {

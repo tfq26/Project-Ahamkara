@@ -24,22 +24,28 @@ std::string GrantId::to_string() const {
 }
 
 GrantId GrantId::from_string(std::string_view sv) {
-    GrantId id{};
+    GrantId id {};
     // Format: 16 hex + '-' + 8 hex + '-' + 8 hex = 34 chars
-    if (sv.size() < 34) return id;
+    if (sv.size() < 34)
+        return id;
 
     // Quick validate format
-    if (sv[16] != '-' || sv[25] != '-') return id;
+    if (sv[16] != '-' || sv[25] != '-')
+        return id;
 
     auto parse_hex16 = [&](std::size_t start) -> ae::u64 {
         ae::u64 val = 0;
         for (std::size_t i = 0; i < 16 && start + i < sv.size(); ++i) {
             char c = sv[start + i];
             val <<= 4;
-            if (c >= '0' && c <= '9')       val |= static_cast<ae::u64>(c - '0');
-            else if (c >= 'a' && c <= 'f')  val |= static_cast<ae::u64>(c - 'a' + 10);
-            else if (c >= 'A' && c <= 'F')  val |= static_cast<ae::u64>(c - 'A' + 10);
-            else return 0;
+            if (c >= '0' && c <= '9')
+                val |= static_cast<ae::u64>(c - '0');
+            else if (c >= 'a' && c <= 'f')
+                val |= static_cast<ae::u64>(c - 'a' + 10);
+            else if (c >= 'A' && c <= 'F')
+                val |= static_cast<ae::u64>(c - 'A' + 10);
+            else
+                return 0;
         }
         return val;
     };
@@ -49,10 +55,14 @@ GrantId GrantId::from_string(std::string_view sv) {
         for (std::size_t i = 0; i < 8 && start + i < sv.size(); ++i) {
             char c = sv[start + i];
             val <<= 4;
-            if (c >= '0' && c <= '9')       val |= static_cast<ae::u32>(c - '0');
-            else if (c >= 'a' && c <= 'f')  val |= static_cast<ae::u32>(c - 'a' + 10);
-            else if (c >= 'A' && c <= 'F')  val |= static_cast<ae::u32>(c - 'A' + 10);
-            else return 0;
+            if (c >= '0' && c <= '9')
+                val |= static_cast<ae::u32>(c - '0');
+            else if (c >= 'a' && c <= 'f')
+                val |= static_cast<ae::u32>(c - 'a' + 10);
+            else if (c >= 'A' && c <= 'F')
+                val |= static_cast<ae::u32>(c - 'A' + 10);
+            else
+                return 0;
         }
         return val;
     };
@@ -70,7 +80,7 @@ GrantId GrantId::from_string(std::string_view sv) {
 bool RewardGrant::is_valid() const {
     return type < PickupType::Count &&
            quantity > 0.0F &&
-           quantity < 1e9F;  // sanity cap
+           quantity < 1e9F; // sanity cap
 }
 
 // ===========================================================================
@@ -79,10 +89,14 @@ bool RewardGrant::is_valid() const {
 
 ae::u32 InventoryLimits::max_for_type(PickupType type) {
     switch (type) {
-        case PickupType::WeaponDrop:  return kMaxWeaponSlots;
-        case PickupType::ArmorDrop:   return kMaxArmorSlots;
-        case PickupType::PerkDrop:    return kMaxPerks;
-        default:                      return 0; // no item-level cap for resources
+    case PickupType::WeaponDrop:
+        return kMaxWeaponSlots;
+    case PickupType::ArmorDrop:
+        return kMaxArmorSlots;
+    case PickupType::PerkDrop:
+        return kMaxPerks;
+    default:
+        return 0; // no item-level cap for resources
     }
 }
 
@@ -92,9 +106,9 @@ ae::u32 InventoryLimits::max_for_type(PickupType type) {
 
 bool Inventory::has_weapon(ae::u32 definition_id) const {
     return std::any_of(weapons_.begin(), weapons_.end(),
-        [definition_id](const InventoryEntry& e) {
-            return e.item_definition_id == definition_id;
-        });
+                       [definition_id](const InventoryEntry& e) {
+                           return e.item_definition_id == definition_id;
+                       });
 }
 
 bool Inventory::weapons_full() const {
@@ -102,24 +116,26 @@ bool Inventory::weapons_full() const {
 }
 
 bool Inventory::add_weapon(const InventoryEntry& entry) {
-    if (weapons_.size() >= InventoryLimits::kMaxWeaponSlots) return false;
+    if (weapons_.size() >= InventoryLimits::kMaxWeaponSlots)
+        return false;
     weapons_.push_back(entry);
     return true;
 }
 
 bool Inventory::remove_weapon(ae::u64 instance_id) {
     auto it = std::remove_if(weapons_.begin(), weapons_.end(),
-        [instance_id](const InventoryEntry& e) { return e.instance_id == instance_id; });
-    if (it == weapons_.end()) return false;
+                             [instance_id](const InventoryEntry& e) { return e.instance_id == instance_id; });
+    if (it == weapons_.end())
+        return false;
     weapons_.erase(it, weapons_.end());
     return true;
 }
 
 bool Inventory::has_armor(ae::u32 definition_id) const {
     return std::any_of(armor_.begin(), armor_.end(),
-        [definition_id](const InventoryEntry& e) {
-            return e.item_definition_id == definition_id;
-        });
+                       [definition_id](const InventoryEntry& e) {
+                           return e.item_definition_id == definition_id;
+                       });
 }
 
 bool Inventory::armor_full() const {
@@ -127,24 +143,26 @@ bool Inventory::armor_full() const {
 }
 
 bool Inventory::add_armor(const InventoryEntry& entry) {
-    if (armor_.size() >= InventoryLimits::kMaxArmorSlots) return false;
+    if (armor_.size() >= InventoryLimits::kMaxArmorSlots)
+        return false;
     armor_.push_back(entry);
     return true;
 }
 
 bool Inventory::remove_armor(ae::u64 instance_id) {
     auto it = std::remove_if(armor_.begin(), armor_.end(),
-        [instance_id](const InventoryEntry& e) { return e.instance_id == instance_id; });
-    if (it == armor_.end()) return false;
+                             [instance_id](const InventoryEntry& e) { return e.instance_id == instance_id; });
+    if (it == armor_.end())
+        return false;
     armor_.erase(it, armor_.end());
     return true;
 }
 
 bool Inventory::has_perk(ae::u32 definition_id) const {
     return std::any_of(perks_.begin(), perks_.end(),
-        [definition_id](const InventoryEntry& e) {
-            return e.item_definition_id == definition_id;
-        });
+                       [definition_id](const InventoryEntry& e) {
+                           return e.item_definition_id == definition_id;
+                       });
 }
 
 bool Inventory::perks_full() const {
@@ -152,15 +170,17 @@ bool Inventory::perks_full() const {
 }
 
 bool Inventory::add_perk(const InventoryEntry& entry) {
-    if (perks_.size() >= InventoryLimits::kMaxPerks) return false;
+    if (perks_.size() >= InventoryLimits::kMaxPerks)
+        return false;
     perks_.push_back(entry);
     return true;
 }
 
 bool Inventory::remove_perk(ae::u64 instance_id) {
     auto it = std::remove_if(perks_.begin(), perks_.end(),
-        [instance_id](const InventoryEntry& e) { return e.instance_id == instance_id; });
-    if (it == perks_.end()) return false;
+                             [instance_id](const InventoryEntry& e) { return e.instance_id == instance_id; });
+    if (it == perks_.end())
+        return false;
     perks_.erase(it, perks_.end());
     return true;
 }
@@ -192,60 +212,62 @@ void Inventory::reset() {
 // ===========================================================================
 
 GrantResult PickupProcessor::process_grant(Inventory& inventory, const RewardGrant& grant) {
-    if (!grant.is_valid()) return GrantResult::Invalid;
+    if (!grant.is_valid())
+        return GrantResult::Invalid;
 
     // Idempotency check
-    if (has_processed(grant.id)) return GrantResult::Duplicate;
+    if (has_processed(grant.id))
+        return GrantResult::Duplicate;
 
     GrantResult result = GrantResult::Invalid;
 
     switch (grant.type) {
-        case PickupType::PrimaryAmmo:
-        case PickupType::SecondaryAmmo:
-        case PickupType::HeavyAmmo:
-        case PickupType::SpecialAmmo:
-            result = process_ammo(grant.type, grant.quantity, inventory);
-            break;
+    case PickupType::PrimaryAmmo:
+    case PickupType::SecondaryAmmo:
+    case PickupType::HeavyAmmo:
+    case PickupType::SpecialAmmo:
+        result = process_ammo(grant.type, grant.quantity, inventory);
+        break;
 
-        case PickupType::HealthPack:
-        case PickupType::LargeHealth:
-            result = process_health(grant.quantity, inventory);
-            break;
+    case PickupType::HealthPack:
+    case PickupType::LargeHealth:
+        result = process_health(grant.quantity, inventory);
+        break;
 
-        case PickupType::ShieldCharge:
-            result = process_shield(grant.quantity, inventory);
-            break;
+    case PickupType::ShieldCharge:
+        result = process_shield(grant.quantity, inventory);
+        break;
 
-        case PickupType::WeaponDrop:
-            result = process_weapon_drop(grant, inventory);
-            break;
+    case PickupType::WeaponDrop:
+        result = process_weapon_drop(grant, inventory);
+        break;
 
-        case PickupType::ArmorDrop:
-            result = process_armor_drop(grant, inventory);
-            break;
+    case PickupType::ArmorDrop:
+        result = process_armor_drop(grant, inventory);
+        break;
 
-        case PickupType::PerkDrop:
-            result = process_perk_drop(grant, inventory);
-            break;
+    case PickupType::PerkDrop:
+        result = process_perk_drop(grant, inventory);
+        break;
 
-        case PickupType::GrenadeCharge:
-            result = process_grenade(grant.quantity, inventory);
-            break;
+    case PickupType::GrenadeCharge:
+        result = process_grenade(grant.quantity, inventory);
+        break;
 
-        case PickupType::UltimateEnergy:
-            result = process_ultimate(grant.quantity, inventory);
-            break;
+    case PickupType::UltimateEnergy:
+        result = process_ultimate(grant.quantity, inventory);
+        break;
 
-        case PickupType::XPOrb:
-            result = process_xp(grant.quantity, inventory);
-            break;
+    case PickupType::XPOrb:
+        result = process_xp(grant.quantity, inventory);
+        break;
 
-        case PickupType::Currency:
-            result = process_currency(grant.quantity, inventory);
-            break;
+    case PickupType::Currency:
+        result = process_currency(grant.quantity, inventory);
+        break;
 
-        default:
-            return GrantResult::Invalid;
+    default:
+        return GrantResult::Invalid;
     }
 
     // Only record idempotency on successful grants.
@@ -270,59 +292,89 @@ void PickupProcessor::reset_idempotency() {
 
 void PickupProcessor::prune_grants_before_session(ae::u32 session_id) {
     auto it = std::remove_if(processed_grants_.begin(), processed_grants_.end(),
-        [session_id](const GrantId& g) { return g.play_session_id < session_id; });
+                             [session_id](const GrantId& g) { return g.play_session_id < session_id; });
     processed_grants_.erase(it, processed_grants_.end());
 }
 
 GrantResult PickupProcessor::process_ammo(PickupType type, float quantity, Inventory& inv) {
     int qty = static_cast<int>(quantity);
-    if (qty <= 0) return GrantResult::Invalid;
+    if (qty <= 0)
+        return GrantResult::Invalid;
 
     int cur = 0;
     int cap = 0;
     switch (type) {
-        case PickupType::PrimaryAmmo:  cur = inv.primary_ammo();  cap = inv.max_primary_ammo();  break;
-        case PickupType::SecondaryAmmo: cur = inv.secondary_ammo(); cap = inv.max_secondary_ammo(); break;
-        case PickupType::HeavyAmmo:    cur = inv.heavy_ammo();    cap = inv.max_heavy_ammo();    break;
-        case PickupType::SpecialAmmo:  cur = inv.special_ammo();  cap = inv.max_special_ammo();  break;
-        default: return GrantResult::Invalid;
+    case PickupType::PrimaryAmmo:
+        cur = inv.primary_ammo();
+        cap = inv.max_primary_ammo();
+        break;
+    case PickupType::SecondaryAmmo:
+        cur = inv.secondary_ammo();
+        cap = inv.max_secondary_ammo();
+        break;
+    case PickupType::HeavyAmmo:
+        cur = inv.heavy_ammo();
+        cap = inv.max_heavy_ammo();
+        break;
+    case PickupType::SpecialAmmo:
+        cur = inv.special_ammo();
+        cap = inv.max_special_ammo();
+        break;
+    default:
+        return GrantResult::Invalid;
     }
 
-    if (cur >= cap) return GrantResult::AtCap;
+    if (cur >= cap)
+        return GrantResult::AtCap;
 
     int new_val = std::min(cur + qty, cap);
     switch (type) {
-        case PickupType::PrimaryAmmo:  inv.set_primary_ammo(new_val);  break;
-        case PickupType::SecondaryAmmo: inv.set_secondary_ammo(new_val); break;
-        case PickupType::HeavyAmmo:    inv.set_heavy_ammo(new_val);    break;
-        case PickupType::SpecialAmmo:  inv.set_special_ammo(new_val);  break;
-        default: break;
+    case PickupType::PrimaryAmmo:
+        inv.set_primary_ammo(new_val);
+        break;
+    case PickupType::SecondaryAmmo:
+        inv.set_secondary_ammo(new_val);
+        break;
+    case PickupType::HeavyAmmo:
+        inv.set_heavy_ammo(new_val);
+        break;
+    case PickupType::SpecialAmmo:
+        inv.set_special_ammo(new_val);
+        break;
+    default:
+        break;
     }
 
     return GrantResult::Granted;
 }
 
 GrantResult PickupProcessor::process_health(float quantity, Inventory& inv) {
-    if (quantity <= 0.0F) return GrantResult::Invalid;
+    if (quantity <= 0.0F)
+        return GrantResult::Invalid;
     float cur = inv.current_health();
     float cap = inv.max_health();
-    if (cur >= cap) return GrantResult::AtCap;
+    if (cur >= cap)
+        return GrantResult::AtCap;
     inv.set_current_health(std::min(cur + quantity, cap));
     return GrantResult::Granted;
 }
 
 GrantResult PickupProcessor::process_shield(float quantity, Inventory& inv) {
-    if (quantity <= 0.0F) return GrantResult::Invalid;
+    if (quantity <= 0.0F)
+        return GrantResult::Invalid;
     float cur = inv.current_shield();
     float cap = inv.max_shield();
-    if (cur >= cap) return GrantResult::AtCap;
+    if (cur >= cap)
+        return GrantResult::AtCap;
     inv.set_current_shield(std::min(cur + quantity, cap));
     return GrantResult::Granted;
 }
 
 GrantResult PickupProcessor::process_weapon_drop(const RewardGrant& grant, Inventory& inv) {
-    if (grant.item_def_id == 0) return GrantResult::Invalid;
-    if (inv.has_weapon(grant.item_def_id)) return GrantResult::Duplicate;  // Already own this weapon
+    if (grant.item_def_id == 0)
+        return GrantResult::Invalid;
+    if (inv.has_weapon(grant.item_def_id))
+        return GrantResult::Duplicate; // Already own this weapon
 
     InventoryEntry entry;
     entry.item_definition_id = grant.item_def_id;
@@ -331,13 +383,16 @@ GrantResult PickupProcessor::process_weapon_drop(const RewardGrant& grant, Inven
     entry.instance_id = static_cast<ae::u64>(grant.id.source_id) ^
                         (static_cast<ae::u64>(grant.id.sequence) << 32);
 
-    if (!inv.add_weapon(entry)) return GrantResult::InventoryFull;
+    if (!inv.add_weapon(entry))
+        return GrantResult::InventoryFull;
     return GrantResult::Granted;
 }
 
 GrantResult PickupProcessor::process_armor_drop(const RewardGrant& grant, Inventory& inv) {
-    if (grant.item_def_id == 0) return GrantResult::Invalid;
-    if (inv.has_armor(grant.item_def_id)) return GrantResult::Duplicate;
+    if (grant.item_def_id == 0)
+        return GrantResult::Invalid;
+    if (inv.has_armor(grant.item_def_id))
+        return GrantResult::Duplicate;
 
     InventoryEntry entry;
     entry.item_definition_id = grant.item_def_id;
@@ -346,13 +401,16 @@ GrantResult PickupProcessor::process_armor_drop(const RewardGrant& grant, Invent
     entry.instance_id = static_cast<ae::u64>(grant.id.source_id) ^
                         (static_cast<ae::u64>(grant.id.sequence) << 32) ^ 0x5555555555555555ULL;
 
-    if (!inv.add_armor(entry)) return GrantResult::InventoryFull;
+    if (!inv.add_armor(entry))
+        return GrantResult::InventoryFull;
     return GrantResult::Granted;
 }
 
 GrantResult PickupProcessor::process_perk_drop(const RewardGrant& grant, Inventory& inv) {
-    if (grant.item_def_id == 0) return GrantResult::Invalid;
-    if (inv.has_perk(grant.item_def_id)) return GrantResult::Duplicate;
+    if (grant.item_def_id == 0)
+        return GrantResult::Invalid;
+    if (inv.has_perk(grant.item_def_id))
+        return GrantResult::Duplicate;
 
     InventoryEntry entry;
     entry.item_definition_id = grant.item_def_id;
@@ -361,41 +419,49 @@ GrantResult PickupProcessor::process_perk_drop(const RewardGrant& grant, Invento
     entry.instance_id = static_cast<ae::u64>(grant.id.source_id) ^
                         (static_cast<ae::u64>(grant.id.sequence) << 32) ^ 0xAAAAAAAAAAAAAAAAULL;
 
-    if (!inv.add_perk(entry)) return GrantResult::InventoryFull;
+    if (!inv.add_perk(entry))
+        return GrantResult::InventoryFull;
     return GrantResult::Granted;
 }
 
 GrantResult PickupProcessor::process_grenade(float quantity, Inventory& inv) {
     int qty = static_cast<int>(quantity);
-    if (qty <= 0) return GrantResult::Invalid;
+    if (qty <= 0)
+        return GrantResult::Invalid;
     int cur = inv.grenade_count();
-    if (cur >= Inventory::kMaxGrenades) return GrantResult::AtCap;
+    if (cur >= Inventory::kMaxGrenades)
+        return GrantResult::AtCap;
     inv.set_grenade_count(std::min(cur + qty, Inventory::kMaxGrenades));
     return GrantResult::Granted;
 }
 
 GrantResult PickupProcessor::process_ultimate(float quantity, Inventory& inv) {
-    if (quantity <= 0.0F) return GrantResult::Invalid;
+    if (quantity <= 0.0F)
+        return GrantResult::Invalid;
     float cur = inv.ultimate_charge();
-    if (cur >= 1.0F) return GrantResult::AtCap;
+    if (cur >= 1.0F)
+        return GrantResult::AtCap;
     inv.set_ultimate_charge(std::min(cur + quantity, 1.0F));
     return GrantResult::Granted;
 }
 
 GrantResult PickupProcessor::process_xp(float quantity, Inventory& inv) {
     ae::u64 qty = static_cast<ae::u64>(quantity);
-    if (qty == 0) return GrantResult::Invalid;
+    if (qty == 0)
+        return GrantResult::Invalid;
     inv.set_xp(inv.xp() + qty);
     return GrantResult::Granted;
 }
 
 GrantResult PickupProcessor::process_currency(float quantity, Inventory& inv) {
     ae::u64 qty = static_cast<ae::u64>(quantity);
-    if (qty == 0) return GrantResult::Invalid;
+    if (qty == 0)
+        return GrantResult::Invalid;
     // Use saturation arithmetic to avoid overflow
     ae::u64 cur = inv.currency();
     ae::u64 new_val = cur + qty;
-    if (new_val < cur) new_val = std::numeric_limits<ae::u64>::max(); // saturate on overflow
+    if (new_val < cur)
+        new_val = std::numeric_limits<ae::u64>::max(); // saturate on overflow
     inv.set_currency(new_val);
     return GrantResult::Granted;
 }
@@ -405,16 +471,19 @@ GrantResult PickupProcessor::process_currency(float quantity, Inventory& inv) {
 // ===========================================================================
 
 ProgressionSnapshot ProgressionSnapshot::create_default() {
-    ProgressionSnapshot snap{};
+    ProgressionSnapshot snap {};
     snap.version = kCurrentVersion;
     // All other fields already zero-initialized / at default values.
     return snap;
 }
 
 ProgressionSnapshot ProgressionSnapshot::migrate(ProgressionSnapshot old) {
-    if (old.version == kCurrentVersion) return old;
-    if (old.version < kMinSupportedVersion) return create_default();
-    if (old.version > kCurrentVersion) return create_default();
+    if (old.version == kCurrentVersion)
+        return old;
+    if (old.version < kMinSupportedVersion)
+        return create_default();
+    if (old.version > kCurrentVersion)
+        return create_default();
 
     // Sequential migration: upgrade version by version.
     // Currently only v1 exists, so this is a no-op.
@@ -426,34 +495,50 @@ ProgressionSnapshot ProgressionSnapshot::migrate(ProgressionSnapshot old) {
 }
 
 bool ProgressionSnapshot::validate() const {
-    if (version < kMinSupportedVersion || version > kCurrentVersion) return false;
+    if (version < kMinSupportedVersion || version > kCurrentVersion)
+        return false;
 
     // Check for negative / overflow values
-    if (xp == std::numeric_limits<ae::u64>::max() && xp != 0) return false; // saturated overflow marker — allow it
-    if (currency == std::numeric_limits<ae::u64>::max() && currency != 0) return false;
+    if (xp == std::numeric_limits<ae::u64>::max() && xp != 0)
+        return false; // saturated overflow marker — allow it
+    if (currency == std::numeric_limits<ae::u64>::max() && currency != 0)
+        return false;
 
-    if (max_health <= 0.0F || max_health > 10000.0F) return false;
-    if (max_shield <= 0.0F || max_shield > 10000.0F) return false;
-    if (max_primary_ammo < 0 || max_primary_ammo > 10000) return false;
-    if (max_secondary_ammo < 0 || max_secondary_ammo > 10000) return false;
-    if (max_heavy_ammo < 0 || max_heavy_ammo > 10000) return false;
-    if (max_special_ammo < 0 || max_special_ammo > 10000) return false;
+    if (max_health <= 0.0F || max_health > 10000.0F)
+        return false;
+    if (max_shield <= 0.0F || max_shield > 10000.0F)
+        return false;
+    if (max_primary_ammo < 0 || max_primary_ammo > 10000)
+        return false;
+    if (max_secondary_ammo < 0 || max_secondary_ammo > 10000)
+        return false;
+    if (max_heavy_ammo < 0 || max_heavy_ammo > 10000)
+        return false;
+    if (max_special_ammo < 0 || max_special_ammo > 10000)
+        return false;
 
     // Check collection sizes
-    if (weapons.size() > InventoryLimits::kMaxWeaponSlots) return false;
-    if (armor.size() > InventoryLimits::kMaxArmorSlots) return false;
-    if (perks.size() > InventoryLimits::kMaxPerks) return false;
-    if (processed_grants.size() > InventoryLimits::kMaxProcessedGrantIds) return false;
+    if (weapons.size() > InventoryLimits::kMaxWeaponSlots)
+        return false;
+    if (armor.size() > InventoryLimits::kMaxArmorSlots)
+        return false;
+    if (perks.size() > InventoryLimits::kMaxPerks)
+        return false;
+    if (processed_grants.size() > InventoryLimits::kMaxProcessedGrantIds)
+        return false;
 
     // Check inventory entries for validity
     for (const auto& w : weapons) {
-        if (w.item_definition_id == 0) return false;
+        if (w.item_definition_id == 0)
+            return false;
     }
     for (const auto& a : armor) {
-        if (a.item_definition_id == 0) return false;
+        if (a.item_definition_id == 0)
+            return false;
     }
     for (const auto& p : perks) {
-        if (p.item_definition_id == 0) return false;
+        if (p.item_definition_id == 0)
+            return false;
     }
 
     return true;
@@ -467,14 +552,20 @@ ProgressionSnapshot ProgressionSnapshot::repair(ProgressionSnapshot corrupted) {
     }
 
     // Clamp values
-    if (corrupted.max_health <= 0.0F) corrupted.max_health = 100.0F;
-    if (corrupted.max_health > 10000.0F) corrupted.max_health = 10000.0F;
-    if (corrupted.max_shield <= 0.0F) corrupted.max_shield = 100.0F;
-    if (corrupted.max_shield > 10000.0F) corrupted.max_shield = 10000.0F;
+    if (corrupted.max_health <= 0.0F)
+        corrupted.max_health = 100.0F;
+    if (corrupted.max_health > 10000.0F)
+        corrupted.max_health = 10000.0F;
+    if (corrupted.max_shield <= 0.0F)
+        corrupted.max_shield = 100.0F;
+    if (corrupted.max_shield > 10000.0F)
+        corrupted.max_shield = 10000.0F;
 
     auto clamp_ammo = [](int& val, int max) {
-        if (val < 0) val = 0;
-        if (val > max) val = max;
+        if (val < 0)
+            val = 0;
+        if (val > max)
+            val = max;
     };
     clamp_ammo(corrupted.max_primary_ammo, 10000);
     clamp_ammo(corrupted.max_secondary_ammo, 10000);
@@ -494,7 +585,7 @@ ProgressionSnapshot ProgressionSnapshot::repair(ProgressionSnapshot corrupted) {
     // Remove entries with zero definition IDs
     auto clean_entries = [](std::vector<InventoryEntry>& entries) {
         auto it = std::remove_if(entries.begin(), entries.end(),
-            [](const InventoryEntry& e) { return e.item_definition_id == 0; });
+                                 [](const InventoryEntry& e) { return e.item_definition_id == 0; });
         entries.erase(it, entries.end());
     };
     clean_entries(corrupted.weapons);
@@ -558,13 +649,15 @@ void serialize_grant_vector(
 std::vector<InventoryEntry> deserialize_entry_vector(
     const std::uint8_t* data, std::size_t& offset, std::size_t total_size) {
 
-    if (offset + 4 > total_size) return {};
+    if (offset + 4 > total_size)
+        return {};
     ae::u32 count = read_le<ae::u32>(data, offset);
 
     std::vector<InventoryEntry> entries;
     entries.reserve(count);
     for (ae::u32 i = 0; i < count; ++i) {
-        if (offset + 20 > total_size) break; // 4+4+4+8 = 20 bytes per entry
+        if (offset + 20 > total_size)
+            break; // 4+4+4+8 = 20 bytes per entry
         InventoryEntry e;
         e.item_definition_id = read_le<ae::u32>(data, offset);
         e.stack_count = read_le<ae::u32>(data, offset);
@@ -578,13 +671,15 @@ std::vector<InventoryEntry> deserialize_entry_vector(
 std::vector<GrantId> deserialize_grant_vector(
     const std::uint8_t* data, std::size_t& offset, std::size_t total_size) {
 
-    if (offset + 4 > total_size) return {};
+    if (offset + 4 > total_size)
+        return {};
     ae::u32 count = read_le<ae::u32>(data, offset);
 
     std::vector<GrantId> grants;
     grants.reserve(count);
     for (ae::u32 i = 0; i < count; ++i) {
-        if (offset + 16 > total_size) break; // 8+4+4 = 16 bytes per grant
+        if (offset + 16 > total_size)
+            break; // 8+4+4 = 16 bytes per grant
         GrantId g;
         g.source_id = read_le<ae::u64>(data, offset);
         g.play_session_id = read_le<ae::u32>(data, offset);
@@ -627,7 +722,8 @@ std::vector<std::uint8_t> ProgressionSnapshot::serialize() const {
 }
 
 ProgressionSnapshot ProgressionSnapshot::deserialize(const std::uint8_t* data, std::size_t size) {
-    if (!data || size < 4) return create_default();  // Need at least version
+    if (!data || size < 4)
+        return create_default(); // Need at least version
 
     ProgressionSnapshot snap;
     std::size_t offset = 0;
@@ -642,7 +738,8 @@ ProgressionSnapshot ProgressionSnapshot::deserialize(const std::uint8_t* data, s
     }
 
     // Parse the rest
-    if (offset + 32 > size) return repair(snap);  // Need at least fixed fields
+    if (offset + 32 > size)
+        return repair(snap); // Need at least fixed fields
     snap.total_play_time_seconds = read_le<ae::u64>(data, offset);
     snap.last_session_id = read_le<ae::u32>(data, offset);
     snap.xp = read_le<ae::u64>(data, offset);
@@ -652,7 +749,8 @@ ProgressionSnapshot ProgressionSnapshot::deserialize(const std::uint8_t* data, s
     snap.armor = deserialize_entry_vector(data, offset, size);
     snap.perks = deserialize_entry_vector(data, offset, size);
 
-    if (offset + 24 > size) return repair(snap);
+    if (offset + 24 > size)
+        return repair(snap);
     snap.max_health = read_le<float>(data, offset);
     snap.max_shield = read_le<float>(data, offset);
     snap.max_primary_ammo = read_le<ae::i32>(data, offset);
@@ -671,33 +769,55 @@ ProgressionSnapshot ProgressionSnapshot::deserialize(const std::uint8_t* data, s
 
 const char* grant_result_string(GrantResult r) {
     switch (r) {
-        case GrantResult::Granted:        return "Granted";
-        case GrantResult::InventoryFull:  return "InventoryFull";
-        case GrantResult::Duplicate:       return "Duplicate";
-        case GrantResult::AtCap:           return "AtCap";
-        case GrantResult::Blocked:         return "Blocked";
-        case GrantResult::Invalid:         return "Invalid";
-        default:                           return "Unknown";
+    case GrantResult::Granted:
+        return "Granted";
+    case GrantResult::InventoryFull:
+        return "InventoryFull";
+    case GrantResult::Duplicate:
+        return "Duplicate";
+    case GrantResult::AtCap:
+        return "AtCap";
+    case GrantResult::Blocked:
+        return "Blocked";
+    case GrantResult::Invalid:
+        return "Invalid";
+    default:
+        return "Unknown";
     }
 }
 
 const char* pickup_type_string(PickupType t) {
     switch (t) {
-        case PickupType::PrimaryAmmo:    return "PrimaryAmmo";
-        case PickupType::SecondaryAmmo:  return "SecondaryAmmo";
-        case PickupType::HeavyAmmo:      return "HeavyAmmo";
-        case PickupType::SpecialAmmo:    return "SpecialAmmo";
-        case PickupType::HealthPack:     return "HealthPack";
-        case PickupType::LargeHealth:    return "LargeHealth";
-        case PickupType::ShieldCharge:   return "ShieldCharge";
-        case PickupType::WeaponDrop:     return "WeaponDrop";
-        case PickupType::ArmorDrop:      return "ArmorDrop";
-        case PickupType::PerkDrop:       return "PerkDrop";
-        case PickupType::GrenadeCharge:  return "GrenadeCharge";
-        case PickupType::UltimateEnergy: return "UltimateEnergy";
-        case PickupType::XPOrb:          return "XPOrb";
-        case PickupType::Currency:       return "Currency";
-        default:                         return "Unknown";
+    case PickupType::PrimaryAmmo:
+        return "PrimaryAmmo";
+    case PickupType::SecondaryAmmo:
+        return "SecondaryAmmo";
+    case PickupType::HeavyAmmo:
+        return "HeavyAmmo";
+    case PickupType::SpecialAmmo:
+        return "SpecialAmmo";
+    case PickupType::HealthPack:
+        return "HealthPack";
+    case PickupType::LargeHealth:
+        return "LargeHealth";
+    case PickupType::ShieldCharge:
+        return "ShieldCharge";
+    case PickupType::WeaponDrop:
+        return "WeaponDrop";
+    case PickupType::ArmorDrop:
+        return "ArmorDrop";
+    case PickupType::PerkDrop:
+        return "PerkDrop";
+    case PickupType::GrenadeCharge:
+        return "GrenadeCharge";
+    case PickupType::UltimateEnergy:
+        return "UltimateEnergy";
+    case PickupType::XPOrb:
+        return "XPOrb";
+    case PickupType::Currency:
+        return "Currency";
+    default:
+        return "Unknown";
     }
 }
 

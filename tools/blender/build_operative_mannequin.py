@@ -22,7 +22,6 @@ from pathlib import Path
 import bpy
 from mathutils import Vector
 
-
 ASSET_NAME = "operative_mannequin"
 RIG_NAME = "OperativeMannequin_Rig"
 FPS = 30
@@ -96,8 +95,9 @@ def bind_to_bone(obj: bpy.types.Object, armature: bpy.types.Object, bone_name: s
     group.add([vertex.index for vertex in obj.data.vertices], 1.0, "REPLACE")
 
 
-def smooth_mesh(obj: bpy.types.Object, material: bpy.types.Material, armature: bpy.types.Object, bone_name: str,
-                smooth: bool = True) -> None:
+def smooth_mesh(
+    obj: bpy.types.Object, material: bpy.types.Material, armature: bpy.types.Object, bone_name: str, smooth: bool = True
+) -> None:
     obj.data.materials.append(material)
     if smooth:
         for polygon in obj.data.polygons:
@@ -105,8 +105,14 @@ def smooth_mesh(obj: bpy.types.Object, material: bpy.types.Material, armature: b
     bind_to_bone(obj, armature, bone_name)
 
 
-def add_ellipsoid(name: str, location: tuple[float, float, float], scale: tuple[float, float, float],
-                  material: bpy.types.Material, armature: bpy.types.Object, bone_name: str) -> bpy.types.Object:
+def add_ellipsoid(
+    name: str,
+    location: tuple[float, float, float],
+    scale: tuple[float, float, float],
+    material: bpy.types.Material,
+    armature: bpy.types.Object,
+    bone_name: str,
+) -> bpy.types.Object:
     bpy.ops.mesh.primitive_uv_sphere_add(segments=28, ring_count=18, location=location)
     obj = bpy.context.active_object
     obj.name = name
@@ -116,8 +122,15 @@ def add_ellipsoid(name: str, location: tuple[float, float, float], scale: tuple[
     return obj
 
 
-def add_capsule(name: str, start: tuple[float, float, float], end: tuple[float, float, float], radius: float,
-                material: bpy.types.Material, armature: bpy.types.Object, bone_name: str) -> bpy.types.Object:
+def add_capsule(
+    name: str,
+    start: tuple[float, float, float],
+    end: tuple[float, float, float],
+    radius: float,
+    material: bpy.types.Material,
+    armature: bpy.types.Object,
+    bone_name: str,
+) -> bpy.types.Object:
     start_v = Vector(start)
     end_v = Vector(end)
     direction = end_v - start_v
@@ -132,9 +145,16 @@ def add_capsule(name: str, start: tuple[float, float, float], end: tuple[float, 
     return obj
 
 
-def add_rounded_box(name: str, location: tuple[float, float, float], dimensions: tuple[float, float, float],
-                    material: bpy.types.Material, armature: bpy.types.Object, bone_name: str,
-                    bevel: float, rotation=None) -> bpy.types.Object:
+def add_rounded_box(
+    name: str,
+    location: tuple[float, float, float],
+    dimensions: tuple[float, float, float],
+    material: bpy.types.Material,
+    armature: bpy.types.Object,
+    bone_name: str,
+    bevel: float,
+    rotation=None,
+) -> bpy.types.Object:
     """Add a chamfered hard-surface part rather than an inflatable body segment."""
     bpy.ops.mesh.primitive_cube_add(size=1.0, location=location)
     obj = bpy.context.active_object
@@ -154,9 +174,16 @@ def add_rounded_box(name: str, location: tuple[float, float, float], dimensions:
     return obj
 
 
-def add_limb_shell(name: str, start: tuple[float, float, float], end: tuple[float, float, float],
-                   width: float, depth: float, material: bpy.types.Material, armature: bpy.types.Object,
-                   bone_name: str) -> bpy.types.Object:
+def add_limb_shell(
+    name: str,
+    start: tuple[float, float, float],
+    end: tuple[float, float, float],
+    width: float,
+    depth: float,
+    material: bpy.types.Material,
+    armature: bpy.types.Object,
+    bone_name: str,
+) -> bpy.types.Object:
     """Create a slender, manufactured limb shell aligned to a rig bone."""
     start_v = Vector(start)
     end_v = Vector(end)
@@ -194,25 +221,79 @@ def build_body(armature: bpy.types.Object) -> None:
     add_rounded_box("Lower torso plate", (0.0, -0.164, 1.28), (0.36, 0.044, 0.10), skin, armature, "Spine", 0.020)
     add_ellipsoid("Neck joint", (0.0, 0.0, 1.68), (0.090, 0.090, 0.105), joint, armature, "Neck")
     add_ellipsoid("Head base", (0.0, -0.005, 1.87), (0.185, 0.175, 0.245), skin, armature, "Head")
-    add_rounded_box("Face visor placeholder", (0.0, -0.174, 1.87), (0.175, 0.024, 0.075), visor, armature, "Head", 0.015)
+    add_rounded_box(
+        "Face visor placeholder", (0.0, -0.174, 1.87), (0.175, 0.024, 0.075), visor, armature, "Head", 0.015
+    )
 
     for side, sign in (("Left", 1.0), ("Right", -1.0)):
-        add_ellipsoid(f"{side} shoulder joint", (0.34 * sign, 0.0, 1.53), (0.085, 0.095, 0.080), joint, armature, "Chest")
-        add_limb_shell(f"{side} upper arm shell", (0.40 * sign, 0.0, 1.46), (0.59 * sign, 0.0, 1.34),
-                       0.135, 0.145, shell, armature, f"{side}UpperArm")
-        add_ellipsoid(f"{side} elbow joint", (0.62 * sign, 0.0, 1.32), (0.074, 0.078, 0.074), joint, armature, f"{side}UpperArm")
-        add_limb_shell(f"{side} forearm shell", (0.65 * sign, 0.0, 1.27), (0.74 * sign, 0.0, 1.07),
-                       0.118, 0.130, skin, armature, f"{side}Forearm")
-        add_rounded_box(f"{side} hand shell", (0.77 * sign, -0.02, 0.98), (0.115, 0.075, 0.145), skin,
-                        armature, f"{side}Hand", 0.028)
+        add_ellipsoid(
+            f"{side} shoulder joint", (0.34 * sign, 0.0, 1.53), (0.085, 0.095, 0.080), joint, armature, "Chest"
+        )
+        add_limb_shell(
+            f"{side} upper arm shell",
+            (0.40 * sign, 0.0, 1.46),
+            (0.59 * sign, 0.0, 1.34),
+            0.135,
+            0.145,
+            shell,
+            armature,
+            f"{side}UpperArm",
+        )
+        add_ellipsoid(
+            f"{side} elbow joint", (0.62 * sign, 0.0, 1.32), (0.074, 0.078, 0.074), joint, armature, f"{side}UpperArm"
+        )
+        add_limb_shell(
+            f"{side} forearm shell",
+            (0.65 * sign, 0.0, 1.27),
+            (0.74 * sign, 0.0, 1.07),
+            0.118,
+            0.130,
+            skin,
+            armature,
+            f"{side}Forearm",
+        )
+        add_rounded_box(
+            f"{side} hand shell",
+            (0.77 * sign, -0.02, 0.98),
+            (0.115, 0.075, 0.145),
+            skin,
+            armature,
+            f"{side}Hand",
+            0.028,
+        )
 
-        add_limb_shell(f"{side} thigh shell", (0.17 * sign, 0.0, 0.81), (0.20 * sign, 0.0, 0.49),
-                       0.205, 0.190, shell, armature, f"{side}Thigh")
-        add_ellipsoid(f"{side} knee joint", (0.20 * sign, 0.0, 0.46), (0.105, 0.095, 0.075), joint, armature, f"{side}Thigh")
-        add_limb_shell(f"{side} shin shell", (0.20 * sign, 0.0, 0.41), (0.20 * sign, 0.0, 0.13),
-                       0.160, 0.155, skin, armature, f"{side}Shin")
-        add_rounded_box(f"{side} foot shell", (0.20 * sign, -0.13, 0.075), (0.185, 0.315, 0.105), shell,
-                        armature, f"{side}Foot", 0.036)
+        add_limb_shell(
+            f"{side} thigh shell",
+            (0.17 * sign, 0.0, 0.81),
+            (0.20 * sign, 0.0, 0.49),
+            0.205,
+            0.190,
+            shell,
+            armature,
+            f"{side}Thigh",
+        )
+        add_ellipsoid(
+            f"{side} knee joint", (0.20 * sign, 0.0, 0.46), (0.105, 0.095, 0.075), joint, armature, f"{side}Thigh"
+        )
+        add_limb_shell(
+            f"{side} shin shell",
+            (0.20 * sign, 0.0, 0.41),
+            (0.20 * sign, 0.0, 0.13),
+            0.160,
+            0.155,
+            skin,
+            armature,
+            f"{side}Shin",
+        )
+        add_rounded_box(
+            f"{side} foot shell",
+            (0.20 * sign, -0.13, 0.075),
+            (0.185, 0.315, 0.105),
+            shell,
+            armature,
+            f"{side}Foot",
+            0.036,
+        )
 
 
 def reset_pose(armature: bpy.types.Object) -> None:

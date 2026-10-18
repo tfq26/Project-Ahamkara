@@ -128,9 +128,18 @@ void apply_line(std::string_view line, ClientConfig& config) {
             ae::log_warning("Config character color is out of range, keeping default.");
         }
     };
-    if (key == "suit_color_r") { parse_character_color(config.character.suit_color_r); return; }
-    if (key == "suit_color_g") { parse_character_color(config.character.suit_color_g); return; }
-    if (key == "suit_color_b") { parse_character_color(config.character.suit_color_b); return; }
+    if (key == "suit_color_r") {
+        parse_character_color(config.character.suit_color_r);
+        return;
+    }
+    if (key == "suit_color_g") {
+        parse_character_color(config.character.suit_color_g);
+        return;
+    }
+    if (key == "suit_color_b") {
+        parse_character_color(config.character.suit_color_b);
+        return;
+    }
 
     // --- Audio keys ---
     auto parse_audio_float = [&](float& target, float min_val, float max_val) {

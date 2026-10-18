@@ -54,22 +54,7 @@ ClientFramePipeline::ClientFramePipeline(
     ae::render::LevelRenderScene* level_scene,
     ae::render::LevelAsset* level_asset,
     bool autoplay_mode)
-    : window_(window)
-    , application_(application)
-    , renderer_(renderer)
-    , simulation_(simulation)
-    , input_provider_(input_provider)
-    , frontend_state_(frontend_state)
-    , ui_controller_(ui_controller)
-    , menu_state_(menu_state)
-    , client_config_(client_config)
-    , controller_bindings_(controller_bindings)
-    , audio_engine_(audio_engine)
-    , shadow_pass_(shadow_pass)
-    , pbr_renderer_(pbr_renderer)
-    , level_scene_(level_scene)
-    , level_asset_(level_asset)
-    , autoplay_mode_(autoplay_mode) {
+    : window_(window), application_(application), renderer_(renderer), simulation_(simulation), input_provider_(input_provider), frontend_state_(frontend_state), ui_controller_(ui_controller), menu_state_(menu_state), client_config_(client_config), controller_bindings_(controller_bindings), audio_engine_(audio_engine), shadow_pass_(shadow_pass), pbr_renderer_(pbr_renderer), level_scene_(level_scene), level_asset_(level_asset), autoplay_mode_(autoplay_mode) {
     caligo_director_.initialize(*renderer.backend());
     animated_character_.initialize(
         *renderer.backend(),
@@ -192,11 +177,17 @@ ClientFramePipeline::ClientFramePipeline(
             float green = 0.37F;
             float blue = 0.17F;
             if (preset == "storm") {
-                red = 0.16F; green = 0.30F; blue = 0.42F;
+                red = 0.16F;
+                green = 0.30F;
+                blue = 0.42F;
             } else if (preset == "signal") {
-                red = 0.72F; green = 0.16F; blue = 0.08F;
+                red = 0.72F;
+                green = 0.16F;
+                blue = 0.08F;
             } else if (preset == "bone") {
-                red = 0.70F; green = 0.64F; blue = 0.52F;
+                red = 0.70F;
+                green = 0.64F;
+                blue = 0.52F;
             }
             menu_system_.set_variable("suit_color_r", red);
             menu_system_.set_variable("suit_color_g", green);
@@ -383,8 +374,7 @@ void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
         character_dance_active_ = !character_dance_active_;
         ae::log_info_cat(
             "Character",
-            character_dance_active_ ? "Character dance emote enabled." :
-                                     "Character dance emote stopped.");
+            character_dance_active_ ? "Character dance emote enabled." : "Character dance emote stopped.");
     }
 
     const std::string base_title = client_config_.app_name;
@@ -614,8 +604,7 @@ void ClientFramePipeline::stage_build_scene() {
 
     // Legacy fallback: check snapshot damage_feedback_timer for hit reaction
     // when no VfxFeedback event_id is present (older snapshots without VFX).
-    if (vfx.event_id == 0 && curr_snap_.damage_feedback_timer > 0.0F
-        && damage_feedback_timer <= 0.0F && last_vfx_event_id == 0) {
+    if (vfx.event_id == 0 && curr_snap_.damage_feedback_timer > 0.0F && damage_feedback_timer <= 0.0F && last_vfx_event_id == 0) {
         anim_adapter_.trigger_hit_reaction();
         damage_feedback_timer = 1.0F;
         damage_flash_timer = 0.4F;
@@ -731,12 +720,12 @@ void ClientFramePipeline::stage_render_world() {
     const bool character_view_visible = menu_initialized_ &&
                                         menu_system_.current_screen() == "character_view";
     const auto* render_scene = director_visible
-        ? caligo_director_.render_scene()
-        : (gameplay_active_ && !menu_state_.visible() ? level_scene_ : nullptr);
+                                   ? caligo_director_.render_scene()
+                                   : (gameplay_active_ && !menu_state_.visible() ? level_scene_ : nullptr);
 
     const bool third_person_character_visible = gameplay_active_ &&
-        !menu_state_.visible() &&
-        frontend_state_.camera_mode == CameraMode::DebugThirdPerson;
+                                                !menu_state_.visible() &&
+                                                frontend_state_.camera_mode == CameraMode::DebugThirdPerson;
     const bool character_visible = character_view_visible || third_person_character_visible;
     animated_character_.set_motion(
         character_dance_active_ && character_visible
@@ -773,10 +762,22 @@ void ClientFramePipeline::stage_render_world() {
         // legacy 180-degree correction: it turns the upright operative upside
         // down and pushes the head outside the profile frame.
         const float preview[16] = {
-            1.0F, 0.0F, 0.0F, 0.0F,
-            0.0F, 1.0F, 0.0F, 0.0F,
-            0.0F, 0.0F, 1.0F, 0.0F,
-            0.0F, 0.0F, 0.0F, 1.0F,
+            1.0F,
+            0.0F,
+            0.0F,
+            0.0F,
+            0.0F,
+            1.0F,
+            0.0F,
+            0.0F,
+            0.0F,
+            0.0F,
+            1.0F,
+            0.0F,
+            0.0F,
+            0.0F,
+            0.0F,
+            1.0F,
         };
         std::memcpy(character_preview_model_matrix_, preview, sizeof(preview));
     } else if (third_person_character_visible) {
@@ -787,13 +788,22 @@ void ClientFramePipeline::stage_render_world() {
         const float cosine = std::cos(yaw);
         const float sine = std::sin(yaw);
         const float player_model[16] = {
-             cosine, 0.0F, -sine, 0.0F,
-             0.0F,   1.0F,  0.0F, 0.0F,
-             sine,   0.0F,  cosine, 0.0F,
-             curr_snap_.player_position.x,
-             curr_snap_.player_position.y,
-             curr_snap_.player_position.z,
-             1.0F,
+            cosine,
+            0.0F,
+            -sine,
+            0.0F,
+            0.0F,
+            1.0F,
+            0.0F,
+            0.0F,
+            sine,
+            0.0F,
+            cosine,
+            0.0F,
+            curr_snap_.player_position.x,
+            curr_snap_.player_position.y,
+            curr_snap_.player_position.z,
+            1.0F,
         };
         std::memcpy(character_preview_model_matrix_, player_model, sizeof(player_model));
     }
@@ -824,8 +834,8 @@ void ClientFramePipeline::stage_render_world() {
     // the surrounding menu is in front while its central presentation bay is
     // behind the avatar. Gameplay third-person remains part of the world pass.
     AnimatedCharacter* character = character_visible && !character_view_visible
-        ? &animated_character_
-        : nullptr;
+                                       ? &animated_character_
+                                       : nullptr;
     render_local_debug_frame(render_submission_, audio_engine_, shadow_pass_, renderer_,
                              pbr_renderer_, render_scene, character,
                              character != nullptr ? character_preview_model_matrix_ : nullptr);
@@ -904,7 +914,7 @@ void ClientFramePipeline::stage_render_ui() {
 
 void ClientFramePipeline::render_character_view_foreground() {
     const bool character_view_visible = menu_initialized_ &&
-        menu_system_.current_screen() == "character_view";
+                                        menu_system_.current_screen() == "character_view";
     if (!character_view_visible || !animated_character_.ready() || renderer_.backend() == nullptr) {
         return;
     }

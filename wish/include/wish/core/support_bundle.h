@@ -95,7 +95,7 @@ struct SupportBundle {
 
 /// Operation history tracker with idempotency support.
 class OperationHistory {
-public:
+  public:
     /// Record a new operation.
     void record_operation(OperationRecord record);
 
@@ -117,7 +117,7 @@ public:
     /// Clear all operations.
     void clear();
 
-private:
+  private:
     std::vector<OperationRecord> operations_;
 };
 

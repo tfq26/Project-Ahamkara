@@ -29,9 +29,9 @@
 // ============================================================
 
 constexpr int kShoulderJoint = 2;
-constexpr int kElbowJoint   = 3;
-constexpr int kHandJoint    = 5;
-constexpr int kJointCount   = 8;
+constexpr int kElbowJoint = 3;
+constexpr int kHandJoint = 5;
+constexpr int kJointCount = 8;
 
 constexpr float kUpperArmLen = 0.35F;
 constexpr float kLowerArmLen = 0.34F;
@@ -47,21 +47,25 @@ namespace {
 
 struct IKResult {
     float root_qx, root_qy, root_qz, root_qw;
-    float mid_qx,  mid_qy,  mid_qz,  mid_qw;
+    float mid_qx, mid_qy, mid_qz, mid_qw;
 };
 
 IKResult solve_two_bone_test(float target_x, float target_y, float target_z,
-                              float upper_len, float lower_len) {
-    IKResult result{};
+                             float upper_len, float lower_len) {
+    IKResult result {};
 
     float dist = std::sqrt(target_x * target_x +
                            target_y * target_y +
                            target_z * target_z);
     if (dist < 0.0001F) {
-        result.root_qx = 0.0F; result.root_qy = 0.0F;
-        result.root_qz = 0.0F; result.root_qw = 1.0F;
-        result.mid_qx = 0.0F; result.mid_qy = 0.0F;
-        result.mid_qz = 0.0F; result.mid_qw = 1.0F;
+        result.root_qx = 0.0F;
+        result.root_qy = 0.0F;
+        result.root_qz = 0.0F;
+        result.root_qw = 1.0F;
+        result.mid_qx = 0.0F;
+        result.mid_qy = 0.0F;
+        result.mid_qz = 0.0F;
+        result.mid_qw = 1.0F;
         return result;
     }
 
@@ -70,8 +74,7 @@ IKResult solve_two_bone_test(float target_x, float target_y, float target_z,
     dist = std::clamp(dist, min_reach, max_reach);
 
     // Elbow angle via law of cosines
-    float cos_elbow = (upper_len * upper_len + lower_len * lower_len - dist * dist)
-                      / (2.0F * upper_len * lower_len);
+    float cos_elbow = (upper_len * upper_len + lower_len * lower_len - dist * dist) / (2.0F * upper_len * lower_len);
     cos_elbow = std::clamp(cos_elbow, -1.0F, 1.0F);
     float elbow_angle = std::acos(cos_elbow);
     float mid_bend = 3.14159265F - elbow_angle;
@@ -81,8 +84,7 @@ IKResult solve_two_bone_test(float target_x, float target_y, float target_z,
     float dir_z = target_z / dist;
 
     // Shoulder over-rotation
-    float cos_root = (upper_len * upper_len + dist * dist - lower_len * lower_len)
-                     / (2.0F * upper_len * dist);
+    float cos_root = (upper_len * upper_len + dist * dist - lower_len * lower_len) / (2.0F * upper_len * dist);
     cos_root = std::clamp(cos_root, -1.0F, 1.0F);
     float root_angle = std::acos(cos_root);
 
@@ -102,7 +104,9 @@ IKResult solve_two_bone_test(float target_x, float target_y, float target_z,
         axis_y /= axis_len;
         axis_z /= axis_len;
     } else {
-        axis_x = 0.0F; axis_y = 0.0F; axis_z = 1.0F;
+        axis_x = 0.0F;
+        axis_y = 0.0F;
+        axis_z = 1.0F;
     }
 
     float total_root = aim_angle - root_angle;
@@ -140,8 +144,8 @@ void make_identity_joints(float* matrices, int count) {
     for (int i = 0; i < count; ++i) {
         float* m = matrices + i * 16;
         std::memset(m, 0, 16 * sizeof(float));
-        m[0]  = 1.0F;
-        m[5]  = 1.0F;
+        m[0] = 1.0F;
+        m[5] = 1.0F;
         m[10] = 1.0F;
         m[15] = 1.0F;
     }
@@ -155,11 +159,11 @@ bool test_default_direction() {
     // Default arm direction is +Y (downward). If the target is straight down
     // at the reachable distance, the corrections should be near identity.
     float target_x = 0.0F;
-    float target_y = kUpperArmLen + kLowerArmLen;  // max reach directly downward
+    float target_y = kUpperArmLen + kLowerArmLen; // max reach directly downward
     float target_z = 0.0F;
 
     auto result = solve_two_bone_test(target_x, target_y, target_z,
-                                       kUpperArmLen, kLowerArmLen);
+                                      kUpperArmLen, kLowerArmLen);
 
     // Root should be near identity (no rotation needed to aim downward)
     if (!nearly_equal(result.root_qw, 1.0F) ||
@@ -192,11 +196,11 @@ bool test_within_reach() {
     // Target is directly in front of the shoulder (along -Z in default +Y space).
     // This should produce a non-trivial shoulder rotation and elbow bend.
     float target_x = 0.0F;
-    float target_y = 0.3F;  // shorter than max reach
-    float target_z = 0.3F;  // some Z component
+    float target_y = 0.3F; // shorter than max reach
+    float target_z = 0.3F; // some Z component
 
     auto result = solve_two_bone_test(target_x, target_y, target_z,
-                                       kUpperArmLen, kLowerArmLen);
+                                      kUpperArmLen, kLowerArmLen);
 
     // Should have non-identity quaternions
     if (nearly_equal(result.root_qw, 1.0F) && nearly_equal(result.mid_qw, 1.0F)) {
@@ -218,9 +222,9 @@ bool test_within_reach() {
 
     // Normalized quaternions should have unit length
     float root_len = std::sqrt(result.root_qx * result.root_qx +
-                                result.root_qy * result.root_qy +
-                                result.root_qz * result.root_qz +
-                                result.root_qw * result.root_qw);
+                               result.root_qy * result.root_qy +
+                               result.root_qz * result.root_qz +
+                               result.root_qw * result.root_qw);
     if (!nearly_equal(root_len, 1.0F)) {
         std::cerr << "FAIL: test_within_reach - root quaternion not unit (len="
                   << root_len << ")\n";
@@ -228,9 +232,9 @@ bool test_within_reach() {
     }
 
     float mid_len = std::sqrt(result.mid_qx * result.mid_qx +
-                               result.mid_qy * result.mid_qy +
-                               result.mid_qz * result.mid_qz +
-                               result.mid_qw * result.mid_qw);
+                              result.mid_qy * result.mid_qy +
+                              result.mid_qz * result.mid_qz +
+                              result.mid_qw * result.mid_qw);
     if (!nearly_equal(mid_len, 1.0F)) {
         std::cerr << "FAIL: test_within_reach - mid quaternion not unit (len="
                   << mid_len << ")\n";
@@ -252,7 +256,7 @@ bool test_max_reach() {
     float target_z = 0.0F;
 
     auto result = solve_two_bone_test(target_x, target_y, target_z,
-                                       kUpperArmLen, kLowerArmLen);
+                                      kUpperArmLen, kLowerArmLen);
 
     // Elbow should be straight (180° bend = 0 in mid correction)
     // mid_bend = π - elbow_angle; at max reach, elbow_angle = π, so mid_bend = 0
@@ -281,11 +285,11 @@ bool test_max_reach() {
 bool test_min_reach() {
     float min_dist = std::abs(kUpperArmLen - kLowerArmLen);
     float target_x = 0.0F;
-    float target_y = min_dist + 0.001F;  // just above min
+    float target_y = min_dist + 0.001F; // just above min
     float target_z = 0.0F;
 
     auto result = solve_two_bone_test(target_x, target_y, target_z,
-                                       kUpperArmLen, kLowerArmLen);
+                                      kUpperArmLen, kLowerArmLen);
 
     // Near min reach, the elbow bend should be near π (fully folded)
     // mid_bend = π - elbow_angle; at min reach, elbow_angle ≈ 0, so mid_bend ≈ π
@@ -304,19 +308,19 @@ bool test_min_reach() {
 // ============================================================
 
 bool test_unreachable() {
-    float far_dist = (kUpperArmLen + kLowerArmLen) * 2.0F;  // 2x max reach
+    float far_dist = (kUpperArmLen + kLowerArmLen) * 2.0F; // 2x max reach
     float target_x = far_dist;
     float target_y = 0.0F;
     float target_z = 0.0F;
 
     auto result = solve_two_bone_test(target_x, target_y, target_z,
-                                       kUpperArmLen, kLowerArmLen);
+                                      kUpperArmLen, kLowerArmLen);
 
     // Should still produce valid quaternions (dist clamped internally)
     float root_len = std::sqrt(result.root_qx * result.root_qx +
-                                result.root_qy * result.root_qy +
-                                result.root_qz * result.root_qz +
-                                result.root_qw * result.root_qw);
+                               result.root_qy * result.root_qy +
+                               result.root_qz * result.root_qz +
+                               result.root_qw * result.root_qw);
     if (!nearly_equal(root_len, 1.0F)) {
         std::cerr << "FAIL: test_unreachable - root quaternion not unit (len="
                   << root_len << ")\n";
@@ -324,9 +328,9 @@ bool test_unreachable() {
     }
 
     float mid_len = std::sqrt(result.mid_qx * result.mid_qx +
-                               result.mid_qy * result.mid_qy +
-                               result.mid_qz * result.mid_qz +
-                               result.mid_qw * result.mid_qw);
+                              result.mid_qy * result.mid_qy +
+                              result.mid_qz * result.mid_qz +
+                              result.mid_qw * result.mid_qw);
     if (!nearly_equal(mid_len, 1.0F)) {
         std::cerr << "FAIL: test_unreachable - mid quaternion not unit (len="
                   << mid_len << ")\n";
@@ -354,7 +358,7 @@ bool test_zero_distance() {
     float target_z = 0.0F;
 
     auto result = solve_two_bone_test(target_x, target_y, target_z,
-                                       kUpperArmLen, kLowerArmLen);
+                                      kUpperArmLen, kLowerArmLen);
 
     // Should return identity corrections
     if (!nearly_equal(result.root_qw, 1.0F) ||
@@ -502,21 +506,21 @@ bool test_grip_socket_values() {
     float test_grip_z = 0.0F;
 
     auto result = solve_two_bone_test(test_grip_x, test_grip_y, test_grip_z,
-                                       kUpperArmLen, kLowerArmLen);
+                                      kUpperArmLen, kLowerArmLen);
 
     float root_len = std::sqrt(result.root_qx * result.root_qx +
-                                result.root_qy * result.root_qy +
-                                result.root_qz * result.root_qz +
-                                result.root_qw * result.root_qw);
+                               result.root_qy * result.root_qy +
+                               result.root_qz * result.root_qz +
+                               result.root_qw * result.root_qw);
     if (!nearly_equal(root_len, 1.0F)) {
         std::cerr << "FAIL: test_grip_socket_values - root quaternion not unit\n";
         return false;
     }
 
     float mid_len = std::sqrt(result.mid_qx * result.mid_qx +
-                               result.mid_qy * result.mid_qy +
-                               result.mid_qz * result.mid_qz +
-                               result.mid_qw * result.mid_qw);
+                              result.mid_qy * result.mid_qy +
+                              result.mid_qz * result.mid_qz +
+                              result.mid_qw * result.mid_qw);
     if (!nearly_equal(mid_len, 1.0F)) {
         std::cerr << "FAIL: test_grip_socket_values - mid quaternion not unit\n";
         return false;
@@ -548,9 +552,9 @@ bool test_axis_calculation() {
     // In a right-handed system: cross(Y, X) = -Z (or +Z depending on convention)
     // Y cross X in right-handed = -Z direction in standard math
     // Let's just verify the cross product calculation:
-    float axis_x = kDefaultDirY * dir_z - kDefaultDirZ * dir_y;  // 1*0 - 0*0 = 0
-    float axis_y = kDefaultDirZ * dir_x - kDefaultDirX * dir_z;  // 0*1 - 0*0 = 0
-    float axis_z = kDefaultDirX * dir_y - kDefaultDirY * dir_x;  // 0*0 - 1*1 = -1
+    float axis_x = kDefaultDirY * dir_z - kDefaultDirZ * dir_y; // 1*0 - 0*0 = 0
+    float axis_y = kDefaultDirZ * dir_x - kDefaultDirX * dir_z; // 0*1 - 0*0 = 0
+    float axis_z = kDefaultDirX * dir_y - kDefaultDirY * dir_x; // 0*0 - 1*1 = -1
 
     if (!nearly_equal(axis_x, 0.0F) ||
         !nearly_equal(axis_y, 0.0F) ||
@@ -589,9 +593,9 @@ bool test_symmetry() {
     float left_x = -0.3F, left_y = 0.3F, left_z = 0.0F;
 
     auto right_result = solve_two_bone_test(right_x, right_y, right_z,
-                                             kUpperArmLen, kLowerArmLen);
-    auto left_result = solve_two_bone_test(left_x, left_y, left_z,
                                             kUpperArmLen, kLowerArmLen);
+    auto left_result = solve_two_bone_test(left_x, left_y, left_z,
+                                           kUpperArmLen, kLowerArmLen);
 
     // Root qx should be mirrored (opposite sign for opposite direction)
     if (!nearly_equal(right_result.root_qx, -left_result.root_qx)) {

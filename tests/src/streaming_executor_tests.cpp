@@ -23,7 +23,7 @@
 // ---------------------------------------------------------------------------
 
 class FakeRegionLoader : public ae::IRegionLoader {
-public:
+  public:
     struct PendingLoad {
         int id = -1;
         ae::RegionCoord coord {};
@@ -35,8 +35,7 @@ public:
 
     int start_load(ae::RegionCoord coord,
                    std::function<void(ae::RegionData)> on_complete,
-                   std::function<void(const std::string&)> on_fail) override
-    {
+                   std::function<void(const std::string&)> on_fail) override {
         const int id = next_handle_++;
         pending_.push_back({id, coord, std::move(on_complete), std::move(on_fail)});
         loading_coords_.insert(coord);
@@ -61,7 +60,9 @@ public:
     // -- Test helpers -------------------------------------------------------
 
     /// Number of pending (in-flight) loads.
-    int pending_count() const { return static_cast<int>(pending_.size()); }
+    int pending_count() const {
+        return static_cast<int>(pending_.size());
+    }
 
     /// Whether a specific region has an in-flight load.
     bool is_loading(ae::RegionCoord coord) const {
@@ -80,7 +81,8 @@ public:
                 loading_coords_.erase(coord);
                 auto cb = std::move(it->on_complete);
                 pending_.erase(it);
-                if (cb) cb(std::move(data));
+                if (cb)
+                    cb(std::move(data));
                 return;
             }
         }
@@ -93,7 +95,8 @@ public:
                 loading_coords_.erase(coord);
                 auto cb = std::move(it->on_fail);
                 pending_.erase(it);
-                if (cb) cb(error);
+                if (cb)
+                    cb(error);
                 return;
             }
         }
@@ -117,10 +120,11 @@ public:
         }
         // Stable sort by coord.
         std::stable_sort(coords.begin(), coords.end(),
-            [](ae::RegionCoord a, ae::RegionCoord b) {
-                if (a.cy != b.cy) return a.cy < b.cy;
-                return a.cx < b.cx;
-            });
+                         [](ae::RegionCoord a, ae::RegionCoord b) {
+                             if (a.cy != b.cy)
+                                 return a.cy < b.cy;
+                             return a.cx < b.cx;
+                         });
         for (const auto& coord : coords) {
             complete_pending(coord, std::make_shared<const std::vector<char>>());
         }
@@ -132,16 +136,18 @@ public:
             auto p = std::move(pending_.back());
             pending_.pop_back();
             loading_coords_.erase(p.coord);
-            if (p.on_fail) p.on_fail(error);
+            if (p.on_fail)
+                p.on_fail(error);
         }
     }
 
     /// Get the set of coords that are currently in-flight.
-    std::set<ae::RegionCoord, bool(*)(ae::RegionCoord, ae::RegionCoord)>
+    std::set<ae::RegionCoord, bool (*)(ae::RegionCoord, ae::RegionCoord)>
     in_flight_set() const {
-        std::set<ae::RegionCoord, bool(*)(ae::RegionCoord, ae::RegionCoord)> s(
+        std::set<ae::RegionCoord, bool (*)(ae::RegionCoord, ae::RegionCoord)> s(
             [](ae::RegionCoord a, ae::RegionCoord b) {
-                if (a.cy != b.cy) return a.cy < b.cy;
+                if (a.cy != b.cy)
+                    return a.cy < b.cy;
                 return a.cx < b.cx;
             });
         for (const auto& p : pending_) {
@@ -158,7 +164,7 @@ public:
         next_handle_ = 1;
     }
 
-private:
+  private:
     int next_handle_ = 1;
     std::vector<PendingLoad> pending_;
     std::vector<ae::RegionCoord> cancelled_;
@@ -181,7 +187,9 @@ auto make_data(const std::string& content) {
     return ae::RegionData(std::move(vec));
 }
 
-ae::RegionCoord rc(int cx, int cy) { return {cx, cy}; }
+ae::RegionCoord rc(int cx, int cy) {
+    return {cx, cy};
+}
 
 // ---------------------------------------------------------------------------
 // Test: Basic load → tick → commit lifecycle
@@ -250,7 +258,7 @@ int test_cancel_in_flight_load() {
         return fail("should be Loading");
 
     // Cancel before completion.
-    exec.process_transitions({{rc(2, 2), false}});  // unload
+    exec.process_transitions({{rc(2, 2), false}}); // unload
     if (exec.state(rc(2, 2)) != ae::RegionState::Cancelled)
         return fail("should be Cancelled after unload transition");
     if (!fl_ptr->was_cancelled(rc(2, 2)))
@@ -443,8 +451,8 @@ int test_memory_budget_commit() {
         return fail("commit should be rejected when memory budget exceeded");
 
     // Evict one region to free budget.
-    exec.process_transitions({{rc(0, 0), false}});  // unload
-    exec.tick();  // completes eviction
+    exec.process_transitions({{rc(0, 0), false}}); // unload
+    exec.tick();                                   // completes eviction
 
     // Reload (0,0) with smaller data.
     exec.process_transitions({{rc(0, 0), true}});
@@ -492,8 +500,7 @@ int test_deterministic_ordering() {
 
         // Request loads for 6 regions.
         const std::vector<ae::RegionCoord> coords = {
-            rc(0, 0), rc(1, 0), rc(2, 0), rc(0, 1), rc(1, 1), rc(2, 1)
-        };
+            rc(0, 0), rc(1, 0), rc(2, 0), rc(0, 1), rc(1, 1), rc(2, 1)};
         std::vector<ae::RegionTransition> transitions;
         for (const auto& c : coords) {
             transitions.push_back({c, true});
@@ -512,13 +519,15 @@ int test_deterministic_ordering() {
         } else if (iter == 2) {
             // Odd regions first.
             std::stable_sort(order.begin(), order.end(),
-                [](ae::RegionCoord a, ae::RegionCoord b) {
-                    bool a_odd = (a.cx + a.cy) % 2 != 0;
-                    bool b_odd = (b.cx + b.cy) % 2 != 0;
-                    if (a_odd != b_odd) return a_odd > b_odd;
-                    if (a.cy != b.cy) return a.cy < b.cy;
-                    return a.cx < b.cx;
-                });
+                             [](ae::RegionCoord a, ae::RegionCoord b) {
+                                 bool a_odd = (a.cx + a.cy) % 2 != 0;
+                                 bool b_odd = (b.cx + b.cy) % 2 != 0;
+                                 if (a_odd != b_odd)
+                                     return a_odd > b_odd;
+                                 if (a.cy != b.cy)
+                                     return a.cy < b.cy;
+                                 return a.cx < b.cx;
+                             });
         } else {
             // Rotating order.
             std::rotate(order.begin(), order.begin() + iter, order.end());
@@ -717,8 +726,7 @@ int test_multiple_rounds() {
     exec.set_loader(std::move(fl));
 
     // Round 1: request 4 regions, only 2 dispatch.
-    exec.process_transitions({{rc(0, 0), true}, {rc(1, 0), true},
-                              {rc(2, 0), true}, {rc(3, 0), true}});
+    exec.process_transitions({{rc(0, 0), true}, {rc(1, 0), true}, {rc(2, 0), true}, {rc(3, 0), true}});
     exec.tick();
     if (exec.in_flight_count() != 2)
         return fail("round 1: should have 2 in-flight");
@@ -772,7 +780,7 @@ int test_failure_diagnostic() {
     ae::StreamingResidencyExecutor exec({
         .max_in_flight_loads = 4,
         .max_memory_bytes = 256ULL * 1024ULL * 1024ULL,
-        .max_retry_count = 1,  // Only 1 retry to test failure quickly.
+        .max_retry_count = 1, // Only 1 retry to test failure quickly.
     });
     exec.set_loader(std::move(fl));
 
@@ -846,7 +854,7 @@ int test_all_complete_deterministic() {
             fl_ptr->fail_pending(rc(0, 0), "fail");
             fl_ptr->fail_pending(rc(1, 0), "fail");
             fl_ptr->fail_pending(rc(2, 0), "fail");
-            exec.tick();  // retries all
+            exec.tick(); // retries all
             fl_ptr->complete_pending(rc(2, 0), make_data("c"));
             fl_ptr->complete_pending(rc(0, 0), make_data("a"));
             fl_ptr->complete_pending(rc(1, 0), make_data("b"));
@@ -867,7 +875,7 @@ int test_all_complete_deterministic() {
     return 0;
 }
 
-}  // namespace
+} // namespace
 
 // =============================================================================
 // main()
@@ -875,36 +883,52 @@ int test_all_complete_deterministic() {
 
 int main() {
     // Basic lifecycle
-    if (int rc = test_basic_lifecycle()) return rc;
+    if (int rc = test_basic_lifecycle())
+        return rc;
 
     // Cancellation
-    if (int rc = test_cancel_in_flight_load()) return rc;
-    if (int rc = test_cancel_before_dispatch()) return rc;
+    if (int rc = test_cancel_in_flight_load())
+        return rc;
+    if (int rc = test_cancel_before_dispatch())
+        return rc;
 
     // Retry
-    if (int rc = test_load_failure_retry()) return rc;
-    if (int rc = test_retry_eventually_succeeds()) return rc;
-    if (int rc = test_failure_diagnostic()) return rc;
+    if (int rc = test_load_failure_retry())
+        return rc;
+    if (int rc = test_retry_eventually_succeeds())
+        return rc;
+    if (int rc = test_failure_diagnostic())
+        return rc;
 
     // Budget
-    if (int rc = test_in_flight_budget()) return rc;
-    if (int rc = test_memory_budget_commit()) return rc;
+    if (int rc = test_in_flight_budget())
+        return rc;
+    if (int rc = test_memory_budget_commit())
+        return rc;
 
     // Eviction
-    if (int rc = test_resident_eviction()) return rc;
+    if (int rc = test_resident_eviction())
+        return rc;
 
     // Edge cases
-    if (int rc = test_empty_transitions()) return rc;
-    if (int rc = test_duplicate_load_request()) return rc;
-    if (int rc = test_commit_no_pending_data()) return rc;
-    if (int rc = test_unload_nonexistent_region()) return rc;
+    if (int rc = test_empty_transitions())
+        return rc;
+    if (int rc = test_duplicate_load_request())
+        return rc;
+    if (int rc = test_commit_no_pending_data())
+        return rc;
+    if (int rc = test_unload_nonexistent_region())
+        return rc;
 
     // Multi-round
-    if (int rc = test_multiple_rounds()) return rc;
+    if (int rc = test_multiple_rounds())
+        return rc;
 
     // Deterministic ordering (the marquee tests)
-    if (int rc = test_deterministic_ordering()) return rc;
-    if (int rc = test_all_complete_deterministic()) return rc;
+    if (int rc = test_deterministic_ordering())
+        return rc;
+    if (int rc = test_all_complete_deterministic())
+        return rc;
 
     std::cout << "streaming_executor_tests: all 17 tests passed\n";
     return 0;

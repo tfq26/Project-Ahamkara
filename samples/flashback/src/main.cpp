@@ -54,8 +54,8 @@ int main(int argc, char** argv) {
     ahamkara::client::ControllerBindings controller_bindings {};
     const char* autoplay_level = level_path != nullptr ? level_path : kAutoplayLevel;
     const auto autoplay_scenario = autoplay
-        ? ahamkara::client::make_default_autoplay_scenario(autoplay_level)
-        : ahamkara::client::PlaytestScenario {};
+                                       ? ahamkara::client::make_default_autoplay_scenario(autoplay_level)
+                                       : ahamkara::client::PlaytestScenario {};
 
     ae::log_info(std::string("Flashback: booting in menu mode") +
                  (level_path != nullptr ? " with explicit level '" + std::string(level_path) + "'" : "") +

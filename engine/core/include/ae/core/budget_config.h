@@ -19,10 +19,10 @@ namespace ae {
 
 /// How a noisy/timing budget threshold is evaluated.
 enum class BudgetThresholdType : std::uint8_t {
-    Absolute,     ///< Direct comparison: mean <= threshold.
+    Absolute,      ///< Direct comparison: mean <= threshold.
     MeanPlusSigma, ///< mean + k * stddev <= threshold.
-    Percentile,   ///< P-th percentile <= threshold.
-    Delta,        ///< Absolute delta from expected <= threshold.
+    Percentile,    ///< P-th percentile <= threshold.
+    Delta,         ///< Absolute delta from expected <= threshold.
 };
 
 // =============================================================================
@@ -30,14 +30,14 @@ enum class BudgetThresholdType : std::uint8_t {
 // =============================================================================
 
 struct BenchmarkBudget {
-    std::string name;              ///< Matches BenchmarkResult::name.
-    std::string unit;              ///< Unit of measurement.
-    BudgetThresholdType type{BudgetThresholdType::Absolute};
-    double warn_threshold{0.0};    ///< 0 = no warning.
-    double fail_threshold{0.0};    ///< 0 = no hard failure.
-    double expected{0.0};          ///< Expected value (for counter/delta types).
-    double k_factor{2.0};          ///< k for MeanPlusSigma.
-    double percentile_p{95.0};     ///< Percentile for Percentile type.
+    std::string name; ///< Matches BenchmarkResult::name.
+    std::string unit; ///< Unit of measurement.
+    BudgetThresholdType type {BudgetThresholdType::Absolute};
+    double warn_threshold {0.0}; ///< 0 = no warning.
+    double fail_threshold {0.0}; ///< 0 = no hard failure.
+    double expected {0.0};       ///< Expected value (for counter/delta types).
+    double k_factor {2.0};       ///< k for MeanPlusSigma.
+    double percentile_p {95.0};  ///< Percentile for Percentile type.
 
     /// Evaluate a benchmark result value against this budget.
     /// Returns true if the value is within budget, false if it fails.
@@ -51,37 +51,46 @@ struct BenchmarkBudget {
         bool threshold_valid = true;
 
         switch (type) {
-            case BudgetThresholdType::Absolute:
-                effective_threshold = fail_threshold > 0.0 ? fail_threshold : warn_threshold;
-                if (effective_threshold <= 0.0) return true; // disabled
-                if (value <= effective_threshold) return true;
-                break;
+        case BudgetThresholdType::Absolute:
+            effective_threshold = fail_threshold > 0.0 ? fail_threshold : warn_threshold;
+            if (effective_threshold <= 0.0)
+                return true; // disabled
+            if (value <= effective_threshold)
+                return true;
+            break;
 
-            case BudgetThresholdType::MeanPlusSigma:
-                // evaluated externally with sigma; here we just compare
-                effective_threshold = fail_threshold > 0.0 ? fail_threshold : warn_threshold;
-                if (effective_threshold <= 0.0) return true;
-                if (value <= effective_threshold) return true;
-                break;
+        case BudgetThresholdType::MeanPlusSigma:
+            // evaluated externally with sigma; here we just compare
+            effective_threshold = fail_threshold > 0.0 ? fail_threshold : warn_threshold;
+            if (effective_threshold <= 0.0)
+                return true;
+            if (value <= effective_threshold)
+                return true;
+            break;
 
-            case BudgetThresholdType::Percentile:
-                effective_threshold = fail_threshold > 0.0 ? fail_threshold : warn_threshold;
-                if (effective_threshold <= 0.0) return true;
-                if (value <= effective_threshold) return true;
-                break;
+        case BudgetThresholdType::Percentile:
+            effective_threshold = fail_threshold > 0.0 ? fail_threshold : warn_threshold;
+            if (effective_threshold <= 0.0)
+                return true;
+            if (value <= effective_threshold)
+                return true;
+            break;
 
-            case BudgetThresholdType::Delta:
-                effective_threshold = fail_threshold > 0.0 ? fail_threshold : warn_threshold;
-                if (effective_threshold <= 0.0) return true;
-                if (std::abs(value - expected) <= effective_threshold) return true;
-                break;
+        case BudgetThresholdType::Delta:
+            effective_threshold = fail_threshold > 0.0 ? fail_threshold : warn_threshold;
+            if (effective_threshold <= 0.0)
+                return true;
+            if (std::abs(value - expected) <= effective_threshold)
+                return true;
+            break;
 
-            default:
-                threshold_valid = false;
-                break;
+        default:
+            threshold_valid = false;
+            break;
         }
 
-        if (!threshold_valid) return true;
+        if (!threshold_valid)
+            return true;
 
         // Check if we hit the hard failure threshold
         const double limit = fail_threshold > 0.0 ? fail_threshold : warn_threshold;
@@ -112,10 +121,18 @@ struct BenchmarkBudget {
         oss << "      \"unit\": \"" << unit << "\",\n";
         oss << "      \"type\": \"";
         switch (type) {
-            case BudgetThresholdType::Absolute: oss << "absolute"; break;
-            case BudgetThresholdType::MeanPlusSigma: oss << "mean_plus_sigma"; break;
-            case BudgetThresholdType::Percentile: oss << "percentile"; break;
-            case BudgetThresholdType::Delta: oss << "delta"; break;
+        case BudgetThresholdType::Absolute:
+            oss << "absolute";
+            break;
+        case BudgetThresholdType::MeanPlusSigma:
+            oss << "mean_plus_sigma";
+            break;
+        case BudgetThresholdType::Percentile:
+            oss << "percentile";
+            break;
+        case BudgetThresholdType::Delta:
+            oss << "delta";
+            break;
         }
         oss << "\",\n";
         oss << "      \"warn_threshold\": " << warn_threshold << ",\n";
@@ -133,7 +150,7 @@ struct BenchmarkBudget {
 // =============================================================================
 
 class BudgetConfig {
-public:
+  public:
     /// Add or update a budget specification.
     void set_budget(const BenchmarkBudget& budget) {
         budgets_[budget.name] = budget;
@@ -142,21 +159,24 @@ public:
     /// Get budget for a benchmark name, or nullptr if not found.
     [[nodiscard]] const BenchmarkBudget* get(const std::string& name) const {
         auto it = budgets_.find(name);
-        if (it != budgets_.end()) return &it->second;
+        if (it != budgets_.end())
+            return &it->second;
         return nullptr;
     }
 
     /// Get mutable budget for editing.
     [[nodiscard]] BenchmarkBudget* get_mutable(const std::string& name) {
         auto it = budgets_.find(name);
-        if (it != budgets_.end()) return &it->second;
+        if (it != budgets_.end())
+            return &it->second;
         return nullptr;
     }
 
     /// Load budgets from a JSON file. Returns true on success.
     bool load_from_file(const std::string& path) {
         std::ifstream file(path);
-        if (!file.is_open()) return false;
+        if (!file.is_open())
+            return false;
 
         std::stringstream buffer;
         buffer << file.rdbuf();
@@ -179,20 +199,24 @@ public:
         std::size_t pos = 0;
         // Skip whitespace and find "budgets" array
         pos = json.find("\"budgets\"");
-        if (pos == std::string::npos) return false;
+        if (pos == std::string::npos)
+            return false;
 
         pos = json.find('[', pos);
-        if (pos == std::string::npos) return false;
+        if (pos == std::string::npos)
+            return false;
         ++pos;
 
         // Parse each object
         while (pos < json.size()) {
             // Find '{'
             pos = json.find('{', pos);
-            if (pos == std::string::npos || pos >= json.size()) break;
+            if (pos == std::string::npos || pos >= json.size())
+                break;
 
             std::size_t end = json.find('}', pos);
-            if (end == std::string::npos) break;
+            if (end == std::string::npos)
+                break;
 
             std::string obj = json.substr(pos, end - pos + 1);
             parse_budget_object(obj);
@@ -210,7 +234,8 @@ public:
         bool first = true;
         for (const auto& [name, budget] : budgets_) {
             (void)name;
-            if (!first) oss << ",\n";
+            if (!first)
+                oss << ",\n";
             oss << budget.to_json();
             first = false;
         }
@@ -220,10 +245,14 @@ public:
     }
 
     /// Number of budgets configured.
-    [[nodiscard]] std::size_t size() const { return budgets_.size(); }
+    [[nodiscard]] std::size_t size() const {
+        return budgets_.size();
+    }
 
     /// Clear all budgets.
-    void clear() { budgets_.clear(); }
+    void clear() {
+        budgets_.clear();
+    }
 
     /// Get all budget names.
     [[nodiscard]] std::vector<std::string> names() const {
@@ -234,7 +263,7 @@ public:
         return result;
     }
 
-private:
+  private:
     std::unordered_map<std::string, BenchmarkBudget> budgets_;
 
     void parse_budget_object(const std::string& obj) {
@@ -268,12 +297,15 @@ private:
     static std::string extract_string(const std::string& obj, const std::string& key) {
         std::string search = "\"" + key + "\":";
         auto pos = obj.find(search);
-        if (pos == std::string::npos) return {};
+        if (pos == std::string::npos)
+            return {};
 
         pos += search.size();
         // Skip whitespace
-        while (pos < obj.size() && (obj[pos] == ' ' || obj[pos] == '\t' || obj[pos] == '\n')) ++pos;
-        if (pos >= obj.size() || obj[pos] != '"') return {};
+        while (pos < obj.size() && (obj[pos] == ' ' || obj[pos] == '\t' || obj[pos] == '\n'))
+            ++pos;
+        if (pos >= obj.size() || obj[pos] != '"')
+            return {};
 
         ++pos;
         std::string result;
@@ -290,15 +322,21 @@ private:
     static double extract_double(const std::string& obj, const std::string& key, double default_val = 0.0) {
         std::string search = "\"" + key + "\":";
         auto pos = obj.find(search);
-        if (pos == std::string::npos) return default_val;
+        if (pos == std::string::npos)
+            return default_val;
 
         pos += search.size();
-        while (pos < obj.size() && (obj[pos] == ' ' || obj[pos] == '\t' || obj[pos] == '\n')) ++pos;
-        if (pos >= obj.size()) return default_val;
+        while (pos < obj.size() && (obj[pos] == ' ' || obj[pos] == '\t' || obj[pos] == '\n'))
+            ++pos;
+        if (pos >= obj.size())
+            return default_val;
 
         // Handle negative numbers
         std::string num;
-        if (obj[pos] == '-') { num += '-'; ++pos; }
+        if (obj[pos] == '-') {
+            num += '-';
+            ++pos;
+        }
         while (pos < obj.size() && (std::isdigit(static_cast<unsigned char>(obj[pos])) || obj[pos] == '.' || obj[pos] == 'e' || obj[pos] == 'E' || obj[pos] == '+')) {
             num += obj[pos];
             ++pos;

@@ -25,8 +25,8 @@ wish::u64 MatchmakingService::enqueue_party(wish::u64 party_id, wish::u32 party_
     }
 
     const auto ticket_id = next_ticket_id_++;
-    tickets_.push_back(MatchmakingTicket{ticket_id, party_id, activity_id,
-                                         party_size, now, true});
+    tickets_.push_back(MatchmakingTicket {ticket_id, party_id, activity_id,
+                                          party_size, now, true});
 
     wish::log_info("MatchmakingService: party " + std::to_string(party_id) +
                    " (" + std::to_string(party_size) + " players) enqueued for activity " +
@@ -94,7 +94,8 @@ bool MatchmakingService::try_form_fireteam(
     wish::u32 accumulated = 0;
 
     for (auto* ticket : candidates) {
-        if (!ticket->active) continue;
+        if (!ticket->active)
+            continue;
         selected.push_back(ticket);
         accumulated += ticket->party_size;
         if (accumulated >= target_players_per_match_) {
@@ -152,7 +153,8 @@ void MatchmakingService::tick(time_point now) {
     // Collect unique activity ids from active tickets
     std::vector<wish::u64> active_activities;
     for (const auto& ticket : tickets_) {
-        if (!ticket.active) continue;
+        if (!ticket.active)
+            continue;
         if (std::find(active_activities.begin(), active_activities.end(),
                       ticket.activity_id) == active_activities.end()) {
             active_activities.push_back(ticket.activity_id);

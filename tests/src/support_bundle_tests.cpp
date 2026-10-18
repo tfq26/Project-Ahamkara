@@ -148,7 +148,7 @@ void test_format_support_bundle() {
     service.version = "0.1.0";
 
     auto bundle = wish::core::build_support_bundle(
-        service, "0.1.0", 7200, {}, wish::core::OperationHistory{}, "Test notes");
+        service, "0.1.0", 7200, {}, wish::core::OperationHistory {}, "Test notes");
 
     auto formatted = wish::core::format_support_bundle(bundle);
     assert(!formatted.empty());

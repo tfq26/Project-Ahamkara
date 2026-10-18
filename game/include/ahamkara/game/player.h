@@ -222,16 +222,28 @@ class Player {
     // -- Inventory, Progression, Currency ------------------------------------
 
     /// Mutable reference to the player's item inventory.
-    [[nodiscard]] Inventory& inventory() { return inventory_; }
-    [[nodiscard]] const Inventory& inventory() const { return inventory_; }
+    [[nodiscard]] Inventory& inventory() {
+        return inventory_;
+    }
+    [[nodiscard]] const Inventory& inventory() const {
+        return inventory_;
+    }
 
     /// Mutable reference to the player's progression (level / XP).
-    [[nodiscard]] ProgressionState& progression() { return progression_; }
-    [[nodiscard]] const ProgressionState& progression() const { return progression_; }
+    [[nodiscard]] ProgressionState& progression() {
+        return progression_;
+    }
+    [[nodiscard]] const ProgressionState& progression() const {
+        return progression_;
+    }
 
     /// Mutable reference to the player's currency wallet.
-    [[nodiscard]] CurrencyState& currency() { return currency_; }
-    [[nodiscard]] const CurrencyState& currency() const { return currency_; }
+    [[nodiscard]] CurrencyState& currency() {
+        return currency_;
+    }
+    [[nodiscard]] const CurrencyState& currency() const {
+        return currency_;
+    }
 
   private:
     ReplicatedPlayerState state_ {};

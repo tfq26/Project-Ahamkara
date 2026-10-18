@@ -160,7 +160,8 @@ void DeathmatchActivity::simulate_input(wish::session::SessionId sid,
 
 PlayerSlot* DeathmatchActivity::find_slot_by_session_id(wish::session::SessionId sid) {
     for (auto& s : slots_) {
-        if (s.session_id.value == sid.value) return &s;
+        if (s.session_id.value == sid.value)
+            return &s;
     }
     return nullptr;
 }

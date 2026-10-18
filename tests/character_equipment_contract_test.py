@@ -4,15 +4,13 @@
 import json
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
     rig = json.loads((ROOT / "assets/characters/operative_human.rig.json").read_text())
     assert rig["retarget_root"] == "pelvis"
-    assert rig["equipment_attachments"] == {
-        "dominant_hand": "hand_r", "support_hand": "hand_l"}
+    assert rig["equipment_attachments"] == {"dominant_hand": "hand_r", "support_hand": "hand_l"}
     assert set(rig["chains"]) == {"spine", "left_arm", "right_arm", "left_leg", "right_leg"}
     assert set(rig["finger_chains"]) == {"left", "right"}
     for side in ("left", "right"):
@@ -33,7 +31,7 @@ def main() -> int:
     assert "CARBINE_ASSET" in profile_exporter
     assert "operative_carbine_tp" in profile_exporter
     assert "pose_rifle_ready" in profile_exporter
-    assert "constraint = bone.constraints.new(\"IK\")" in profile_exporter
+    assert 'constraint = bone.constraints.new("IK")' in profile_exporter
     assert "weapon_placement" in profile_exporter
     assert "SHOULDER_CONTACT" in profile_exporter
     assert "weapon_placement" in profile_exporter
@@ -43,8 +41,7 @@ def main() -> int:
     assert "author_rifle_grip(target)" in profile_exporter
     assert "finger_curls" in profile_exporter
 
-    rifle_animation = json.loads(
-        (ROOT / "assets/characters/operative_human_rifle.animation.json").read_text())
+    rifle_animation = json.loads((ROOT / "assets/characters/operative_human_rifle.animation.json").read_text())
     assert rifle_animation["family"] == "rifle"
     assert rifle_animation["attachments"] == {
         "dominant_hand": "hand_r",
@@ -53,8 +50,7 @@ def main() -> int:
         "support_grip_socket": "left_hand_grip",
         "shoulder_socket": "stock_shoulder",
     }
-    assert rifle_animation["layers"] == [
-        "locomotion", "rifle_upper_body", "aim_offset", "support_hand_ik", "recoil"]
+    assert rifle_animation["layers"] == ["locomotion", "rifle_upper_body", "aim_offset", "support_hand_ik", "recoil"]
     assert set(rifle_animation["clips"]) == {"idle", "aim", "fire", "reload"}
     print("character_equipment_contract_test: PASS")
     return 0

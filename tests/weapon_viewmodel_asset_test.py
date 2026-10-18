@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import json
 import struct
-import sys
 from pathlib import Path
 
 
@@ -18,8 +17,7 @@ def main() -> int:
     buffer = (gltf_path.parent / document["buffers"][0]["uri"]).read_bytes()
     offset = view.get("byteOffset", 0) + accessor.get("byteOffset", 0)
     stride = view.get("byteStride", 12)
-    positions = [struct.unpack_from("<3f", buffer, offset + index * stride)
-                 for index in range(accessor["count"])]
+    positions = [struct.unpack_from("<3f", buffer, offset + index * stride) for index in range(accessor["count"])]
     minimum = tuple(min(point[axis] for point in positions) for axis in range(3))
     maximum = tuple(max(point[axis] for point in positions) for axis in range(3))
     span = tuple(maximum[axis] - minimum[axis] for axis in range(3))

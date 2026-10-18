@@ -15,13 +15,11 @@ Character View and unambiguous in the field-suit's own rig.
 from __future__ import annotations
 
 import argparse
-import math
 import sys
 from pathlib import Path
 
 import bpy
 from mathutils import Matrix, Vector
-
 
 ASSET_NAME = "caligo_field_suit"
 RIG_NAME = "CaligoFieldSuit_Rig"

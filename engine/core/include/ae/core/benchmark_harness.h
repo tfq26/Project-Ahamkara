@@ -20,13 +20,17 @@ namespace ae {
 // =============================================================================
 
 class BenchmarkTimer {
-public:
+  public:
     using Clock = std::chrono::steady_clock;
 
-    BenchmarkTimer() { reset(); }
+    BenchmarkTimer() {
+        reset();
+    }
 
     /// Start (or restart) the timer.
-    void reset() { start_ = Clock::now(); }
+    void reset() {
+        start_ = Clock::now();
+    }
 
     /// Elapsed time in seconds since the last reset().
     [[nodiscard]] double elapsed_seconds() const {
@@ -38,7 +42,7 @@ public:
         return elapsed_seconds() * 1000.0;
     }
 
-private:
+  private:
     Clock::time_point start_;
 };
 
@@ -47,7 +51,7 @@ private:
 // =============================================================================
 
 class BenchmarkStats {
-public:
+  public:
     BenchmarkStats() = default;
 
     /// Add a single measurement value.
@@ -56,29 +60,35 @@ public:
     }
 
     /// Number of samples collected.
-    [[nodiscard]] std::size_t count() const { return samples_.size(); }
+    [[nodiscard]] std::size_t count() const {
+        return samples_.size();
+    }
 
     /// Minimum value.
     [[nodiscard]] double min() const {
-        if (samples_.empty()) return 0.0;
+        if (samples_.empty())
+            return 0.0;
         return *std::min_element(samples_.begin(), samples_.end());
     }
 
     /// Maximum value.
     [[nodiscard]] double max() const {
-        if (samples_.empty()) return 0.0;
+        if (samples_.empty())
+            return 0.0;
         return *std::max_element(samples_.begin(), samples_.end());
     }
 
     /// Arithmetic mean.
     [[nodiscard]] double mean() const {
-        if (samples_.empty()) return 0.0;
+        if (samples_.empty())
+            return 0.0;
         return sum() / static_cast<double>(samples_.size());
     }
 
     /// Population standard deviation.
     [[nodiscard]] double stddev() const {
-        if (samples_.size() < 2) return 0.0;
+        if (samples_.size() < 2)
+            return 0.0;
         const double m = mean();
         double sq_sum = 0.0;
         for (double v : samples_) {
@@ -95,14 +105,17 @@ public:
 
     /// Median value.
     [[nodiscard]] double median() const {
-        if (samples_.empty()) return 0.0;
+        if (samples_.empty())
+            return 0.0;
         return percentile(50.0);
     }
 
     /// P-th percentile (0-100). Uses linear interpolation.
     [[nodiscard]] double percentile(double p) const {
-        if (samples_.empty()) return 0.0;
-        if (samples_.size() == 1) return samples_[0];
+        if (samples_.empty())
+            return 0.0;
+        if (samples_.size() == 1)
+            return samples_[0];
 
         auto sorted = samples_;
         std::sort(sorted.begin(), sorted.end());
@@ -117,11 +130,12 @@ public:
 
     /// 1% low (average of worst 1% of samples).
     [[nodiscard]] double percentile_01_low() const {
-        if (samples_.empty()) return 0.0;
+        if (samples_.empty())
+            return 0.0;
         auto sorted = samples_;
         std::sort(sorted.begin(), sorted.end());
-        const std::size_t n_worst = std::max(std::size_t{1},
-            static_cast<std::size_t>(0.01 * static_cast<double>(sorted.size())));
+        const std::size_t n_worst = std::max(std::size_t {1},
+                                             static_cast<std::size_t>(0.01 * static_cast<double>(sorted.size())));
         double sum = 0.0;
         for (std::size_t i = sorted.size() - n_worst; i < sorted.size(); ++i) {
             sum += sorted[i];
@@ -130,12 +144,16 @@ public:
     }
 
     /// Access raw samples (for serialization).
-    [[nodiscard]] const std::vector<double>& samples() const { return samples_; }
+    [[nodiscard]] const std::vector<double>& samples() const {
+        return samples_;
+    }
 
     /// Clear all samples.
-    void clear() { samples_.clear(); }
+    void clear() {
+        samples_.clear();
+    }
 
-private:
+  private:
     std::vector<double> samples_;
 };
 
@@ -144,14 +162,14 @@ private:
 // =============================================================================
 
 struct BenchmarkResult {
-    std::string name;           ///< Benchmark identifier.
-    std::string unit;           ///< Unit of measurement (e.g. "ms", "bytes", "iterations/sec").
-    BenchmarkStats stats;       ///< Statistics of the measurements.
-    std::int64_t iterations{0}; ///< Number of iterations run.
-    double budget_warn{0.0};    ///< Warning threshold (0 = disabled).
-    double budget_fail{0.0};    ///< Failure threshold (0 = disabled).
-    bool passed{true};          ///< Whether the benchmark passed its budgets.
-    std::string diagnostic;     ///< Diagnostic message if failed.
+    std::string name;            ///< Benchmark identifier.
+    std::string unit;            ///< Unit of measurement (e.g. "ms", "bytes", "iterations/sec").
+    BenchmarkStats stats;        ///< Statistics of the measurements.
+    std::int64_t iterations {0}; ///< Number of iterations run.
+    double budget_warn {0.0};    ///< Warning threshold (0 = disabled).
+    double budget_fail {0.0};    ///< Failure threshold (0 = disabled).
+    bool passed {true};          ///< Whether the benchmark passed its budgets.
+    std::string diagnostic;      ///< Diagnostic message if failed.
 
     /// Serialize this result to a JSON object string.
     [[nodiscard]] std::string to_json() const {
@@ -181,18 +199,30 @@ struct BenchmarkResult {
         return oss.str();
     }
 
-private:
+  private:
     static std::string escape_json(const std::string& s) {
         std::string out;
         out.reserve(s.size());
         for (char c : s) {
             switch (c) {
-                case '"': out += "\\\""; break;
-                case '\\': out += "\\\\"; break;
-                case '\n': out += "\\n"; break;
-                case '\r': out += "\\r"; break;
-                case '\t': out += "\\t"; break;
-                default: out += c; break;
+            case '"':
+                out += "\\\"";
+                break;
+            case '\\':
+                out += "\\\\";
+                break;
+            case '\n':
+                out += "\\n";
+                break;
+            case '\r':
+                out += "\\r";
+                break;
+            case '\t':
+                out += "\\t";
+                break;
+            default:
+                out += c;
+                break;
             }
         }
         return out;
@@ -207,8 +237,8 @@ struct SystemMetadata {
     std::string hostname;
     std::string os_name;
     std::string cpu_brand;
-    int cpu_core_count{0};
-    std::uint64_t total_ram_bytes{0};
+    int cpu_core_count {0};
+    std::uint64_t total_ram_bytes {0};
     std::string compiler;
     std::string build_config;
     std::string timestamp;
@@ -229,18 +259,30 @@ struct SystemMetadata {
         return oss.str();
     }
 
-private:
+  private:
     static std::string escape_json(const std::string& s) {
         std::string out;
         out.reserve(s.size());
         for (char c : s) {
             switch (c) {
-                case '"': out += "\\\""; break;
-                case '\\': out += "\\\\"; break;
-                case '\n': out += "\\n"; break;
-                case '\r': out += "\\r"; break;
-                case '\t': out += "\\t"; break;
-                default: out += c; break;
+            case '"':
+                out += "\\\"";
+                break;
+            case '\\':
+                out += "\\\\";
+                break;
+            case '\n':
+                out += "\\n";
+                break;
+            case '\r':
+                out += "\\r";
+                break;
+            case '\t':
+                out += "\\t";
+                break;
+            default:
+                out += c;
+                break;
             }
         }
         return out;
@@ -250,7 +292,7 @@ private:
 struct BenchmarkReport {
     std::vector<BenchmarkResult> results;
     SystemMetadata system;
-    bool all_passed{true};
+    bool all_passed {true};
 
     /// Serialize the entire report to a JSON string.
     [[nodiscard]] std::string to_json() const {
@@ -261,7 +303,8 @@ struct BenchmarkReport {
         oss << "  \"benchmarks\": [\n";
         for (std::size_t i = 0; i < results.size(); ++i) {
             oss << results[i].to_json();
-            if (i + 1 < results.size()) oss << ",";
+            if (i + 1 < results.size())
+                oss << ",";
             oss << "\n";
         }
         oss << "  ],\n";
@@ -280,7 +323,8 @@ struct BenchmarkReport {
             r.passed = true;
             r.diagnostic.clear();
 
-            if (r.budget_fail <= 0.0 && r.budget_warn <= 0.0) continue;
+            if (r.budget_fail <= 0.0 && r.budget_warn <= 0.0)
+                continue;
 
             // Determine direction from the unit name
             const bool higher_is_better =
@@ -334,16 +378,16 @@ struct BenchmarkReport {
 // =============================================================================
 
 class BenchmarkRunner {
-public:
+  public:
     /// Run a benchmark function `iterations` times and collect timing stats.
     /// `bench_fn` is called with a loop index; the timer is wrapped around it.
     static BenchmarkResult run_timing(const std::string& name,
-                                       const std::string& unit,
-                                       std::int64_t iterations,
-                                       std::function<void(std::int64_t)> bench_fn,
-                                       double budget_warn = 0.0,
-                                       double budget_fail = 0.0,
-                                       std::int64_t warmup_iterations = 5) {
+                                      const std::string& unit,
+                                      std::int64_t iterations,
+                                      std::function<void(std::int64_t)> bench_fn,
+                                      double budget_warn = 0.0,
+                                      double budget_fail = 0.0,
+                                      std::int64_t warmup_iterations = 5) {
         BenchmarkResult result;
         result.name = name;
         result.unit = unit;
@@ -358,7 +402,7 @@ public:
 
         // Timed runs in batches for more statistical samples
         constexpr std::int64_t kBatchSize = 10;
-        const std::int64_t batches = std::max(std::int64_t{1}, iterations / kBatchSize);
+        const std::int64_t batches = std::max(std::int64_t {1}, iterations / kBatchSize);
 
         BenchmarkTimer timer;
         for (std::int64_t b = 0; b < batches; ++b) {
@@ -379,12 +423,12 @@ public:
 
     /// Run a benchmark that measures throughput (e.g. allocations per second).
     static BenchmarkResult run_throughput(const std::string& name,
-                                           const std::string& unit,
-                                           std::int64_t iterations,
-                                           std::function<void(std::int64_t)> bench_fn,
-                                           double budget_warn = 0.0,
-                                           double budget_fail = 0.0,
-                                           std::int64_t warmup_iterations = 5) {
+                                          const std::string& unit,
+                                          std::int64_t iterations,
+                                          std::function<void(std::int64_t)> bench_fn,
+                                          double budget_warn = 0.0,
+                                          double budget_fail = 0.0,
+                                          std::int64_t warmup_iterations = 5) {
         BenchmarkResult result;
         result.name = name;
         result.unit = unit;
@@ -399,7 +443,7 @@ public:
 
         // Timed batches
         constexpr std::int64_t kBatchSize = 50;
-        const std::int64_t batches = std::max(std::int64_t{1}, iterations / kBatchSize);
+        const std::int64_t batches = std::max(std::int64_t {1}, iterations / kBatchSize);
 
         BenchmarkTimer timer;
         for (std::int64_t b = 0; b < batches; ++b) {
@@ -420,11 +464,11 @@ public:
 
     /// Run a benchmark that measures allocation volume (bytes).
     static BenchmarkResult run_allocation(const std::string& name,
-                                           std::int64_t iterations,
-                                           std::function<std::size_t(std::int64_t)> bench_fn,
-                                           double budget_warn = 0.0,
-                                           double budget_fail = 0.0,
-                                           std::int64_t warmup_iterations = 5) {
+                                          std::int64_t iterations,
+                                          std::function<std::size_t(std::int64_t)> bench_fn,
+                                          double budget_warn = 0.0,
+                                          double budget_fail = 0.0,
+                                          std::int64_t warmup_iterations = 5) {
         BenchmarkResult result;
         result.name = name;
         result.unit = "bytes";
@@ -447,11 +491,11 @@ public:
 
     /// Run a deterministic counter benchmark (e.g. allocation count, job count).
     static BenchmarkResult run_counter(const std::string& name,
-                                        const std::string& unit,
-                                        std::int64_t expected,
-                                        std::int64_t actual,
-                                        double budget_warn = 0.0,
-                                        double budget_fail = 0.0) {
+                                       const std::string& unit,
+                                       std::int64_t expected,
+                                       std::int64_t actual,
+                                       double budget_warn = 0.0,
+                                       double budget_fail = 0.0) {
         BenchmarkResult result;
         result.name = name;
         result.unit = unit;

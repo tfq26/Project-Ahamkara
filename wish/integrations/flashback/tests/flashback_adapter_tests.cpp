@@ -8,7 +8,7 @@
 namespace {
 
 class TestGameAdapter final : public wish::integrations::flashback::IGameSessionAdapter {
-public:
+  public:
     int admit_count {0};
     int remove_count {0};
     int complete_count {0};

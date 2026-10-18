@@ -18,12 +18,11 @@ import bmesh
 import bpy
 from mathutils import Matrix, Vector
 
-
 ASSET_NAME = "operative_carbine_tp"
 
 
 def parse_args() -> argparse.Namespace:
-    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+    argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
     parser.add_argument("--out-dir", type=Path, default=Path("assets/models"))
     return parser.parse_args(argv)
@@ -39,28 +38,33 @@ def make_material(name: str, color: tuple[float, float, float, float], metallic:
     return material
 
 
-def add_box(bm: bmesh.types.BMesh, center: tuple[float, float, float],
-            size: tuple[float, float, float], material_index: int = 0,
-            rotation_z: float = 0.0) -> None:
+def add_box(
+    bm: bmesh.types.BMesh,
+    center: tuple[float, float, float],
+    size: tuple[float, float, float],
+    material_index: int = 0,
+    rotation_z: float = 0.0,
+) -> None:
     face_start = len(bm.faces)
     result = bmesh.ops.create_cube(bm, size=1.0)
     verts = result["verts"]
-    transform = (Matrix.Translation(Vector(center))
-                 @ Matrix.Rotation(rotation_z, 4, "Z")
-                 @ Matrix.Diagonal((size[0], size[1], size[2], 1.0)))
+    transform = (
+        Matrix.Translation(Vector(center))
+        @ Matrix.Rotation(rotation_z, 4, "Z")
+        @ Matrix.Diagonal((size[0], size[1], size[2], 1.0))
+    )
     bmesh.ops.transform(bm, matrix=transform, verts=verts)
     for face in list(bm.faces)[face_start:]:
         face.material_index = material_index
 
 
-def add_cylinder(bm: bmesh.types.BMesh, center: tuple[float, float, float],
-                 radius: float, length: float, material_index: int = 0) -> None:
+def add_cylinder(
+    bm: bmesh.types.BMesh, center: tuple[float, float, float], radius: float, length: float, material_index: int = 0
+) -> None:
     face_start = len(bm.faces)
-    result = bmesh.ops.create_cone(bm, segments=16, radius1=radius, radius2=radius,
-                                   depth=length, cap_ends=True)
+    result = bmesh.ops.create_cone(bm, segments=16, radius1=radius, radius2=radius, depth=length, cap_ends=True)
     verts = result["verts"]
-    transform = (Matrix.Translation(Vector(center))
-                 @ Matrix.Rotation(math.radians(90.0), 4, "Y"))
+    transform = Matrix.Translation(Vector(center)) @ Matrix.Rotation(math.radians(90.0), 4, "Y")
     bmesh.ops.transform(bm, matrix=transform, verts=verts)
     for face in list(bm.faces)[face_start:]:
         face.material_index = material_index
@@ -74,10 +78,10 @@ def build(out_dir: Path) -> None:
     bm = bmesh.new()
     # Origin/right grip at zero. Positive X is barrel / support-hand direction.
     add_box(bm, (-0.32, 0.00, 0.02), (0.55, 0.13, 0.16), 0)  # stock
-    add_box(bm, (0.12, 0.00, 0.03), (0.44, 0.16, 0.19), 1)   # receiver
-    add_box(bm, (0.54, 0.00, 0.03), (0.52, 0.13, 0.14), 0)   # handguard
-    add_cylinder(bm, (0.91, 0.00, 0.035), 0.034, 0.48, 1)    # barrel
-    add_cylinder(bm, (1.16, 0.00, 0.035), 0.056, 0.10, 0)    # muzzle
+    add_box(bm, (0.12, 0.00, 0.03), (0.44, 0.16, 0.19), 1)  # receiver
+    add_box(bm, (0.54, 0.00, 0.03), (0.52, 0.13, 0.14), 0)  # handguard
+    add_cylinder(bm, (0.91, 0.00, 0.035), 0.034, 0.48, 1)  # barrel
+    add_cylinder(bm, (1.16, 0.00, 0.035), 0.056, 0.10, 0)  # muzzle
     add_box(bm, (0.00, -0.13, -0.08), (0.12, 0.20, 0.13), 0, math.radians(-12.0))
     add_box(bm, (0.15, -0.15, -0.10), (0.14, 0.26, 0.12), 1, math.radians(-5.0))
     add_box(bm, (0.27, 0.00, 0.16), (0.22, 0.09, 0.09), 1)  # optic
@@ -109,8 +113,12 @@ def build(out_dir: Path) -> None:
     bpy.context.view_layer.objects.active = weapon
     bpy.ops.export_scene.gltf(
         filepath=str((out_dir / f"{ASSET_NAME}.gltf").resolve()),
-        export_format="GLTF_SEPARATE", use_selection=True, export_yup=True,
-        export_animations=False, export_skins=False, export_materials="EXPORT",
+        export_format="GLTF_SEPARATE",
+        use_selection=True,
+        export_yup=True,
+        export_animations=False,
+        export_skins=False,
+        export_materials="EXPORT",
     )
     print(f"Generated {out_dir / (ASSET_NAME + '.gltf')}")
 

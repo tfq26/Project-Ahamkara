@@ -335,7 +335,7 @@ bool SessionOrchestrator::destroy_group(wish::u32 group_id) {
 
     // Clean up party bindings
     // Iterate carefully since we may erase
-    for (auto it = party_to_group_.begin(); it != party_to_group_.end(); ) {
+    for (auto it = party_to_group_.begin(); it != party_to_group_.end();) {
         if (it->second == group_id) {
             it = party_to_group_.erase(it);
         } else {
@@ -370,7 +370,8 @@ wish::u32 SessionOrchestrator::group_count() const {
 wish::u32 SessionOrchestrator::lobby_count() const {
     wish::u32 count = 0;
     for (const auto& [id, group] : groups_) {
-        if (group.state() == session::GroupState::Lobby) ++count;
+        if (group.state() == session::GroupState::Lobby)
+            ++count;
     }
     return count;
 }
@@ -378,7 +379,8 @@ wish::u32 SessionOrchestrator::lobby_count() const {
 wish::u32 SessionOrchestrator::active_count() const {
     wish::u32 count = 0;
     for (const auto& [id, group] : groups_) {
-        if (group.state() == session::GroupState::Active) ++count;
+        if (group.state() == session::GroupState::Active)
+            ++count;
     }
     return count;
 }
@@ -386,7 +388,8 @@ wish::u32 SessionOrchestrator::active_count() const {
 wish::u32 SessionOrchestrator::ended_count() const {
     wish::u32 count = 0;
     for (const auto& [id, group] : groups_) {
-        if (group.state() == session::GroupState::Ended) ++count;
+        if (group.state() == session::GroupState::Ended)
+            ++count;
     }
     return count;
 }

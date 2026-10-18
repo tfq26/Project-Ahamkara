@@ -12,7 +12,6 @@ Run from the repository root:
 from __future__ import annotations
 
 import argparse
-import math
 import sys
 from pathlib import Path
 
@@ -34,8 +33,10 @@ def look_at(obj: bpy.types.Object, point: Vector) -> None:
 
 def bounds(objects: list[bpy.types.Object]) -> tuple[Vector, Vector]:
     points = [obj.matrix_world @ Vector(corner) for obj in objects for corner in obj.bound_box]
-    return (Vector((min(p.x for p in points), min(p.y for p in points), min(p.z for p in points))),
-            Vector((max(p.x for p in points), max(p.y for p in points), max(p.z for p in points))))
+    return (
+        Vector((min(p.x for p in points), min(p.y for p in points), min(p.z for p in points))),
+        Vector((max(p.x for p in points), max(p.y for p in points), max(p.z for p in points))),
+    )
 
 
 def material(source_dir: Path) -> bpy.types.Material:
@@ -90,10 +91,7 @@ def main() -> None:
     look_at(camera, center)
     scene = bpy.context.scene
     scene.camera = camera
-    render_engines = {
-        item.identifier
-        for item in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items
-    }
+    render_engines = {item.identifier for item in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items}
     scene.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in render_engines else "BLENDER_EEVEE"
     scene.render.resolution_x = 1280
     scene.render.resolution_y = 720

@@ -4,7 +4,6 @@
 
 #include "ae/core/math.h"
 
-
 #define AE_LOG_CATEGORY "Client"
 
 namespace ahamkara::client {

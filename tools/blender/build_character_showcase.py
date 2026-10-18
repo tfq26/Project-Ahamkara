@@ -23,7 +23,6 @@ from pathlib import Path
 import bpy
 from mathutils import Vector
 
-
 ASSET_NAME = "caligo_field_suit"
 MOCAP_CLIP_NAME = "dance_charleston"
 MOCAP_SCALE = 0.085
@@ -236,10 +235,38 @@ def add_character_geometry(armature) -> None:
 
     # Asymmetrical field armour gives the silhouette authored detail without
     # requiring textures for this vertical slice.
-    add_rounded_box("Chest ceramic", (0.0, -0.14, 0.39), (0.52, 0.13, 0.42), pale, armature, "Spine1", bevel_width=0.055)
-    add_rounded_box("Abdomen grounding plate", (0.0, -0.155, 0.15), (0.34, 0.075, 0.16), copper, armature, "Spine", bevel_width=0.025)
-    add_rounded_box("Left hip shell", (0.17, -0.035, -0.06), (0.23, 0.29, 0.27), sand, armature, "LHipJoint", bevel_width=0.055, rotation=(0.0, 0.0, math.radians(-7.0)))
-    add_rounded_box("Right hip shell", (-0.17, -0.035, -0.06), (0.23, 0.29, 0.27), sand, armature, "RHipJoint", bevel_width=0.055, rotation=(0.0, 0.0, math.radians(7.0)))
+    add_rounded_box(
+        "Chest ceramic", (0.0, -0.14, 0.39), (0.52, 0.13, 0.42), pale, armature, "Spine1", bevel_width=0.055
+    )
+    add_rounded_box(
+        "Abdomen grounding plate",
+        (0.0, -0.155, 0.15),
+        (0.34, 0.075, 0.16),
+        copper,
+        armature,
+        "Spine",
+        bevel_width=0.025,
+    )
+    add_rounded_box(
+        "Left hip shell",
+        (0.17, -0.035, -0.06),
+        (0.23, 0.29, 0.27),
+        sand,
+        armature,
+        "LHipJoint",
+        bevel_width=0.055,
+        rotation=(0.0, 0.0, math.radians(-7.0)),
+    )
+    add_rounded_box(
+        "Right hip shell",
+        (-0.17, -0.035, -0.06),
+        (0.23, 0.29, 0.27),
+        sand,
+        armature,
+        "RHipJoint",
+        bevel_width=0.055,
+        rotation=(0.0, 0.0, math.radians(7.0)),
+    )
 
     for side, prefix in (("Left", "L"), ("Right", "R")):
         upper_leg = f"{side}UpLeg"
@@ -250,14 +277,26 @@ def add_character_geometry(armature) -> None:
         hand = f"{side}Hand"
 
         add_limb(f"{side} thigh suit", *bone_points(armature, upper_leg), 0.155, graphite, armature, upper_leg)
-        add_limb(f"{side} thigh armour", *bone_points(armature, upper_leg), 0.132, sand, armature, upper_leg, taper=0.74)
+        add_limb(
+            f"{side} thigh armour", *bone_points(armature, upper_leg), 0.132, sand, armature, upper_leg, taper=0.74
+        )
         add_limb(f"{side} shin suit", *bone_points(armature, lower_leg), 0.125, graphite, armature, lower_leg)
         add_limb(f"{side} shin armour", *bone_points(armature, lower_leg), 0.103, pale, armature, lower_leg, taper=0.68)
 
         foot_head, foot_tail = bone_points(armature, foot)
         foot_mid = (foot_head + foot_tail) * 0.5
-        add_rounded_box(f"{side} grounded boot", tuple(foot_mid), (0.23, 0.40, 0.17), graphite, armature, foot, bevel_width=0.06)
-        add_rounded_box(f"{side} boot plate", tuple(foot_mid + Vector((0.0, -0.07, 0.045))), (0.19, 0.26, 0.07), copper, armature, foot, bevel_width=0.025)
+        add_rounded_box(
+            f"{side} grounded boot", tuple(foot_mid), (0.23, 0.40, 0.17), graphite, armature, foot, bevel_width=0.06
+        )
+        add_rounded_box(
+            f"{side} boot plate",
+            tuple(foot_mid + Vector((0.0, -0.07, 0.045))),
+            (0.19, 0.26, 0.07),
+            copper,
+            armature,
+            foot,
+            bevel_width=0.025,
+        )
 
         add_limb(f"{side} upper arm suit", *bone_points(armature, arm), 0.105, graphite, armature, arm)
         add_limb(f"{side} upper arm shell", *bone_points(armature, arm), 0.088, sand, armature, arm, taper=0.72)
@@ -265,7 +304,9 @@ def add_character_geometry(armature) -> None:
         add_limb(f"{side} forearm bracer", *bone_points(armature, forearm), 0.073, pale, armature, forearm, taper=0.70)
 
         hand_head, _ = bone_points(armature, hand)
-        add_ellipsoid(f"{side} glove", tuple(hand_head), (0.105, 0.07, 0.12), graphite, armature, hand, segments=24, rings=16)
+        add_ellipsoid(
+            f"{side} glove", tuple(hand_head), (0.105, 0.07, 0.12), graphite, armature, hand, segments=24, rings=16
+        )
 
     # Shoulder shells and helmet are deliberately separate so arm elevation
     # reads clearly in the Charleston clip.
@@ -281,7 +322,9 @@ def add_character_geometry(armature) -> None:
 
     add_ellipsoid("Helmet", (0.0, 0.0, 0.69), (0.22, 0.19, 0.26), pale, armature, "Head")
     add_ellipsoid("Visor", (0.0, -0.176, 0.71), (0.155, 0.035, 0.115), visor, armature, "Head", segments=32, rings=20)
-    add_rounded_box("Helmet grounding rail", (0.0, 0.17, 0.69), (0.055, 0.035, 0.32), copper, armature, "Head", bevel_width=0.015)
+    add_rounded_box(
+        "Helmet grounding rail", (0.0, 0.17, 0.69), (0.055, 0.035, 0.32), copper, armature, "Head", bevel_width=0.015
+    )
 
 
 def add_preview_scene(armature) -> None:

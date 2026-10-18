@@ -27,7 +27,7 @@ ae::ui::MenuScreen ClientMenuState::screen() const {
             return ae::ui::MenuScreen::Character;
         case ClientMenuMode::DocsFromPause:
             return ae::ui::MenuScreen::Docs;
-    }
+        }
 
     return ae::ui::MenuScreen::None;
 }

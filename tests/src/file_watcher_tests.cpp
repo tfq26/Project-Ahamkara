@@ -292,9 +292,7 @@ static void test_config_reload_via_file_watcher() {
     auto& registry = ae::ConfigRegistry::instance();
     std::string current_value = "initial";
 
-    registry.register_var("test.watcher_var",
-        [&current_value](std::string_view v) { current_value = std::string(v); },
-        [&current_value]() { return current_value; });
+    registry.register_var("test.watcher_var", [&current_value](std::string_view v) { current_value = std::string(v); }, [&current_value]() { return current_value; });
 
     // Write initial valid config file
     std::string cfg_path = file_path("test_config.cfg");

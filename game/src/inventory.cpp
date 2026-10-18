@@ -20,7 +20,7 @@ ae::u32 Inventory::add_item(ae::u32 definition_id) {
         return 0;
     }
     const ae::u32 id = next_instance_id_++;
-    items_.emplace(id, ItemInstance{id, definition_id, {}, {}});
+    items_.emplace(id, ItemInstance {id, definition_id, {}, {}});
     return id;
 }
 
@@ -124,7 +124,7 @@ bool Inventory::attach_perk(ae::u32 instance_id, ae::u32 perk_id) {
     }
     std::vector<ae::u32>& perks = it->second.perk_ids;
     if (std::find(perks.begin(), perks.end(), perk_id) != perks.end()) {
-        return false;  // already attached
+        return false; // already attached
     }
     perks.push_back(perk_id);
     return true;
@@ -151,7 +151,7 @@ bool Inventory::attach_mod(ae::u32 instance_id, ae::u32 mod_id) {
     }
     std::vector<ae::u32>& mods = it->second.mod_ids;
     if (std::find(mods.begin(), mods.end(), mod_id) != mods.end()) {
-        return false;  // already attached
+        return false; // already attached
     }
     mods.push_back(mod_id);
     return true;
@@ -171,4 +171,4 @@ bool Inventory::remove_mod(ae::u32 instance_id, ae::u32 mod_id) {
     return true;
 }
 
-}  // namespace ahamkara::game
+} // namespace ahamkara::game

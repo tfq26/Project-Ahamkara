@@ -69,12 +69,14 @@ def main() -> int:
     if pause:
         elements = pause.get("elements", [])
         buttons = []
+
         def collect_buttons(el_list):
             for el in el_list:
                 if el.get("type") == "panel":
                     collect_buttons(el.get("elements", []))
                 elif el.get("type") == "button":
                     buttons.append(el.get("label", ""))
+
         collect_buttons(elements)
         if "DOCUMENTATION" not in buttons:
             errors.append("pause_menu.json: missing 'DOCUMENTATION' button")

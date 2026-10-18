@@ -1351,8 +1351,10 @@ bool DebugRenderer::initialize(ae::PlatformWindow& window) {
                 glBindBuffer(GL_ARRAY_BUFFER, 0);
             }
         }
-        if (vs != 0) glDeleteShader(vs);
-        if (fs != 0) glDeleteShader(fs);
+        if (vs != 0)
+            glDeleteShader(vs);
+        if (fs != 0)
+            glDeleteShader(fs);
     }
 
     // --- Depth-only pre-pass shader ---
@@ -1471,10 +1473,14 @@ void DebugRenderer::shutdown() {
     impl_->shader_program = kInvalidShader;
     impl_->depth_program = kInvalidShader;
 
-    if (impl_->skybox_texture != 0) glDeleteTextures(1, &impl_->skybox_texture);
-    if (impl_->skybox_program != 0) glDeleteProgram(impl_->skybox_program);
-    if (impl_->skybox_vbo != 0) glDeleteBuffers(1, &impl_->skybox_vbo);
-    if (impl_->skybox_vao != 0) glDeleteVertexArrays(1, &impl_->skybox_vao);
+    if (impl_->skybox_texture != 0)
+        glDeleteTextures(1, &impl_->skybox_texture);
+    if (impl_->skybox_program != 0)
+        glDeleteProgram(impl_->skybox_program);
+    if (impl_->skybox_vbo != 0)
+        glDeleteBuffers(1, &impl_->skybox_vbo);
+    if (impl_->skybox_vao != 0)
+        glDeleteVertexArrays(1, &impl_->skybox_vao);
 
     impl_->map_geometry.destroy();
 
@@ -1581,7 +1587,14 @@ void DebugRenderer::Impl::draw_sky_pass(const DebugScene& scene, int width, int 
         };
         draw_overlay_vertices(routes, static_cast<int>(std::size(routes)), GL_LINES);
 
-        const struct DirectorNode { float x; float y; float r; float g; float b; float a; } nodes[] = {
+        const struct DirectorNode {
+            float x;
+            float y;
+            float r;
+            float g;
+            float b;
+            float a;
+        } nodes[] = {
             {-204.0F, 58.0F, 0.36F, 0.70F, 0.86F, 0.95F},
             {-78.0F, -42.0F, 0.96F, 0.69F, 0.30F, 0.95F},
             {38.0F, 18.0F, 0.96F, 0.69F, 0.30F, 0.95F},
@@ -1742,7 +1755,8 @@ void DebugRenderer::Impl::draw_sky_pass(const DebugScene& scene, int width, int 
 
 void DebugRenderer::Impl::draw_depth_pre_pass(const DebugScene& scene, const Frustum& frustum) {
     if (!depth_program) return;
-    if (!scene.debug_world_visible) return;
+    if (!scene.debug_world_visible)
+        return;
 
     if (gpu_timers_supported) {
         backend->begin_query(gpu_timer_queries[1]);
@@ -1810,7 +1824,8 @@ void DebugRenderer::Impl::draw_depth_pre_pass(const DebugScene& scene, const Fru
 
 void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
                           const Frustum& frustum, const LocalMat4& view, float day_factor) {
-    if (!scene.debug_world_visible) return;
+    if (!scene.debug_world_visible)
+        return;
 
     draw_continuous_ground(scene.camera_position);
 
@@ -2043,24 +2058,9 @@ void DebugRenderer::Impl::draw_main_color_pass(const DebugScene& scene,
         // the idle bob or recoil kick computations.
         const Vec3 vm_offset = scene.viewmodel_position_offset;
         const Vec3 weapon_pos {
-            camera_pos.x + forward.x * (0.58F - recoil_kick * 0.04F)
-                + right.x * (0.12F + idle_bob_x)
-                - up.x * (0.20F + idle_bob_y + recoil_kick * 0.03F)
-                + forward.x * vm_offset.z
-                + right.x * vm_offset.x
-                + up.x * vm_offset.y,
-            camera_pos.y + forward.y * (0.58F - recoil_kick * 0.04F)
-                + right.y * (0.12F + idle_bob_x)
-                - up.y * (0.20F + idle_bob_y + recoil_kick * 0.03F)
-                + forward.y * vm_offset.z
-                + right.y * vm_offset.x
-                + up.y * vm_offset.y,
-            camera_pos.z + forward.z * (0.58F - recoil_kick * 0.04F)
-                + right.z * (0.12F + idle_bob_x)
-                - up.z * (0.20F + idle_bob_y + recoil_kick * 0.03F)
-                + forward.z * vm_offset.z
-                + right.z * vm_offset.x
-                + up.z * vm_offset.y,
+            camera_pos.x + forward.x * (0.58F - recoil_kick * 0.04F) + right.x * (0.12F + idle_bob_x) - up.x * (0.20F + idle_bob_y + recoil_kick * 0.03F) + forward.x * vm_offset.z + right.x * vm_offset.x + up.x * vm_offset.y,
+            camera_pos.y + forward.y * (0.58F - recoil_kick * 0.04F) + right.y * (0.12F + idle_bob_x) - up.y * (0.20F + idle_bob_y + recoil_kick * 0.03F) + forward.y * vm_offset.z + right.y * vm_offset.x + up.y * vm_offset.y,
+            camera_pos.z + forward.z * (0.58F - recoil_kick * 0.04F) + right.z * (0.12F + idle_bob_x) - up.z * (0.20F + idle_bob_y + recoil_kick * 0.03F) + forward.z * vm_offset.z + right.z * vm_offset.x + up.z * vm_offset.y,
         };
 
         auto make_basis = [](Vec3 basis_right, Vec3 basis_up, Vec3 basis_forward, Vec3 translation) {

@@ -77,11 +77,7 @@ inline bool write_deathmatch_snapshot(detail::ByteWriter& writer, const Deathmat
             return false;
     }
 
-    if (!writer.write(snap.match_phase)
-        || !writer.write(snap.match_time)
-        || !writer.write(snap.team_score_red)
-        || !writer.write(snap.team_score_blue)
-        || !writer.write(snap.individual_score))
+    if (!writer.write(snap.match_phase) || !writer.write(snap.match_time) || !writer.write(snap.team_score_red) || !writer.write(snap.team_score_blue) || !writer.write(snap.individual_score))
         return false;
 
     return write_vfx_feedback(writer, snap.vfx_feedback);
@@ -185,7 +181,7 @@ public:
     /// Returns nullptr if the address is not found.
     PlayerSlot* find_slot_by_address(const wish::NetAddress& addr);
 
-private:
+  private:
     PlayerSlot* find_slot(wish::session::SessionId sid);
     void build_snapshot_for_slot(PlayerSlot& slot);
     void apply_anti_cheat(PlayerSlot& slot, const PlayerInputCommand& cmd);

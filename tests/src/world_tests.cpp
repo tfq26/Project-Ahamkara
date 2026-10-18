@@ -242,8 +242,7 @@ void test_primary_projectile_and_recoil_feedback() {
     target.health = 150.0F;
     target.alive = true;
     const ahamkara::game::WorldDefinition definition {
-        "projectile_recoil_test", "Projectile Recoil Test", &map,
-        {{0.0F, 0.0F, 0.0F}, 0.0F}, &target, 1};
+        "projectile_recoil_test", "Projectile Recoil Test", &map, {{0.0F, 0.0F, 0.0F}, 0.0F}, &target, 1};
     ahamkara::game::World world(definition);
     world.set_is_client(true);
     world.set_colliders(nullptr, 0);
@@ -483,18 +482,19 @@ constexpr ahamkara::game::LandingZoneDefinition kTestLandingZones[] = {
     {"landing_main", "Main Landing", 0.0F, 0.0F, 0.0F, 0.0F, true, false, ""},
 };
 constexpr ahamkara::game::RegionDescriptor kTestRegions[] = {
-    {
-        "region_test_area",
-        "Test Area",
-        ahamkara::game::RegionType::Hub,
-        {-50.0F, -50.0F, 50.0F, 50.0F, -100.0F, 100.0F},
-        "A test region for unit tests",
-        1, 10,
-        false,  // is_combat_zone
-        true,   // is_landing_allowed
-        nullptr, 0,
-        kTestLandingZones, 1
-    },
+    {"region_test_area",
+     "Test Area",
+     ahamkara::game::RegionType::Hub,
+     {-50.0F, -50.0F, 50.0F, 50.0F, -100.0F, 100.0F},
+     "A test region for unit tests",
+     1,
+     10,
+     false, // is_combat_zone
+     true,  // is_landing_allowed
+     nullptr,
+     0,
+     kTestLandingZones,
+     1},
 };
 constexpr ahamkara::game::DestinationMetadata kTestDestination = {
     "destination_test",
@@ -504,9 +504,8 @@ constexpr ahamkara::game::DestinationMetadata kTestDestination = {
     2, 2, 100.0F,
     kTestRegions, 1,
     kTestLandingZones, 1,
-    kTestPopulation, 1
-};
-}  // namespace
+    kTestPopulation, 1};
+} // namespace
 
 void test_world_with_destination_metadata() {
     using namespace ahamkara::game;
@@ -516,10 +515,11 @@ void test_world_with_destination_metadata() {
         "Test World With Dest",
         &empty_map,
         {{0.0F, 0.0F, 0.0F}, 0.0F},
-        nullptr, 0,
-        nullptr, 0,
-        &kTestDestination
-    };
+        nullptr,
+        0,
+        nullptr,
+        0,
+        &kTestDestination};
     World world(definition);
 
     // Verify destination is stored and accessible.
@@ -554,10 +554,7 @@ void test_world_without_destination_returns_null() {
     // Explicit definition without destination.
     const MapDefinition empty_map {"test_map", "Test Map", MapCategory::Sandbox, nullptr, 0};
     const WorldDefinition no_dest_def {
-        "test_no_dest", "No Dest", &empty_map,
-        {{0.0F, 0.0F, 0.0F}, 0.0F},
-        nullptr, 0, nullptr, 0, nullptr
-    };
+        "test_no_dest", "No Dest", &empty_map, {{0.0F, 0.0F, 0.0F}, 0.0F}, nullptr, 0, nullptr, 0, nullptr};
     World no_dest_world(no_dest_def);
     assert(no_dest_world.get_destination() == nullptr);
     assert(no_dest_world.find_region_at(0.0F, 0.0F) == nullptr);
@@ -573,10 +570,11 @@ void test_world_find_region_at() {
         "Test World Find Region",
         &empty_map,
         {{0.0F, 0.0F, 0.0F}, 0.0F},
-        nullptr, 0,
-        nullptr, 0,
-        &kTestDestination
-    };
+        nullptr,
+        0,
+        nullptr,
+        0,
+        &kTestDestination};
     World world(definition);
 
     // Point inside the test region.
@@ -594,11 +592,11 @@ void test_world_find_region_at() {
     assert(r3 == nullptr);
 
     // Vec3 overload.
-    const auto* r4 = world.find_region_at(Vec3{25.0F, 0.0F, -25.0F});
+    const auto* r4 = world.find_region_at(Vec3 {25.0F, 0.0F, -25.0F});
     assert(r4 != nullptr);
     assert(r4->id == std::string("region_test_area"));
 
-    const auto* r5 = world.find_region_at(Vec3{999.0F, 0.0F, 999.0F});
+    const auto* r5 = world.find_region_at(Vec3 {999.0F, 0.0F, 999.0F});
     assert(r5 == nullptr);
 
     std::cout << "test_world_find_region_at passed.\n";

@@ -86,9 +86,12 @@ ae::SystemMetadata collect_system_metadata() {
     meta.timestamp = buf;
 
     // Hostname (best-effort)
-    if (const char* h = std::getenv("HOSTNAME"); h) meta.hostname = h;
-    else if (const char* h = std::getenv("HOST"); h) meta.hostname = h;
-    else meta.hostname = "unknown";
+    if (const char* h = std::getenv("HOSTNAME"); h)
+        meta.hostname = h;
+    else if (const char* h = std::getenv("HOST"); h)
+        meta.hostname = h;
+    else
+        meta.hostname = "unknown";
 
     return meta;
 }
@@ -118,8 +121,7 @@ void benchmark_frame_allocator(ae::BenchmarkReport& report, const ae::BudgetConf
             },
             budget ? budget->warn_threshold : 0.0,
             budget ? budget->fail_threshold : 0.0,
-            100
-        );
+            100);
         result.passed = true; // will be set by evaluate_budgets
         report.results.push_back(std::move(result));
         std::cout << "  frame_allocator_throughput: "
@@ -139,8 +141,7 @@ void benchmark_frame_allocator(ae::BenchmarkReport& report, const ae::BudgetConf
             },
             budget ? budget->warn_threshold : 0.0,
             budget ? budget->fail_threshold : 0.0,
-            100
-        );
+            100);
         report.results.push_back(std::move(result));
         std::cout << "  frame_allocator_latency: "
                   << report.results.back().stats.mean() * 1000.0 << " us (mean)\n";
@@ -173,8 +174,7 @@ void benchmark_job_system(ae::BenchmarkReport& report, const ae::BudgetConfig& b
             },
             budget ? budget->warn_threshold : 0.0,
             budget ? budget->fail_threshold : 0.0,
-            50
-        );
+            50);
         report.results.push_back(std::move(result));
         std::cout << "  job_system_throughput: "
                   << report.results.back().stats.mean() << " jobs/sec\n";
@@ -196,8 +196,7 @@ void benchmark_job_system(ae::BenchmarkReport& report, const ae::BudgetConfig& b
             },
             budget ? budget->warn_threshold : 0.0,
             budget ? budget->fail_threshold : 0.0,
-            50
-        );
+            50);
         report.results.push_back(std::move(result));
         std::cout << "  job_system_latency: "
                   << report.results.back().stats.mean() * 1000.0 << " us (mean)\n";
@@ -231,8 +230,7 @@ void benchmark_residency(ae::BenchmarkReport& report, const ae::BudgetConfig& bu
             },
             budget ? budget->warn_threshold : 0.0,
             budget ? budget->fail_threshold : 0.0,
-            100
-        );
+            100);
         report.results.push_back(std::move(result));
         std::cout << "  residency_update_throughput: "
                   << report.results.back().stats.mean() << " updates/sec\n";
@@ -260,8 +258,7 @@ void benchmark_frame_pacer(ae::BenchmarkReport& report, const ae::BudgetConfig& 
             },
             budget ? budget->warn_threshold : 0.0,
             budget ? budget->fail_threshold : 0.0,
-            100
-        );
+            100);
         report.results.push_back(std::move(result));
         std::cout << "  frame_pacer_overhead: "
                   << report.results.back().stats.mean() * 1000.0 << " us (mean)\n";
@@ -291,8 +288,7 @@ void benchmark_memory_budget(ae::BenchmarkReport& report, const ae::BudgetConfig
             },
             budget ? budget->warn_threshold : 0.0,
             budget ? budget->fail_threshold : 0.0,
-            100
-        );
+            100);
         report.results.push_back(std::move(result));
         std::cout << "  memory_budget_overhead: "
                   << report.results.back().stats.mean() * 1000.0 << " us (mean)\n";
@@ -326,8 +322,7 @@ void benchmark_network_snapshot(ae::BenchmarkReport& report, const ae::BudgetCon
             },
             budget ? budget->warn_threshold : 0.0,
             budget ? budget->fail_threshold : 0.0,
-            50
-        );
+            50);
         report.results.push_back(std::move(result));
         std::cout << "  network_snapshot_overhead: "
                   << report.results.back().stats.mean() * 1000.0 << " us (mean)\n";
@@ -361,8 +356,7 @@ void benchmark_streaming_residency(ae::BenchmarkReport& report, const ae::Budget
             },
             budget ? budget->warn_threshold : 0.0,
             budget ? budget->fail_threshold : 0.0,
-            50
-        );
+            50);
         report.results.push_back(std::move(result));
         std::cout << "  streaming_residency_overhead: "
                   << report.results.back().stats.mean() * 1000.0 << " us (mean)\n";
@@ -399,8 +393,7 @@ void test_deliberate_regression(ae::BenchmarkReport& report, const ae::BudgetCon
         },
         budget ? budget->warn_threshold : 0.0,
         budget ? budget->fail_threshold : 1.0, // hard fail if > 1 ms
-        10
-    );
+        10);
 
     // Apply a very low budget to force failure
     if (budget) {

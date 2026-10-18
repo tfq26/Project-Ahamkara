@@ -405,7 +405,7 @@ void step_projectiles(World& world, float delta_seconds) {
                 p.position = hit_point;
                 p.alive = false;
                 to_destroy.push_back(proj_entity);
-                
+
                 Vec3 normal = { -ray_dir.x, -ray_dir.y, -ray_dir.z };
                 float nlen = std::sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
                 if (nlen > 0.001F) {

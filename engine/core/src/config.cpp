@@ -32,7 +32,7 @@ int ConfigRegistry::reload_from_file(const std::string& path) {
     std::ifstream file(path);
     if (!file.is_open()) {
         log_warning_cat(AE_LOG_CATEGORY, "Could not open config file: " + path +
-            " — last valid configuration preserved.");
+                                             " — last valid configuration preserved.");
         return 0;
     }
 
@@ -51,8 +51,8 @@ int ConfigRegistry::reload_from_file(const std::string& path) {
         if (eq == std::string_view::npos) {
             ++malformed;
             log_warning_cat(AE_LOG_CATEGORY,
-                "Malformed config line " + std::to_string(line_no) + " in " + path +
-                " (missing '='): '" + std::string(trimmed) + "' — line skipped, previous value preserved.");
+                            "Malformed config line " + std::to_string(line_no) + " in " + path +
+                                " (missing '='): '" + std::string(trimmed) + "' — line skipped, previous value preserved.");
             continue;
         }
 
@@ -77,7 +77,7 @@ int ConfigRegistry::reload_from_file(const std::string& path) {
     }
     if (malformed > 0) {
         log_warning_cat(AE_LOG_CATEGORY, std::to_string(malformed) +
-            " malformed line(s) in " + path + " — skipped, previous values preserved.");
+                                             " malformed line(s) in " + path + " — skipped, previous values preserved.");
     }
     if (updated == 0 && unknown == 0 && malformed == 0) {
         log_debug_cat(AE_LOG_CATEGORY, "No config variables updated from " + path + " (file empty or all-comment).");

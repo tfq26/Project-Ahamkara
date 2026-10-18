@@ -18,6 +18,7 @@ import sys
 from pathlib import Path
 
 import bpy
+
 RIG_NAME = "Ahamkara_Operative_GameRig"
 MESH_NAME = "Ahamkara_Operative_Human_Base"
 FINGERS = ("index", "middle", "ring", "pinky")
@@ -33,12 +34,7 @@ def parse_args() -> argparse.Namespace:
 def validate_finger_bones(rig: bpy.types.Object) -> None:
     """Reject an incomplete source rig without rewriting its authored bones."""
     names = {bone.name for bone in rig.data.bones}
-    expected = {
-        f"{finger}_{joint:02d}_{side}"
-        for side in ("l", "r")
-        for finger in FINGERS
-        for joint in (1, 2, 3)
-    }
+    expected = {f"{finger}_{joint:02d}_{side}" for side in ("l", "r") for finger in FINGERS for joint in (1, 2, 3)}
     missing = sorted(expected - names)
     if missing:
         raise RuntimeError("Operative rig is missing finger joints: " + ", ".join(missing))
@@ -48,15 +44,17 @@ def validate_finger_weights(mesh: bpy.types.Object) -> None:
     """Ensure each authored finger chain owns visible hand vertices."""
     for side in ("l", "r"):
         chain_groups = [
-            mesh.vertex_groups.get(f"{finger}_{joint:02d}_{side}")
-            for finger in FINGERS for joint in (1, 2, 3)
+            mesh.vertex_groups.get(f"{finger}_{joint:02d}_{side}") for finger in FINGERS for joint in (1, 2, 3)
         ]
         if any(group is None for group in chain_groups):
             raise RuntimeError(f"{side}-hand mesh is missing one or more finger vertex groups")
         owned = sum(
-            1 for vertex in mesh.data.vertices
-            if any(entry.group in {group.index for group in chain_groups} and entry.weight > 0.05
-                   for entry in vertex.groups)
+            1
+            for vertex in mesh.data.vertices
+            if any(
+                entry.group in {group.index for group in chain_groups} and entry.weight > 0.05
+                for entry in vertex.groups
+            )
         )
         if owned < 160:
             raise RuntimeError(f"Only {owned} {side}-hand vertices are weighted to finger chains")

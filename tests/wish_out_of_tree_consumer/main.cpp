@@ -170,9 +170,9 @@ void test_session_services() {
 
     // AuthValidator interface compiles and links
     class TestAuth final : public wish::core::AuthValidator {
-    public:
+      public:
         wish::core::AuthResult validate(const wish::core::AuthRequest&) const override {
-            return wish::core::AuthResult{};
+            return wish::core::AuthResult {};
         }
     };
 
@@ -260,8 +260,7 @@ void test_versioned_envelope_forward_compat() {
         "VERSION:0\n"
         "CODE:1001\n"
         "INCIDENT:ABCD\n"
-        "MKEY:test\n"
-    );
+        "MKEY:test\n");
     assert(!result.has_value());
 
     // Envelope with version > current is rejected
@@ -269,16 +268,14 @@ void test_versioned_envelope_forward_compat() {
         "VERSION:99\n"
         "CODE:1001\n"
         "INCIDENT:ABCD\n"
-        "MKEY:test\n"
-    );
+        "MKEY:test\n");
     assert(!result2.has_value());
 
     // Missing version is rejected
     auto result3 = wish::deserialize_envelope(
         "CODE:1001\n"
         "INCIDENT:ABCD\n"
-        "MKEY:test\n"
-    );
+        "MKEY:test\n");
     assert(!result3.has_value());
 
     // Future unknown fields are silently ignored (forward compatibility)
@@ -288,8 +285,7 @@ void test_versioned_envelope_forward_compat() {
         "INCIDENT:CAFE1234\n"
         "MKEY:errors.session.expired\n"
         "NEW_FIELD:introducing_new_capability\n"
-        "ANOTHER_NEW:some_value\n"
-    );
+        "ANOTHER_NEW:some_value\n");
     assert(result4.has_value());
     assert(result4->error_code == 2001);
     assert(result4->incident_id == "CAFE1234");

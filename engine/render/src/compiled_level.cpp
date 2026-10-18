@@ -263,7 +263,8 @@ bool write_collision_meshes(std::ofstream& file, const LevelAsset& level, std::s
 bool read_collision_meshes(std::ifstream& file, LevelAsset& level, std::string& error) {
     std::uint32_t count = 0;
     if (!read_value(file, count) || !validate_count(count, "collision mesh", error, 4096)) {
-        if (error.empty()) error = "Failed to read collision mesh count";
+        if (error.empty())
+            error = "Failed to read collision mesh count";
         return false;
     }
     level.collision_meshes.resize(count);
@@ -274,7 +275,8 @@ bool read_collision_meshes(std::ifstream& file, LevelAsset& level, std::string& 
             !read_value(file, mesh.pitch) || !read_value(file, mesh.roll) ||
             !read_value(file, mesh.scale_x) || !read_value(file, mesh.scale_y) ||
             !read_value(file, mesh.scale_z)) {
-            if (error.empty()) error = "Failed to read collision mesh";
+            if (error.empty())
+                error = "Failed to read collision mesh";
             return false;
         }
     }

@@ -22,9 +22,9 @@ Outputs:
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import struct
-import json
 from pathlib import Path
 
 try:
@@ -119,7 +119,8 @@ def cube(name: str, location: tuple[float, float, float], scale: tuple[float, fl
 
 def cylinder(name: str, location: tuple[float, float, float], radius: float, depth: float, mat, vertices: int = 16):
     bpy.ops.mesh.primitive_cylinder_add(
-        vertices=vertices, radius=radius, depth=depth, location=blender_location(location))
+        vertices=vertices, radius=radius, depth=depth, location=blender_location(location)
+    )
     obj = bpy.context.object
     apply_object(obj, name, mat)
     return obj
@@ -127,7 +128,8 @@ def cylinder(name: str, location: tuple[float, float, float], radius: float, dep
 
 def sphere(name: str, location: tuple[float, float, float], radius: float, mat, segments: int = 24, rings: int = 12):
     bpy.ops.mesh.primitive_uv_sphere_add(
-        segments=segments, ring_count=rings, radius=radius, location=blender_location(location))
+        segments=segments, ring_count=rings, radius=radius, location=blender_location(location)
+    )
     obj = bpy.context.object
     apply_object(obj, name, mat)
     return obj
@@ -164,6 +166,7 @@ def export_scene(out_dir: Path, name: str) -> None:
 # Pure-Python glTF fallback
 # ---------------------------------------------------------------------------
 
+
 def _fallback_mesh() -> dict:
     return {"primitives": [], "positions": [], "normals": [], "indices": [], "materials": []}
 
@@ -177,23 +180,34 @@ def _fallback_material(scene: dict, color: tuple[float, float, float, float]) ->
     return len(scene["materials"]) - 1
 
 
-def _fallback_primitive(scene: dict, positions: list[tuple[float, float, float]],
-                        normals: list[tuple[float, float, float]],
-                        triangles: list[tuple[int, int, int]], color: tuple[float, float, float, float]) -> None:
+def _fallback_primitive(
+    scene: dict,
+    positions: list[tuple[float, float, float]],
+    normals: list[tuple[float, float, float]],
+    triangles: list[tuple[int, int, int]],
+    color: tuple[float, float, float, float],
+) -> None:
     base = len(scene["positions"])
     scene["positions"].extend(positions)
     scene["normals"].extend(normals)
     scene["indices"].extend((base + a, base + b, base + c) for a, b, c in triangles)
-    scene["primitives"].append({
-        "first_vertex": base,
-        "vertex_count": len(positions),
-        "first_index": len(scene["indices"]) - len(triangles),
-        "index_count": len(triangles) * 3,
-        "material": _fallback_material(scene, color),
-    })
+    scene["primitives"].append(
+        {
+            "first_vertex": base,
+            "vertex_count": len(positions),
+            "first_index": len(scene["indices"]) - len(triangles),
+            "index_count": len(triangles) * 3,
+            "material": _fallback_material(scene, color),
+        }
+    )
 
 
-def _fallback_cube(scene: dict, center: tuple[float, float, float], size: tuple[float, float, float], color: tuple[float, float, float, float]) -> None:
+def _fallback_cube(
+    scene: dict,
+    center: tuple[float, float, float],
+    size: tuple[float, float, float],
+    color: tuple[float, float, float, float],
+) -> None:
     cx, cy, cz = center
     sx, sy, sz = (v * 0.5 for v in size)
     faces = [
@@ -215,8 +229,14 @@ def _fallback_cube(scene: dict, center: tuple[float, float, float], size: tuple[
     _fallback_primitive(scene, positions, normals, triangles, color)
 
 
-def _fallback_sphere(scene: dict, center: tuple[float, float, float], radius: float,
-                     color: tuple[float, float, float, float], segments: int, rings: int) -> None:
+def _fallback_sphere(
+    scene: dict,
+    center: tuple[float, float, float],
+    radius: float,
+    color: tuple[float, float, float, float],
+    segments: int,
+    rings: int,
+) -> None:
     cx, cy, cz = center
     positions: list[tuple[float, float, float]] = []
     normals: list[tuple[float, float, float]] = []
@@ -238,8 +258,13 @@ def _fallback_sphere(scene: dict, center: tuple[float, float, float], radius: fl
     _fallback_primitive(scene, positions, normals, triangles, color)
 
 
-def _fallback_torus(scene: dict, center: tuple[float, float, float], major: float, minor: float,
-                    color: tuple[float, float, float, float]) -> None:
+def _fallback_torus(
+    scene: dict,
+    center: tuple[float, float, float],
+    major: float,
+    minor: float,
+    color: tuple[float, float, float, float],
+) -> None:
     cx, cy, cz = center
     segments, rings = 32, 8
     positions: list[tuple[float, float, float]] = []
@@ -280,7 +305,9 @@ def _write_fallback_gltf(out_dir: Path, name: str, scene: dict) -> None:
     flat_positions = [value for point in scene["positions"] for value in point]
     flat_normals = [value for point in scene["normals"] for value in point]
     flat_indices = [value for tri in scene["indices"] for value in tri]
-    append_bytes(struct.pack("<%sf" % len(flat_positions), *flat_positions), 34962, 5126, len(scene["positions"]), "VEC3")
+    append_bytes(
+        struct.pack("<%sf" % len(flat_positions), *flat_positions), 34962, 5126, len(scene["positions"]), "VEC3"
+    )
     position_accessor = len(accessors) - 1
     append_bytes(struct.pack("<%sf" % len(flat_normals), *flat_normals), 34962, 5126, len(scene["normals"]), "VEC3")
     normal_accessor = len(accessors) - 1
@@ -290,18 +317,23 @@ def _write_fallback_gltf(out_dir: Path, name: str, scene: dict) -> None:
     # The current runtime flattens glTF primitives into one compiled model and
     # does not retain primitive-local index ranges. Keep the fallback as one
     # primitive so the importer cannot draw the complete index buffer repeatedly.
-    primitives = [{
-        "attributes": {"POSITION": position_accessor, "NORMAL": normal_accessor},
-        "indices": index_accessor,
-        "material": 0,
-        "mode": 4,
-    }]
+    primitives = [
+        {
+            "attributes": {"POSITION": position_accessor, "NORMAL": normal_accessor},
+            "indices": index_accessor,
+            "material": 0,
+            "mode": 4,
+        }
+    ]
     document = {
         "asset": {"version": "2.0", "generator": "Ahamkara Caligo fallback generator"},
         "buffers": [{"uri": name + ".bin", "byteLength": len(raw)}],
         "bufferViews": views,
         "accessors": accessors,
-        "materials": [{"pbrMetallicRoughness": {"baseColorFactor": list(color), "metallicFactor": 0.0, "roughnessFactor": 0.82}} for color in scene["materials"]],
+        "materials": [
+            {"pbrMetallicRoughness": {"baseColorFactor": list(color), "metallicFactor": 0.0, "roughnessFactor": 0.82}}
+            for color in scene["materials"]
+        ],
         "meshes": [{"primitives": primitives}],
         "nodes": [{"mesh": 0}],
         "scenes": [{"nodes": [0]}],
@@ -322,9 +354,20 @@ def _fallback_scene(name: str, lod: int = 0) -> dict:
         if lod <= 1:
             for i in range(landmarks):
                 angle = 2.0 * math.pi * i / landmarks
-                _fallback_cube(scene, (math.cos(angle) * 5.02, math.sin(angle * 2.0) * 0.7, math.sin(angle) * 5.02), (0.36, 0.84, 0.16), COLORS["ruin"])
+                _fallback_cube(
+                    scene,
+                    (math.cos(angle) * 5.02, math.sin(angle * 2.0) * 0.7, math.sin(angle) * 5.02),
+                    (0.36, 0.84, 0.16),
+                    COLORS["ruin"],
+                )
             for angle in (0.35, 2.4, 4.7):
-                _fallback_torus(scene, (math.cos(angle) * 5.08, math.sin(angle) * 0.7, math.sin(angle) * 5.08), 0.42, 0.055, COLORS["habitat"])
+                _fallback_torus(
+                    scene,
+                    (math.cos(angle) * 5.08, math.sin(angle) * 0.7, math.sin(angle) * 5.08),
+                    0.42,
+                    0.055,
+                    COLORS["habitat"],
+                )
         return scene
     if name == "caligo_cutaway":
         _fallback_cube(scene, (0, 0, -1.6), (11, 8.8, 0.7), COLORS["rock"])
@@ -336,7 +379,14 @@ def _fallback_scene(name: str, lod: int = 0) -> dict:
         _fallback_sphere(scene, (0, 0, 0), 0.58, COLORS["warning"], 24, 12)
         return scene
     _fallback_cube(scene, (0, -0.35, 0), (500, 0.7, 500), COLORS["sand"])
-    for x, z, w, d, h in ((-70, -20, 38, 32, 34), (40, -10, 45, 38, 26), (0, 85, 42, 35, 22), (-170, -130, 18, 18, 58), (145, -145, 24, 18, 64), (150, 145, 26, 20, 72)):
+    for x, z, w, d, h in (
+        (-70, -20, 38, 32, 34),
+        (40, -10, 45, 38, 26),
+        (0, 85, 42, 35, 22),
+        (-170, -130, 18, 18, 58),
+        (145, -145, 24, 18, 64),
+        (150, 145, 26, 20, 72),
+    ):
         _fallback_cube(scene, (x, h * 0.5, z), (w, h, d), COLORS["concrete"])
     _fallback_cube(scene, (0, 0.2, -115), (340, 0.5, 8), COLORS["steel"])
     for x in (-190, -150, -110, 110, 150, 190):
@@ -360,8 +410,14 @@ def build_director(out_dir: Path, lod: int = 0) -> None:
     # material pass will replace them with displacement/normal detail.
     for i in range(max(1, landmark_count // 3)):
         angle = (2.0 * math.pi * i) / max(1, landmark_count // 3)
-        torus("caligo_dune_band_%02d" % i, (0, 0, 0), radius + 0.04 + i * 0.025, 0.035, sand_mat,
-              rotation=(0.0, math.radians(8.0 + i * 4.0), angle))
+        torus(
+            "caligo_dune_band_%02d" % i,
+            (0, 0, 0),
+            radius + 0.04 + i * 0.025,
+            0.035,
+            sand_mat,
+            rotation=(0.0, math.radians(8.0 + i * 4.0), angle),
+        )
 
     if lod <= 1:
         # Buried colonial silhouettes and three concealed Habitat Crowns.
@@ -375,13 +431,25 @@ def build_director(out_dir: Path, lod: int = 0) -> None:
         for i, angle in enumerate((0.35, 2.4, 4.7)):
             x = math.cos(angle) * (radius + 0.08)
             z = math.sin(angle) * (radius + 0.08)
-            torus("habitat_crown_%02d" % i, (x, math.sin(angle) * 0.7, z), 0.42, 0.055, habitat_mat,
-                  rotation=(math.radians(65), 0, angle))
+            torus(
+                "habitat_crown_%02d" % i,
+                (x, math.sin(angle) * 0.7, z),
+                0.42,
+                0.055,
+                habitat_mat,
+                rotation=(math.radians(65), 0, angle),
+            )
 
         # A visible but damaged mass-driver silhouette.
         cube("orbital_mass_driver", (0.0, -0.4, radius + 0.15), (1.5, 0.08, 0.06), ruin_mat)
-        torus("mass_driver_field", (0.0, -0.25, radius + 0.2), 0.42, 0.025, electric_mat,
-              rotation=(math.radians(90), 0, 0))
+        torus(
+            "mass_driver_field",
+            (0.0, -0.25, radius + 0.2),
+            0.42,
+            0.025,
+            electric_mat,
+            rotation=(math.radians(90), 0, 0),
+        )
 
     export_scene(out_dir, "caligo_director" if lod == 0 else "caligo_director_lod%d" % lod)
 
@@ -415,10 +483,20 @@ def add_building(name: str, x: float, z: float, width: float, depth: float, heig
     # Vertical voids and structural ribs make the blockout read as a ruin even
     # before detailed interiors are authored.
     if damaged:
-        cube(name + "_collapse", (x + width * 0.35, height * 0.72, z), (width * 0.28, height * 0.18, depth * 1.1), material(name + "_collapse_mat", "rock"))
+        cube(
+            name + "_collapse",
+            (x + width * 0.35, height * 0.72, z),
+            (width * 0.28, height * 0.18, depth * 1.1),
+            material(name + "_collapse_mat", "rock"),
+        )
     for i in range(3):
         px = x - width * 0.65 + (i * width * 0.65)
-        cube(name + "_rib_%d" % i, (px, height * 0.5, z - depth * 1.02), (0.06, height, 0.07), material(name + "_rib_mat_%d" % i, "steel"))
+        cube(
+            name + "_rib_%d" % i,
+            (px, height * 0.5, z - depth * 1.02),
+            (0.06, height, 0.07),
+            material(name + "_rib_mat_%d" % i, "steel"),
+        )
 
 
 def build_surface_ruins(out_dir: Path) -> None:
@@ -433,11 +511,15 @@ def build_surface_ruins(out_dir: Path) -> None:
 
     # 500m blockout ground and dune ridges.
     cube("surface_terrain", (0, -0.35, 0), (500, 0.35, 500), sand_mat)
-    for i, (x, z, w, d, h) in enumerate((
-        (-170, -80, 90, 22, 14), (-90, 110, 120, 28, 18),
-        (125, 80, 105, 25, 15), (170, -110, 80, 18, 12),
-        (0, 170, 160, 22, 20),
-    )):
+    for i, (x, z, w, d, h) in enumerate(
+        (
+            (-170, -80, 90, 22, 14),
+            (-90, 110, 120, 28, 18),
+            (125, 80, 105, 25, 15),
+            (170, -110, 80, 18, 12),
+            (0, 170, 160, 22, 20),
+        )
+    ):
         cube("dune_ridge_%02d" % i, (x, h * 0.5 - 0.3, z), (w, h, d), sand_mat)
 
     # The playable slice is deliberately denser than the distant skyline: a
@@ -445,10 +527,16 @@ def build_surface_ruins(out_dir: Path) -> None:
     # first-person destination as soon as Surface Ruins launches.
     cube("central_concourse", (-12, 0.15, 25), (124, 0.30, 34), concrete_mat)
     cube("concourse_spine", (-12, 0.35, 25), (4, 0.35, 142), steel_mat)
-    for i, (x, z, width, depth, height) in enumerate((
-        (-43, 4, 8, 4, 2.4), (-28, 43, 6, 5, 2.0), (6, 7, 9, 4, 2.6),
-        (25, 43, 7, 5, 2.2), (52, 21, 8, 4, 2.4), (-5, 53, 5, 8, 2.0),
-    )):
+    for i, (x, z, width, depth, height) in enumerate(
+        (
+            (-43, 4, 8, 4, 2.4),
+            (-28, 43, 6, 5, 2.0),
+            (6, 7, 9, 4, 2.6),
+            (25, 43, 7, 5, 2.2),
+            (52, 21, 8, 4, 2.4),
+            (-5, 53, 5, 8, 2.0),
+        )
+    ):
         cube("concourse_cover_%02d" % i, (x, height * 0.5, z), (width, height, depth), steel_mat)
     for i, (x, z) in enumerate(((-75, 18), (-10, -15), (39, 30), (-2, 114))):
         cylinder("route_beacon_%02d" % i, (x, 3.0, z), 0.55, 6.0, warning_mat, 12)
@@ -460,11 +548,17 @@ def build_surface_ruins(out_dir: Path) -> None:
     add_building("electrorganic_ecology_institute", 0, 85, 42, 35, 22, ecology_mat, True)
 
     # Skyline and campus shells. These are intentionally numerous but cheap.
-    skyline = [(-170, -130, 18, 18, 58), (-130, -145, 14, 20, 42),
-               (-20, -145, 22, 18, 70), (75, -135, 18, 18, 50),
-               (145, -145, 24, 18, 64), (-175, 30, 20, 22, 46),
-               (135, 30, 18, 24, 54), (-145, 135, 20, 18, 38),
-               (150, 145, 26, 20, 72)]
+    skyline = [
+        (-170, -130, 18, 18, 58),
+        (-130, -145, 14, 20, 42),
+        (-20, -145, 22, 18, 70),
+        (75, -135, 18, 18, 50),
+        (145, -145, 24, 18, 64),
+        (-175, 30, 20, 22, 46),
+        (135, 30, 18, 24, 54),
+        (-145, 135, 20, 18, 38),
+        (150, 145, 26, 20, 72),
+    ]
     for i, (x, z, w, d, h) in enumerate(skyline):
         add_building("colonial_skyline_%02d" % i, x, z, w, d, h, concrete_mat, i % 3 == 0)
 
@@ -478,7 +572,9 @@ def build_surface_ruins(out_dir: Path) -> None:
     for i, (x, z) in enumerate(((-205, 80), (-185, 105), (-150, 75), (165, 85), (200, 105))):
         cube("frontier_shelter_%02d" % i, (x, 3, z), (12, 3, 9), rock_mat)
     for i in range(5):
-        cylinder("petrified_electrorganic_tree_%02d" % i, (-120 + i * 18, 8, 160 - (i % 2) * 15), 2.5, 16, ecology_mat, 8)
+        cylinder(
+            "petrified_electrorganic_tree_%02d" % i, (-120 + i * 18, 8, 160 - (i % 2) * 15), 2.5, 16, ecology_mat, 8
+        )
 
     export_scene(out_dir, "caligo_surface_ruins")
 

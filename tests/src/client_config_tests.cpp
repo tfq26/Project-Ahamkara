@@ -7,8 +7,8 @@
 
 int main() {
     namespace fs = std::filesystem;
-    using ahamkara::client::ClientConfig;
     using ahamkara::client::clamp_character_color;
+    using ahamkara::client::ClientConfig;
 
     static_assert(clamp_character_color(-0.2F) == 0.0F);
     static_assert(clamp_character_color(0.5F) == 0.5F);

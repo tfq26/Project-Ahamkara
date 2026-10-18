@@ -48,29 +48,53 @@ class SessionGroup {
     [[nodiscard]] wish::u32 connected_count() const;
     [[nodiscard]] bool is_full() const;
 
-    [[nodiscard]] GroupState state() const { return state_; }
-    void set_state(GroupState s) { state_ = s; }
+    [[nodiscard]] GroupState state() const {
+        return state_;
+    }
+    void set_state(GroupState s) {
+        state_ = s;
+    }
 
     // Activity binding
-    [[nodiscard]] wish::u64 activity_id() const { return activity_id_; }
-    void set_activity_id(wish::u64 id) { activity_id_ = id; }
+    [[nodiscard]] wish::u64 activity_id() const {
+        return activity_id_;
+    }
+    void set_activity_id(wish::u64 id) {
+        activity_id_ = id;
+    }
 
     // Ownership — the address of the player that owns/leads this session.
     // For fireteam-formed groups this will be the party leader of the first
     // party that was matched.
-    [[nodiscard]] wish::NetAddress owner_address() const { return owner_address_; }
-    void set_owner_address(const wish::NetAddress& addr) { owner_address_ = addr; }
+    [[nodiscard]] wish::NetAddress owner_address() const {
+        return owner_address_;
+    }
+    void set_owner_address(const wish::NetAddress& addr) {
+        owner_address_ = addr;
+    }
 
     // Fireteam link — optional reference to the fireteam that formed this group.
-    [[nodiscard]] wish::u64 fireteam_id() const { return fireteam_id_; }
-    void set_fireteam_id(wish::u64 id) { fireteam_id_ = id; }
+    [[nodiscard]] wish::u64 fireteam_id() const {
+        return fireteam_id_;
+    }
+    void set_fireteam_id(wish::u64 id) {
+        fireteam_id_ = id;
+    }
 
     // Timestamps
-    [[nodiscard]] time_point created_at() const { return created_at_; }
-    void set_created_at(time_point tp) { created_at_ = tp; }
+    [[nodiscard]] time_point created_at() const {
+        return created_at_;
+    }
+    void set_created_at(time_point tp) {
+        created_at_ = tp;
+    }
 
-    [[nodiscard]] time_point ended_at() const { return ended_at_; }
-    void set_ended_at(time_point tp) { ended_at_ = tp; }
+    [[nodiscard]] time_point ended_at() const {
+        return ended_at_;
+    }
+    void set_ended_at(time_point tp) {
+        ended_at_ = tp;
+    }
 
     // Group-level operations
     void tick(time_point now); // prune timeouts, etc.

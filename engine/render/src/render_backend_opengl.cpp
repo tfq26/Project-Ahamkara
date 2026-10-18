@@ -407,12 +407,13 @@ public:
 
     void draw_gpu_mesh_skinned(const GpuMesh& mesh) override {
         if (mesh.vertex_count == 0) return;
-        const GLuint vbo_pos     = buffers_.lookup(mesh.vbo_positions.id);
-        const GLuint vbo_joints  = buffers_.lookup(mesh.vbo_joints.id);
+        const GLuint vbo_pos = buffers_.lookup(mesh.vbo_positions.id);
+        const GLuint vbo_joints = buffers_.lookup(mesh.vbo_joints.id);
         const GLuint vbo_weights = buffers_.lookup(mesh.vbo_weights.id);
         const GLuint vbo_normals = buffers_.lookup(mesh.vbo_normals.id);
-        const GLuint ibo         = buffers_.lookup(mesh.ibo_indices.id);
-        if (vbo_pos == 0) return;
+        const GLuint ibo = buffers_.lookup(mesh.ibo_indices.id);
+        if (vbo_pos == 0)
+            return;
 
         glBindVertexArray(mesh_vao_);
 

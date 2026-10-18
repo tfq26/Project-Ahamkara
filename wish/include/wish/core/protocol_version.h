@@ -43,14 +43,14 @@ inline constexpr WishAbiVersion kWishAbiVersion {1, 0};
 
 /// Returns true when @p consumer protocol is compatible with @p producer.
 inline constexpr bool is_protocol_compatible(ProtocolVersion consumer,
-                                              ProtocolVersion producer) noexcept {
+                                             ProtocolVersion producer) noexcept {
     return consumer.major == producer.major && consumer.minor <= producer.minor;
 }
 
 /// Returns true when @p consumer ABI is compatible with @p producer ABI.
 inline constexpr bool is_wish_abi_compatible(WishAbiVersion consumer,
-                                              WishAbiVersion producer) noexcept {
+                                             WishAbiVersion producer) noexcept {
     return consumer.major == producer.major && consumer.minor <= producer.minor;
 }
 
-}  // namespace wish::core
+} // namespace wish::core

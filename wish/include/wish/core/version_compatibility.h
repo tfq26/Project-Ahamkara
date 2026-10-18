@@ -15,10 +15,10 @@ inline constexpr std::size_t kMaxVersionLength = 32;
 
 /// Describes the severity of a version mismatch.
 enum class VersionSkewSeverity : wish::u8 {
-    Compatible = 0,     // Versions are compatible
-    MinorSkew = 1,      // Minor version difference (likely compatible)
-    MajorSkew = 2,      // Major version difference (likely incompatible)
-    Unknown = 3,        // Version format not recognized
+    Compatible = 0, // Versions are compatible
+    MinorSkew = 1,  // Minor version difference (likely compatible)
+    MajorSkew = 2,  // Major version difference (likely incompatible)
+    Unknown = 3,    // Version format not recognized
 };
 
 /// A detailed version compatibility report for diagnostics.
@@ -55,7 +55,7 @@ struct VersionCompatibilityEntry {
 /// The version compatibility table.
 /// Maps version strings to their compatibility ranges.
 class VersionCompatibilityTable {
-public:
+  public:
     /// Add a compatibility entry.
     void add_entry(VersionCompatibilityEntry entry);
 
@@ -70,7 +70,7 @@ public:
     /// Check if the table has any entries.
     [[nodiscard]] bool has_entries() const;
 
-private:
+  private:
     std::vector<VersionCompatibilityEntry> entries_;
 
     /// Parse a version string into its numeric components.

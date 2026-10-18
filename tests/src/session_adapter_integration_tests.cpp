@@ -66,7 +66,7 @@ static int g_failures = 0;
         }                                                                                    \
     } while (0)
 
-#define EXPECT_FALSE(cond)                                                                \
+#define EXPECT_FALSE(cond)                                                               \
     do {                                                                                 \
         if ((cond)) {                                                                    \
             std::cerr << "FAIL " << __FILE__ << ":" << __LINE__ << " " << #cond << "\n"; \
@@ -114,9 +114,9 @@ class MockActivity : public wish::core::IActivityBase {
 
     void remove_player(wish::session::SessionId sid) override {
         auto it = std::remove_if(admitted_sessions_.begin(), admitted_sessions_.end(),
-                                  [sid](const wish::session::SessionId& s) {
-                                      return s.value == sid.value;
-                                  });
+                                 [sid](const wish::session::SessionId& s) {
+                                     return s.value == sid.value;
+                                 });
         if (it != admitted_sessions_.end()) {
             admitted_sessions_.erase(it, admitted_sessions_.end());
         }
@@ -138,19 +138,28 @@ class MockActivity : public wish::core::IActivityBase {
     }
 
     wish::usize build_snapshot_bytes(wish::session::SessionId /*sid*/,
-                                      std::span<std::byte> buffer) override {
+                                     std::span<std::byte> buffer) override {
         // Write a minimal byte as a placeholder
-        if (buffer.size() < 1) return 0;
-        buffer[0] = std::byte{0xAA};
+        if (buffer.size() < 1)
+            return 0;
+        buffer[0] = std::byte {0xAA};
         snapshot_built_ = true;
         return 1;
     }
 
-    bool is_complete() const override { return false; }
+    bool is_complete() const override {
+        return false;
+    }
 
-    wish::core::ActivityId activity_id() const override { return config_.id; }
-    wish::core::ActivityCategory category() const override { return config_.category; }
-    std::string_view activity_name() const override { return config_.name; }
+    wish::core::ActivityId activity_id() const override {
+        return config_.id;
+    }
+    wish::core::ActivityCategory category() const override {
+        return config_.category;
+    }
+    std::string_view activity_name() const override {
+        return config_.name;
+    }
 
     void for_each_connected_snapshot(
         void (*fn)(void* ctx, wish::session::SessionId sid,
@@ -162,11 +171,21 @@ class MockActivity : public wish::core::IActivityBase {
     }
 
     // Test accessors
-    const std::vector<InputRecord>& input_records() const { return input_records_; }
-    const std::vector<wish::session::SessionId>& removed_sessions() const { return removed_sessions_; }
-    const std::vector<wish::session::SessionId>& admitted_sessions() const { return admitted_sessions_; }
-    int tick_count() const { return tick_count_; }
-    bool snapshot_was_built() const { return snapshot_built_; }
+    const std::vector<InputRecord>& input_records() const {
+        return input_records_;
+    }
+    const std::vector<wish::session::SessionId>& removed_sessions() const {
+        return removed_sessions_;
+    }
+    const std::vector<wish::session::SessionId>& admitted_sessions() const {
+        return admitted_sessions_;
+    }
+    int tick_count() const {
+        return tick_count_;
+    }
+    bool snapshot_was_built() const {
+        return snapshot_built_;
+    }
 
   private:
     wish::core::ActivityConfig config_;
@@ -176,7 +195,7 @@ class MockActivity : public wish::core::IActivityBase {
     int tick_count_ {0};
     bool snapshot_built_ {false};
     wish::u64 next_sid_ {100};
-    std::byte placeholder_byte_{std::byte{0xBB}};
+    std::byte placeholder_byte_ {std::byte {0xBB}};
     std::unordered_map<std::uint64_t, std::string> player_map_;
 };
 
@@ -192,7 +211,7 @@ void test_independent_admission_no_first_slot_shortcut() {
     wish::core::ActivityManager activity_mgr;
 
     // Register and start a mock activity
-    activity_mgr.register_template(wish::core::ActivityConfig{
+    activity_mgr.register_template(wish::core::ActivityConfig {
         .id = 1,
         .name = "TestActivity",
         .category = wish::core::ActivityCategory::PvP,
@@ -206,7 +225,7 @@ void test_independent_admission_no_first_slot_shortcut() {
     ahamkara::game::adapters::WishSessionAdapter adapter(
         activity_mgr, auth, admission, reporter);
 
-    const auto base_time = clock::time_point{};
+    const auto base_time = clock::time_point {};
     const auto t0 = base_time;
 
     // ── Admit first client ─────────────────────────────────────────────
@@ -231,8 +250,8 @@ void test_independent_admission_no_first_slot_shortcut() {
     EXPECT_NE(result_a.session_id.value, result_b.session_id.value);
 
     // ── Verify routing resolution ──────────────────────────────────────
-    wish::NetAddress addr_a{"192.168.1.10", 30001};
-    wish::NetAddress addr_b{"192.168.1.10", 30002};
+    wish::NetAddress addr_a {"192.168.1.10", 30001};
+    wish::NetAddress addr_b {"192.168.1.10", 30002};
 
     auto route_a = adapter.resolve_routing(addr_a);
     EXPECT_TRUE(route_a.found);
@@ -261,7 +280,7 @@ void test_independent_input_routing() {
     wish::integrations::nakama::NoopMatchResultReporter reporter;
     wish::core::ActivityManager activity_mgr;
 
-    activity_mgr.register_template(wish::core::ActivityConfig{
+    activity_mgr.register_template(wish::core::ActivityConfig {
         .id = 2,
         .name = "InputTestActivity",
         .category = wish::core::ActivityCategory::PvP,
@@ -275,7 +294,7 @@ void test_independent_input_routing() {
     ahamkara::game::adapters::WishSessionAdapter adapter(
         activity_mgr, auth, admission, reporter);
 
-    const auto t0 = clock::time_point{};
+    const auto t0 = clock::time_point {};
 
     // ── Admit two clients ──────────────────────────────────────────────
     auto res_a = adapter.admit_session(
@@ -287,15 +306,15 @@ void test_independent_input_routing() {
     EXPECT_TRUE(res_b.admitted);
 
     // ── Route independent inputs ───────────────────────────────────────
-    wish::PacketEnvelope env_a{};
+    wish::PacketEnvelope env_a {};
     env_a.sequence = 1;
-    wish::PacketEnvelope env_b{};
+    wish::PacketEnvelope env_b {};
     env_b.sequence = 1;
 
     bool routed_a = adapter.route_input(
-        wish::NetAddress{"10.0.0.1", 40001}, env_a, 1001, t0 + std::chrono::milliseconds(200));
+        wish::NetAddress {"10.0.0.1", 40001}, env_a, 1001, t0 + std::chrono::milliseconds(200));
     bool routed_b = adapter.route_input(
-        wish::NetAddress{"10.0.0.1", 40002}, env_b, 2001, t0 + std::chrono::milliseconds(250));
+        wish::NetAddress {"10.0.0.1", 40002}, env_b, 2001, t0 + std::chrono::milliseconds(250));
 
     EXPECT_TRUE(routed_a);
     EXPECT_TRUE(routed_b);
@@ -327,7 +346,7 @@ void test_snapshot_broadcast() {
     wish::integrations::nakama::NoopMatchResultReporter reporter;
     wish::core::ActivityManager activity_mgr;
 
-    activity_mgr.register_template(wish::core::ActivityConfig{
+    activity_mgr.register_template(wish::core::ActivityConfig {
         .id = 3,
         .name = "SnapshotTest",
         .category = wish::core::ActivityCategory::PvP,
@@ -341,7 +360,7 @@ void test_snapshot_broadcast() {
     ahamkara::game::adapters::WishSessionAdapter adapter(
         activity_mgr, auth, admission, reporter);
 
-    const auto t0 = clock::time_point{};
+    const auto t0 = clock::time_point {};
 
     // Admit two clients
     auto res_a = adapter.admit_session("snap-a", "toka", "10.0.0.1:50001", 3, t0);
@@ -373,7 +392,7 @@ void test_sequence_tracking_and_ack() {
     wish::integrations::nakama::NoopMatchResultReporter reporter;
     wish::core::ActivityManager activity_mgr;
 
-    activity_mgr.register_template(wish::core::ActivityConfig{
+    activity_mgr.register_template(wish::core::ActivityConfig {
         .id = 4,
         .name = "SeqTest",
         .category = wish::core::ActivityCategory::PvP,
@@ -387,19 +406,19 @@ void test_sequence_tracking_and_ack() {
     ahamkara::game::adapters::WishSessionAdapter adapter(
         activity_mgr, auth, admission, reporter);
 
-    const auto t0 = clock::time_point{};
+    const auto t0 = clock::time_point {};
     auto res = adapter.admit_session("seq-player", "tok-seq", "10.0.0.1:60001", 4, t0);
     EXPECT_TRUE(res.admitted);
 
     // Send multiple inputs with increasing sequences
     for (wish::u32 i = 1; i <= 5; ++i) {
-        wish::PacketEnvelope env{};
+        wish::PacketEnvelope env {};
         env.sequence = i;
         env.ack_sequence = i > 1 ? (i - 1) : 0;
         env.ack_bitfield = i > 1 ? 0xFFFFFFFF : 0;
 
         bool routed = adapter.route_input(
-            wish::NetAddress{"10.0.0.1", 60001}, env, i * 100, t0 + std::chrono::milliseconds(i * 50));
+            wish::NetAddress {"10.0.0.1", 60001}, env, i * 100, t0 + std::chrono::milliseconds(i * 50));
         EXPECT_TRUE(routed);
     }
 
@@ -424,7 +443,7 @@ void test_disconnect_cleanup() {
     wish::integrations::nakama::NoopMatchResultReporter reporter;
     wish::core::ActivityManager activity_mgr;
 
-    activity_mgr.register_template(wish::core::ActivityConfig{
+    activity_mgr.register_template(wish::core::ActivityConfig {
         .id = 5,
         .name = "DisconnectTest",
         .category = wish::core::ActivityCategory::PvP,
@@ -438,7 +457,7 @@ void test_disconnect_cleanup() {
     ahamkara::game::adapters::WishSessionAdapter adapter(
         activity_mgr, auth, admission, reporter);
 
-    const auto t0 = clock::time_point{};
+    const auto t0 = clock::time_point {};
     auto res = adapter.admit_session("disc-player", "tok-disc", "10.0.0.1:22001", 5, t0);
     EXPECT_TRUE(res.admitted);
 
@@ -453,10 +472,10 @@ void test_disconnect_cleanup() {
     EXPECT_EQ(adapter.active_session_count(), 1u);
 
     // Re-routing after disconnect should still work (grace period)
-    wish::PacketEnvelope env{};
+    wish::PacketEnvelope env {};
     env.sequence = 1;
     bool routed = adapter.route_input(
-        wish::NetAddress{"10.0.0.1", 22001}, env, 42, t0 + std::chrono::seconds(6));
+        wish::NetAddress {"10.0.0.1", 22001}, env, 42, t0 + std::chrono::seconds(6));
     EXPECT_TRUE(routed);
 
     std::cout << "  [PASS] test_disconnect_cleanup\n";
@@ -472,7 +491,7 @@ void test_reconnect_stale_identity_guard() {
     wish::integrations::nakama::NoopMatchResultReporter reporter;
     wish::core::ActivityManager activity_mgr;
 
-    activity_mgr.register_template(wish::core::ActivityConfig{
+    activity_mgr.register_template(wish::core::ActivityConfig {
         .id = 6,
         .name = "ReconnectTest",
         .category = wish::core::ActivityCategory::PvP,
@@ -485,7 +504,7 @@ void test_reconnect_stale_identity_guard() {
     ahamkara::game::adapters::WishSessionAdapter adapter(
         activity_mgr, auth, admission, reporter);
 
-    const auto t0 = clock::time_point{};
+    const auto t0 = clock::time_point {};
     auto res = adapter.admit_session("recon-player", "tok-recon", "10.0.0.1:80001", 6, t0);
     EXPECT_TRUE(res.admitted);
 
@@ -506,7 +525,7 @@ void test_reconnect_stale_identity_guard() {
 
     bool wrong_identity = adapter.handle_reconnect(
         res.session_id, "intruder", t0 + std::chrono::seconds(7));
-    EXPECT_FALSE(wrong_identity);  // must be rejected!
+    EXPECT_FALSE(wrong_identity); // must be rejected!
 
     std::cout << "  [PASS] test_reconnect_stale_identity_guard\n";
 }
@@ -532,7 +551,7 @@ void test_result_reporting() {
     TrackingReporter reporter;
     wish::core::ActivityManager activity_mgr;
 
-    activity_mgr.register_template(wish::core::ActivityConfig{
+    activity_mgr.register_template(wish::core::ActivityConfig {
         .id = 7,
         .name = "ResultTest",
         .category = wish::core::ActivityCategory::PvP,
@@ -545,7 +564,7 @@ void test_result_reporting() {
     ahamkara::game::adapters::WishSessionAdapter adapter(
         activity_mgr, auth, admission, reporter);
 
-    const auto t0 = clock::time_point{};
+    const auto t0 = clock::time_point {};
     auto res_a = adapter.admit_session("result-alpha", "toka", "10.0.0.1:90001", 7, t0);
     auto res_b = adapter.admit_session("result-beta", "tokb", "10.0.0.1:90002", 7, t0);
     EXPECT_TRUE(res_a.admitted);
@@ -560,8 +579,10 @@ void test_result_reporting() {
     // The NoopAuthValidator stores player_id as "wish-player@<endpoint>".
     bool found_alpha = false, found_beta = false;
     for (const auto& pid : reporter.reported_players) {
-        if (pid == "wish-player@10.0.0.1:90001") found_alpha = true;
-        if (pid == "wish-player@10.0.0.1:90002") found_beta = true;
+        if (pid == "wish-player@10.0.0.1:90001")
+            found_alpha = true;
+        if (pid == "wish-player@10.0.0.1:90002")
+            found_beta = true;
     }
     EXPECT_TRUE(found_alpha);
     EXPECT_TRUE(found_beta);
@@ -609,7 +630,7 @@ void test_error_envelope_usage() {
         ahamkara::game::adapters::WishSessionAdapter adapter(
             activity_mgr, auth, admission, reporter);
 
-        const auto t0 = clock::time_point{};
+        const auto t0 = clock::time_point {};
 
         // Admit to a non-existent activity — fails because the adapter
         // looks up the activity via ActivityManager and can't find it.
@@ -634,7 +655,7 @@ void test_two_client_lifecycle() {
     wish::integrations::nakama::NoopMatchResultReporter reporter;
     wish::core::ActivityManager activity_mgr;
 
-    activity_mgr.register_template(wish::core::ActivityConfig{
+    activity_mgr.register_template(wish::core::ActivityConfig {
         .id = 10,
         .name = "LifecycleTest",
         .category = wish::core::ActivityCategory::PvP,
@@ -648,7 +669,7 @@ void test_two_client_lifecycle() {
     ahamkara::game::adapters::WishSessionAdapter adapter(
         activity_mgr, auth, admission, reporter);
 
-    const auto base_time = clock::time_point{};
+    const auto base_time = clock::time_point {};
 
     // ── Phase 1: Admit two clients ────────────────────────────────────
     auto client1 = adapter.admit_session(
@@ -662,15 +683,15 @@ void test_two_client_lifecycle() {
     EXPECT_EQ(adapter.active_session_count(), 2u);
 
     // ── Phase 2: Route inputs independently ───────────────────────────
-    wish::PacketEnvelope env1{};
+    wish::PacketEnvelope env1 {};
     env1.sequence = 1;
-    wish::PacketEnvelope env2{};
+    wish::PacketEnvelope env2 {};
     env2.sequence = 1;
 
     EXPECT_TRUE(adapter.route_input(
-        wish::NetAddress{"192.168.1.1", 10001}, env1, 10, base_time + std::chrono::milliseconds(200)));
+        wish::NetAddress {"192.168.1.1", 10001}, env1, 10, base_time + std::chrono::milliseconds(200)));
     EXPECT_TRUE(adapter.route_input(
-        wish::NetAddress{"192.168.1.1", 10002}, env2, 20, base_time + std::chrono::milliseconds(250)));
+        wish::NetAddress {"192.168.1.1", 10002}, env2, 20, base_time + std::chrono::milliseconds(250)));
 
     EXPECT_EQ(mock_ptr->input_records().size(), 2u);
 
@@ -704,7 +725,7 @@ void test_two_client_lifecycle() {
     adapter.mark_disconnected(client1.session_id, base_time + std::chrono::seconds(8));
     bool hijack_attempt = adapter.handle_reconnect(
         client1.session_id, "impostor", base_time + std::chrono::seconds(10));
-    EXPECT_FALSE(hijack_attempt);  // must be rejected!
+    EXPECT_FALSE(hijack_attempt); // must be rejected!
 
     // ── Phase 8: Report results ───────────────────────────────────────
     adapter.report_activity_results(static_cast<wish::core::ActivityId>(10));
@@ -712,7 +733,7 @@ void test_two_client_lifecycle() {
     std::cout << "  [PASS] test_two_client_lifecycle\n";
 }
 
-}  // anonymous namespace
+} // anonymous namespace
 
 // ===========================================================================
 // Main

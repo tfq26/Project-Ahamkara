@@ -48,29 +48,29 @@ namespace ahamkara::client {
 
 class ClientFramePipeline {
 public:
-    ClientFramePipeline(
-        ae::PlatformWindow& window,
-        ae::Application& application,
-        ae::render::DebugRenderer& renderer,
-        ThreadedLocalRuntime& simulation,
-        IInputProvider& input_provider,
-        DebugFrontendState& frontend_state,
-        DebugUiController& ui_controller,
-        ClientMenuState& menu_state,
-        ClientConfig& client_config,
-        const ControllerBindings& controller_bindings,
-        ae::audio::AudioEngine& audio_engine,
-        ae::render::ShadowPass& shadow_pass,
-        ae::render::PbrRenderer& pbr_renderer,
-        ae::render::LevelRenderScene* level_scene,
-        ae::render::LevelAsset* level_asset,
-        bool autoplay_mode = false);
+  ClientFramePipeline(
+      ae::PlatformWindow& window,
+      ae::Application& application,
+      ae::render::DebugRenderer& renderer,
+      ThreadedLocalRuntime& simulation,
+      IInputProvider& input_provider,
+      DebugFrontendState& frontend_state,
+      DebugUiController& ui_controller,
+      ClientMenuState& menu_state,
+      ClientConfig& client_config,
+      const ControllerBindings& controller_bindings,
+      ae::audio::AudioEngine& audio_engine,
+      ae::render::ShadowPass& shadow_pass,
+      ae::render::PbrRenderer& pbr_renderer,
+      ae::render::LevelRenderScene* level_scene,
+      ae::render::LevelAsset* level_asset,
+      bool autoplay_mode = false);
 
-    void shutdown_render_resources();
+  void shutdown_render_resources();
 
-    /// Run one full frame. Returns false when the window or application
-    /// requests shutdown.
-    [[nodiscard]] bool run_one_frame();
+  /// Run one full frame. Returns false when the window or application
+  /// requests shutdown.
+  [[nodiscard]] bool run_one_frame();
 
 private:
     // Stage 1 — poll OS events and gather raw input state
@@ -138,7 +138,7 @@ private:
     bool gameplay_active_{false};
     bool menu_initialized_{false};
     bool hud_loaded_{false};
-    bool character_dance_active_{false};
+    bool character_dance_active_ {false};
     static constexpr int kConsoleBufSize = 512;
 
     // Authoring / tooling state

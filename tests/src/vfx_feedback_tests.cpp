@@ -20,7 +20,7 @@ using namespace ahamkara::game;
 // ===================================================================
 
 void test_vfx_feedback_defaults() {
-    VfxFeedback fb{};
+    VfxFeedback fb {};
     assert(fb.screen_shake_intensity == 0.0F);
     assert(fb.screen_shake_duration == 0.0F);
     assert(fb.damage_flash_intensity == 0.0F);
@@ -36,7 +36,7 @@ void test_vfx_feedback_trivially_copyable() {
 }
 
 void test_vfx_feedback_roundtrip() {
-    VfxFeedback src{};
+    VfxFeedback src {};
     src.screen_shake_intensity = 0.5F;
     src.screen_shake_duration = 0.3F;
     src.damage_flash_intensity = 0.25F;
@@ -44,12 +44,12 @@ void test_vfx_feedback_roundtrip() {
     src.event_id = 42;
 
     // Serialize
-    std::array<std::byte, 256> buffer{};
+    std::array<std::byte, 256> buffer {};
     detail::ByteWriter writer(buffer);
     assert(write_vfx_feedback(writer, src));
 
     // Deserialize
-    VfxFeedback dst{};
+    VfxFeedback dst {};
     detail::ByteReader reader(
         std::span<const std::byte>(buffer.data(), writer.bytes_written()));
     assert(read_vfx_feedback(reader, dst));
@@ -64,12 +64,12 @@ void test_vfx_feedback_roundtrip() {
 
 void test_vfx_feedback_zero_values() {
     // Zero values must round-trip safely without NaNs.
-    VfxFeedback src{};
-    std::array<std::byte, 256> buffer{};
+    VfxFeedback src {};
+    std::array<std::byte, 256> buffer {};
     detail::ByteWriter writer(buffer);
     assert(write_vfx_feedback(writer, src));
 
-    VfxFeedback dst{};
+    VfxFeedback dst {};
     dst.screen_shake_intensity = -1.0F; // poison
     detail::ByteReader reader(
         std::span<const std::byte>(buffer.data(), writer.bytes_written()));
@@ -87,18 +87,18 @@ void test_vfx_feedback_zero_values() {
 
 void test_vfx_feedback_max_values() {
     // Maximum values must round-trip without overflow or clamping.
-    VfxFeedback src{};
+    VfxFeedback src {};
     src.screen_shake_intensity = 1.0F;
     src.screen_shake_duration = 10.0F;
     src.damage_flash_intensity = 1.0F;
     src.damage_flash_duration = 5.0F;
     // event_id intentionally left at 0 — see zero-values test above
 
-    std::array<std::byte, 256> buffer{};
+    std::array<std::byte, 256> buffer {};
     detail::ByteWriter writer(buffer);
     assert(write_vfx_feedback(writer, src));
 
-    VfxFeedback dst{};
+    VfxFeedback dst {};
     detail::ByteReader reader(
         std::span<const std::byte>(buffer.data(), writer.bytes_written()));
     assert(read_vfx_feedback(reader, dst));
@@ -117,7 +117,7 @@ void test_vfx_feedback_max_values() {
 void test_snapshot_vfx_feedback() {
     // Build a full ServerSnapshot with VFX feedback, serialize it, and
     // verify the data survives a round-trip.
-    ServerSnapshot src{};
+    ServerSnapshot src {};
     src.server_tick = 42;
     src.last_processed_input = 10;
     src.local_player = {};
@@ -134,12 +134,12 @@ void test_snapshot_vfx_feedback() {
     src.vfx_feedback.event_id = 7;
 
     // Serialize
-    std::array<std::byte, 1024> buffer{};
+    std::array<std::byte, 1024> buffer {};
     detail::ByteWriter writer(buffer);
     assert(write_snapshot(writer, src));
 
     // Deserialize
-    ServerSnapshot dst{};
+    ServerSnapshot dst {};
     detail::ByteReader reader(
         std::span<const std::byte>(buffer.data(), writer.bytes_written()));
     assert(read_snapshot(reader, dst));
@@ -160,7 +160,7 @@ void test_snapshot_vfx_feedback() {
 
 void test_snapshot_vfx_feedback_packet_roundtrip() {
     // Full packet-level round-trip including header and envelope.
-    ServerSnapshot src{};
+    ServerSnapshot src {};
     src.server_tick = 99;
     src.vfx_feedback.screen_shake_intensity = 0.8F;
     src.vfx_feedback.screen_shake_duration = 0.5F;
@@ -168,16 +168,16 @@ void test_snapshot_vfx_feedback_packet_roundtrip() {
     src.vfx_feedback.damage_flash_duration = 0.6F;
     src.vfx_feedback.event_id = 13;
 
-    PacketEnvelope env{};
+    PacketEnvelope env {};
     env.sequence = 1;
     env.ack_sequence = 0;
     env.ack_bitfield = 0;
 
-    ServerSnapshotPacketBuffer buffer{};
+    ServerSnapshotPacketBuffer buffer {};
     assert(serialize_server_snapshot_packet(env, src, buffer));
 
-    PacketEnvelope out_env{};
-    ServerSnapshot dst{};
+    PacketEnvelope out_env {};
+    ServerSnapshot dst {};
     assert(deserialize_server_snapshot_packet(buffer, out_env, dst));
 
     assert(out_env.sequence == 1);
@@ -197,14 +197,14 @@ void test_snapshot_vfx_feedback_packet_roundtrip() {
 void test_world_damage_emits_vfx_feedback() {
     // When damage is applied to the player, the World must emit an
     // authoritative VfxFeedback payload with a non-zero event_id.
-    World world{};
+    World world {};
     world.set_is_server(true);
 
     // Get initial state — player is alive with full health/shield
     const auto& initial = world.get_player_state();
     assert(initial.health > 0.0F);
 
-    const Vec3 attacker_pos{0.0F, 0.0F, 0.0F};
+    const Vec3 attacker_pos {0.0F, 0.0F, 0.0F};
     world.apply_damage_to_player(0, 25.0F, attacker_pos);
 
     // VFX feedback must be emitted
@@ -220,10 +220,10 @@ void test_world_damage_emits_vfx_feedback() {
 
 void test_world_damage_vfx_event_id_monotonic() {
     // Each damage event must increment the event_id.
-    World world{};
+    World world {};
     world.set_is_server(true);
 
-    const Vec3 attacker_pos{0.0F, 0.0F, 0.0F};
+    const Vec3 attacker_pos {0.0F, 0.0F, 0.0F};
 
     world.apply_damage_to_player(0, 10.0F, attacker_pos);
     const ae::u32 first_id = world.get_vfx_feedback().event_id;
@@ -242,10 +242,10 @@ void test_world_damage_vfx_event_id_monotonic() {
 
 void test_world_no_damage_no_vfx() {
     // Without any damage, VFX feedback must be zero/empty.
-    World world{};
+    World world {};
 
     // Run a few ticks without damage
-    PlayerInputCommand input{};
+    PlayerInputCommand input {};
     for (int i = 0; i < 10; ++i) {
         world.tick(1.0F / 60.0F, input);
     }
@@ -262,10 +262,10 @@ void test_world_no_damage_no_vfx() {
 
 void test_world_restart_clears_vfx() {
     // Restarting the match should clear VFX feedback.
-    World world{};
+    World world {};
     world.set_is_server(true);
 
-    const Vec3 attacker_pos{0.0F, 0.0F, 0.0F};
+    const Vec3 attacker_pos {0.0F, 0.0F, 0.0F};
     world.apply_damage_to_player(0, 50.0F, attacker_pos);
     assert(world.get_vfx_feedback().event_id != 0);
 
@@ -290,9 +290,9 @@ void test_vfx_one_shot_via_event_id() {
     // 2. Read snapshot again (same event_id) → must NOT re-consume
     // 3. Second damage event → new event_id → consume again
 
-    World world{};
+    World world {};
     world.set_is_server(true);
-    const Vec3 attacker_pos{0.0F, 0.0F, 0.0F};
+    const Vec3 attacker_pos {0.0F, 0.0F, 0.0F};
 
     ae::u32 last_consumed_id = 0;
     int consume_count = 0;
@@ -411,7 +411,7 @@ void test_vfx_rollback_does_not_replay() {
     assert(last_consumed_id == 7);
 
     // Zero event_id (no VFX) must not consume
-    VfxFeedback no_vfx{};
+    VfxFeedback no_vfx {};
     consume(no_vfx);
     assert(consume_count == 3); // must NOT increment
 
@@ -425,11 +425,11 @@ void test_vfx_rollback_does_not_replay() {
 void test_prediction_manager_includes_vfx() {
     // ClientPredictionManager::capture_prediction_state() must include
     // the VFX feedback in the returned ServerSnapshot.
-    ClientPredictionManager cpm{};
+    ClientPredictionManager cpm {};
 
     // Simulate some gameplay to trigger damage
     // The prediction world starts with a player at default spawn
-    PlayerInputCommand input{};
+    PlayerInputCommand input {};
     input.fire_held = true; // will fire weapon
     cpm.apply_input(input);
 
@@ -449,12 +449,12 @@ void test_vfx_determinism_across_frame_partitions() {
     // The VFX envelope parameters (intensity, duration) must be
     // deterministic regardless of how the fixed-timestep simulation
     // subdivides the elapsed time.
-    World world_a{};
-    World world_b{};
+    World world_a {};
+    World world_b {};
     world_a.set_is_server(true);
     world_b.set_is_server(true);
 
-    const Vec3 attacker_pos{0.0F, 0.0F, 0.0F};
+    const Vec3 attacker_pos {0.0F, 0.0F, 0.0F};
 
     // Apply identical damage to both worlds
     world_a.apply_damage_to_player(0, 30.0F, attacker_pos);
@@ -480,10 +480,10 @@ void test_vfx_determinism_across_frame_partitions() {
 
 void test_vfx_zero_damage_safe() {
     // Applying zero damage must not produce VFX feedback.
-    World world{};
+    World world {};
     world.set_is_server(true);
 
-    const Vec3 attacker_pos{0.0F, 0.0F, 0.0F};
+    const Vec3 attacker_pos {0.0F, 0.0F, 0.0F};
     world.apply_damage_to_player(0, 0.0F, attacker_pos);
 
     const auto& fb = world.get_vfx_feedback();
@@ -501,10 +501,10 @@ void test_vfx_zero_damage_safe() {
 
 void test_vfx_negative_damage_safe() {
     // Negative damage must not produce NaN or inf values.
-    World world{};
+    World world {};
     world.set_is_server(true);
 
-    const Vec3 attacker_pos{0.0F, 0.0F, 0.0F};
+    const Vec3 attacker_pos {0.0F, 0.0F, 0.0F};
     world.apply_damage_to_player(0, -10.0F, attacker_pos);
 
     const auto& fb = world.get_vfx_feedback();
@@ -522,11 +522,11 @@ void test_vfx_negative_damage_safe() {
 
 void test_scene_reset_clears_vfx() {
     // Simulate a full scene reset (like respawn or new match).
-    World world{};
+    World world {};
     world.set_is_server(true);
 
     // Apply damage
-    const Vec3 attacker_pos{0.0F, 0.0F, 0.0F};
+    const Vec3 attacker_pos {0.0F, 0.0F, 0.0F};
     world.apply_damage_to_player(0, 40.0F, attacker_pos);
     assert(world.get_vfx_feedback().event_id != 0);
 
@@ -541,7 +541,7 @@ void test_scene_reset_clears_vfx() {
     std::cout << "test_scene_reset_clears_vfx passed.\n";
 }
 
-}  // namespace
+} // namespace
 
 int main() {
     // VfxFeedback unit tests

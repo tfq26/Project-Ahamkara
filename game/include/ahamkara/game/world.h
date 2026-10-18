@@ -211,8 +211,12 @@ public:
     void advance_recoil() { ++fire_recoil_index_; }
     void reset_recoil() { fire_recoil_index_ = 0; }
     void apply_weapon_camera_recoil(float pitch_up_degrees, float yaw_degrees);
-    [[nodiscard]] float camera_recoil_pitch() const { return camera_recoil_pitch_; }
-    [[nodiscard]] float camera_recoil_yaw() const { return camera_recoil_yaw_; }
+    [[nodiscard]] float camera_recoil_pitch() const {
+        return camera_recoil_pitch_;
+    }
+    [[nodiscard]] float camera_recoil_yaw() const {
+        return camera_recoil_yaw_;
+    }
 
     static constexpr int kMaxParticles = 256;
     [[nodiscard]] const ParticleState* get_particles() const { return particles_; }
@@ -245,7 +249,9 @@ public:
     /// Access the authoritative VFX feedback payload for snapshot creation.
     /// The presentation layer reads this once per snapshot via the event_id
     /// to avoid replay on rollback or stale snapshot interpolation.
-    [[nodiscard]] const VfxFeedback& get_vfx_feedback() const { return vfx_feedback_; }
+    [[nodiscard]] const VfxFeedback& get_vfx_feedback() const {
+        return vfx_feedback_;
+    }
     void apply_damage_to_player(ae::u32 player_index, float damage, const Vec3& attacker_pos);
     [[nodiscard]] bool is_player_alive(ae::u32 index = 0) const;
     void respawn_player(ae::u32 index = 0);
@@ -263,7 +269,9 @@ public:
 
     /// Destination metadata accessors.
     /// Returns nullptr when no destination is set (single-map level path).
-    [[nodiscard]] const DestinationMetadata* get_destination() const { return destination_; }
+    [[nodiscard]] const DestinationMetadata* get_destination() const {
+        return destination_;
+    }
 
     /// Query the region descriptor at a world-space position.
     /// Returns nullptr when no destination is set or when the position falls
@@ -280,10 +288,18 @@ public:
     [[nodiscard]] bool is_server() const { return is_server_; }
 
     // -- Encounter scripting integration --
-    [[nodiscard]] EncounterManager& encounter_manager() { return encounters_; }
-    [[nodiscard]] const EncounterManager& encounter_manager() const { return encounters_; }
-    void add_encounter(const EncounterDef& def) { encounters_.add_encounter(def); }
-    bool start_encounter(const std::string& id) { return encounters_.start_encounter(id); }
+    [[nodiscard]] EncounterManager& encounter_manager() {
+        return encounters_;
+    }
+    [[nodiscard]] const EncounterManager& encounter_manager() const {
+        return encounters_;
+    }
+    void add_encounter(const EncounterDef& def) {
+        encounters_.add_encounter(def);
+    }
+    bool start_encounter(const std::string& id) {
+        return encounters_.start_encounter(id);
+    }
     [[nodiscard]] const EncounterState* encounter_state(const std::string& id) const {
         return encounters_.get_state(id);
     }
@@ -293,8 +309,8 @@ public:
     /// Spawn an AI combatant entity in the registry at the given world position
     /// with the specified archetype. Returns the EnTT entity handle.
     [[nodiscard]] entt::entity spawn_ai_combatant(const Vec3& position,
-                                                   float yaw,
-                                                   ai::CombatArchetype archetype);
+                                                  float yaw,
+                                                  ai::CombatArchetype archetype);
 
     /// Remove a specific AI combatant entity from the registry.
     void despawn_ai_combatant(entt::entity entity);
@@ -308,13 +324,17 @@ public:
                                  int count);
 
     /// Access the cached navigation grid (lazily built from colliders).
-    [[nodiscard]] const ai::NavGrid* nav_grid() const { return nav_grid_ ? &nav_grid_->grid : nullptr; }
-    [[nodiscard]] const ai::NavSpace& nav_space() const { return nav_space_; }
+    [[nodiscard]] const ai::NavGrid* nav_grid() const {
+        return nav_grid_ ? &nav_grid_->grid : nullptr;
+    }
+    [[nodiscard]] const ai::NavSpace& nav_space() const {
+        return nav_space_;
+    }
 
     /// Rebuild the navigation grid from the current collider list.
     void rebuild_nav_grid();
 
-private:
+  private:
     void apply_world_definition(const WorldDefinition& definition);
     void reset_player_to_spawn();
     void spawn_projectile(const PlayerInputCommand& input);

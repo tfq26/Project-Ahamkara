@@ -44,34 +44,34 @@ void draw_ability_glyph(ImDrawList* dl, HudAbilityIcon::AbilityType type,
                         ImVec2 center, float radius, ImU32 color) {
     const float thickness = 1.7F;
     switch (type) {
-        case HudAbilityIcon::Grenade:
-            dl->AddCircle(center, radius * 0.62F, color, 20, thickness);
-            dl->AddLine({center.x - radius * 0.72F, center.y},
-                        {center.x + radius * 0.72F, center.y}, color, thickness);
-            dl->AddLine({center.x, center.y - radius * 0.72F},
-                        {center.x, center.y + radius * 0.72F}, color, thickness);
-            break;
-        case HudAbilityIcon::Special:
-            dl->PathLineTo({center.x + radius * 0.10F, center.y - radius * 0.82F});
-            dl->PathLineTo({center.x - radius * 0.48F, center.y + radius * 0.02F});
-            dl->PathLineTo({center.x - radius * 0.02F, center.y + radius * 0.02F});
-            dl->PathLineTo({center.x - radius * 0.16F, center.y + radius * 0.82F});
-            dl->PathLineTo({center.x + radius * 0.52F, center.y - radius * 0.14F});
-            dl->PathLineTo({center.x + radius * 0.08F, center.y - radius * 0.14F});
-            dl->PathStroke(color, ImDrawFlags_Closed, thickness);
-            break;
-        case HudAbilityIcon::Artifact:
-            dl->AddCircle(center, radius * 0.72F, color, 24, thickness);
-            dl->AddCircle(center, radius * 0.32F, color, 16, thickness);
-            dl->AddCircleFilled(center, radius * 0.10F, color, 12);
-            break;
-        case HudAbilityIcon::Ultimate:
-            dl->AddQuad({center.x, center.y - radius * 0.82F},
-                        {center.x + radius * 0.82F, center.y},
-                        {center.x, center.y + radius * 0.82F},
-                        {center.x - radius * 0.82F, center.y}, color, thickness);
-            dl->AddCircleFilled(center, radius * 0.22F, color, 16);
-            break;
+    case HudAbilityIcon::Grenade:
+        dl->AddCircle(center, radius * 0.62F, color, 20, thickness);
+        dl->AddLine({center.x - radius * 0.72F, center.y},
+                    {center.x + radius * 0.72F, center.y}, color, thickness);
+        dl->AddLine({center.x, center.y - radius * 0.72F},
+                    {center.x, center.y + radius * 0.72F}, color, thickness);
+        break;
+    case HudAbilityIcon::Special:
+        dl->PathLineTo({center.x + radius * 0.10F, center.y - radius * 0.82F});
+        dl->PathLineTo({center.x - radius * 0.48F, center.y + radius * 0.02F});
+        dl->PathLineTo({center.x - radius * 0.02F, center.y + radius * 0.02F});
+        dl->PathLineTo({center.x - radius * 0.16F, center.y + radius * 0.82F});
+        dl->PathLineTo({center.x + radius * 0.52F, center.y - radius * 0.14F});
+        dl->PathLineTo({center.x + radius * 0.08F, center.y - radius * 0.14F});
+        dl->PathStroke(color, ImDrawFlags_Closed, thickness);
+        break;
+    case HudAbilityIcon::Artifact:
+        dl->AddCircle(center, radius * 0.72F, color, 24, thickness);
+        dl->AddCircle(center, radius * 0.32F, color, 16, thickness);
+        dl->AddCircleFilled(center, radius * 0.10F, color, 12);
+        break;
+    case HudAbilityIcon::Ultimate:
+        dl->AddQuad({center.x, center.y - radius * 0.82F},
+                    {center.x + radius * 0.82F, center.y},
+                    {center.x, center.y + radius * 0.82F},
+                    {center.x - radius * 0.82F, center.y}, color, thickness);
+        dl->AddCircleFilled(center, radius * 0.22F, color, 16);
+        break;
     }
 }
 
@@ -91,7 +91,7 @@ void draw_weapon_silhouette(ImDrawList* dl, ImVec2 origin, float scale, ImU32 co
                       {x + 49.0F * scale, y + 7.0F * scale}, color, 1.0F);
 }
 
-}  // namespace
+} // namespace
 
 // ── HudElement base ───────────────────────────────────────────────────────────
 
@@ -346,7 +346,8 @@ void HudCrosshair::render(float sw, float sh, const HudState& state) {
 // ── Consolidated Combat Cluster ──────────────────────────────────────────────
 
 void HudCombatCluster::render(float sw, float sh, const HudState& state) {
-    if (!visible_) return;
+    if (!visible_)
+        return;
 
     const float responsive = std::clamp(sw / 1600.0F, 0.78F, 1.0F);
     const float panel_w = std::min(560.0F * responsive, sw - 48.0F);
@@ -373,7 +374,8 @@ void HudCombatCluster::render(float sw, float sh, const HudState& state) {
     dl->AddLine({x, y + panel_h}, {x + panel_w, y + panel_h}, kHudLine, 1.0F);
 
     const float health_pct = state.max_health > 0.0F
-        ? std::clamp(state.health / state.max_health, 0.0F, 1.0F) : 0.0F;
+                                 ? std::clamp(state.health / state.max_health, 0.0F, 1.0F)
+                                 : 0.0F;
     const bool critical_health = health_pct <= 0.25F;
     const ImU32 health_color = critical_health ? kHudDanger : kHudAmber;
     const float health_y = y + 2.0F * u;
@@ -401,17 +403,14 @@ void HudCombatCluster::render(float sw, float sh, const HudState& state) {
     const float ability_gap = 5.0F * u;
     const HudAbilityIcon::AbilityType ability_types[] = {
         HudAbilityIcon::Grenade, HudAbilityIcon::Special,
-        HudAbilityIcon::Artifact, HudAbilityIcon::Ultimate
-    };
+        HudAbilityIcon::Artifact, HudAbilityIcon::Ultimate};
     const char* keys[] = {"Q", "E", "C", "F"};
     const float cooldowns[] = {
         state.grenade_cooldown, state.special_cooldown,
-        state.artifact_cooldown, 1.0F - state.ultimate_charge
-    };
+        state.artifact_cooldown, 1.0F - state.ultimate_charge};
     const bool available[] = {
         state.grenade_available, state.special_available,
-        state.artifact_available, state.ultimate_ready
-    };
+        state.artifact_available, state.ultimate_ready};
 
     for (int i = 0; i < 4; ++i) {
         const float ax = x + i * (ability_size + ability_gap);
@@ -463,9 +462,10 @@ void HudCombatCluster::render(float sw, float sh, const HudState& state) {
               {ammo_x + 4.0F * u, content_y + 42.0F * u}, kHudMuted, value);
 
     const float mag_pct = state.ammo_max > 0
-        ? std::clamp(static_cast<float>(state.ammo_current) /
-                         static_cast<float>(state.ammo_max), 0.0F, 1.0F)
-        : 0.0F;
+                              ? std::clamp(static_cast<float>(state.ammo_current) /
+                                               static_cast<float>(state.ammo_max),
+                                           0.0F, 1.0F)
+                              : 0.0F;
     const float mag_y = y + panel_h - 18.0F * u;
     const float mag_w = 98.0F * u;
     dl->AddRectFilled({ammo_x, mag_y}, {ammo_x + mag_w, mag_y + 3.0F * u},
@@ -478,7 +478,8 @@ void HudCombatCluster::render(float sw, float sh, const HudState& state) {
 // ── Field Optic HUD ──────────────────────────────────────────────────────────
 
 void HudFieldFrame::render(float sw, float sh, const HudState& state) {
-    if (!visible_) return;
+    if (!visible_)
+        return;
 
     constexpr float kSectionScale = 1.30F;
     const float u = std::clamp(sw / 1920.0F, 0.74F, 1.12F) * kSectionScale;
@@ -492,9 +493,11 @@ void HudFieldFrame::render(float sw, float sh, const HudState& state) {
     ImFont* header_font = menu_font_for_role("header");
 
     const float health_pct = state.max_health > 0.0F
-        ? std::clamp(state.health / state.max_health, 0.0F, 1.0F) : 0.0F;
+                                 ? std::clamp(state.health / state.max_health, 0.0F, 1.0F)
+                                 : 0.0F;
     const float shield_pct = state.max_shield > 0.0F
-        ? std::clamp(state.shield / state.max_shield, 0.0F, 1.0F) : 0.0F;
+                                 ? std::clamp(state.shield / state.max_shield, 0.0F, 1.0F)
+                                 : 0.0F;
     const bool critical = health_pct <= 0.25F;
     const ImU32 vital_color = critical ? kHudDanger : kHudAmber;
     char value[32] {};
@@ -592,8 +595,8 @@ void HudFieldFrame::render(float sw, float sh, const HudState& state) {
     draw_text(dl, body_font, 15.0F * u, {ammo_x + 4.0F * u, weapon_y + 62.0F * u}, kHudMuted, value);
 
     const float magazine_pct = state.ammo_max > 0
-        ? std::clamp(static_cast<float>(state.ammo_current) / static_cast<float>(state.ammo_max), 0.0F, 1.0F)
-        : 0.0F;
+                                   ? std::clamp(static_cast<float>(state.ammo_current) / static_cast<float>(state.ammo_max), 0.0F, 1.0F)
+                                   : 0.0F;
     const float mag_x = weapon_x + 12.0F * u;
     const float mag_y = baseline - 28.0F * u;
     const float mag_w = weapon_w - 24.0F * u;

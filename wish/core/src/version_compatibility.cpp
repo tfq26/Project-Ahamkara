@@ -47,8 +47,10 @@ int VersionCompatibilityTable::compare_versions(const std::vector<int>& a, const
     for (std::size_t i = 0; i < max_len; ++i) {
         const int a_val = i < a.size() ? a[i] : 0;
         const int b_val = i < b.size() ? b[i] : 0;
-        if (a_val < b_val) return -1;
-        if (a_val > b_val) return 1;
+        if (a_val < b_val)
+            return -1;
+        if (a_val > b_val)
+            return 1;
     }
     return 0;
 }
@@ -123,18 +125,18 @@ std::string format_version_report(const VersionCompatibilityReport& report) {
     if (!report.compatible) {
         stream << " severity=";
         switch (report.severity) {
-            case VersionSkewSeverity::MinorSkew:
-                stream << "MINOR";
-                break;
-            case VersionSkewSeverity::MajorSkew:
-                stream << "MAJOR";
-                break;
-            case VersionSkewSeverity::Unknown:
-                stream << "UNKNOWN";
-                break;
-            default:
-                stream << "NONE";
-                break;
+        case VersionSkewSeverity::MinorSkew:
+            stream << "MINOR";
+            break;
+        case VersionSkewSeverity::MajorSkew:
+            stream << "MAJOR";
+            break;
+        case VersionSkewSeverity::Unknown:
+            stream << "UNKNOWN";
+            break;
+        default:
+            stream << "NONE";
+            break;
         }
     }
 

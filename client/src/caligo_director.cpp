@@ -27,7 +27,7 @@ ae::render::LevelAsset make_asset(const char* name, const char* mesh,
     return asset;
 }
 
-}  // namespace
+} // namespace
 
 bool CaligoDirector::initialize(ae::render::RenderBackend& backend) {
     exterior_asset_ = make_asset("Caligo Director",
@@ -42,8 +42,8 @@ bool CaligoDirector::initialize(ae::render::RenderBackend& backend) {
     exterior_scene_.build(exterior_asset_, backend, "");
     cutaway_scene_.build(cutaway_asset_, backend, "");
     ae::log_info_cat("Client", "Caligo Director geometry: exterior=" +
-        std::to_string(exterior_scene_.instance_count()) +
-        " cutaway=" + std::to_string(cutaway_scene_.instance_count()));
+                                   std::to_string(exterior_scene_.instance_count()) +
+                                   " cutaway=" + std::to_string(cutaway_scene_.instance_count()));
     ready_ = !exterior_scene_.empty() && !cutaway_scene_.empty();
     if (ready_) {
         ae::log_info_cat("Client", "Caligo Director initialized with exterior and cutaway scenes.");
@@ -60,7 +60,8 @@ void CaligoDirector::destroy(ae::render::RenderBackend& backend) {
 }
 
 const ae::render::LevelRenderScene* CaligoDirector::render_scene() const {
-    if (!ready_) return nullptr;
+    if (!ready_)
+        return nullptr;
     return view_ == View::Exterior ? &exterior_scene_ : &cutaway_scene_;
 }
 
@@ -80,4 +81,4 @@ void CaligoDirector::apply_camera(ae::render::DebugScene& scene) const {
     scene.director_space_background = true;
 }
 
-}  // namespace ahamkara::client
+} // namespace ahamkara::client

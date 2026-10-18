@@ -23,7 +23,7 @@ struct HudState {
     int reserve_ammo{150};
     int weapon_index{0};
     const char* weapon_name{"AR-15"};
-    bool is_reloading{false};
+    bool is_reloading {false};
 
     // Abilities
     bool grenade_available{true};
@@ -109,7 +109,7 @@ public:
 /// identity, and ammunition in one visual scan path instead of scattering
 /// unrelated widgets around the viewport.
 class HudCombatCluster : public HudElement {
-public:
+  public:
     void render(float sw, float sh, const HudState& state) override;
 };
 
@@ -117,7 +117,7 @@ public:
 /// lower-left, while weapon telemetry stays lower-right. The center remains
 /// intentionally clear for target acquisition.
 class HudFieldFrame : public HudElement {
-public:
+  public:
     void render(float sw, float sh, const HudState& state) override;
 };
 

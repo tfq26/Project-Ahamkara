@@ -27,7 +27,7 @@ struct GamePlayerState {
 /// Wish session/activity data and game state.
 /// This is the ONLY allowed direction: game depends on Wish, not vice versa.
 class IGameSessionAdapter {
-public:
+  public:
     virtual ~IGameSessionAdapter() = default;
 
     /// Called when a player is admitted into an activity.

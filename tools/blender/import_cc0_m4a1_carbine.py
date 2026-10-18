@@ -23,7 +23,6 @@ from pathlib import Path
 import bpy
 from mathutils import Matrix, Vector
 
-
 ASSET_NAME = "operative_carbine_tp"
 SOURCE_DIR = Path("assets/source_models/m4a1_cc0")
 SOURCE_RIGHT_HAND_GRIP = Vector((0.0, -0.075, -0.085))
@@ -82,8 +81,7 @@ def transform_to_weapon_space(objects: list[bpy.types.Object]) -> None:
     if SOURCE_LEFT_HAND_GRIP.y <= SOURCE_RIGHT_HAND_GRIP.y:
         raise RuntimeError("M4A1 source grip markers must run toward its muzzle")
     # -90° maps the FBX's +Y muzzle axis to Ahamkara's +X muzzle axis.
-    conversion = (Matrix.Rotation(math.radians(-90.0), 4, "Z")
-                  @ Matrix.Translation(-SOURCE_RIGHT_HAND_GRIP))
+    conversion = Matrix.Rotation(math.radians(-90.0), 4, "Z") @ Matrix.Translation(-SOURCE_RIGHT_HAND_GRIP)
     for obj in objects:
         obj.matrix_world = conversion @ obj.matrix_world
         bpy.context.view_layer.objects.active = obj
@@ -115,8 +113,7 @@ def add_socket(parent: bpy.types.Object, name: str, position: tuple[float, float
 
 
 def weapon_space(source_position: Vector) -> tuple[float, float, float]:
-    converted = Matrix.Rotation(math.radians(-90.0), 4, "Z") @ (
-        source_position - SOURCE_RIGHT_HAND_GRIP)
+    converted = Matrix.Rotation(math.radians(-90.0), 4, "Z") @ (source_position - SOURCE_RIGHT_HAND_GRIP)
     return tuple(round(value, 6) for value in converted)
 
 

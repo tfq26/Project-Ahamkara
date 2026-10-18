@@ -890,18 +890,20 @@ target_include_directories(ahamkara_docs_viewer_tests
 
 add_test(NAME ahamkara_docs_viewer_tests COMMAND ahamkara_docs_viewer_tests)
 
-# --- Data-driven menu layout ---
-add_executable(ahamkara_menu_layout_tests
-    src/menu_layout_tests.cpp
-)
-target_compile_features(ahamkara_menu_layout_tests PRIVATE cxx_std_20)
-target_include_directories(ahamkara_menu_layout_tests
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/ui
-        ${CMAKE_CURRENT_SOURCE_DIR}/../engine/ui/include
-)
-target_link_libraries(ahamkara_menu_layout_tests PRIVATE ae_ui)
-add_test(NAME ahamkara_menu_layout_tests COMMAND ahamkara_menu_layout_tests)
+if(TARGET ae_ui)
+    # --- Data-driven menu layout ---
+    add_executable(ahamkara_menu_layout_tests
+        src/menu_layout_tests.cpp
+    )
+    target_compile_features(ahamkara_menu_layout_tests PRIVATE cxx_std_20)
+    target_include_directories(ahamkara_menu_layout_tests
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/../engine/ui
+            ${CMAKE_CURRENT_SOURCE_DIR}/../engine/ui/include
+    )
+    target_link_libraries(ahamkara_menu_layout_tests PRIVATE ae_ui)
+    add_test(NAME ahamkara_menu_layout_tests COMMAND ahamkara_menu_layout_tests)
+endif()
 
 add_executable(ahamkara_client_config_tests
     src/client_config_tests.cpp

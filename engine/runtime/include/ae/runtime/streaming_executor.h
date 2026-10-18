@@ -21,7 +21,7 @@
 // Budgets (in-flight count, memory bytes) are enforced during tick() dispatch
 // and commit(). Loaded data only becomes visible to the simulation at commit().
 
-#include "ae/core/residency_manager.h"  // RegionCoord, RegionTransition
+#include "ae/core/residency_manager.h" // RegionCoord, RegionTransition
 
 #include <cstddef>
 #include <cstdint>
@@ -44,12 +44,12 @@ using RegionData = std::shared_ptr<const std::vector<char>>;
 /// Region lifecycle states visible to the executor's caller.
 enum class RegionState : std::uint8_t {
     None = 0,
-    Requested,   ///< Load requested; not yet dispatched to loader.
-    Loading,     ///< Async load in progress.
-    Resident,    ///< Fully loaded and committed; data is simulation-visible.
-    Failed,      ///< Load attempt failed; eligible for retry.
-    Cancelled,   ///< Load was cancelled before completion; data discarded.
-    Evicting,    ///< Previously resident region being evicted.
+    Requested, ///< Load requested; not yet dispatched to loader.
+    Loading,   ///< Async load in progress.
+    Resident,  ///< Fully loaded and committed; data is simulation-visible.
+    Failed,    ///< Load attempt failed; eligible for retry.
+    Cancelled, ///< Load was cancelled before completion; data discarded.
+    Evicting,  ///< Previously resident region being evicted.
 };
 
 /// Injectable interface for asynchronous region loading.
@@ -62,7 +62,7 @@ enum class RegionState : std::uint8_t {
 /// from any thread.  on_complete / on_fail callbacks are invoked from the
 /// loader's own context and must not block.
 class IRegionLoader {
-public:
+  public:
     virtual ~IRegionLoader() = default;
 
     /// Start an asynchronous load for a region.
@@ -95,11 +95,11 @@ public:
 ///      b. Call tick() to dispatch loads and process completions.
 ///      c. Call commit() to make loaded data visible.
 class StreamingResidencyExecutor {
-public:
+  public:
     struct Config {
-        int max_in_flight_loads = 4;                         ///< Hard cap on concurrent loads.
-        std::size_t max_memory_bytes = 256ULL * 1024ULL * 1024ULL;  ///< Hard cap on resident payload bytes.
-        int max_retry_count = 3;                              ///< Load retries before giving up.
+        int max_in_flight_loads = 4;                               ///< Hard cap on concurrent loads.
+        std::size_t max_memory_bytes = 256ULL * 1024ULL * 1024ULL; ///< Hard cap on resident payload bytes.
+        int max_retry_count = 3;                                   ///< Load retries before giving up.
     };
 
     StreamingResidencyExecutor();
@@ -133,18 +133,24 @@ public:
     RegionData data(RegionCoord coord) const;
 
     /// Number of loads currently dispatched to the loader.
-    int in_flight_count() const { return in_flight_count_; }
+    int in_flight_count() const {
+        return in_flight_count_;
+    }
 
     /// Number of regions in Resident state.
     int resident_count() const;
 
     /// Total byte size of all resident region payloads.
-    std::size_t resident_memory_bytes() const { return resident_memory_bytes_; }
+    std::size_t resident_memory_bytes() const {
+        return resident_memory_bytes_;
+    }
 
     /// Number of regions tracked by the executor (any non-None state).
-    int tracked_region_count() const { return static_cast<int>(regions_.size()); }
+    int tracked_region_count() const {
+        return static_cast<int>(regions_.size());
+    }
 
-private:
+  private:
     struct RegionEntry {
         RegionCoord coord {};
         RegionState state = RegionState::None;
@@ -180,4 +186,4 @@ private:
     std::mutex completion_mutex_;
 };
 
-}  // namespace ae
+} // namespace ae

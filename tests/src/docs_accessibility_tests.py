@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Validate documentation structure for accessibility (navigability, link integrity)."""
+
 from __future__ import annotations
 
 import re
@@ -28,10 +29,7 @@ def test_all_dirs_have_readme() -> list[str]:
     for dirpath in CHECKED_DIRS:
         if not dirpath.is_dir():
             continue
-        has_index = any(
-            (dirpath / name).is_file()
-            for name in ("README.md", "index.md")
-        )
+        has_index = any((dirpath / name).is_file() for name in ("README.md", "index.md"))
         if not has_index:
             errors.append(f"Missing README.md or index.md in docs/{dirpath.relative_to(DOCS)}")
     return errors
@@ -53,7 +51,7 @@ def test_links_resolve() -> list[str]:
             if href.startswith(("http://", "https://", "#", "mailto:")):
                 continue
             # Skip Obsidian wiki-links [[...]]
-            if "[[" in content[max(0, match.start() - 1):match.start() + 1]:
+            if "[[" in content[max(0, match.start() - 1) : match.start() + 1]:
                 continue
             # Handle relative links
             target = (md_file.parent / href).resolve()
@@ -68,16 +66,13 @@ def test_links_resolve() -> list[str]:
             except ValueError:
                 continue
             if not target.exists():
-                errors.append(
-                    f"Broken link in docs/{rel}: '{href}' (not found)"
-                )
+                errors.append(f"Broken link in docs/{rel}: '{href}' (not found)")
     return errors
 
 
 def main() -> int:
     has_errors = False
-    for name, func in [("dir_index", test_all_dirs_have_readme),
-                       ("link_integrity", test_links_resolve)]:
+    for name, func in [("dir_index", test_all_dirs_have_readme), ("link_integrity", test_links_resolve)]:
         errors = func()
         if errors:
             has_errors = True

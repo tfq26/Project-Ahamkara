@@ -25,8 +25,8 @@ namespace ahamkara::game {
 struct ItemInstance {
     ae::u32 instance_id {0};
     ae::u32 definition_id {0};
-    std::vector<ae::u32> perk_ids;  ///< Perk IDs rolled/attached to this item.
-    std::vector<ae::u32> mod_ids;   ///< Mod IDs socketed into this item.
+    std::vector<ae::u32> perk_ids; ///< Perk IDs rolled/attached to this item.
+    std::vector<ae::u32> mod_ids;  ///< Mod IDs socketed into this item.
 };
 
 // ---------------------------------------------------------------------------
@@ -111,14 +111,22 @@ class Inventory {
     [[nodiscard]] const ItemInstance* get_item(ae::u32 instance_id) const;
 
     /// Number of items currently in the inventory.
-    [[nodiscard]] std::size_t item_count() const { return items_.size(); }
+    [[nodiscard]] std::size_t item_count() const {
+        return items_.size();
+    }
 
     /// Whether the inventory has reached its capacity limit.
-    [[nodiscard]] bool is_full() const { return items_.size() >= max_items_; }
+    [[nodiscard]] bool is_full() const {
+        return items_.size() >= max_items_;
+    }
 
     /// Set / get the maximum number of items the inventory can hold.
-    void set_max_items(std::size_t max) { max_items_ = max; }
-    [[nodiscard]] std::size_t max_items() const { return max_items_; }
+    void set_max_items(std::size_t max) {
+        max_items_ = max;
+    }
+    [[nodiscard]] std::size_t max_items() const {
+        return max_items_;
+    }
 
     /// Return all items whose definition matches the given `ItemType`.
     /// Performs a lookup through `ItemRegistry::instance()`.
@@ -162,8 +170,12 @@ class Inventory {
 
     using const_iterator = std::unordered_map<ae::u32, ItemInstance>::const_iterator;
 
-    [[nodiscard]] const_iterator begin() const { return items_.begin(); }
-    [[nodiscard]] const_iterator end() const { return items_.end(); }
+    [[nodiscard]] const_iterator begin() const {
+        return items_.begin();
+    }
+    [[nodiscard]] const_iterator end() const {
+        return items_.end();
+    }
 
     // -- Constants -------------------------------------------------------
 
@@ -172,7 +184,7 @@ class Inventory {
 
   private:
     std::unordered_map<ae::u32, ItemInstance> items_;
-    ae::u32 equipped_slots_[static_cast<int>(ItemSlot::None)];  // indexed by ItemSlot
+    ae::u32 equipped_slots_[static_cast<int>(ItemSlot::None)]; // indexed by ItemSlot
     ae::u32 next_instance_id_ {1};
     std::size_t max_items_ {50};
 
@@ -208,7 +220,8 @@ inline void ProgressionState::set_level(ae::u32 new_level) {
 }
 
 inline bool CurrencyState::spend_glimmer(ae::u64 amount) {
-    if (glimmer < amount) return false;
+    if (glimmer < amount)
+        return false;
     glimmer -= amount;
     return true;
 }
@@ -217,4 +230,4 @@ inline void CurrencyState::earn_glimmer(ae::u64 amount) {
     glimmer += amount;
 }
 
-}  // namespace ahamkara::game
+} // namespace ahamkara::game

@@ -4,23 +4,23 @@
 #include <iostream>
 #include <string>
 
-using ahamkara::game::ai::CombatArchetype;
-using ahamkara::game::ai::archetype_config;
-using ahamkara::game::ai::angle_diff_deg;
-using ahamkara::game::ai::los_clear_2d;
+using ahamkara::game::ai::advance_along_path;
 using ahamkara::game::ai::AICombatantComponent;
+using ahamkara::game::ai::angle_diff_deg;
+using ahamkara::game::ai::archetype_config;
 using ahamkara::game::ai::BehaviorState;
-using ahamkara::game::ai::NavVec2;
-using ahamkara::game::ai::NavGrid;
-using ahamkara::game::ai::GridCoord;
-using ahamkara::game::ai::NavSpace;
-using ahamkara::game::ai::NavAABB;
 using ahamkara::game::ai::build_nav_grid;
 using ahamkara::game::ai::build_nav_grid_from_world;
+using ahamkara::game::ai::CombatArchetype;
+using ahamkara::game::ai::GridCoord;
+using ahamkara::game::ai::los_clear_2d;
+using ahamkara::game::ai::NavAABB;
+using ahamkara::game::ai::NavGrid;
+using ahamkara::game::ai::NavSpace;
+using ahamkara::game::ai::NavVec2;
 using ahamkara::game::ai::plan_ai_path;
-using ahamkara::game::ai::advance_along_path;
-using ahamkara::game::ai::update_ai_movement;
 using ahamkara::game::ai::tick_ai_combatants_movement;
+using ahamkara::game::ai::update_ai_movement;
 
 #include <entt/entt.hpp>
 
@@ -125,7 +125,7 @@ int test_apply_archetype() {
 int test_plan_path_straight_line() {
     // Build a simple 5x5 grid with no obstructions
     NavGrid grid(5, 5);
-    NavSpace space{1.0F, 0.0F, 0.0F};
+    NavSpace space {1.0F, 0.0F, 0.0F};
 
     AICombatantComponent comp;
     comp.position_2d = {0.5F, 0.5F};
@@ -152,7 +152,7 @@ int test_plan_path_blocked() {
     NavGrid grid(5, 5);
     grid.set_blocked({2, 2}, true);
     grid.set_blocked({3, 2}, true);
-    NavSpace space{1.0F, 0.0F, 0.0F};
+    NavSpace space {1.0F, 0.0F, 0.0F};
 
     AICombatantComponent comp;
     comp.position_2d = {0.5F, 0.5F};
@@ -174,8 +174,9 @@ int test_plan_path_blocked() {
 int test_plan_path_completely_blocked() {
     // Full wall from left to right edge at row 2
     NavGrid grid(5, 5);
-    for (int x = 0; x < 5; ++x) grid.set_blocked({x, 2}, true);
-    NavSpace space{1.0F, 0.0F, 0.0F};
+    for (int x = 0; x < 5; ++x)
+        grid.set_blocked({x, 2}, true);
+    NavSpace space {1.0F, 0.0F, 0.0F};
 
     AICombatantComponent comp;
     comp.position_2d = {0.5F, 0.5F};
@@ -199,7 +200,7 @@ int test_plan_path_completely_blocked() {
 
 int test_plan_path_same_position() {
     NavGrid grid(5, 5);
-    NavSpace space{1.0F, 0.0F, 0.0F};
+    NavSpace space {1.0F, 0.0F, 0.0F};
 
     AICombatantComponent comp;
     comp.position_2d = {2.5F, 2.5F};
@@ -215,14 +216,15 @@ int test_plan_path_same_position() {
 
 int test_advance_along_path() {
     NavGrid grid(5, 5);
-    NavSpace space{1.0F, 0.0F, 0.0F};
+    NavSpace space {1.0F, 0.0F, 0.0F};
 
     AICombatantComponent comp;
     comp.position_2d = {0.5F, 0.5F};
 
     // Plan path to the right
     (void)plan_ai_path(comp, {4.5F, 0.5F}, grid, space);
-    if (comp.path_waypoints.empty()) return fail("need a path for advance test");
+    if (comp.path_waypoints.empty())
+        return fail("need a path for advance test");
 
     const float speed = 3.0F;
     const float dt = 1.0F / 60.0F;
@@ -274,9 +276,12 @@ int test_build_nav_grid_empty_world() {
 int test_build_nav_grid_single_wall() {
     std::vector<ahamkara::game::ColliderBox> colliders;
     ahamkara::game::ColliderBox wall;
-    wall.min_x = -2.0F; wall.max_x = 2.0F;
-    wall.min_z = -0.5F; wall.max_z = 0.5F;
-    wall.top_y = 2.0F; wall.bottom_y = 0.0F;
+    wall.min_x = -2.0F;
+    wall.max_x = 2.0F;
+    wall.min_z = -0.5F;
+    wall.max_z = 0.5F;
+    wall.top_y = 2.0F;
+    wall.bottom_y = 0.0F;
     wall.wall = true;
     colliders.push_back(wall);
 
@@ -300,7 +305,8 @@ int test_build_nav_grid_single_wall() {
                 break;
             }
         }
-        if (found_blocked) break;
+        if (found_blocked)
+            break;
     }
     if (!found_blocked) {
         return fail("wall should produce blocked grid cells");
@@ -311,10 +317,13 @@ int test_build_nav_grid_single_wall() {
 int test_build_nav_grid_non_wall_ignored() {
     std::vector<ahamkara::game::ColliderBox> colliders;
     ahamkara::game::ColliderBox floor;
-    floor.min_x = -10.0F; floor.max_x = 10.0F;
-    floor.min_z = -10.0F; floor.max_z = 10.0F;
-    floor.top_y = 0.3F; floor.bottom_y = 0.0F;
-    floor.wall = false;  // not a wall — should not affect nav grid
+    floor.min_x = -10.0F;
+    floor.max_x = 10.0F;
+    floor.min_z = -10.0F;
+    floor.max_z = 10.0F;
+    floor.top_y = 0.3F;
+    floor.bottom_y = 0.0F;
+    floor.wall = false; // not a wall — should not affect nav grid
     colliders.push_back(floor);
 
     auto result = build_nav_grid_from_world(colliders, 1.0F, 0.0F);
@@ -330,7 +339,7 @@ int test_build_nav_grid_non_wall_ignored() {
 
 int test_movement_idle() {
     NavGrid grid(3, 3);
-    NavSpace space{1.0F, 0.0F, 0.0F};
+    NavSpace space {1.0F, 0.0F, 0.0F};
 
     AICombatantComponent comp;
     comp.position_2d = {1.5F, 1.5F};
@@ -351,7 +360,7 @@ int test_movement_idle() {
 int test_movement_investigate() {
     // Build a simple grid
     NavGrid grid(5, 5);
-    NavSpace space{1.0F, 0.0F, 0.0F};
+    NavSpace space {1.0F, 0.0F, 0.0F};
 
     AICombatantComponent comp;
     comp.position_2d = {0.5F, 0.5F};
@@ -377,7 +386,7 @@ int test_movement_investigate() {
 
 int test_movement_patrol() {
     NavGrid grid(5, 5);
-    NavSpace space{1.0F, 0.0F, 0.0F};
+    NavSpace space {1.0F, 0.0F, 0.0F};
 
     AICombatantComponent comp;
     comp.position_2d = {0.5F, 0.5F};
@@ -405,13 +414,13 @@ int test_movement_patrol() {
 
 int test_movement_retreat() {
     NavGrid grid(3, 3);
-    NavSpace space{1.0F, 0.0F, 0.0F};
+    NavSpace space {1.0F, 0.0F, 0.0F};
 
     AICombatantComponent comp;
     comp.position_2d = {1.5F, 1.5F};
     comp.behavior = BehaviorState::Retreat;
     comp.cfg.move_speed = 3.0F;
-    comp.target_world_pos = {0.5F, 0.0F, 0.5F};  // Target at origin
+    comp.target_world_pos = {0.5F, 0.0F, 0.5F}; // Target at origin
 
     update_ai_movement(comp, 1.0F / 60.0F, grid, space);
 
@@ -425,7 +434,7 @@ int test_movement_retreat() {
 int test_tick_ai_combatants_movement() {
     entt::registry registry;
     NavGrid grid(5, 5);
-    NavSpace space{1.0F, 0.0F, 0.0F};
+    NavSpace space {1.0F, 0.0F, 0.0F};
 
     // Create an AI combatant entity
     auto entity = registry.create();
@@ -440,8 +449,10 @@ int test_tick_ai_combatants_movement() {
     // First, plan the path directly to verify
     auto& check = registry.get<AICombatantComponent>(entity);
     bool path_ok = plan_ai_path(check, {4.5F, 4.5F}, grid, space);
-    if (!path_ok) return fail("path planning should succeed in open grid");
-    if (check.path_waypoints.empty()) return fail("path should have waypoints");
+    if (!path_ok)
+        return fail("path planning should succeed in open grid");
+    if (check.path_waypoints.empty())
+        return fail("path should have waypoints");
     // Clear and let the tick function re-plan
     check.path_waypoints.clear();
     check.path_waypoint_index = 0;
@@ -474,20 +485,34 @@ int main() {
     if (int r = test_los_clear_no_colliders(); r) return r;
     if (int r = test_los_blocked_by_wall(); r) return r;
     if (int r = test_apply_archetype(); r) return r;
-    if (int r = test_plan_path_straight_line(); r) return r;
-    if (int r = test_plan_path_blocked(); r) return r;
-    if (int r = test_plan_path_completely_blocked(); r) return r;
-    if (int r = test_plan_path_same_position(); r) return r;
-    if (int r = test_advance_along_path(); r) return r;
-    if (int r = test_advance_along_path_no_path(); r) return r;
-    if (int r = test_build_nav_grid_empty_world(); r) return r;
-    if (int r = test_build_nav_grid_single_wall(); r) return r;
-    if (int r = test_build_nav_grid_non_wall_ignored(); r) return r;
-    if (int r = test_movement_idle(); r) return r;
-    if (int r = test_movement_investigate(); r) return r;
-    if (int r = test_movement_patrol(); r) return r;
-    if (int r = test_movement_retreat(); r) return r;
-    if (int r = test_tick_ai_combatants_movement(); r) return r;
+    if (int r = test_plan_path_straight_line(); r)
+        return r;
+    if (int r = test_plan_path_blocked(); r)
+        return r;
+    if (int r = test_plan_path_completely_blocked(); r)
+        return r;
+    if (int r = test_plan_path_same_position(); r)
+        return r;
+    if (int r = test_advance_along_path(); r)
+        return r;
+    if (int r = test_advance_along_path_no_path(); r)
+        return r;
+    if (int r = test_build_nav_grid_empty_world(); r)
+        return r;
+    if (int r = test_build_nav_grid_single_wall(); r)
+        return r;
+    if (int r = test_build_nav_grid_non_wall_ignored(); r)
+        return r;
+    if (int r = test_movement_idle(); r)
+        return r;
+    if (int r = test_movement_investigate(); r)
+        return r;
+    if (int r = test_movement_patrol(); r)
+        return r;
+    if (int r = test_movement_retreat(); r)
+        return r;
+    if (int r = test_tick_ai_combatants_movement(); r)
+        return r;
     std::cout << "ai_combatant_tests passed\n";
     return 0;
 }

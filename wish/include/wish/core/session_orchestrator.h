@@ -42,7 +42,7 @@ struct LeaveRequest {
 
 struct LeaveResult {
     bool removed {false};
-    bool group_ended {false};       ///< true if the group is now empty/ended
+    bool group_ended {false}; ///< true if the group is now empty/ended
     std::string error_message {};
 };
 
@@ -176,7 +176,9 @@ class SessionOrchestrator {
     [[nodiscard]] wish::u32 active_count() const;
     [[nodiscard]] wish::u32 ended_count() const;
 
-    [[nodiscard]] const Config& config() const { return config_; }
+    [[nodiscard]] const Config& config() const {
+        return config_;
+    }
 
     // -- Enumeration --------------------------------------------------------
 

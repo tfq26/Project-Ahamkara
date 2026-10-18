@@ -117,9 +117,9 @@ struct AICombatantComponent {
     NavVec2 investigate_point {};
 
     // -- Movement / Pathfinding --
-    NavVec2 move_velocity {};           // Computed velocity from movement update
-    float move_speed_current {0.0F};    // Current effective movement speed
-    NavVec2 move_target {};             // Current pathfinding destination
+    NavVec2 move_velocity {};        // Computed velocity from movement update
+    float move_speed_current {0.0F}; // Current effective movement speed
+    NavVec2 move_target {};          // Current pathfinding destination
     static constexpr int kMaxPatrolWaypoints = 8;
     NavVec2 patrol_waypoints[kMaxPatrolWaypoints] {};
     int patrol_waypoint_count {0};

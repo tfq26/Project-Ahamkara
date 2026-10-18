@@ -16,11 +16,11 @@ Party::Party(wish::u64 party_id, const wish::NetAddress& leader_address, time_po
              wish::u32 max_members)
     : party_id_(party_id), max_members_(max_members), leader_address_(leader_address) {
     // Leader is automatically the first member
-    members_.push_back(PartyMember{leader_address,
-                                   leader_address.ip + ":" + std::to_string(leader_address.port),
-                                   PartyMemberState::Online,
-                                   now,
-                                   false});
+    members_.push_back(PartyMember {leader_address,
+                                    leader_address.ip + ":" + std::to_string(leader_address.port),
+                                    PartyMemberState::Online,
+                                    now,
+                                    false});
 }
 
 // ---------------------------------------------------------------------------
@@ -36,11 +36,11 @@ PartyMember* Party::add_member(const wish::NetAddress& addr, time_point now) {
         return nullptr;
     }
 
-    members_.push_back(PartyMember{addr,
-                                   addr.ip + ":" + std::to_string(addr.port),
-                                   PartyMemberState::Online,
-                                   now,
-                                   false});
+    members_.push_back(PartyMember {addr,
+                                    addr.ip + ":" + std::to_string(addr.port),
+                                    PartyMemberState::Online,
+                                    now,
+                                    false});
     return &members_.back();
 }
 

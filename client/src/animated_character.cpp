@@ -72,8 +72,8 @@ constexpr const char* kCharacterFragmentShader = R"(
 
 ae::skeleton::Skin make_skin(const ae::render::GltfModel& model) {
     return model.skins.empty()
-        ? ae::skeleton::Skin {}
-        : ae::render::to_skeleton_skin(model.skins.front());
+               ? ae::skeleton::Skin {}
+               : ae::render::to_skeleton_skin(model.skins.front());
 }
 
 std::vector<ae::skeleton::AnimationClipData> make_clips(
@@ -241,20 +241,20 @@ void AnimatedCharacter::set_motion(Motion motion) {
     }
     motion_ = motion;
     switch (motion_) {
-        case Motion::Idle:
-            animation_.stop();
-            pose_ = animation_.rest_pose();
-            animation_.pause(true);
-            break;
-        case Motion::Walk:
-            animation_.play("locomotion_walk", true);
-            break;
-        case Motion::Sprint:
-            animation_.play("locomotion_run", true);
-            break;
-        case Motion::Dance:
-            animation_.play("dance_charleston", true);
-            break;
+    case Motion::Idle:
+        animation_.stop();
+        pose_ = animation_.rest_pose();
+        animation_.pause(true);
+        break;
+    case Motion::Walk:
+        animation_.play("locomotion_walk", true);
+        break;
+    case Motion::Sprint:
+        animation_.play("locomotion_run", true);
+        break;
+    case Motion::Dance:
+        animation_.play("dance_charleston", true);
+        break;
     }
     if (motion_ != Motion::Idle) {
         pose_ = animation_.tick(0.0F);
@@ -306,8 +306,8 @@ void AnimatedCharacter::render_internal(
         // keeps the rifle as separate, authored dark-material meshes.
         if ((!use_skinning && mesh_index == 0) || is_primary_suit_material(mesh)) {
             const auto& appearance = appearance_ != nullptr
-                ? *appearance_
-                : CharacterCustomization {};
+                                         ? *appearance_
+                                         : CharacterCustomization {};
             backend_->set_uniform_vec3(
                 u_albedo_, appearance.suit_color_r, appearance.suit_color_g,
                 appearance.suit_color_b);

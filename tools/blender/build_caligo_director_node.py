@@ -17,7 +17,6 @@ from pathlib import Path
 import bpy
 from mathutils import Vector
 
-
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "assets" / "models"
 
@@ -226,7 +225,12 @@ def main():
         "PRESENTATION": link_collection("PRESENTATION"),
     }
 
-    scene.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in {item.identifier for item in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items} else "BLENDER_EEVEE"
+    scene.render.engine = (
+        "BLENDER_EEVEE_NEXT"
+        if "BLENDER_EEVEE_NEXT"
+        in {item.identifier for item in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items}
+        else "BLENDER_EEVEE"
+    )
     scene.render.resolution_x = 900
     scene.render.resolution_y = 600
     scene.render.resolution_percentage = 100
@@ -285,7 +289,9 @@ def main():
     fill.rotation_euler = (Vector((0, 0, 0)) - fill.location).to_track_quat("-Z", "Y").to_euler()
 
     scene["caligo_asset_role"] = "Compact Director destination node"
-    scene["caligo_reference_direction"] = "Compact orange-beige storm world with a clean planetary edge, label and activity markers"
+    scene["caligo_reference_direction"] = (
+        "Compact orange-beige storm world with a clean planetary edge, label and activity markers"
+    )
     OUT.mkdir(parents=True, exist_ok=True)
     blend_path = OUT / "caligo_director_node.blend"
     bpy.ops.wm.save_as_mainfile(filepath=str(blend_path))

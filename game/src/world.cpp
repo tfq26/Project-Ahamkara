@@ -474,7 +474,8 @@ void World::set_colliders(const ColliderBox* colliders, std::size_t count) {
 }
 
 bool World::load_colliders_from_level(const ae::render::LevelAsset& level) {
-    if (level.collision_boxes.empty() && level.collision_meshes.empty()) return false;
+    if (level.collision_boxes.empty() && level.collision_meshes.empty())
+        return false;
     std::vector<ColliderBox> boxes;
     boxes.reserve(level.collision_boxes.size());
     for (const auto& lcb : level.collision_boxes) {
@@ -552,23 +553,24 @@ bool World::load_colliders_from_level(const ae::render::LevelAsset& level) {
             const float rx_x = rz_x;
             const float rx_y = cp * rz_y - sp * rz_z;
             const float rx_z = sp * rz_y + cp * rz_z;
-            return ae::Vec3{
+            return ae::Vec3 {
                 cy * rx_x + sy * rx_z + collision_mesh.pos_x,
                 rx_y + collision_mesh.pos_y,
                 -sy * rx_x + cy * rx_z + collision_mesh.pos_z};
         };
         for (const auto& mesh : model.meshes) {
-            if (mesh.positions.size() < 3 || mesh.indices.size() < 3) continue;
+            if (mesh.positions.size() < 3 || mesh.indices.size() < 3)
+                continue;
             for (std::size_t i = 0; i + 2 < mesh.indices.size(); i += 3) {
                 const auto vertex = [&](std::uint32_t index) {
                     const std::size_t offset = static_cast<std::size_t>(index) * 3;
-                    if (offset + 2 >= mesh.positions.size()) return ae::Vec3{};
+                    if (offset + 2 >= mesh.positions.size())
+                        return ae::Vec3 {};
                     return transform(mesh.positions[offset] * collision_mesh.scale_x,
                                      mesh.positions[offset + 1] * collision_mesh.scale_y,
                                      mesh.positions[offset + 2] * collision_mesh.scale_z);
                 };
-                owned_collision_triangles_.push_back({
-                    vertex(mesh.indices[i]), vertex(mesh.indices[i + 1]), vertex(mesh.indices[i + 2])});
+                owned_collision_triangles_.push_back({vertex(mesh.indices[i]), vertex(mesh.indices[i + 1]), vertex(mesh.indices[i + 2])});
             }
         }
     }
@@ -1109,8 +1111,8 @@ ae::u32 World::get_player_deaths(ae::u32 index) const {
 // --- AI Combatant Management -------------------------------------------------
 
 entt::entity World::spawn_ai_combatant(const Vec3& position,
-                                        float yaw,
-                                        ai::CombatArchetype archetype) {
+                                       float yaw,
+                                       ai::CombatArchetype archetype) {
     auto entity = registry_.create();
     ai::AICombatantComponent comp;
     comp.combatant_id = static_cast<ae::u32>(entity);
@@ -1144,10 +1146,12 @@ void World::clear_ai_combatants() {
 }
 
 void World::set_ai_patrol_waypoints(entt::entity entity,
-                                     const ai::NavVec2* waypoints,
-                                     int count) {
-    if (entity == entt::null || !registry_.valid(entity)) return;
-    if (!registry_.all_of<ai::AICombatantComponent>(entity)) return;
+                                    const ai::NavVec2* waypoints,
+                                    int count) {
+    if (entity == entt::null || !registry_.valid(entity))
+        return;
+    if (!registry_.all_of<ai::AICombatantComponent>(entity))
+        return;
 
     auto& comp = registry_.get<ai::AICombatantComponent>(entity);
     const int n = std::min(count, ai::AICombatantComponent::kMaxPatrolWaypoints);

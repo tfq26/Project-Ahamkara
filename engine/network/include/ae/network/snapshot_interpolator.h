@@ -136,15 +136,14 @@ class SnapshotInterpolator {
             }
         }
 
-        if (older)
-            *out_older_snap = older->snapshot;
-        else
-            *out_older_snap = (newer ? newer->snapshot : Snapshot {});
+        // A non-finite target time can leave both brackets unset. Reject it
+        // without constructing a potentially large default Snapshot value.
+        if (older == nullptr && newer == nullptr) {
+            return false;
+        }
 
-        if (newer)
-            *out_newer_snap = newer->snapshot;
-        else
-            *out_newer_snap = (older ? older->snapshot : Snapshot {});
+        *out_older_snap = older != nullptr ? older->snapshot : newer->snapshot;
+        *out_newer_snap = newer != nullptr ? newer->snapshot : older->snapshot;
 
         return true;
     }

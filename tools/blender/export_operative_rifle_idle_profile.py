@@ -22,7 +22,6 @@ from pathlib import Path
 import bpy
 from mathutils import Matrix, Quaternion, Vector
 
-
 ASSET_NAME = "operative_human_rifle_idle_static"
 TARGET_RIG = "Ahamkara_Operative_GameRig"
 TARGET_MESH = "Ahamkara_Operative_Human_Base"
@@ -77,8 +76,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--out-dir", type=Path, default=Path("assets/models"))
-    parser.add_argument("--frame", type=int, default=20,
-                        help="A stable frame near the middle of the idle loop.")
+    parser.add_argument("--frame", type=int, default=20, help="A stable frame near the middle of the idle loop.")
     return parser.parse_args(argv)
 
 
@@ -130,10 +128,14 @@ def weapon_placement() -> Matrix:
     world_up = Vector((0.0, 0.0, 1.0))
     y_axis = world_up.cross(WEAPON_FORWARD).normalized()
     z_axis = WEAPON_FORWARD.cross(y_axis).normalized()
-    orientation = Matrix(((WEAPON_FORWARD.x, y_axis.x, z_axis.x, 0.0),
-                          (WEAPON_FORWARD.y, y_axis.y, z_axis.y, 0.0),
-                          (WEAPON_FORWARD.z, y_axis.z, z_axis.z, 0.0),
-                          (0.0, 0.0, 0.0, 1.0)))
+    orientation = Matrix(
+        (
+            (WEAPON_FORWARD.x, y_axis.x, z_axis.x, 0.0),
+            (WEAPON_FORWARD.y, y_axis.y, z_axis.y, 0.0),
+            (WEAPON_FORWARD.z, y_axis.z, z_axis.z, 0.0),
+            (0.0, 0.0, 0.0, 1.0),
+        )
+    )
     return Matrix.Translation(SHOULDER_CONTACT) @ orientation @ Matrix.Translation(-STOCK_SHOULDER)
 
 
@@ -147,16 +149,14 @@ def pose_rifle_ready(
     reset_pose(target)
     right_grip = placement @ (RIGHT_HAND_SOCKET + RIGHT_WRIST_FROM_GRIP)
     left_grip = placement @ (LEFT_HAND_SOCKET + LEFT_WRIST_FROM_GRIP)
-    for name, location in (("Profile Right Grip", right_grip),
-                           ("Profile Left Guard", left_grip)):
+    for name, location in (("Profile Right Grip", right_grip), ("Profile Left Guard", left_grip)):
         bpy.ops.object.empty_add(type="PLAIN_AXES", location=location)
         marker = bpy.context.object
         marker.name = name
         marker.empty_display_size = 0.04
         marker.hide_render = True
     bpy.context.view_layer.update()
-    for bone_name, marker_name in (("lowerarm_r", "Profile Right Grip"),
-                                   ("lowerarm_l", "Profile Left Guard")):
+    for bone_name, marker_name in (("lowerarm_r", "Profile Right Grip"), ("lowerarm_l", "Profile Left Guard")):
         bone = target.pose.bones[bone_name]
         constraint = bone.constraints.new("IK")
         constraint.target = bpy.data.objects[marker_name]
@@ -191,7 +191,8 @@ def add_presentation_rifle(placement: Matrix) -> list[bpy.types.Object]:
     before = set(bpy.context.scene.objects)
     bpy.ops.import_scene.gltf(filepath=str(CARBINE_ASSET.resolve()))
     rifle_parts = [
-        obj for obj in bpy.context.scene.objects
+        obj
+        for obj in bpy.context.scene.objects
         if obj not in before and obj.type == "MESH" and obj.name == "operative_carbine_tp"
     ]
     if len(rifle_parts) != 1:
@@ -210,6 +211,7 @@ def export(objects: list[bpy.types.Object], out_dir: Path) -> None:
     # node transforms.  Bake the presentation transforms so rifle placement is
     # identical in Blender and in the game.
     from mathutils import Matrix
+
     for obj in objects:
         obj.data.transform(obj.matrix_world)
         obj.matrix_world = Matrix.Identity(4)
@@ -221,8 +223,12 @@ def export(objects: list[bpy.types.Object], out_dir: Path) -> None:
     bpy.context.view_layer.objects.active = objects[0]
     bpy.ops.export_scene.gltf(
         filepath=str((out_dir / f"{ASSET_NAME}.gltf").resolve()),
-        export_format="GLTF_SEPARATE", use_selection=True, export_yup=True,
-        export_animations=False, export_skins=False, export_materials="EXPORT",
+        export_format="GLTF_SEPARATE",
+        use_selection=True,
+        export_yup=True,
+        export_animations=False,
+        export_skins=False,
+        export_materials="EXPORT",
     )
 
 

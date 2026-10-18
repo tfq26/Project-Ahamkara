@@ -192,20 +192,20 @@ ahamkara::game::CameraAnchor LocalPlaySimulation::get_interpolated_camera_anchor
     }
     const auto& curr = world_.get_camera_anchor();
     const auto& prev = previous_camera_anchor_;
-    
+
     ahamkara::game::CameraAnchor result;
     result.position = {
         prev.position.x + (curr.position.x - prev.position.x) * alpha,
         prev.position.y + (curr.position.y - prev.position.y) * alpha,
         prev.position.z + (curr.position.z - prev.position.z) * alpha
     };
-    
+
     float diff_yaw = ae::wrap_degrees(curr.yaw - prev.yaw);
     result.yaw = prev.yaw + diff_yaw * alpha;
-    
+
     float diff_pitch = ae::wrap_degrees(curr.pitch - prev.pitch);
     result.pitch = prev.pitch + diff_pitch * alpha;
-    
+
     return result;
 }
 
@@ -214,20 +214,20 @@ ahamkara::game::TargetDummyState LocalPlaySimulation::get_interpolated_dummy(int
     if (!has_previous_state_ || idx < 0 || idx >= ahamkara::game::World::kMaxDummies) {
         return curr_dummies[idx];
     }
-    
+
     const auto& curr = curr_dummies[idx];
     const auto& prev = previous_dummies_[idx];
-    
+
     ahamkara::game::TargetDummyState result = curr;
     result.position = {
         prev.position.x + (curr.position.x - prev.position.x) * alpha,
         prev.position.y + (curr.position.y - prev.position.y) * alpha,
         prev.position.z + (curr.position.z - prev.position.z) * alpha
     };
-    
+
     float diff_yaw = ae::wrap_degrees(curr.yaw - prev.yaw);
     result.yaw = prev.yaw + diff_yaw * alpha;
-    
+
     return result;
 }
 

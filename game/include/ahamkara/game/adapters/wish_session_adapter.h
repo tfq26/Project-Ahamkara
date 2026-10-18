@@ -97,7 +97,9 @@ class WishSessionAdapter {
     SessionRouting resolve_routing(const wish::NetAddress& address) const;
 
     /// Return the number of admitted (active) sessions.
-    std::size_t active_session_count() const { return sessions_.size(); }
+    std::size_t active_session_count() const {
+        return sessions_.size();
+    }
 
     // -----------------------------------------------------------------------
     // Input routing — from Wish envelope to activity
@@ -128,7 +130,9 @@ class WishSessionAdapter {
     // Tick — advance all activities
     // -----------------------------------------------------------------------
 
-    void tick_all(float dt) { activity_mgr_.tick_all(dt); }
+    void tick_all(float dt) {
+        activity_mgr_.tick_all(dt);
+    }
 
     // -----------------------------------------------------------------------
     // Disconnect / reconnect — stale-identity guard
@@ -162,15 +166,19 @@ class WishSessionAdapter {
     // Service access
     // -----------------------------------------------------------------------
 
-    wish::core::ActivityManager& activity_manager() { return activity_mgr_; }
-    const wish::core::ActivityManager& activity_manager() const { return activity_mgr_; }
+    wish::core::ActivityManager& activity_manager() {
+        return activity_mgr_;
+    }
+    const wish::core::ActivityManager& activity_manager() const {
+        return activity_mgr_;
+    }
 
     /// Build an ErrorEnvelope for protocol mismatch or service failure.
     static wish::ErrorEnvelope make_protocol_error(wish::WishErrorCode code,
-                                                    const std::string& incident_id = {});
+                                                   const std::string& incident_id = {});
 
     static wish::ErrorEnvelope make_service_error(wish::WishErrorCode code,
-                                                   const std::string& incident_id = {});
+                                                  const std::string& incident_id = {});
 
   private:
     // ── Internal session tracking ──────────────────────────────────────
@@ -181,8 +189,8 @@ class WishSessionAdapter {
         std::string player_id;
         bool admitted {false};
         time_point admitted_at {};
-        time_point disconnected_at {};   // zero == still connected
-        std::string identity_token;       // stable identity for reconnect guard
+        time_point disconnected_at {}; // zero == still connected
+        std::string identity_token;    // stable identity for reconnect guard
     };
 
     struct AddressEntry {
@@ -211,7 +219,7 @@ class WishSessionAdapter {
     std::vector<AddressEntry> address_map_;
 
     // Grace period for reconnection
-    clock::duration grace_period_{std::chrono::seconds(10)};
+    clock::duration grace_period_ {std::chrono::seconds(10)};
 };
 
-}  // namespace ahamkara::game::adapters
+} // namespace ahamkara::game::adapters

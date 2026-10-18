@@ -20,7 +20,6 @@ from pathlib import Path
 
 import bpy
 
-
 SOURCE_MESH = "Ahamkara_Operative_Human_Base"
 ASSET_NAME = "operative_human_profile_static"
 

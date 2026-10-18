@@ -42,7 +42,9 @@ def reset_scene() -> None:
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
 
-def make_armature(name: str, bones: dict[str, tuple[tuple[float, float, float], tuple[float, float, float], str | None]]):
+def make_armature(
+    name: str, bones: dict[str, tuple[tuple[float, float, float], tuple[float, float, float], str | None]]
+):
     bpy.ops.object.armature_add(enter_editmode=True, location=(0.0, 0.0, 0.0))
     armature = bpy.context.object
     armature.name = name
@@ -303,7 +305,7 @@ def build_enemy(out_dir: Path) -> None:
 def parse_args(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("--out_dir", default="assets/models")
-    return parser.parse_args(argv[argv.index("--") + 1:] if "--" in argv else argv[1:])
+    return parser.parse_args(argv[argv.index("--") + 1 :] if "--" in argv else argv[1:])
 
 
 def main(argv) -> int:

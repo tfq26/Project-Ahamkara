@@ -98,11 +98,11 @@ void test_game_module_api_version() {
                   "GameModule API must be self-compatible");
 
     // Compatible: consumer minor <= producer minor
-    static_assert(ae::GameModuleApiVersion{1, 0, 0}.is_compatible_with({1, 0, 0}));
-    static_assert(ae::GameModuleApiVersion{1, 0, 0}.is_compatible_with({1, 1, 0}));
+    static_assert(ae::GameModuleApiVersion {1, 0, 0}.is_compatible_with({1, 0, 0}));
+    static_assert(ae::GameModuleApiVersion {1, 0, 0}.is_compatible_with({1, 1, 0}));
 
     // Incompatible: major mismatch
-    static_assert(!ae::GameModuleApiVersion{2, 0, 0}.is_compatible_with({1, 0, 0}));
+    static_assert(!ae::GameModuleApiVersion {2, 0, 0}.is_compatible_with({1, 0, 0}));
 
     std::cout << "test_game_module_api_version: ok\n";
 }
@@ -120,7 +120,7 @@ void test_network_clock() {
     std::cout << "test_network_clock: skipped (ae_network not linked in this target)\n";
 }
 
-}  // anonymous namespace
+} // anonymous namespace
 
 int main() {
     test_abi_version_constants();

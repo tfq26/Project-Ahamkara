@@ -112,7 +112,9 @@ class Party {
     // -- Identity -------------------------------------------------------------
 
     /// Return the unique party identifier.
-    [[nodiscard]] wish::u64 party_id() const { return party_id_; }
+    [[nodiscard]] wish::u64 party_id() const {
+        return party_id_;
+    }
 
     // -- Enumeration ----------------------------------------------------------
 

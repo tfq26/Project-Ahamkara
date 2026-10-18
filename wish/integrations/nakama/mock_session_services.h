@@ -12,7 +12,7 @@ namespace wish::integrations::nakama {
 /// process is not running in development mode.  Clients receive a stable
 /// WS-AUT-1001 error and must be configured with a real auth backend.
 class DenyAllAuthValidator final : public wish::core::AuthValidator {
-public:
+  public:
     [[nodiscard]] wish::core::AuthResult validate(const wish::core::AuthRequest&) const override {
         wish::core::AuthResult result {};
         result.accepted = false;

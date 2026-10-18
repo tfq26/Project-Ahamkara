@@ -331,7 +331,7 @@ bool plan_ai_path(AICombatantComponent& self,
 
     self.path_waypoints = grid_path_to_waypoints(
         cell_path, space.cell_size,
-        NavVec2{space.origin_x, space.origin_z});
+        NavVec2 {space.origin_x, space.origin_z});
     // Snap last waypoint to exact goal
     if (!self.path_waypoints.empty()) {
         self.path_waypoints.back() = goal_world;
@@ -350,7 +350,8 @@ void advance_along_path(AICombatantComponent& self,
     }
 
     float budget = speed * dt;
-    if (budget < 0.0F) budget = 0.0F;
+    if (budget < 0.0F)
+        budget = 0.0F;
 
     NavVec2 pos = self.position_2d;
 
@@ -407,7 +408,7 @@ NavGridBuildResult build_nav_grid_from_world(
     if (colliders.empty()) {
         // Return a minimal grid (1x1) when there are no colliders
         NavGrid grid(1, 1);
-        return {std::move(grid), NavSpace{cell_size, 0.0F, 0.0F}};
+        return {std::move(grid), NavSpace {cell_size, 0.0F, 0.0F}};
     }
 
     // Compute world-space bounding box of all colliders
@@ -417,7 +418,8 @@ NavGridBuildResult build_nav_grid_from_world(
     float max_z = -std::numeric_limits<float>::infinity();
 
     for (const auto& c : colliders) {
-        if (!c.wall) continue;
+        if (!c.wall)
+            continue;
         min_x = std::min(min_x, std::min(c.min_x, c.max_x));
         max_x = std::max(max_x, std::max(c.min_x, c.max_x));
         min_z = std::min(min_z, std::min(c.min_z, c.max_z));
@@ -427,7 +429,7 @@ NavGridBuildResult build_nav_grid_from_world(
     // If no wall colliders, return a minimal grid
     if (!std::isfinite(min_x)) {
         NavGrid grid(1, 1);
-        return {std::move(grid), NavSpace{cell_size, 0.0F, 0.0F}};
+        return {std::move(grid), NavSpace {cell_size, 0.0F, 0.0F}};
     }
 
     // Expand by margin
@@ -445,7 +447,8 @@ NavGridBuildResult build_nav_grid_from_world(
     std::vector<NavAABB> blockers;
     blockers.reserve(colliders.size());
     for (const auto& c : colliders) {
-        if (!c.wall) continue;
+        if (!c.wall)
+            continue;
         blockers.push_back({std::min(c.min_x, c.max_x),
                             std::min(c.min_z, c.max_z),
                             std::max(c.min_x, c.max_x),
@@ -453,7 +456,7 @@ NavGridBuildResult build_nav_grid_from_world(
     }
 
     NavGrid grid = build_nav_grid(grid_w, grid_h, cell_size, min_x, min_z, blockers);
-    NavSpace space{cell_size, min_x, min_z};
+    NavSpace space {cell_size, min_x, min_z};
     return {std::move(grid), space};
 }
 
@@ -470,226 +473,226 @@ void update_ai_movement(AICombatantComponent& self,
     const float speed = self.cfg.move_speed;
 
     switch (self.behavior) {
-        case BehaviorState::Idle:
-            // Stand still
+    case BehaviorState::Idle:
+        // Stand still
+        self.move_velocity = {0.0F, 0.0F};
+        self.move_speed_current = 0.0F;
+        self.path_waypoints.clear();
+        self.path_waypoint_index = 0;
+        break;
+
+    case BehaviorState::Patrol: {
+        if (self.patrol_waypoint_count == 0) {
+            // No patrol waypoints defined; stand still
             self.move_velocity = {0.0F, 0.0F};
             self.move_speed_current = 0.0F;
+            break;
+        }
+
+        // Wait at current patrol point if timer is active
+        if (self.patrol_wait_timer > 0.0F) {
+            self.patrol_wait_timer -= delta_seconds;
+            self.move_velocity = {0.0F, 0.0F};
+            self.move_speed_current = 0.0F;
+            break;
+        }
+
+        const NavVec2& target_wp = self.patrol_waypoints[self.patrol_index];
+        const float dx = target_wp.x - self.position_2d.x;
+        const float dy = target_wp.y - self.position_2d.y;
+        const float dist = std::sqrt(dx * dx + dy * dy);
+
+        if (dist < 1.0F) {
+            // Reached waypoint; advance to next
+            self.patrol_index = (self.patrol_index + 1) % self.patrol_waypoint_count;
+            self.patrol_wait_timer = 2.0F; // Wait 2 seconds at each patrol point
             self.path_waypoints.clear();
             self.path_waypoint_index = 0;
-            break;
-
-        case BehaviorState::Patrol: {
-            if (self.patrol_waypoint_count == 0) {
-                // No patrol waypoints defined; stand still
-                self.move_velocity = {0.0F, 0.0F};
-                self.move_speed_current = 0.0F;
-                break;
-            }
-
-            // Wait at current patrol point if timer is active
-            if (self.patrol_wait_timer > 0.0F) {
-                self.patrol_wait_timer -= delta_seconds;
-                self.move_velocity = {0.0F, 0.0F};
-                self.move_speed_current = 0.0F;
-                break;
-            }
-
-            const NavVec2& target_wp = self.patrol_waypoints[self.patrol_index];
-            const float dx = target_wp.x - self.position_2d.x;
-            const float dy = target_wp.y - self.position_2d.y;
-            const float dist = std::sqrt(dx * dx + dy * dy);
-
-            if (dist < 1.0F) {
-                // Reached waypoint; advance to next
-                self.patrol_index = (self.patrol_index + 1) % self.patrol_waypoint_count;
-                self.patrol_wait_timer = 2.0F;  // Wait 2 seconds at each patrol point
-                self.path_waypoints.clear();
-                self.path_waypoint_index = 0;
-                self.move_velocity = {0.0F, 0.0F};
-                self.move_speed_current = 0.0F;
-                break;
-            }
-
-            // Plan path if needed
-            if (self.path_waypoints.empty() || self.path_waypoint_index >= static_cast<int>(self.path_waypoints.size())) {
-                (void)plan_ai_path(self, target_wp, grid, space);
-            }
-
-            if (!self.path_waypoints.empty()) {
-                advance_along_path(self, speed, delta_seconds);
-            } else {
-                // Fallback: direct movement toward waypoint
-                const float inv_dist = 1.0F / std::max(dist, 0.01F);
-                const float step = speed * delta_seconds;
-                const float move = std::min(step, dist);
-                self.position_2d.x += (dx * inv_dist) * move;
-                self.position_2d.y += (dy * inv_dist) * move;
-                self.move_velocity = {(dx * inv_dist) * speed, (dy * inv_dist) * speed};
-                self.move_speed_current = speed;
-            }
-            break;
-        }
-
-        case BehaviorState::Alert:
-            // Standing alert — minimal movement, just scanning
             self.move_velocity = {0.0F, 0.0F};
             self.move_speed_current = 0.0F;
             break;
+        }
 
-        case BehaviorState::Investigate: {
-            const NavVec2 target{self.investigate_point.x, self.investigate_point.y};
-            const float dx = target.x - self.position_2d.x;
-            const float dy = target.y - self.position_2d.y;
-            const float dist = std::sqrt(dx * dx + dy * dy);
+        // Plan path if needed
+        if (self.path_waypoints.empty() || self.path_waypoint_index >= static_cast<int>(self.path_waypoints.size())) {
+            (void)plan_ai_path(self, target_wp, grid, space);
+        }
 
-            if (dist < 0.5F) {
-                // Arrived at investigation point
-                self.move_velocity = {0.0F, 0.0F};
-                self.move_speed_current = 0.0F;
-                self.path_waypoints.clear();
-                break;
-            }
+        if (!self.path_waypoints.empty()) {
+            advance_along_path(self, speed, delta_seconds);
+        } else {
+            // Fallback: direct movement toward waypoint
+            const float inv_dist = 1.0F / std::max(dist, 0.01F);
+            const float step = speed * delta_seconds;
+            const float move = std::min(step, dist);
+            self.position_2d.x += (dx * inv_dist) * move;
+            self.position_2d.y += (dy * inv_dist) * move;
+            self.move_velocity = {(dx * inv_dist) * speed, (dy * inv_dist) * speed};
+            self.move_speed_current = speed;
+        }
+        break;
+    }
 
-            // Plan path if needed
-            if (self.path_waypoints.empty() || self.path_waypoint_index >= static_cast<int>(self.path_waypoints.size())) {
-                (void)plan_ai_path(self, target, grid, space);
+    case BehaviorState::Alert:
+        // Standing alert — minimal movement, just scanning
+        self.move_velocity = {0.0F, 0.0F};
+        self.move_speed_current = 0.0F;
+        break;
+
+    case BehaviorState::Investigate: {
+        const NavVec2 target {self.investigate_point.x, self.investigate_point.y};
+        const float dx = target.x - self.position_2d.x;
+        const float dy = target.y - self.position_2d.y;
+        const float dist = std::sqrt(dx * dx + dy * dy);
+
+        if (dist < 0.5F) {
+            // Arrived at investigation point
+            self.move_velocity = {0.0F, 0.0F};
+            self.move_speed_current = 0.0F;
+            self.path_waypoints.clear();
+            break;
+        }
+
+        // Plan path if needed
+        if (self.path_waypoints.empty() || self.path_waypoint_index >= static_cast<int>(self.path_waypoints.size())) {
+            (void)plan_ai_path(self, target, grid, space);
+        }
+
+        if (!self.path_waypoints.empty()) {
+            advance_along_path(self, speed, delta_seconds);
+        } else {
+            // Fallback: direct movement
+            const float inv_dist = 1.0F / std::max(dist, 0.01F);
+            const float step = speed * delta_seconds;
+            const float move = std::min(step, dist);
+            self.position_2d.x += (dx * inv_dist) * move;
+            self.position_2d.y += (dy * inv_dist) * move;
+            self.move_velocity = {(dx * inv_dist) * speed, (dy * inv_dist) * speed};
+            self.move_speed_current = speed;
+        }
+        break;
+    }
+
+    case BehaviorState::Engage: {
+        // During engagement, move toward/away from target to maintain ideal range
+        const float dx_target = self.target_world_pos.x - self.position_2d.x;
+        const float dy_target = self.target_world_pos.z - self.position_2d.y;
+        const float dist = std::sqrt(dx_target * dx_target + dy_target * dy_target);
+
+        if (dist < self.cfg.engage_range_min) {
+            // Too close — back up
+            const float inv_dist = 1.0F / std::max(dist, 0.01F);
+            const float step = speed * 0.5F * delta_seconds;
+            self.position_2d.x -= (dx_target * inv_dist) * step;
+            self.position_2d.y -= (dy_target * inv_dist) * step;
+            self.move_velocity = {-(dx_target * inv_dist) * speed * 0.5F,
+                                  -(dy_target * inv_dist) * speed * 0.5F};
+            self.move_speed_current = speed * 0.5F;
+        } else if (dist > self.cfg.engage_range_max) {
+            // Too far — move closer
+            const float inv_dist = 1.0F / std::max(dist, 0.01F);
+            const float step = speed * delta_seconds;
+            NavVec2 goal {self.target_world_pos.x, self.target_world_pos.z};
+
+            // Plan path toward target
+            if (self.path_waypoints.empty()) {
+                (void)plan_ai_path(self, goal, grid, space);
             }
 
             if (!self.path_waypoints.empty()) {
                 advance_along_path(self, speed, delta_seconds);
             } else {
-                // Fallback: direct movement
-                const float inv_dist = 1.0F / std::max(dist, 0.01F);
-                const float step = speed * delta_seconds;
                 const float move = std::min(step, dist);
-                self.position_2d.x += (dx * inv_dist) * move;
-                self.position_2d.y += (dy * inv_dist) * move;
-                self.move_velocity = {(dx * inv_dist) * speed, (dy * inv_dist) * speed};
+                self.position_2d.x += (dx_target * inv_dist) * move;
+                self.position_2d.y += (dy_target * inv_dist) * move;
+                self.move_velocity = {(dx_target * inv_dist) * speed,
+                                      (dy_target * inv_dist) * speed};
                 self.move_speed_current = speed;
             }
-            break;
-        }
-
-        case BehaviorState::Engage: {
-            // During engagement, move toward/away from target to maintain ideal range
-            const float dx_target = self.target_world_pos.x - self.position_2d.x;
-            const float dy_target = self.target_world_pos.z - self.position_2d.y;
-            const float dist = std::sqrt(dx_target * dx_target + dy_target * dy_target);
-
-            if (dist < self.cfg.engage_range_min) {
-                // Too close — back up
-                const float inv_dist = 1.0F / std::max(dist, 0.01F);
-                const float step = speed * 0.5F * delta_seconds;
-                self.position_2d.x -= (dx_target * inv_dist) * step;
-                self.position_2d.y -= (dy_target * inv_dist) * step;
-                self.move_velocity = {-(dx_target * inv_dist) * speed * 0.5F,
-                                       -(dy_target * inv_dist) * speed * 0.5F};
-                self.move_speed_current = speed * 0.5F;
-            } else if (dist > self.cfg.engage_range_max) {
-                // Too far — move closer
-                const float inv_dist = 1.0F / std::max(dist, 0.01F);
-                const float step = speed * delta_seconds;
-                NavVec2 goal{self.target_world_pos.x, self.target_world_pos.z};
-
-                // Plan path toward target
-                if (self.path_waypoints.empty()) {
-                    (void)plan_ai_path(self, goal, grid, space);
-                }
-
-                if (!self.path_waypoints.empty()) {
-                    advance_along_path(self, speed, delta_seconds);
-                } else {
-                    const float move = std::min(step, dist);
-                    self.position_2d.x += (dx_target * inv_dist) * move;
-                    self.position_2d.y += (dy_target * inv_dist) * move;
-                    self.move_velocity = {(dx_target * inv_dist) * speed,
-                                           (dy_target * inv_dist) * speed};
-                    self.move_speed_current = speed;
-                }
-            } else {
-                // In ideal range — strafe slightly
-                const float dx = self.target_world_pos.x - self.position_2d.x;
-                const float dz = self.target_world_pos.z - self.position_2d.y;
-                const float d = std::sqrt(dx * dx + dz * dz);
-                if (d > 0.1F) {
-                    // Perpendicular to target direction (strafe)
-                    const float nx = -dz / d;  // Perpendicular direction
-                    const float nz = dx / d;
-                    const float strafe = std::sin(self.state_timer * 0.5F) * 0.3F;
-                    self.position_2d.x += nx * strafe * speed * delta_seconds;
-                    self.position_2d.y += nz * strafe * speed * delta_seconds;
-                    self.move_velocity = {nx * strafe * speed, nz * strafe * speed};
-                    self.move_speed_current = std::abs(strafe) * speed;
-                }
-                self.path_waypoints.clear();
-            }
-            break;
-        }
-
-        case BehaviorState::Flank: {
-            // Move perpendicular to target, then toward flank position
+        } else {
+            // In ideal range — strafe slightly
             const float dx = self.target_world_pos.x - self.position_2d.x;
             const float dz = self.target_world_pos.z - self.position_2d.y;
-            const float dist = std::sqrt(dx * dx + dz * dz);
-
-            // Compute flank offset (move 90 degrees around the target)
-            const float flank_angle = std::atan2(dz, dx) + 1.2F;  // ~69 degrees
-            const float flank_dist = 12.0F;
-            const NavVec2 flank_pos{
-                self.target_world_pos.x + std::cos(flank_angle) * flank_dist,
-                self.target_world_pos.z + std::sin(flank_angle) * flank_dist};
-
-            const float fdx = flank_pos.x - self.position_2d.x;
-            const float fdy = flank_pos.y - self.position_2d.y;
-            const float fdist = std::sqrt(fdx * fdx + fdy * fdy);
-
-            if (fdist < 2.0F) {
-                // At flank position
-                self.move_velocity = {0.0F, 0.0F};
-                self.move_speed_current = 0.0F;
-                self.path_waypoints.clear();
-                break;
+            const float d = std::sqrt(dx * dx + dz * dz);
+            if (d > 0.1F) {
+                // Perpendicular to target direction (strafe)
+                const float nx = -dz / d; // Perpendicular direction
+                const float nz = dx / d;
+                const float strafe = std::sin(self.state_timer * 0.5F) * 0.3F;
+                self.position_2d.x += nx * strafe * speed * delta_seconds;
+                self.position_2d.y += nz * strafe * speed * delta_seconds;
+                self.move_velocity = {nx * strafe * speed, nz * strafe * speed};
+                self.move_speed_current = std::abs(strafe) * speed;
             }
-
-            if (self.path_waypoints.empty()) {
-                (void)plan_ai_path(self, flank_pos, grid, space);
-            }
-
-            if (!self.path_waypoints.empty()) {
-                advance_along_path(self, speed * 1.2F, delta_seconds);  // Flank faster
-            } else {
-                const float inv_dist = 1.0F / std::max(fdist, 0.01F);
-                const float step = speed * 1.2F * delta_seconds;
-                const float move = std::min(step, fdist);
-                self.position_2d.x += (fdx * inv_dist) * move;
-                self.position_2d.y += (fdy * inv_dist) * move;
-                self.move_velocity = {(fdx * inv_dist) * speed * 1.2F,
-                                       (fdy * inv_dist) * speed * 1.2F};
-                self.move_speed_current = speed * 1.2F;
-            }
-            break;
+            self.path_waypoints.clear();
         }
+        break;
+    }
 
-        case BehaviorState::Retreat: {
-            // Move away from target (toward spawn/origin)
-            const float dx = self.position_2d.x - self.target_world_pos.x;
-            const float dy = self.position_2d.y - self.target_world_pos.z;
-            const float dist = std::sqrt(dx * dx + dy * dy);
-            if (dist > 0.1F) {
-                const float inv_dist = 1.0F / dist;
-                const float step = speed * 0.7F * delta_seconds;  // Slower when retreating
-                self.position_2d.x += (dx * inv_dist) * step;
-                self.position_2d.y += (dy * inv_dist) * step;
-                self.move_velocity = {(dx * inv_dist) * speed * 0.7F,
-                                       (dy * inv_dist) * speed * 0.7F};
-                self.move_speed_current = speed * 0.7F;
-            } else {
-                self.move_velocity = {0.0F, 0.0F};
-                self.move_speed_current = 0.0F;
-            }
+    case BehaviorState::Flank: {
+        // Move perpendicular to target, then toward flank position
+        const float dx = self.target_world_pos.x - self.position_2d.x;
+        const float dz = self.target_world_pos.z - self.position_2d.y;
+        const float dist = std::sqrt(dx * dx + dz * dz);
+
+        // Compute flank offset (move 90 degrees around the target)
+        const float flank_angle = std::atan2(dz, dx) + 1.2F; // ~69 degrees
+        const float flank_dist = 12.0F;
+        const NavVec2 flank_pos {
+            self.target_world_pos.x + std::cos(flank_angle) * flank_dist,
+            self.target_world_pos.z + std::sin(flank_angle) * flank_dist};
+
+        const float fdx = flank_pos.x - self.position_2d.x;
+        const float fdy = flank_pos.y - self.position_2d.y;
+        const float fdist = std::sqrt(fdx * fdx + fdy * fdy);
+
+        if (fdist < 2.0F) {
+            // At flank position
+            self.move_velocity = {0.0F, 0.0F};
+            self.move_speed_current = 0.0F;
             self.path_waypoints.clear();
             break;
         }
+
+        if (self.path_waypoints.empty()) {
+            (void)plan_ai_path(self, flank_pos, grid, space);
+        }
+
+        if (!self.path_waypoints.empty()) {
+            advance_along_path(self, speed * 1.2F, delta_seconds); // Flank faster
+        } else {
+            const float inv_dist = 1.0F / std::max(fdist, 0.01F);
+            const float step = speed * 1.2F * delta_seconds;
+            const float move = std::min(step, fdist);
+            self.position_2d.x += (fdx * inv_dist) * move;
+            self.position_2d.y += (fdy * inv_dist) * move;
+            self.move_velocity = {(fdx * inv_dist) * speed * 1.2F,
+                                  (fdy * inv_dist) * speed * 1.2F};
+            self.move_speed_current = speed * 1.2F;
+        }
+        break;
+    }
+
+    case BehaviorState::Retreat: {
+        // Move away from target (toward spawn/origin)
+        const float dx = self.position_2d.x - self.target_world_pos.x;
+        const float dy = self.position_2d.y - self.target_world_pos.z;
+        const float dist = std::sqrt(dx * dx + dy * dy);
+        if (dist > 0.1F) {
+            const float inv_dist = 1.0F / dist;
+            const float step = speed * 0.7F * delta_seconds; // Slower when retreating
+            self.position_2d.x += (dx * inv_dist) * step;
+            self.position_2d.y += (dy * inv_dist) * step;
+            self.move_velocity = {(dx * inv_dist) * speed * 0.7F,
+                                  (dy * inv_dist) * speed * 0.7F};
+            self.move_speed_current = speed * 0.7F;
+        } else {
+            self.move_velocity = {0.0F, 0.0F};
+            self.move_speed_current = 0.0F;
+        }
+        self.path_waypoints.clear();
+        break;
+    }
     }
 }
 
@@ -700,7 +703,8 @@ void tick_ai_combatants_movement(entt::registry& registry,
     auto view = registry.view<AICombatantComponent>();
     for (auto entity : view) {
         auto& self = view.get<AICombatantComponent>(entity);
-        if (!self.alive) continue;
+        if (!self.alive)
+            continue;
 
         // Update 2D position from 3D position before movement
         if (registry.all_of<TransformComponent>(entity)) {

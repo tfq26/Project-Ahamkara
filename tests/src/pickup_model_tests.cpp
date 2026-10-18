@@ -16,7 +16,7 @@ using namespace ahamkara::game;
 // ===================================================================
 
 void test_grant_id_default() {
-    GrantId id{};
+    GrantId id {};
     assert(id.source_id == 0);
     assert(id.play_session_id == 0);
     assert(id.sequence == 0);
@@ -47,7 +47,7 @@ void test_grant_id_from_string_malformed() {
 }
 
 void test_grant_id_equality() {
-    GrantId a{};
+    GrantId a {};
     a.source_id = 10;
     a.play_session_id = 5;
     a.sequence = 3;
@@ -81,7 +81,7 @@ void test_reward_grant_valid() {
 
 void test_reward_grant_invalid_type() {
     RewardGrant grant;
-    grant.type = PickupType::Count;  // sentinel — not a real pickup
+    grant.type = PickupType::Count; // sentinel — not a real pickup
     grant.quantity = 10.0F;
     assert(!grant.is_valid());
     std::cout << "test_reward_grant_invalid_type passed.\n";
@@ -108,7 +108,7 @@ void test_reward_grant_negative_quantity() {
 // ===================================================================
 
 void test_inventory_default_state() {
-    Inventory inv{};
+    Inventory inv {};
     assert(inv.weapons().empty());
     assert(inv.armor().empty());
     assert(inv.perks().empty());
@@ -123,7 +123,7 @@ void test_inventory_default_state() {
 }
 
 void test_inventory_reset() {
-    Inventory inv{};
+    Inventory inv {};
     inv.set_current_health(50.0F);
     inv.set_currency(999);
     inv.add_weapon({1, 1, false, 100});
@@ -136,7 +136,7 @@ void test_inventory_reset() {
 }
 
 void test_inventory_weapon_management() {
-    Inventory inv{};
+    Inventory inv {};
 
     // Add weapons until full
     for (ae::u32 i = 1; i <= InventoryLimits::kMaxWeaponSlots; ++i) {
@@ -158,12 +158,12 @@ void test_inventory_weapon_management() {
     // Remove
     assert(inv.remove_weapon(1));
     assert(!inv.has_weapon(1));
-    assert(!inv.weapons_full());  // now one free slot
+    assert(!inv.weapons_full()); // now one free slot
     std::cout << "test_inventory_weapon_management passed.\n";
 }
 
 void test_inventory_armor_management() {
-    Inventory inv{};
+    Inventory inv {};
 
     for (ae::u32 i = 1; i <= InventoryLimits::kMaxArmorSlots; ++i) {
         InventoryEntry entry;
@@ -183,7 +183,7 @@ void test_inventory_armor_management() {
 }
 
 void test_inventory_perk_management() {
-    Inventory inv{};
+    Inventory inv {};
 
     for (ae::u32 i = 1; i <= InventoryLimits::kMaxPerks; ++i) {
         InventoryEntry entry;
@@ -200,20 +200,20 @@ void test_inventory_perk_management() {
 }
 
 void test_inventory_resource_caps() {
-    Inventory inv{};
+    Inventory inv {};
 
     // Ammo caps at max
-    inv.set_primary_ammo(500);  // above max of 300
-    assert(inv.primary_ammo() == 500);  // setter doesn't clamp (it's a setter)
+    inv.set_primary_ammo(500);         // above max of 300
+    assert(inv.primary_ammo() == 500); // setter doesn't clamp (it's a setter)
     // The clamping is done by the processor, not the setter
 
     // Negative protection
     inv.set_primary_ammo(-10);
-    assert(inv.primary_ammo() == 0);  // setter clamps negative
+    assert(inv.primary_ammo() == 0); // setter clamps negative
 
     // Grenade cap
     inv.set_grenade_count(5);
-    assert(inv.grenade_count() == 5);  // setter doesn't clamp high either
+    assert(inv.grenade_count() == 5); // setter doesn't clamp high either
 
     std::cout << "test_inventory_resource_caps passed.\n";
 }
@@ -223,8 +223,8 @@ void test_inventory_resource_caps() {
 // ===================================================================
 
 void test_processor_grant_ammo() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -239,9 +239,9 @@ void test_processor_grant_ammo() {
 }
 
 void test_processor_ammo_at_cap() {
-    Inventory inv{};
-    inv.set_primary_ammo(300);  // already at max
-    PickupProcessor proc{};
+    Inventory inv {};
+    inv.set_primary_ammo(300); // already at max
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -250,15 +250,15 @@ void test_processor_ammo_at_cap() {
 
     GrantResult result = proc.process_grant(inv, grant);
     assert(result == GrantResult::AtCap);
-    assert(inv.primary_ammo() == 300);  // unchanged
+    assert(inv.primary_ammo() == 300); // unchanged
 
     std::cout << "test_processor_ammo_at_cap passed.\n";
 }
 
 void test_processor_ammo_partial_cap() {
-    Inventory inv{};
-    inv.set_primary_ammo(290);  // 10 from max
-    PickupProcessor proc{};
+    Inventory inv {};
+    inv.set_primary_ammo(290); // 10 from max
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -267,7 +267,7 @@ void test_processor_ammo_partial_cap() {
 
     GrantResult result = proc.process_grant(inv, grant);
     assert(result == GrantResult::Granted);
-    assert(inv.primary_ammo() == 300);  // clamped to max
+    assert(inv.primary_ammo() == 300); // clamped to max
 
     std::cout << "test_processor_ammo_partial_cap passed.\n";
 }
@@ -275,38 +275,38 @@ void test_processor_ammo_partial_cap() {
 void test_processor_all_ammo_types() {
     struct TestCase {
         PickupType type;
-        int Inventory::*getter;
-        int Inventory::*max_getter;
+        int Inventory::* getter;
+        int Inventory::* max_getter;
         int set_value;
         int grant_qty;
     };
 
     // We'll test each ammo type directly
     {
-        Inventory inv{};
-        PickupProcessor proc{};
-        RewardGrant g{{1, 1, 1}, PickupType::PrimaryAmmo, 30};
+        Inventory inv {};
+        PickupProcessor proc {};
+        RewardGrant g {{1, 1, 1}, PickupType::PrimaryAmmo, 30};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
         assert(inv.primary_ammo() == 30);
     }
     {
-        Inventory inv{};
-        PickupProcessor proc{};
-        RewardGrant g{{2, 1, 1}, PickupType::SecondaryAmmo, 25};
+        Inventory inv {};
+        PickupProcessor proc {};
+        RewardGrant g {{2, 1, 1}, PickupType::SecondaryAmmo, 25};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
         assert(inv.secondary_ammo() == 25);
     }
     {
-        Inventory inv{};
-        PickupProcessor proc{};
-        RewardGrant g{{3, 1, 1}, PickupType::HeavyAmmo, 5};
+        Inventory inv {};
+        PickupProcessor proc {};
+        RewardGrant g {{3, 1, 1}, PickupType::HeavyAmmo, 5};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
         assert(inv.heavy_ammo() == 5);
     }
     {
-        Inventory inv{};
-        PickupProcessor proc{};
-        RewardGrant g{{4, 1, 1}, PickupType::SpecialAmmo, 10};
+        Inventory inv {};
+        PickupProcessor proc {};
+        RewardGrant g {{4, 1, 1}, PickupType::SpecialAmmo, 10};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
         assert(inv.special_ammo() == 10);
     }
@@ -315,9 +315,9 @@ void test_processor_all_ammo_types() {
 }
 
 void test_processor_grant_health() {
-    Inventory inv{};
+    Inventory inv {};
     inv.set_current_health(70.0F);
-    PickupProcessor proc{};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -332,9 +332,9 @@ void test_processor_grant_health() {
 }
 
 void test_processor_health_full() {
-    Inventory inv{};
+    Inventory inv {};
     inv.set_current_health(100.0F);
-    PickupProcessor proc{};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -349,26 +349,26 @@ void test_processor_health_full() {
 }
 
 void test_processor_health_partial() {
-    Inventory inv{};
+    Inventory inv {};
     inv.set_current_health(95.0F);
-    PickupProcessor proc{};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
-    grant.type = PickupType::LargeHealth;  // large health
+    grant.type = PickupType::LargeHealth; // large health
     grant.quantity = 20.0F;
 
     GrantResult result = proc.process_grant(inv, grant);
     assert(result == GrantResult::Granted);
-    assert(inv.current_health() == 100.0F);  // clamped
+    assert(inv.current_health() == 100.0F); // clamped
 
     std::cout << "test_processor_health_partial passed.\n";
 }
 
 void test_processor_grant_shield() {
-    Inventory inv{};
+    Inventory inv {};
     inv.set_current_shield(20.0F);
-    PickupProcessor proc{};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -383,9 +383,9 @@ void test_processor_grant_shield() {
 }
 
 void test_processor_shield_full() {
-    Inventory inv{};
+    Inventory inv {};
     inv.set_current_shield(100.0F);
-    PickupProcessor proc{};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -399,14 +399,14 @@ void test_processor_shield_full() {
 }
 
 void test_processor_grant_weapon_drop() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
     grant.type = PickupType::WeaponDrop;
     grant.quantity = 1.0F;
-    grant.item_def_id = 100;  // e.g. "Auto Rifle"
+    grant.item_def_id = 100; // e.g. "Auto Rifle"
 
     GrantResult result = proc.process_grant(inv, grant);
     assert(result == GrantResult::Granted);
@@ -417,8 +417,8 @@ void test_processor_grant_weapon_drop() {
 }
 
 void test_processor_weapon_drop_duplicate() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     // First drop — should grant
     {
@@ -433,7 +433,7 @@ void test_processor_weapon_drop_duplicate() {
     // Second drop of same weapon — should be duplicate
     {
         RewardGrant grant;
-        grant.id = {1, 1, 2};  // different grant ID, but same weapon
+        grant.id = {1, 1, 2}; // different grant ID, but same weapon
         grant.type = PickupType::WeaponDrop;
         grant.quantity = 1.0F;
         grant.item_def_id = 100;
@@ -444,8 +444,8 @@ void test_processor_weapon_drop_duplicate() {
 }
 
 void test_processor_weapon_drop_inventory_full() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     // Fill weapon inventory
     for (ae::u32 i = 1; i <= InventoryLimits::kMaxWeaponSlots; ++i) {
@@ -468,8 +468,8 @@ void test_processor_weapon_drop_inventory_full() {
 }
 
 void test_processor_grant_armor_drop() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -485,8 +485,8 @@ void test_processor_grant_armor_drop() {
 }
 
 void test_processor_grant_perk_drop() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -502,9 +502,9 @@ void test_processor_grant_perk_drop() {
 }
 
 void test_processor_grenade_charge() {
-    Inventory inv{};
-    inv.set_grenade_count(1);  // one grenade consumed
-    PickupProcessor proc{};
+    Inventory inv {};
+    inv.set_grenade_count(1); // one grenade consumed
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -519,9 +519,9 @@ void test_processor_grenade_charge() {
 }
 
 void test_processor_grenade_at_cap() {
-    Inventory inv{};
-    inv.set_grenade_count(2);  // already at cap
-    PickupProcessor proc{};
+    Inventory inv {};
+    inv.set_grenade_count(2); // already at cap
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -535,9 +535,9 @@ void test_processor_grenade_at_cap() {
 }
 
 void test_processor_ultimate_energy() {
-    Inventory inv{};
+    Inventory inv {};
     inv.set_ultimate_charge(0.5F);
-    PickupProcessor proc{};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -552,9 +552,9 @@ void test_processor_ultimate_energy() {
 }
 
 void test_processor_ultimate_at_cap() {
-    Inventory inv{};
+    Inventory inv {};
     inv.set_ultimate_charge(1.0F);
-    PickupProcessor proc{};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -568,8 +568,8 @@ void test_processor_ultimate_at_cap() {
 }
 
 void test_processor_xp() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -592,8 +592,8 @@ void test_processor_xp() {
 }
 
 void test_processor_currency() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -608,9 +608,9 @@ void test_processor_currency() {
 }
 
 void test_processor_currency_overflow_saturation() {
-    Inventory inv{};
+    Inventory inv {};
     inv.set_currency(std::numeric_limits<ae::u64>::max() - 10);
-    PickupProcessor proc{};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -630,8 +630,8 @@ void test_processor_currency_overflow_saturation() {
 // ===================================================================
 
 void test_processor_idempotency_duplicate_grant() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -644,14 +644,14 @@ void test_processor_idempotency_duplicate_grant() {
 
     // Same grant ID again — should return Duplicate
     assert(proc.process_grant(inv, grant) == GrantResult::Duplicate);
-    assert(inv.primary_ammo() == 30);  // unchanged
+    assert(inv.primary_ammo() == 30); // unchanged
 
     std::cout << "test_processor_idempotency_duplicate_grant passed.\n";
 }
 
 void test_processor_idempotency_different_grants() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     RewardGrant grant1;
     grant1.id = {1, 1, 1};
@@ -659,7 +659,7 @@ void test_processor_idempotency_different_grants() {
     grant1.quantity = 100.0F;
 
     RewardGrant grant2;
-    grant2.id = {1, 1, 2};  // different sequence
+    grant2.id = {1, 1, 2}; // different sequence
     grant2.type = PickupType::XPOrb;
     grant2.quantity = 50.0F;
 
@@ -671,8 +671,8 @@ void test_processor_idempotency_different_grants() {
 }
 
 void test_processor_reset_idempotency() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -692,15 +692,15 @@ void test_processor_reset_idempotency() {
 }
 
 void test_processor_prune_grants_before_session() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     // Grant from session 1
-    RewardGrant grant1{{1, 1, 1}, PickupType::XPOrb, 100};
+    RewardGrant grant1 {{1, 1, 1}, PickupType::XPOrb, 100};
     assert(proc.process_grant(inv, grant1) == GrantResult::Granted);
 
     // Grant from session 2
-    RewardGrant grant2{{2, 2, 1}, PickupType::XPOrb, 50};
+    RewardGrant grant2 {{2, 2, 1}, PickupType::XPOrb, 50};
     assert(proc.process_grant(inv, grant2) == GrantResult::Granted);
 
     assert(inv.xp() == 150);
@@ -718,12 +718,12 @@ void test_processor_prune_grants_before_session() {
 // ===================================================================
 
 void test_processor_invalid_grant() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
-    grant.type = PickupType::Count;  // not a valid type
+    grant.type = PickupType::Count; // not a valid type
     grant.quantity = 10.0F;
 
     GrantResult result = proc.process_grant(inv, grant);
@@ -733,8 +733,8 @@ void test_processor_invalid_grant() {
 }
 
 void test_processor_zero_quantity_grant() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -748,8 +748,8 @@ void test_processor_zero_quantity_grant() {
 }
 
 void test_processor_negative_quantity_grant() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
@@ -763,13 +763,13 @@ void test_processor_negative_quantity_grant() {
 }
 
 void test_processor_weapon_drop_zero_def_id() {
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     RewardGrant grant;
     grant.id = {1, 1, 1};
     grant.type = PickupType::WeaponDrop;
-    grant.item_def_id = 0;  // invalid
+    grant.item_def_id = 0; // invalid
 
     GrantResult result = proc.process_grant(inv, grant);
     assert(result == GrantResult::Invalid);
@@ -812,10 +812,10 @@ void test_snapshot_validate_valid() {
 
 void test_snapshot_validate_invalid_version() {
     ProgressionSnapshot snap = ProgressionSnapshot::create_default();
-    snap.version = 0;  // below min supported
+    snap.version = 0; // below min supported
     assert(!snap.validate());
 
-    snap.version = 999;  // above current
+    snap.version = 999; // above current
     assert(!snap.validate());
     std::cout << "test_snapshot_validate_invalid_version passed.\n";
 }
@@ -834,7 +834,7 @@ void test_snapshot_validate_oversized_collections() {
 
 void test_snapshot_validate_zero_def_id() {
     ProgressionSnapshot snap = ProgressionSnapshot::create_default();
-    snap.weapons.push_back({0, 1, false, 100});  // definition_id == 0
+    snap.weapons.push_back({0, 1, false, 100}); // definition_id == 0
     assert(!snap.validate());
     std::cout << "test_snapshot_validate_zero_def_id passed.\n";
 }
@@ -846,14 +846,14 @@ void test_snapshot_migrate_current() {
 
     ProgressionSnapshot migrated = ProgressionSnapshot::migrate(snap);
     assert(migrated.version == ProgressionSnapshot::kCurrentVersion);
-    assert(migrated.xp == 1000);  // data preserved
+    assert(migrated.xp == 1000); // data preserved
     assert(migrated.currency == 500);
     std::cout << "test_snapshot_migrate_current passed.\n";
 }
 
 void test_snapshot_migrate_unknown_version() {
     ProgressionSnapshot snap = ProgressionSnapshot::create_default();
-    snap.version = 999;  // unknown / future
+    snap.version = 999; // unknown / future
     snap.xp = 5000;
 
     ProgressionSnapshot migrated = ProgressionSnapshot::migrate(snap);
@@ -869,9 +869,9 @@ void test_snapshot_repair_negative_values() {
     snap.max_primary_ammo = -10;
 
     ProgressionSnapshot repaired = ProgressionSnapshot::repair(snap);
-    assert(repaired.max_health == 100.0F);   // reset to default
-    assert(repaired.max_shield == 100.0F);   // reset to default
-    assert(repaired.max_primary_ammo == 0);  // clamped to 0
+    assert(repaired.max_health == 100.0F);  // reset to default
+    assert(repaired.max_shield == 100.0F);  // reset to default
+    assert(repaired.max_primary_ammo == 0); // clamped to 0
     assert(repaired.validate());
     std::cout << "test_snapshot_repair_negative_values passed.\n";
 }
@@ -892,9 +892,9 @@ void test_snapshot_repair_oversized_collections() {
 
 void test_snapshot_repair_zero_def_ids() {
     ProgressionSnapshot snap = ProgressionSnapshot::create_default();
-    snap.weapons.push_back({0, 1, false, 100});  // zero def id — invalid
+    snap.weapons.push_back({0, 1, false, 100}); // zero def id — invalid
     snap.weapons.push_back({1, 1, false, 101});
-    snap.weapons.push_back({0, 1, false, 102});  // another invalid
+    snap.weapons.push_back({0, 1, false, 102}); // another invalid
 
     ProgressionSnapshot repaired = ProgressionSnapshot::repair(snap);
     assert(repaired.weapons.size() == 1);
@@ -905,19 +905,19 @@ void test_snapshot_repair_zero_def_ids() {
 
 void test_snapshot_repair_unknown_version() {
     ProgressionSnapshot snap = ProgressionSnapshot::create_default();
-    snap.version = 0;  // below min supported
+    snap.version = 0; // below min supported
     snap.xp = 5000;
 
     ProgressionSnapshot repaired = ProgressionSnapshot::repair(snap);
     assert(repaired.version == ProgressionSnapshot::kCurrentVersion);
-    assert(repaired.xp == 0);  // data lost — reset to default
+    assert(repaired.xp == 0); // data lost — reset to default
     assert(repaired.validate());
     std::cout << "test_snapshot_repair_unknown_version passed.\n";
 }
 
 void test_snapshot_repair_excessive_values() {
     ProgressionSnapshot snap = ProgressionSnapshot::create_default();
-    snap.max_health = 999999.0F;  // excessive
+    snap.max_health = 999999.0F; // excessive
     snap.max_primary_ammo = 99999;
 
     ProgressionSnapshot repaired = ProgressionSnapshot::repair(snap);
@@ -949,7 +949,7 @@ void test_serialization_roundtrip_default() {
 
 void test_serialization_roundtrip_with_data() {
     ProgressionSnapshot snap = ProgressionSnapshot::create_default();
-    snap.total_play_time_seconds = 3600;  // 1 hour
+    snap.total_play_time_seconds = 3600; // 1 hour
     snap.last_session_id = 42;
     snap.xp = 15000;
     snap.currency = 999;
@@ -1040,8 +1040,8 @@ void test_integration_no_silent_discard() {
     // Every call to process_grant must return a result that indicates
     // what happened with no ambiguity.
 
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     // Set up: make all resource types full to get explicit AtCap results
     inv.set_primary_ammo(300);
@@ -1055,23 +1055,23 @@ void test_integration_no_silent_discard() {
 
     // Test each type returns a non-Granted result explicitly
     {
-        RewardGrant g{{1, 1, 1}, PickupType::PrimaryAmmo, 30};
+        RewardGrant g {{1, 1, 1}, PickupType::PrimaryAmmo, 30};
         assert(proc.process_grant(inv, g) == GrantResult::AtCap);
     }
     {
-        RewardGrant g{{1, 1, 2}, PickupType::HealthPack, 20};
+        RewardGrant g {{1, 1, 2}, PickupType::HealthPack, 20};
         assert(proc.process_grant(inv, g) == GrantResult::AtCap);
     }
     {
-        RewardGrant g{{1, 1, 3}, PickupType::ShieldCharge, 30};
+        RewardGrant g {{1, 1, 3}, PickupType::ShieldCharge, 30};
         assert(proc.process_grant(inv, g) == GrantResult::AtCap);
     }
     {
-        RewardGrant g{{1, 1, 4}, PickupType::GrenadeCharge, 1};
+        RewardGrant g {{1, 1, 4}, PickupType::GrenadeCharge, 1};
         assert(proc.process_grant(inv, g) == GrantResult::AtCap);
     }
     {
-        RewardGrant g{{1, 1, 5}, PickupType::UltimateEnergy, 0.5F};
+        RewardGrant g {{1, 1, 5}, PickupType::UltimateEnergy, 0.5F};
         assert(proc.process_grant(inv, g) == GrantResult::AtCap);
     }
 
@@ -1080,69 +1080,69 @@ void test_integration_no_silent_discard() {
 
 void test_integration_complete_pickup_cycle() {
     // Simulate a full game session with multiple pickups
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     ae::u32 seq = 0;
 
     // Player starts with some initial state
-    inv.set_current_health(50.0F);   // damaged
-    inv.set_current_shield(20.0F);   // shield depleted
-    inv.set_primary_ammo(60);        // low on ammo
-    inv.set_grenade_count(0);        // out of grenades
+    inv.set_current_health(50.0F); // damaged
+    inv.set_current_shield(20.0F); // shield depleted
+    inv.set_primary_ammo(60);      // low on ammo
+    inv.set_grenade_count(0);      // out of grenades
 
     // Pick up health pack
     {
-        RewardGrant g{{1, 1, ++seq}, PickupType::HealthPack, 30};
+        RewardGrant g {{1, 1, ++seq}, PickupType::HealthPack, 30};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
         assert(inv.current_health() == 80.0F);
     }
 
     // Pick up shield charge
     {
-        RewardGrant g{{1, 1, ++seq}, PickupType::ShieldCharge, 50};
+        RewardGrant g {{1, 1, ++seq}, PickupType::ShieldCharge, 50};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
         assert(inv.current_shield() == 70.0F);
     }
 
     // Pick up primary ammo
     {
-        RewardGrant g{{1, 1, ++seq}, PickupType::PrimaryAmmo, 120};
+        RewardGrant g {{1, 1, ++seq}, PickupType::PrimaryAmmo, 120};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
         assert(inv.primary_ammo() == 180);
     }
 
     // Pick up grenade charge
     {
-        RewardGrant g{{1, 1, ++seq}, PickupType::GrenadeCharge, 1};
+        RewardGrant g {{1, 1, ++seq}, PickupType::GrenadeCharge, 1};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
         assert(inv.grenade_count() == 1);
     }
 
     // Pick up ultimate energy
     {
-        RewardGrant g{{1, 1, ++seq}, PickupType::UltimateEnergy, 0.5F};
+        RewardGrant g {{1, 1, ++seq}, PickupType::UltimateEnergy, 0.5F};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
         assert(inv.ultimate_charge() >= 0.49F);
     }
 
     // Pick up XP
     {
-        RewardGrant g{{1, 1, ++seq}, PickupType::XPOrb, 250};
+        RewardGrant g {{1, 1, ++seq}, PickupType::XPOrb, 250};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
         assert(inv.xp() == 250);
     }
 
     // Pick up a weapon
     {
-        RewardGrant g{{1, 1, ++seq}, PickupType::WeaponDrop, 1, 42};
+        RewardGrant g {{1, 1, ++seq}, PickupType::WeaponDrop, 1, 42};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
         assert(inv.has_weapon(42));
     }
 
     // Verify all grants are idempotent
     for (ae::u32 i = 1; i <= seq; ++i) {
-        RewardGrant g{{1, 1, i}};
+        RewardGrant g {{1, 1, i}};
         assert(proc.has_processed(g.id));
     }
 
@@ -1151,20 +1151,22 @@ void test_integration_complete_pickup_cycle() {
 
 void test_integration_inventory_manager_combined_with_processor() {
     // Test that Inventory and PickupProcessor work together correctly
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     // Fill weapon inventory to test overflow behavior
     for (ae::u32 i = 1; i <= InventoryLimits::kMaxWeaponSlots; ++i) {
-        RewardGrant g{{1, 1, i}, PickupType::WeaponDrop, 1, i};
+        RewardGrant g {{1, 1, i}, PickupType::WeaponDrop, 1, i};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
     }
     assert(inv.weapons_full());
 
     // Attempt to add one more
     {
-        RewardGrant g{{1, 1, InventoryLimits::kMaxWeaponSlots + 1},
-                       PickupType::WeaponDrop, 1, 999};
+        RewardGrant g {{1, 1, InventoryLimits::kMaxWeaponSlots + 1},
+                       PickupType::WeaponDrop,
+                       1,
+                       999};
         assert(proc.process_grant(inv, g) == GrantResult::InventoryFull);
     }
 
@@ -1173,8 +1175,10 @@ void test_integration_inventory_manager_combined_with_processor() {
 
     // Should be able to add a new weapon now
     {
-        RewardGrant g{{1, 1, InventoryLimits::kMaxWeaponSlots + 2},
-                       PickupType::WeaponDrop, 1, 1000};
+        RewardGrant g {{1, 1, InventoryLimits::kMaxWeaponSlots + 2},
+                       PickupType::WeaponDrop,
+                       1,
+                       1000};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
         assert(inv.has_weapon(1000));
     }
@@ -1184,8 +1188,8 @@ void test_integration_inventory_manager_combined_with_processor() {
 
 void test_integration_snapshot_save_and_load() {
     // Simulate saving a full game state and restoring it
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     // Start damaged
     inv.set_current_health(50.0F);
@@ -1220,7 +1224,7 @@ void test_integration_snapshot_save_and_load() {
     assert(loaded.processed_grants.size() == 5);
 
     // Reconstruct state from loaded snapshot
-    Inventory loaded_inv{};
+    Inventory loaded_inv {};
     loaded_inv.set_xp(loaded.xp);
     loaded_inv.set_currency(loaded.currency);
     for (const auto& w : loaded.weapons) {
@@ -1238,12 +1242,12 @@ void test_integration_snapshot_save_and_load() {
 
 void test_integration_duplicate_grant_different_sessions() {
     // Two different sessions should be able to grant the same thing
-    Inventory inv{};
-    PickupProcessor proc{};
+    Inventory inv {};
+    PickupProcessor proc {};
 
     // Session 1: grant XP
     {
-        RewardGrant g{{10, 1, 1}, PickupType::XPOrb, 100};
+        RewardGrant g {{10, 1, 1}, PickupType::XPOrb, 100};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
     }
 
@@ -1252,7 +1256,7 @@ void test_integration_duplicate_grant_different_sessions() {
 
     // Session 2: same source_id, same sequence, but different session
     {
-        RewardGrant g{{10, 2, 1}, PickupType::XPOrb, 100};
+        RewardGrant g {{10, 2, 1}, PickupType::XPOrb, 100};
         assert(proc.process_grant(inv, g) == GrantResult::Granted);
     }
 
@@ -1261,7 +1265,7 @@ void test_integration_duplicate_grant_different_sessions() {
     std::cout << "test_integration_duplicate_grant_different_sessions passed.\n";
 }
 
-}  // anonymous namespace
+} // anonymous namespace
 
 int main() {
     // GrantId

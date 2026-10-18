@@ -4,7 +4,6 @@ import json
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 MENU_DIR = ROOT / "assets" / "menus"
 
@@ -37,7 +36,6 @@ class FlashbackMenuAssetsTest(unittest.TestCase):
             with path.open(encoding="utf-8") as stream:
                 json.load(stream)
 
-
     def test_main_menu_has_real_game_entry_points(self):
         elements = list(_walk(_load("main_menu.json")["elements"]))
         actions = {element.get("action") for element in elements}
@@ -49,20 +47,20 @@ class FlashbackMenuAssetsTest(unittest.TestCase):
         self.assertIn("quit_application", actions)
         self.assertTrue({"DEPLOY", "CHARACTER", "SANDBOX", "QUIT TO DESKTOP"} <= labels)
 
-
     def test_main_menu_uses_cinematic_background_and_mixed_coordinates(self):
         menu = _load("main_menu.json")
         panel = menu["elements"][0]
-        positioned_children = [
-            element for element in panel["elements"] if "x" in element and "y" in element
-        ]
+        positioned_children = [element for element in panel["elements"] if "x" in element and "y" in element]
 
         layers = menu["background_layers"]
-        self.assertEqual([layer["image"] for layer in layers], [
-            "assets/compiled/textures/flashback_menu_sky.aetex",
-            "assets/compiled/textures/flashback_menu_kingdom.aetex",
-            "assets/compiled/textures/flashback_menu_foreground.aetex",
-        ])
+        self.assertEqual(
+            [layer["image"] for layer in layers],
+            [
+                "assets/compiled/textures/flashback_menu_sky.aetex",
+                "assets/compiled/textures/flashback_menu_kingdom.aetex",
+                "assets/compiled/textures/flashback_menu_foreground.aetex",
+            ],
+        )
         self.assertEqual(len(layers), 3)
         self.assertLess(layers[0]["drift"], layers[1]["drift"])
         self.assertLess(layers[1]["drift"], layers[2]["drift"])
@@ -81,7 +79,6 @@ class FlashbackMenuAssetsTest(unittest.TestCase):
         self.assertTrue(buttons)
         self.assertTrue(all(element["style"] == "menu" for element in buttons))
 
-
     def test_character_view_is_a_dedicated_showcase_stage(self):
         self.assertFalse((MENU_DIR / "settings.json").exists())
 
@@ -90,17 +87,12 @@ class FlashbackMenuAssetsTest(unittest.TestCase):
         self.assertEqual(elements, [])
         self.assertEqual(view["background"], [0.0, 0.0, 0.0, 0.0])
 
-        main_actions = {
-            element.get("action") for element in _walk(_load("main_menu.json")["elements"])
-        }
-        pause_actions = {
-            element.get("action") for element in _walk(_load("pause_menu.json")["elements"])
-        }
+        main_actions = {element.get("action") for element in _walk(_load("main_menu.json")["elements"])}
+        pause_actions = {element.get("action") for element in _walk(_load("pause_menu.json")["elements"])}
         self.assertIn("push_screen:character_view", main_actions)
         self.assertIn("push_screen:character_view", pause_actions)
         self.assertNotIn("push_screen:settings", main_actions | pause_actions)
         self.assertNotIn("push_screen:map_select", main_actions | pause_actions)
-
 
     def test_menu_theme_exposes_the_flashback_visual_system(self):
         theme = _load("theme.json")
@@ -111,7 +103,6 @@ class FlashbackMenuAssetsTest(unittest.TestCase):
             self.assertIn(name, colors)
         self.assertGreater(fonts["title"], fonts["header"])
         self.assertGreater(fonts["header"], fonts["body"])
-
 
     def test_gameplay_hud_uses_a_single_combat_cluster(self):
         hud = _load("hud.json")
