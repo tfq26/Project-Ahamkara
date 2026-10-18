@@ -24,14 +24,10 @@ class FlashbackBuildScriptsTests(unittest.TestCase):
             (project / "scripts").mkdir()
             (project / "assets").mkdir()
             (project / "client/config").mkdir(parents=True)
-            (project / "CMakeLists.txt").write_text(
-                "project(Ahamkara VERSION 1.2.3 LANGUAGES CXX)\n"
-            )
+            (project / "CMakeLists.txt").write_text("project(Ahamkara VERSION 1.2.3 LANGUAGES CXX)\n")
             (project / "assets/manifest.assets").write_text("# fixture\n")
             (project / "client/config/ahamkara.cfg").write_text("fixture=true\n")
-            (build / "samples/flashback/flashback").write_text(
-                "#!/usr/bin/env sh\nprintf 'Flashback fixture\\n'\n"
-            )
+            (build / "samples/flashback/flashback").write_text("#!/usr/bin/env sh\nprintf 'Flashback fixture\\n'\n")
             (build / "samples/flashback/flashback").chmod(0o755)
             importer = build / "tools/ahamkara_asset_importer"
             importer.write_text(
@@ -42,8 +38,19 @@ class FlashbackBuildScriptsTests(unittest.TestCase):
             importer.chmod(0o755)
             subprocess.run(["git", "init", "-q", str(project)], check=True)
             subprocess.run(
-                ["git", "-C", str(project), "-c", "user.name=Test", "-c",
-                 "user.email=test@example.invalid", "commit", "--allow-empty", "-qm", "fixture"],
+                [
+                    "git",
+                    "-C",
+                    str(project),
+                    "-c",
+                    "user.name=Test",
+                    "-c",
+                    "user.email=test@example.invalid",
+                    "commit",
+                    "--allow-empty",
+                    "-qm",
+                    "fixture",
+                ],
                 check=True,
             )
             package_script = project / "scripts/package_flashback.sh"
