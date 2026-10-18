@@ -32,6 +32,7 @@ namespace ahamkara::client {
 
 void ClientFramePipeline::shutdown_render_resources() {
     if (renderer_.backend() != nullptr) {
+        weapon_presentation_.set_backend(nullptr);
         animated_character_.destroy();
         caligo_director_.destroy(*renderer_.backend());
     }
@@ -327,8 +328,7 @@ void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
     GLFWwindow* glfw_win = static_cast<GLFWwindow*>(window_.native_handle());
 
     const bool menu_toggle =
-        window_.is_key_pressed(ae::KeyCode::Escape)
-        || debug_state.is_code_pressed(controller_bindings_.menu);
+        window_.is_key_pressed(ae::KeyCode::Escape) || debug_state.is_code_pressed(controller_bindings_.menu);
 
     if (menu_toggle && menu_initialized_) {
         if (gameplay_active_ && !menu_state_.visible()) {
@@ -343,7 +343,7 @@ void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
 
     if (glfw_win) {
         glfwSetInputMode(glfw_win, GLFW_CURSOR,
-            menu_state_.cursor_should_capture() ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+                         menu_state_.cursor_should_capture() ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
     }
 
     // ── Console toggle (backtick/tilde) ────────────────────────────────
@@ -380,7 +380,7 @@ void ClientFramePipeline::stage_handle_menu_and_hotkeys() {
     const std::string base_title = client_config_.app_name;
     if (window_title_.empty()) {
         window_title_ = build_debug_window_title(base_title, frontend_state_.camera_mode,
-            frontend_state_.metrics_visible, frontend_state_.displayed_metrics);
+                                                 frontend_state_.metrics_visible, frontend_state_.displayed_metrics);
     }
     process_debug_hotkeys(window_, controller_bindings_, base_title, frontend_state_, window_title_);
     smoothed_delta_ = update_debug_frame_timing(frontend_state_);
@@ -503,21 +503,21 @@ void ClientFramePipeline::stage_build_scene() {
         const float ads_blend = weapon_animation_.ads_blend();
 
         // Linearly blend between hip and ADS position offset
-        const float blended_right   = vm.pos_right   + ads.ads_pos_right   * ads_blend;
-        const float blended_up      = vm.pos_up      + ads.ads_pos_up      * ads_blend;
-        const float blended_forward = vm.pos_forward  + ads.ads_pos_forward * ads_blend;
+        const float blended_right = vm.pos_right + ads.ads_pos_right * ads_blend;
+        const float blended_up = vm.pos_up + ads.ads_pos_up * ads_blend;
+        const float blended_forward = vm.pos_forward + ads.ads_pos_forward * ads_blend;
 
         scene_.viewmodel_position_offset = {
             blended_right,
             blended_up,
             blended_forward,
         };
-        scene_.viewmodel_fov_scale   = vm.fov_scale;
+        scene_.viewmodel_fov_scale = vm.fov_scale;
 
         // Blend rotation offsets
-        scene_.viewmodel_pitch_deg   = vm.pitch_deg   + ads.ads_pitch_deg   * ads_blend;
-        scene_.viewmodel_yaw_deg     = vm.yaw_deg     + ads.ads_yaw_deg     * ads_blend;
-        scene_.viewmodel_roll_deg    = vm.roll_deg    + ads.ads_roll_deg    * ads_blend;
+        scene_.viewmodel_pitch_deg = vm.pitch_deg + ads.ads_pitch_deg * ads_blend;
+        scene_.viewmodel_yaw_deg = vm.yaw_deg + ads.ads_yaw_deg * ads_blend;
+        scene_.viewmodel_roll_deg = vm.roll_deg + ads.ads_roll_deg * ads_blend;
 
         // Camera FOV zoom: interpolate from base FOV down to base * ads_fov_scale
         constexpr float kBaseFovDeg = 60.0F;
@@ -533,11 +533,11 @@ void ClientFramePipeline::stage_build_scene() {
     if (scene_.weapon_joint_count > 0) {
         const float* reload_ik = weapon_animation_.reload_ik_offset();
         const bool has_reload_offset = reload_ik != nullptr &&
-            (reload_ik[0] != 0.0F || reload_ik[1] != 0.0F || reload_ik[2] != 0.0F);
+                                       (reload_ik[0] != 0.0F || reload_ik[1] != 0.0F || reload_ik[2] != 0.0F);
         apply_viewmodel_arm_ik(curr_snap_.weapon_index,
-                                scene_.weapon_joint_matrices,
-                                scene_.weapon_joint_count,
-                                has_reload_offset ? reload_ik : nullptr);
+                               scene_.weapon_joint_matrices,
+                               scene_.weapon_joint_count,
+                               has_reload_offset ? reload_ik : nullptr);
     }
 
     // Populate debug IK visualization fields.
@@ -547,9 +547,9 @@ void ClientFramePipeline::stage_build_scene() {
         scene_.show_ik_target = true;
         if (scene_.weapon_joint_count > 5) {
             const float* jm = scene_.weapon_joint_matrices;
-            scene_.arm_shoulder_pos = {jm[2*16+12], jm[2*16+13], jm[2*16+14]};
-            scene_.arm_elbow_pos    = {jm[3*16+12], jm[3*16+13], jm[3*16+14]};
-            scene_.arm_hand_pos     = {jm[5*16+12], jm[5*16+13], jm[5*16+14]};
+            scene_.arm_shoulder_pos = {jm[2 * 16 + 12], jm[2 * 16 + 13], jm[2 * 16 + 14]};
+            scene_.arm_elbow_pos = {jm[3 * 16 + 12], jm[3 * 16 + 13], jm[3 * 16 + 14]};
+            scene_.arm_hand_pos = {jm[5 * 16 + 12], jm[5 * 16 + 13], jm[5 * 16 + 14]};
             scene_.show_arm_chain = true;
         }
     }
@@ -570,13 +570,13 @@ void ClientFramePipeline::stage_build_scene() {
     const bool is_sprinting = curr_snap_.player_state.movement_state == ahamkara::game::MovementState::Sprinting;
 
     anim_adapter_.set_movement(hspeed, is_moving, is_sprinting);
-    constexpr float kNoPitch = 0.0F;  // pitch not replicated in ReplicatedPlayerState
+    constexpr float kNoPitch = 0.0F; // pitch not replicated in ReplicatedPlayerState
     anim_adapter_.set_aim(curr_snap_.player_state.yaw, kNoPitch);
     const bool is_firing = raw_input_.fire_held || curr_snap_.player_state.health < prev_health - 1.0F;
     const bool is_reloading = raw_input_.reload_pressed && curr_snap_.ammo_current < curr_snap_.ammo_max;
     anim_adapter_.set_weapon(curr_snap_.weapon_index,
-                              is_firing,
-                              is_reloading);
+                             is_firing,
+                             is_reloading);
     anim_adapter_.set_health(curr_snap_.player_state.health, 100.0F);
 
     // Detect health drop → trigger hit reaction (legacy path)
@@ -700,10 +700,9 @@ void ClientFramePipeline::stage_gameplay_audio() {
         step_timer -= smoothed_delta_;
         float interval = speed > 0.7F ? 0.35F : 0.55F;
         if (step_timer <= 0.0F) {
-            audio_engine_.play_sound(0, {
-                curr_snap_.player_position.x,
-                curr_snap_.player_position.y,
-                curr_snap_.player_position.z, 0.3F});
+            audio_engine_.play_sound(0, {curr_snap_.player_position.x,
+                                         curr_snap_.player_position.y,
+                                         curr_snap_.player_position.z, 0.3F});
             step_timer = interval;
         }
     }
@@ -847,8 +846,10 @@ void ClientFramePipeline::stage_render_ui() {
     ae::ui::begin_ui_frame();
 
     // Poll for hot-reloads
-    if (menu_initialized_) menu_system_.poll_hot_reload();
-    if (hud_loaded_)      hud_system_.poll_hot_reload();
+    if (menu_initialized_)
+        menu_system_.poll_hot_reload();
+    if (hud_loaded_)
+        hud_system_.poll_hot_reload();
 
     // ── Authoring: poll file watcher ────────────────────────────────────
     file_watcher_.poll();
@@ -956,11 +957,7 @@ void ClientFramePipeline::render_console_overlay() {
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, console_height), ImGuiCond_Always);
 
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar
-                           | ImGuiWindowFlags_NoResize
-                           | ImGuiWindowFlags_NoMove
-                           | ImGuiWindowFlags_NoSavedSettings
-                           | ImGuiWindowFlags_NoBringToFrontOnFocus;
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
     if (ImGui::Begin("##console", &console_open_, flags)) {
         // Log area (scrollable)
@@ -972,15 +969,15 @@ void ClientFramePipeline::render_console_overlay() {
             const auto& line = console_.log_line(i);
             // Simple color tagging
             switch (line.type) {
-                case ae::Console::LogLine::kError:
-                    ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "%s", line.text.c_str());
-                    break;
-                case ae::Console::LogLine::kOutput:
-                    ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.2f, 1.0f), "%s", line.text.c_str());
-                    break;
-                default:
-                    ImGui::TextUnformatted(line.text.c_str());
-                    break;
+            case ae::Console::LogLine::kError:
+                ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "%s", line.text.c_str());
+                break;
+            case ae::Console::LogLine::kOutput:
+                ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.2f, 1.0f), "%s", line.text.c_str());
+                break;
+            default:
+                ImGui::TextUnformatted(line.text.c_str());
+                break;
             }
         }
 
@@ -1058,4 +1055,4 @@ void ClientFramePipeline::stage_post_frame() {
     }
 }
 
-}  // namespace ahamkara::client
+} // namespace ahamkara::client
