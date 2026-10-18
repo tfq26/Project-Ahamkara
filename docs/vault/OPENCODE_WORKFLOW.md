@@ -1,18 +1,18 @@
 # OpenCode workflow
 
-GitHub Issues is the work source of truth. OpenCode or another worker should
+Forgejo Issues is the work source of truth. OpenCode or another worker should
 not read, claim, or move local queue files.
 
 ## Start
 
 1. Read [the docs entry point](../README.md).
-2. Read the assigned GitHub issue and its dependencies.
+2. Read the assigned Forgejo issue and its dependencies.
 3. Read relevant architecture/design/system docs.
 4. Inspect current source, tests, CMake targets, and worktree state.
 5. Confirm one bounded issue scope before editing.
 
 Use the project-local
-[GitHub issue skill](skills/github-issues/SKILL.md) for issue conventions.
+[Forgejo issue skill](skills/forgejo-issues/SKILL.md) for issue conventions.
 
 ## Work
 
@@ -26,9 +26,9 @@ Use the project-local
 ## Finish
 
 1. Run the narrow and full relevant validation.
-2. Update the GitHub issue or PR with evidence and remaining risks.
+2. Update the Forgejo issue or PR with evidence and remaining risks.
 3. Write a report only when the investigation or handoff has durable value.
 4. Do not close the issue unless acceptance criteria are actually met.
 
-If no issue is assigned, search existing GitHub Issues or ask for direction;
+If no issue is assigned, search existing Forgejo Issues or ask for direction;
 do not invent a local task.

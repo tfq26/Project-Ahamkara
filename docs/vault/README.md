@@ -2,7 +2,7 @@
 
 This folder is a lightweight, repo-local Markdown/Obsidian memory layer. It
 helps humans and agents orient themselves without replacing source code, tests,
-canonical docs, or GitHub Issues.
+canonical docs, or Forgejo Issues.
 
 ## Start path
 
@@ -23,13 +23,13 @@ canonical docs, or GitHub Issues.
 
 ## What does not belong here
 
-- local issue cards or copies of GitHub issue bodies;
+- local issue cards or copies of Forgejo issue bodies;
 - queue states, progress dashboards, or backlog counts;
 - secrets, credentials, generated logs, or machine-specific paths;
 - duplicated current subsystem specifications.
 
 Work priority, state, dependencies, and acceptance criteria live in
-[GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues). Historical
+[Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues). Historical
 implementation evidence lives in [`../reports/`](../reports/README.md).
 
 ## Obsidian

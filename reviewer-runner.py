@@ -2,15 +2,12 @@
 """
 Ahamkara Reviewer Runner — runs on the build server.
 
-Watches GitHub for task-issue branches pushed by the local coding agent,
+Watches Forgejo for task-issue branches pushed by the local coding agent,
 pulls them, builds in Docker, runs tests, and uses Gemini to review failures.
-Posts feedback back to the issue as GitHub comments.  On success, creates a PR
+Posts feedback as Forgejo issue comments. On success, creates a pull request
 and closes the issue.
 
-Requires env (set in config.env):
-  GITHUB_TOKEN, GEMINI_API_KEY, GEMINI_MODEL (default gemini-2.5-flash)
-  JUPITER_URL (default http://localhost:9001/notify)
-  JUPITER_CHANNEL (default ahamkara)
+Requires FORGEJO_URL, FORGEJO_REPOSITORY, FORGEJO_TOKEN, and GEMINI_API_KEY.
 """
 
 import json
@@ -28,9 +25,11 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-REPO = "tfq26/Project-Ahamkara"
+FORGEJO_URL = os.getenv("FORGEJO_URL", "").rstrip("/")
+FORGEJO_REPOSITORY = os.getenv("FORGEJO_REPOSITORY", "")
+FORGEJO_TOKEN = os.getenv("FORGEJO_TOKEN", "")
 AHAMKARA_CLONE = Path("/home/taufe/Projects/ahamkara")
-LOG_DIR = Path("/home/taufe/agent-runner/logs")
+LOG_DIR = Path(os.getenv("REVIEWER_LOG_DIR", "/home/taufe/agent-runner/logs"))
 PROCESSED_LOG = Path("/home/taufe/agent-runner/processed_issues.json")
 JUPITER_URL = os.getenv("JUPITER_URL", "http://localhost:9001/notify")
 JUPITER_CHANNEL = os.getenv("JUPITER_CHANNEL", "ahamkara")
@@ -47,15 +46,13 @@ GEMINI_API_URL = (
     f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
 )
 
-# GitHub token (read from env — used by api_get/api_post)
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN", "")
 
 # Build commands (run inside Docker)
 CMAKE_CONFIGURE_CMD = "cmake --preset debug"
 BUILD_CMD = "cmake --build build/debug -j$(nproc)"
 TEST_CMD = "cd build/debug && ctest --output-on-failure -j$(nproc)"
 
-# Markers for machine-to-machine communication on GitHub issue comments
+# Markers for machine-to-machine communication on Forgejo issue comments
 MARKER_CODING_DONE = "<!-- CODING_DONE -->"
 MARKER_GEMINI_REVIEW = "<!-- GEMINI_REVIEW -->"
 
@@ -88,74 +85,80 @@ def die(msg: str):
     sys.exit(1)
 
 
-def gh(*args: str) -> str:
-    """Run `gh` CLI scoped to the repo."""
-    cmd = ["gh", "--repo", REPO, *args]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-    if result.returncode != 0:
-        log.warning("gh %s failed: %s", " ".join(args), result.stderr[:200])
-    return result.stdout.strip()
+def build_api_url(path: str, params: dict | None = None) -> str:
+    """Build a Forgejo repository API URL, preserving an instance URL prefix."""
+    from urllib.parse import quote, urlencode, urlsplit
+
+    parts = urlsplit(FORGEJO_URL)
+    if parts.scheme not in {"http", "https"} or not parts.netloc or parts.username or parts.password:
+        raise ValueError("FORGEJO_URL must be an http(s) instance URL without embedded credentials")
+    repo_parts = FORGEJO_REPOSITORY.split("/")
+    if len(repo_parts) != 2 or not all(re.fullmatch(r"[A-Za-z0-9_.-]+", part) for part in repo_parts):
+        raise ValueError("FORGEJO_REPOSITORY must be in owner/repository form")
+
+    owner, repo = (quote(part, safe="") for part in repo_parts)
+    endpoint = str(path).strip("/")
+    url = f"{FORGEJO_URL}/api/v1/repos/{owner}/{repo}"
+    if endpoint:
+        url += "/" + quote(endpoint, safe="/")
+    if params:
+        url += "?" + urlencode(params)
+    return url
 
 
-def api_get(path: str) -> dict | list:
-    """GET from the GitHub REST API."""
-    url = f"https://api.github.com/repos/{REPO}/{path.lstrip('/')}"
-    req = urllib.request.Request(
-        url,
-        headers={
-            "Authorization": f"Bearer {GITHUB_TOKEN}",
-            "Accept": "application/vnd.github.v3+json",
-        },
-    )
+def _forgejo_headers() -> dict[str, str]:
+    if not FORGEJO_TOKEN:
+        raise RuntimeError("FORGEJO_TOKEN is not set")
+    return {
+        "Authorization": f"token {FORGEJO_TOKEN}",
+        "Accept": "application/json",
+        "User-Agent": "ahamkara-reviewer-runner",
+    }
+
+
+def api_request(method: str, path: str, data: dict | None = None, params: dict | None = None):
+    """Make one authenticated Forgejo repository API request."""
+    body = json.dumps(data).encode() if data is not None else None
+    headers = _forgejo_headers()
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+    req = urllib.request.Request(build_api_url(path, params), data=body, headers=headers, method=method)
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.loads(resp.read().decode())
+            raw = resp.read()
+        return json.loads(raw) if raw else {}
     except urllib.error.HTTPError as e:
-        log.warning("api_get %s failed: %s %s", path, e.code, e.read().decode()[:200])
-        return {}
+        log.warning("Forgejo %s %s failed: %s %s", method, path, e.code, e.read().decode()[:200])
+        return {} if method == "GET" else None
 
 
-def api_post(path: str, data: dict) -> dict | None:
-    """POST to the GitHub REST API."""
-    url = f"https://api.github.com/repos/{REPO}/{path.lstrip('/')}"
-    body = json.dumps(data).encode()
-    req = urllib.request.Request(
-        url,
-        data=body,
-        headers={
-            "Authorization": f"Bearer {GITHUB_TOKEN}",
-            "Accept": "application/vnd.github.v3+json",
-            "Content-Type": "application/json",
-        },
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.loads(resp.read().decode())
-    except urllib.error.HTTPError as e:
-        log.warning("api_post %s failed: %s %s", path, e.code, e.read().decode()[:200])
-        return None
+def api_get(path: str, params: dict | None = None):
+    return api_request("GET", path, params=params)
 
 
-def api_patch(path: str, data: dict) -> dict | None:
-    """PATCH to the GitHub REST API."""
-    url = f"https://api.github.com/repos/{REPO}/{path.lstrip('/')}"
-    body = json.dumps(data).encode()
-    req = urllib.request.Request(
-        url,
-        data=body,
-        headers={
-            "Authorization": f"Bearer {GITHUB_TOKEN}",
-            "Accept": "application/vnd.github.v3+json",
-            "Content-Type": "application/json",
-        },
-    )
-    req.method = "PATCH"
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.loads(resp.read().decode())
-    except urllib.error.HTTPError as e:
-        log.warning("api_patch %s failed: %s %s", path, e.code, e.read().decode()[:200])
-        return None
+def api_post(path: str, data: dict):
+    return api_request("POST", path, data=data)
+
+
+def api_patch(path: str, data: dict):
+    return api_request("PATCH", path, data=data)
+
+
+def api_get_all(path: str, params: dict | None = None, page_size: int = 50) -> list[dict]:
+    """Fetch all pages from a Forgejo list endpoint."""
+    if page_size < 1 or page_size > 50:
+        raise ValueError("page_size must be between 1 and 50")
+    items = []
+    page = 1
+    while page <= 1000:
+        batch = api_get(path, {**(params or {}), "page": page, "limit": page_size})
+        if not isinstance(batch, list):
+            raise ValueError(f"Expected a list response from Forgejo API path {path!r}")
+        items.extend(batch)
+        if len(batch) < page_size:
+            return items
+        page += 1
+    raise RuntimeError(f"Forgejo pagination exceeded 1000 pages for API path {path!r}")
 
 
 # ---------------------------------------------------------------------------
@@ -217,14 +220,12 @@ def gemini_call(prompt: str, system_instruction: str | None = None) -> str | Non
 
 
 # ---------------------------------------------------------------------------
-# GitHub operations
+# Forgejo operations
 # ---------------------------------------------------------------------------
 def get_issue_comments(issue_num: int) -> list[dict]:
     """Get all comments on an issue."""
-    data = api_get(f"issues/{issue_num}/comments")
-    if isinstance(data, list):
-        return data
-    return []
+    data = api_get_all(f"issues/{issue_num}/comments")
+    return data if isinstance(data, list) else []
 
 
 def comment_on_issue(issue_num: int, body: str) -> None:
@@ -232,20 +233,10 @@ def comment_on_issue(issue_num: int, body: str) -> None:
     api_post(f"issues/{issue_num}/comments", {"body": body})
 
 
-def get_branches_for_issue(issue_num: int) -> list[str]:
-    """List remote branch names matching task/<N>."""
-    result = gh("branch", "-r", "--list", f"origin/task/{issue_num}")
-    if not result:
-        return []
-    return [b.strip() for b in result.splitlines() if b.strip()]
-
-
 def fetch_issue(issue_num: int) -> dict | None:
     """Fetch a single issue by number."""
     data = api_get(f"issues/{issue_num}")
-    if isinstance(data, dict) and "number" in data:
-        return data
-    return None
+    return data if isinstance(data, dict) and "number" in data else None
 
 
 def load_processed() -> dict:
@@ -263,12 +254,67 @@ def save_processed(tracker: dict) -> None:
     PROCESSED_LOG.write_text(json.dumps(tracker, indent=2))
 
 
+def _label_names(issue: dict) -> set[str]:
+    labels = issue.get("labels", [])
+    names = set()
+    for label in labels if isinstance(labels, list) else []:
+        if isinstance(label, str):
+            names.add(label.casefold())
+        elif isinstance(label, dict) and isinstance(label.get("name"), str):
+            names.add(label["name"].casefold())
+    return names
+
+
 def open_task_issues() -> list[dict]:
-    """Fetch open issues with the 'task' label."""
-    data = api_get("issues?labels=task&state=open&per_page=10")
-    if isinstance(data, list):
-        return data
-    return []
+    """Fetch open task issues, excluding pull requests returned by Forgejo."""
+    issues = api_get_all("issues", {"state": "open"})
+    return [
+        issue
+        for issue in issues
+        if isinstance(issue, dict)
+        and str(issue.get("state", "open")).casefold() == "open"
+        and not issue.get("pull_request")
+        and "task" in _label_names(issue)
+    ]
+
+
+def find_open_pull_request(branch: str) -> dict | None:
+    """Find an open pull request from this repository branch."""
+    expected_repo = FORGEJO_REPOSITORY.casefold()
+    for pull in api_get_all("pulls", {"state": "open"}):
+        head = pull.get("head") or {}
+        head_repo = head.get("repo") or {}
+        if head.get("ref") != branch:
+            continue
+        if head_repo.get("full_name") and head_repo["full_name"].casefold() != expected_repo:
+            continue
+        return pull
+    return None
+
+
+def create_pull_request(title: str, body: str, head: str, base: str) -> dict | None:
+    """Create a pull request through Forgejo's repository API."""
+    if not base:
+        raise ValueError("Pull request base branch is required")
+    result = api_post("pulls", {"title": title, "body": body, "head": head, "base": base})
+    return result if isinstance(result, dict) else None
+
+
+def pull_request_url(pull: dict | None) -> str:
+    """Return the web URL supplied by Forgejo, with a same-instance fallback."""
+    if not pull:
+        return ""
+    html_url = pull.get("html_url")
+    if isinstance(html_url, str) and html_url:
+        return html_url
+    number = pull.get("number")
+    if number is None:
+        return ""
+    return f"{FORGEJO_URL}/{FORGEJO_REPOSITORY}/pulls/{number}"
+
+
+def issue_url(issue_num: int) -> str:
+    return f"{FORGEJO_URL}/{FORGEJO_REPOSITORY}/issues/{issue_num}"
 
 
 # ---------------------------------------------------------------------------
@@ -456,7 +502,7 @@ def process_issue(issue: dict) -> None:
                 comment_on_issue(num, msg)
                 jupiter_notify(
                     f"⚠️ Issue #{num} needs attention",
-                    f"Build failing for [{title}](https://github.com/{REPO}/issues/{num}) after {MAX_ATTEMPTS} attempts.",
+                    f"Build failing for [{title}]({issue_url(num)}) after {MAX_ATTEMPTS} attempts.",
                     priority="high",
                 )
                 return
@@ -489,7 +535,7 @@ def process_issue(issue: dict) -> None:
                 comment_on_issue(num, msg)
                 jupiter_notify(
                     f"⚠️ Issue #{num} needs attention",
-                    f"Tests failing for [{title}](https://github.com/{REPO}/issues/{num}) after {MAX_ATTEMPTS} attempts.",
+                    f"Tests failing for [{title}]({issue_url(num)}) after {MAX_ATTEMPTS} attempts.",
                     priority="high",
                 )
                 return
@@ -502,31 +548,29 @@ def process_issue(issue: dict) -> None:
         # 5. Build + Tests passed! Create PR and close issue.
         jupiter_notify(
             f"✅ Issue #{num} build passed",
-            f"[{title}](https://github.com/{REPO}/issues/{num}) — all builds and tests pass.",
+            f"[{title}]({issue_url(num)}) — all builds and tests pass.",
             priority="info",
         )
 
         comment_on_issue(num, "✅ **Build and tests passed!** Creating PR...")
 
         # Check if PR already exists
-        existing_pr = gh("pr", "list", "--head", branch, "--json", "number", "--jq", ".[0].number")
+        existing_pr = find_open_pull_request(branch)
         if existing_pr:
-            pr_url = f"https://github.com/{REPO}/pull/{existing_pr}"
+            pr_url = pull_request_url(existing_pr)
             log.info("PR already exists: %s", pr_url)
         else:
-            pr_url = gh(
-                "pr",
-                "create",
-                "--title",
+            created_pr = create_pull_request(
                 f"[Task #{num}] {title}",
-                "--body",
                 f"Closes #{num}\n\nAutomated implementation by the Ahamkara pipeline.\n\nCo-Authored-By: Oz <oz-agent@warp.dev>",
-                "--base",
-                "main",
-                "--head",
                 branch,
+                "main",
             )
-            log.info("PR created: %s", pr_url)
+            pr_url = pull_request_url(created_pr)
+            if not pr_url:
+                log.warning("Forgejo did not return a pull request URL for issue #%s", num)
+            else:
+                log.info("PR created: %s", pr_url)
 
         # Close the issue
         api_patch(f"issues/{num}", {"state": "closed"})
@@ -542,13 +586,17 @@ def process_issue(issue: dict) -> None:
 # ---------------------------------------------------------------------------
 def main() -> None:
     # Validate required env
-    if not GITHUB_TOKEN:
-        fatal_missing("GITHUB_TOKEN")
+    if not FORGEJO_URL:
+        fatal_missing("FORGEJO_URL")
+    if not FORGEJO_REPOSITORY:
+        fatal_missing("FORGEJO_REPOSITORY")
+    if not FORGEJO_TOKEN:
+        fatal_missing("FORGEJO_TOKEN")
     if not GEMINI_API_KEY:
         fatal_missing("GEMINI_API_KEY")
 
     log.info("Reviewer Runner starting")
-    log.info("Repo: %s", REPO)
+    log.info("Forgejo repository: %s/%s", FORGEJO_URL, FORGEJO_REPOSITORY)
     log.info("Model: Gemini (%s)", GEMINI_MODEL)
     log.info("Poll interval: %ds", POLL_INTERVAL)
 

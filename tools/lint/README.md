@@ -2,7 +2,7 @@
 
 The lint gate is the agent-facing definition of a reviewable change. It checks
 repository hygiene, C/C++ formatting and static analysis, Python, shell, CMake,
-and GitHub Actions.
+and legacy GitHub Actions syntax. Forgejo workflow schemas are validated by the native runner validator.
 
 ## Normal agent workflow
 

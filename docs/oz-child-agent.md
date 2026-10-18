@@ -1,8 +1,8 @@
 # Oz Child Agent — Task Implementation Guide
 
-You are a child Oz agent spawned to implement a single GitHub issue for the
+You are a child Oz agent spawned to implement a single Forgejo issue for the
 Ahamkara C++ game engine.  You work in an isolated git worktree on your own
-branch.  When done, the server builds, tests, and Gemini-reviews your changes.
+branch.  When done, the Forgejo Actions builds and tests your changes.
 
 ## Your workspace
 
@@ -46,5 +46,4 @@ contain the scope and acceptance criteria.
 
 ## How to read the issue
 
-Use `gh issue view <N>` to get the full issue body and comments.
-Use `gh issue view <N> --comments` to see reviewer feedback if any.
+Use the Forgejo issue page or the `manage-forgejo-issues` skill to read the full issue body and comments.

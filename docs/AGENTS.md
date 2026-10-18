@@ -76,11 +76,13 @@ When adding or changing docs for agents:
 
 ## Work Tracking
 
-- GitHub Issues is the only source of truth for work state, priority,
-  dependencies, and acceptance criteria.
+- Forgejo Issues is the only source of truth for work state, priority,
+  dependencies, and acceptance criteria. [src: user:taufeeqali:2026-10-16: explicit Forgejo cutover]
 - Do not create queue-task files, local issue mirrors, status dashboards, or
-  task checklists in `docs/`.
-- Durable docs may reference a GitHub issue, but must remain useful after the
-  issue closes.
+  task checklists in docs.
+- Durable docs may reference a Forgejo issue, but must remain useful after the
+  issue closes. Migrated GitHub records are archive sources and retain backlinks.
+- Forgejo Actions workflows live in .forgejo/workflows/; new CI work belongs
+  there. [src: file: .forgejo/workflows/ci.yml:1]
 - Reports may preserve historical task identifiers as evidence; they are not
   active work records.

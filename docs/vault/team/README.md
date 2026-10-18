@@ -1,7 +1,7 @@
 # Agent coordination
 
 Use this folder only for short-lived coordination that cannot live in the
-GitHub issue or pull request. GitHub Issues owns task state; pull requests own
+Forgejo issue or pull request. Forgejo Issues owns task state; pull requests own
 code-review state.
 
 Do not maintain Kanban boards, issue mirrors, completion inventories, or

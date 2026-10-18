@@ -21,7 +21,7 @@ Read:
 ## Work and design
 
 - Search or update
-  [GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues) for mutable
+  [Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues) for mutable
   work state.
 - Put system-wide boundaries in `docs/architecture/`.
 - Put proposed mechanisms in `docs/design/` with an explicit status.

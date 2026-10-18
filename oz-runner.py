@@ -2,15 +2,15 @@
 """
 Ahamkara Oz Runner — runs on the local Mac.
 
-Polls GitHub for `task`-labeled issues, creates git worktrees, uses
+Polls Forgejo for `task`-labeled issues, creates git worktrees, uses
 DeepSeek/OpenAI to implement the issue, pushes to a branch, then waits for the
 server-side Reviewer Runner to build, test, and Gemini-review the code.
 
-The server posts feedback as GitHub issue comments.  This script reads those
+The server posts feedback as Forgejo issue comments. This script reads those
 comments and loops the coding agent until the build passes.
 
 Requires env:
-  GITHUB_TOKEN
+  FORGEJO_URL, FORGEJO_REPOSITORY, FORGEJO_TOKEN
   DEEPSEEK_API_KEY, DEEPSEEK_MODEL (default deepseek-chat)
   -- OR -- OPENAI_ATHENA_KEY (uses gpt-4o)
   AHAMKARA_CLONE (path to the local clone)
@@ -24,6 +24,7 @@ import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
@@ -31,7 +32,6 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-REPO = "tfq26/Project-Ahamkara"
 DEFAULT_CLONE = Path.home() / "Projects" / "Ahamkara"
 AHAMKARA_CLONE = Path(os.getenv("AHAMKARA_CLONE", str(DEFAULT_CLONE)))
 WORKTREE_BASE = AHAMKARA_CLONE.parent
@@ -59,20 +59,22 @@ WINDOWS_HOST = os.getenv("WINDOWS_BUILD_HOST", "100.124.18.104")
 WINDOWS_USER = os.getenv("WINDOWS_BUILD_USER", "taufe")
 WINDOWS_PATH = os.getenv("WINDOWS_BUILD_PATH", "C:\\Users\\taufe\\ahamkara")
 
-LOG_DIR.mkdir(parents=True, exist_ok=True)
-
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(LOG_DIR / "oz-runner.log"),
-    ],
-)
 log = logging.getLogger("oz-runner")
+
+
+def configure_logging() -> None:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(LOG_DIR / "oz-runner.log"),
+        ],
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -83,42 +85,112 @@ def fatal(msg: str):
     sys.exit(1)
 
 
-def api_get(path: str) -> dict | list:
-    """GET from the GitHub REST API."""
-    url = f"https://api.github.com/repos/{REPO}/{path.lstrip('/')}"
-    req = urllib.request.Request(
-        url,
-        headers={
-            "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
-            "Accept": "application/vnd.github.v3+json",
-        },
+API_PAGE_LIMIT = 50
+MAX_API_PAGES = 1000
+
+
+def forgejo_api_url(path: str, *, page: int | None = None, limit: int = API_PAGE_LIMIT) -> str:
+    """Build a repository-scoped Forgejo API URL from environment config."""
+    base_url = os.environ.get("FORGEJO_URL", "").strip().rstrip("/")
+    repository = os.environ.get("FORGEJO_REPOSITORY", "").strip("/")
+    if not base_url or not repository:
+        raise RuntimeError("FORGEJO_URL and FORGEJO_REPOSITORY must be set")
+
+    api_root = base_url if base_url.endswith("/api/v1") else f"{base_url}/api/v1"
+    endpoint, separator, raw_query = path.lstrip("/").partition("?")
+    query = urllib.parse.parse_qsl(raw_query, keep_blank_values=True) if separator else []
+    if page is not None:
+        query = [(key, value) for key, value in query if key not in {"page", "limit"}]
+        query.extend((("limit", str(limit)), ("page", str(page))))
+    query_string = urllib.parse.urlencode(query, doseq=True)
+    url = f"{api_root}/repos/{repository}/{endpoint}"
+    return f"{url}?{query_string}" if query_string else url
+
+
+def forgejo_api_headers(token: str | None = None) -> dict[str, str]:
+    """Return the authenticated headers required by Forgejo's API."""
+    api_token = token if token is not None else os.environ.get("FORGEJO_TOKEN", "")
+    if not api_token:
+        raise RuntimeError("FORGEJO_TOKEN must be set")
+    return {
+        "Authorization": f"token {api_token}",
+        "Accept": "application/json",
+    }
+
+
+def _has_next_page(link_header: str) -> bool:
+    for link in link_header.split(","):
+        relation = re.search(r";\s*rel\s*=\s*\"?([^;\"]+)", link, re.IGNORECASE)
+        if relation and relation.group(1).strip().lower() == "next":
+            return True
+    return False
+
+
+def _get_api_page(path: str, *, page: int | None = None) -> tuple[dict | list, bool]:
+    request = urllib.request.Request(
+        forgejo_api_url(path, page=page),
+        headers=forgejo_api_headers(),
     )
+    with urllib.request.urlopen(request, timeout=30) as response:
+        data = json.loads(response.read().decode())
+        return data, _has_next_page(response.headers.get("Link", ""))
+
+
+def api_get(path: str) -> dict | list:
+    """GET one Forgejo API resource."""
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.loads(resp.read().decode())
-    except urllib.error.HTTPError as e:
-        log.warning("api_get %s failed: %s", path, e.code)
+        data, _has_next = _get_api_page(path)
+        return data
+    except urllib.error.HTTPError as error:
+        log.warning("api_get %s failed: %s", path, error.code)
+        return {}
+    except Exception as error:
+        log.warning("api_get %s failed: %s", path, error)
         return {}
 
 
+def api_get_paginated(path: str) -> list[dict]:
+    """Collect every list page using Forgejo's Link rel=next response header."""
+    items: list[dict] = []
+    for page in range(1, MAX_API_PAGES + 1):
+        try:
+            data, has_next = _get_api_page(path, page=page)
+        except urllib.error.HTTPError as error:
+            log.warning("api_get %s page %d failed: %s", path, page, error.code)
+            return []
+        except Exception as error:
+            log.warning("api_get %s page %d failed: %s", path, page, error)
+            return []
+
+        if not isinstance(data, list):
+            return []
+        items.extend(data)
+        if not data or not has_next:
+            return items
+
+    log.warning("api_get %s exceeded the %d-page safety limit", path, MAX_API_PAGES)
+    return items
+
+
 def api_post(path: str, data: dict) -> dict | None:
-    """POST to the GitHub REST API."""
-    url = f"https://api.github.com/repos/{REPO}/{path.lstrip('/')}"
-    body = json.dumps(data).encode()
-    req = urllib.request.Request(
-        url,
-        data=body,
+    """POST JSON to the Forgejo repository API."""
+    request = urllib.request.Request(
+        forgejo_api_url(path),
+        data=json.dumps(data).encode(),
         headers={
-            "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
-            "Accept": "application/vnd.github.v3+json",
+            **forgejo_api_headers(),
             "Content-Type": "application/json",
         },
+        method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.loads(resp.read().decode())
-    except urllib.error.HTTPError as e:
-        log.warning("api_post %s failed: %s", path, e.code)
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return json.loads(response.read().decode())
+    except urllib.error.HTTPError as error:
+        log.warning("api_post %s failed: %s", path, error.code)
+        return None
+    except Exception as error:
+        log.warning("api_post %s failed: %s", path, error)
         return None
 
 
@@ -129,7 +201,7 @@ def comment_on_issue(issue_num: int, body: str) -> None:
 
 def get_issue_comments(issue_num: int) -> list[dict]:
     """Get all comments on an issue."""
-    data = api_get(f"issues/{issue_num}/comments")
+    data = api_get_paginated(f"issues/{issue_num}/comments")
     if isinstance(data, list):
         return data
     return []
@@ -144,8 +216,8 @@ def fetch_issue(issue_num: int) -> dict | None:
 
 
 def open_task_issues() -> list[dict]:
-    """Fetch open issues with the 'task' label."""
-    data = api_get("issues?labels=task&state=open&per_page=10")
+    """Fetch all open Forgejo issues with the 'task' label."""
+    data = api_get_paginated("issues?labels=task&state=open")
     if isinstance(data, list):
         return data
     return []
@@ -267,7 +339,7 @@ The build/tests failed on the previous attempt. Here is the review:
 Fix the issues described above. Do NOT re-implement working code.
 """
 
-    return f"""You are an autonomous AI agent implementing GitHub issues for a C++ game engine called Ahamkara.
+    return f"""You are an autonomous AI agent implementing Forgejo issues for a C++ game engine called Ahamkara.
 
 ## Task
 
@@ -605,17 +677,20 @@ def save_state(state: dict) -> None:
 # Main loop
 # ---------------------------------------------------------------------------
 def main() -> None:
-    # Validate
-    token = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
-    if not token:
-        fatal("GITHUB_TOKEN not set")
-    os.environ["GITHUB_TOKEN"] = token
+    configure_logging()
+
+    # Validate Forgejo access before starting the worker loop.
+    try:
+        forgejo_api_headers()
+        forgejo_api_url("issues")
+    except RuntimeError as error:
+        fatal(str(error))
 
     if not DEEPSEEK_API_KEY and not OPENAI_API_KEY:
         fatal("Neither DEEPSEEK_API_KEY nor OPENAI_ATHENA_KEY is set")
 
     log.info("Oz Runner starting")
-    log.info("Repo: %s", REPO)
+    log.info("Repo: %s", os.environ["FORGEJO_REPOSITORY"])
     log.info("Clone: %s", AHAMKARA_CLONE)
     log.info(
         "Coder: %s (%s)",

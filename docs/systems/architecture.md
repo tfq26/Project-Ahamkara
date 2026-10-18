@@ -52,4 +52,4 @@ These are transition facts, not endorsed final boundaries. See
   [src: file: client/include/ahamkara/client/client_frame_pipeline.h:37-124]
 
 Executable repair work is tracked in
-[GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues).
+[Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues).

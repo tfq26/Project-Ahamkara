@@ -30,5 +30,5 @@ mechanisms live in [`../design/`](../design/README.md).
 - [Asset pipeline map](../vault/systems/asset-pipeline-map.md)
 - [Wish map](../vault/systems/wish-map.md)
 
-Do not add task status or issue bodies here. Link GitHub Issues for mutable
+Do not add task status or issue bodies here. Link Forgejo Issues for mutable
 execution state.

@@ -71,5 +71,5 @@ git branch -d agent/codex/ui-pass
 
 ## Related
 
-- [GitHub issues](github-issues/SKILL.md)
+- [Forgejo issues](forgejo-issues/SKILL.md)
 - [Subagent collaboration protocol](subagent-collaboration-protocol/SKILL.md)

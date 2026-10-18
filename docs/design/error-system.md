@@ -3,9 +3,9 @@
 Status: Foundation implemented in ae_core (AE-* catalog + Result/report APIs); product adapters still pending
 
 Implementation is sequenced through
-[Ahamkara foundation #62](https://github.com/tfq26/Project-Ahamkara/issues/62),
-[Wish envelope #63](https://github.com/tfq26/Project-Ahamkara/issues/63), and
-[Flashback presentation #64](https://github.com/tfq26/Project-Ahamkara/issues/64).
+[Ahamkara foundation #142](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues/142),
+[Wish envelope #143](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues/143), and
+[Flashback presentation #144](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues/144).
 The design remains authoritative for semantics; the issues own mutable work
 state and acceptance progress.
 
@@ -331,7 +331,7 @@ boundaries before broad conversion.
 - Never reuse a number.
 - Keep one owner and one support entry per active code.
 - Review context fields for secrets and personal data.
-- Track implementation work in GitHub Issues; do not turn this catalog into a
+- Track implementation work in Forgejo Issues; do not turn this catalog into a
   backlog.
 
 ## Rollout

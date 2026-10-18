@@ -1,7 +1,7 @@
 # Current state
 
 Status: Active
-Last updated: 2026-07-13
+Last updated: 2026-10-16
 
 ## Direction
 
@@ -47,9 +47,9 @@ Stable public error identities are proposed but not implemented. See
 
 ## Work tracking
 
-GitHub Issues is the only current source of truth for state, priority,
+Forgejo Issues is the only current source of truth for state, priority,
 dependencies, and acceptance criteria. The architecture initiative is indexed
-by [#61](https://github.com/tfq26/Project-Ahamkara/issues/61). Do not add queue
+by [Forgejo #82 (migrated from GitHub #61)](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues/82). Do not add queue
 inventories or copied issue bodies to this note.
 
 ## Verification

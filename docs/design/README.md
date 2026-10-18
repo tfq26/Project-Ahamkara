@@ -9,5 +9,5 @@ ownership, rollout, and validation bar.
 Once a design is fully implemented, move stable behavior into the relevant
 [`../systems/`](../systems/README.md) document and retain only the decision and
 compatibility contract here. Execution status belongs in
-[GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues).
+[Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues).
 

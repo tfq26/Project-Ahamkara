@@ -15,7 +15,7 @@ license: AGPL-3.0
 ## Gotchas
 
 - **Docker layer cache** invalidates on ANY changed line and all lines after — put `COPY package.json` before `COPY .` to cache deps.
-- **GitHub Actions `latest`** on actions is dangerous — pin to SHA: `uses: actions/checkout@<sha>`.
+- **Forgejo Actions `latest`** on actions is dangerous — pin to SHA: `uses: actions/checkout@<sha>`.
 - **Secrets in CI** — never echo/print env vars in logs. Mask with `::add-mask::`. Prefer OIDC over long-lived tokens.
 - **Kubernetes is overhead** — for <5 services, Docker Compose or ECS is usually enough. Don't adopt K8s for resume-driven development.
 - **Spot/preemptible instances** save 60-80% but need graceful shutdown handling (SIGTERM → drain → exit).

@@ -16,5 +16,5 @@ as the agent documentation contract.
 - [Historical reports](reports/README.md)
 
 Executable work is tracked only in
-[GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues); do not add a
+[Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues); do not add a
 second backlog under `docs/`.

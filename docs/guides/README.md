@@ -18,5 +18,5 @@ Ahamkara during the repository split.
 - [Known good commands](../vault/memory/known-good-commands.md)
 
 Work state and acceptance criteria live in
-[GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues), not local
+[Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues), not local
 task files.

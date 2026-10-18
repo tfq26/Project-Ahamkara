@@ -105,6 +105,6 @@ Ahamkara and Wish document only their public contracts; neither documents
 Flashback internals as part of its own architecture.
 
 Execution status and task breakdown remain in
-[GitHub Issues](https://github.com/tfq26/Project-Ahamkara/issues) during the
+[Forgejo Issues](https://git.2helix.org/taufeeq26/Project-Ahamkara/issues) during the
 transition.
 
