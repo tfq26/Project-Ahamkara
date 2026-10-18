@@ -320,8 +320,8 @@ again also restores it as current. Do not edit files inside a versioned build.
 
 For the local Apple Silicon build, run the same commands on macOS from the same
 Forgejo commit, using the macos-arm64 platform name: Keep the extracted
-versioned build under ~/Games/Ahamkara/macos/versions/<commit> and make that
-the local current build. The server current and backup are Linux builds; the
+versioned build under build/local-builds/macos/versions/<commit> and point
+build/local-builds/macos/current at that directory. The server current and backup are Linux builds; the
 Mac current build is separately compiled from the matching commit. Run the
 package script with macos-arm64 as its third argument on the Mac.
 
