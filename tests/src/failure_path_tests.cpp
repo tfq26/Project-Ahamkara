@@ -20,13 +20,13 @@
 // ---------------------------------------------------------------------------
 static int g_failure_count = 0;
 
-#define FAILURE_TEST(cond, msg)                                           \
-    do {                                                                  \
-        if (!(cond)) {                                                    \
-            std::cerr << "FAILURE_PATH_FAIL: " << msg << " (" << __FILE__ \
-                      << ":" << __LINE__ << ")\n";                        \
-            ++g_failure_count;                                            \
-        }                                                                 \
+#define FAILURE_TEST(cond, msg)                                             \
+    do {                                                                    \
+        if (!(cond)) {                                                      \
+            std::cerr << "FAILURE_PATH_FAIL: " << (msg) << " (" << __FILE__ \
+                      << ":" << __LINE__ << ")\n";                          \
+            ++g_failure_count;                                              \
+        }                                                                   \
     } while (0)
 
 #define EXPECT_EQ(a, b) FAILURE_TEST((a) == (b), "Expected equality: " #a " == " #b)

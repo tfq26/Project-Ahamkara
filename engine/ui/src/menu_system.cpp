@@ -30,12 +30,18 @@ namespace ae::ui {
 namespace {
 
 float hex_to_float(const std::string& s) {
-    try { return std::stof(s); } catch (...) { return 0.0f; }
+    try {
+        return std::stof(s);
+    } catch (...) {
+        return 0.0f;
+    }
 }
 
 ImVec4 parse_color(const std::vector<float>& c) {
-    if (c.size() >= 4) return {c[0], c[1], c[2], c[3]};
-    if (c.size() >= 3) return {c[0], c[1], c[2], 1.0f};
+    if (c.size() >= 4)
+        return {c[0], c[1], c[2], c[3]};
+    if (c.size() >= 3)
+        return {c[0], c[1], c[2], 1.0f};
     return {1, 1, 1, 1};
 }
 
@@ -44,55 +50,108 @@ float get_theme_float(const std::unordered_map<std::string, float>& map, const s
     return it != map.end() ? it->second : def;
 }
 
-ImVec4 get_theme_color(const std::unordered_map<std::string, ImVec4>& map, const std::string& key, const ImVec4& def = {1,1,1,1}) {
+ImVec4 get_theme_color(const std::unordered_map<std::string, ImVec4>& map, const std::string& key, const ImVec4& def = {1, 1, 1, 1}) {
     auto it = map.find(key);
     return it != map.end() ? it->second : def;
 }
 
 // Minimal JSON parser for our menu format.
 class MiniJson {
-public:
+  public:
     MiniJson(const std::string& src) : s_(src), p_(0) {}
-    void skip_ws() { while (p_ < s_.size() && (std::isspace(s_[p_]) || s_[p_] == ',')) ++p_; }
-    char peek() { skip_ws(); return p_ < s_.size() ? s_[p_] : 0; }
-    char next() { skip_ws(); return p_ < s_.size() ? s_[p_++] : 0; }
+    void skip_ws() {
+        while (p_ < s_.size() && (std::isspace(s_[p_]) || s_[p_] == ','))
+            ++p_;
+    }
+    char peek() {
+        skip_ws();
+        return p_ < s_.size() ? s_[p_] : 0;
+    }
+    char next() {
+        skip_ws();
+        return p_ < s_.size() ? s_[p_++] : 0;
+    }
 
     std::string read_string() {
-        if (next() != '"') return {};
+        if (next() != '"')
+            return {};
         std::string r;
-        while (p_ < s_.size() && s_[p_] != '"') { if (s_[p_] == '\\') { ++p_; if (p_ < s_.size()) r += s_[p_++]; } else r += s_[p_++]; }
-        ++p_; return r;
+        while (p_ < s_.size() && s_[p_] != '"') {
+            if (s_[p_] == '\\') {
+                ++p_;
+                if (p_ < s_.size())
+                    r += s_[p_++];
+            } else
+                r += s_[p_++];
+        }
+        ++p_;
+        return r;
     }
 
     float read_number() {
         skip_ws();
         std::size_t start = p_;
-        if (p_ < s_.size() && s_[p_] == '-') ++p_;
-        while (p_ < s_.size() && (std::isdigit(s_[p_]) || s_[p_] == '.')) ++p_;
+        if (p_ < s_.size() && s_[p_] == '-')
+            ++p_;
+        while (p_ < s_.size() && (std::isdigit(s_[p_]) || s_[p_] == '.'))
+            ++p_;
         return hex_to_float(s_.substr(start, p_ - start));
     }
 
     bool read_bool() {
         skip_ws();
-        if (p_ + 4 <= s_.size() && s_.substr(p_, 4) == "true") { p_ += 4; return true; }
-        if (p_ + 5 <= s_.size() && s_.substr(p_, 5) == "false") { p_ += 5; return false; }
+        if (p_ + 4 <= s_.size() && s_.substr(p_, 4) == "true") {
+            p_ += 4;
+            return true;
+        }
+        if (p_ + 5 <= s_.size() && s_.substr(p_, 5) == "false") {
+            p_ += 5;
+            return false;
+        }
         return false;
     }
 
     std::vector<float> read_float_array() {
         std::vector<float> v;
-        if (next() != '[') return v;
-        while (peek() != ']') v.push_back(read_number());
-        next(); return v;
+        if (next() != '[')
+            return v;
+        while (peek() != ']')
+            v.push_back(read_number());
+        next();
+        return v;
     }
 
     void skip_value() {
-        skip_ws(); if (p_ >= s_.size()) return;
+        skip_ws();
+        if (p_ >= s_.size())
+            return;
         char c = s_[p_];
-        if (c == '{') { ++p_; int d = 1; while (d > 0 && p_ < s_.size()) { if (s_[p_]=='{') ++d; else if (s_[p_]=='}') --d; ++p_; } }
-        else if (c == '[') { ++p_; int d = 1; while (d > 0 && p_ < s_.size()) { if (s_[p_]=='[') ++d; else if (s_[p_]==']') --d; ++p_; } }
-        else if (c == '"') { read_string(); }
-        else { while (p_ < s_.size() && !std::isspace(s_[p_]) && s_[p_] != ',' && s_[p_] != '}' && s_[p_] != ']') ++p_; }
+        if (c == '{') {
+            ++p_;
+            int d = 1;
+            while (d > 0 && p_ < s_.size()) {
+                if (s_[p_] == '{')
+                    ++d;
+                else if (s_[p_] == '}')
+                    --d;
+                ++p_;
+            }
+        } else if (c == '[') {
+            ++p_;
+            int d = 1;
+            while (d > 0 && p_ < s_.size()) {
+                if (s_[p_] == '[')
+                    ++d;
+                else if (s_[p_] == ']')
+                    --d;
+                ++p_;
+            }
+        } else if (c == '"') {
+            read_string();
+        } else {
+            while (p_ < s_.size() && !std::isspace(s_[p_]) && s_[p_] != ',' && s_[p_] != '}' && s_[p_] != ']')
+                ++p_;
+        }
     }
 
     const std::string& s_;
@@ -107,63 +166,95 @@ void parse_element(MiniJson& j, MenuSystem::ParsedElement& el) {
     el.type = "panel"; // default
     while (j.peek() != '}') {
         std::string key = j.read_string();
-        if (j.next() != ':') break;
-        if (key == "type") el.type = j.read_string();
-        else if (key == "content") el.content = j.read_string();
-        else if (key == "label") el.label = j.read_string();
-        else if (key == "action") el.action = j.read_string();
-        else if (key == "style") el.style = j.read_string();
-        else if (key == "color") el.color = j.read_string();
-        else if (key == "font") el.font = j.read_string();
-        else if (key == "setting") el.setting = j.read_string();
-        else if (key == "map_id") el.map_id = j.read_string();
-        else if (key == "description") el.description = j.read_string();
-        else if (key == "players") el.players = j.read_string();
+        if (j.next() != ':')
+            break;
+        if (key == "type")
+            el.type = j.read_string();
+        else if (key == "content")
+            el.content = j.read_string();
+        else if (key == "label")
+            el.label = j.read_string();
+        else if (key == "action")
+            el.action = j.read_string();
+        else if (key == "style")
+            el.style = j.read_string();
+        else if (key == "color")
+            el.color = j.read_string();
+        else if (key == "font")
+            el.font = j.read_string();
+        else if (key == "setting")
+            el.setting = j.read_string();
+        else if (key == "map_id")
+            el.map_id = j.read_string();
+        else if (key == "description")
+            el.description = j.read_string();
+        else if (key == "players")
+            el.players = j.read_string();
         else if (key == "id")
             el.id = j.read_string();
         else if (key == "language")
             el.language = j.read_string();
-        else if (key == "anchor") el.anchor = j.read_string();
-        else if (key == "x") el.x = j.read_number();
-        else if (key == "y") el.y = j.read_number();
-        else if (key == "width") el.width = j.read_number();
-        else if (key == "height") el.height = j.read_number();
-        else if (key == "min") el.min = j.read_number();
-        else if (key == "max") el.max = j.read_number();
-        else if (key == "radius") el.radius = j.read_number();
-        else if (key == "thickness") el.thickness = j.read_number();
-        else if (key == "rounding") el.rounding = j.read_number();
-        else if (key == "background") { auto v = j.read_float_array(); if (v.size() >= 4) {} }
-        else if (key == "overlay") el.content = j.read_bool() ? "true" : "false";
+        else if (key == "anchor")
+            el.anchor = j.read_string();
+        else if (key == "x")
+            el.x = j.read_number();
+        else if (key == "y")
+            el.y = j.read_number();
+        else if (key == "width")
+            el.width = j.read_number();
+        else if (key == "height")
+            el.height = j.read_number();
+        else if (key == "min")
+            el.min = j.read_number();
+        else if (key == "max")
+            el.max = j.read_number();
+        else if (key == "radius")
+            el.radius = j.read_number();
+        else if (key == "thickness")
+            el.thickness = j.read_number();
+        else if (key == "rounding")
+            el.rounding = static_cast<int>(std::clamp(j.read_number(), 0.0F, 64.0F));
+        else if (key == "background") {
+            auto v = j.read_float_array();
+            if (v.size() >= 4) {
+            }
+        } else if (key == "overlay")
+            el.content = j.read_bool() ? "true" : "false";
         else if (key == "elements" && j.peek() == '[') {
             j.next();
             while (j.peek() != ']') {
-                if (j.next() != '{') break;
+                if (j.next() != '{')
+                    break;
                 MenuSystem::ParsedElement child;
                 parse_element(j, child);
                 el.elements.push_back(std::move(child));
                 j.next(); // }
             }
             j.next(); // ]
-        }
-        else j.skip_value();
+        } else
+            j.skip_value();
     }
 }
 
 static void parse_screen_body(MiniJson& j, MenuSystem::ParsedScreen& screen) {
     while (j.peek() != 0) {
         std::string key = j.read_string();
-        if (key.empty()) break;
-        if (j.next() != ':') break;
-        if (key == "name") screen.name = j.read_string();
-        else if (key == "overlay") screen.overlay = j.read_bool();
+        if (key.empty())
+            break;
+        if (j.next() != ':')
+            break;
+        if (key == "name")
+            screen.name = j.read_string();
+        else if (key == "overlay")
+            screen.overlay = j.read_bool();
         else if (key == "cinematic_background")
             screen.cinematic_background = j.read_bool();
         else if (key == "background_drift")
             screen.background_drift = j.read_number();
         else if (key == "background_zoom")
             screen.background_zoom = j.read_number();
-        else if (key == "background") screen.background = j.read_float_array();
+        else if (key == "background")
+            screen.background = j.read_float_array();
         else if (key == "background_image")
             screen.background_image = j.read_string();
         else if (key == "background_layers" && j.peek() == '[') {
@@ -199,7 +290,8 @@ static void parse_screen_body(MiniJson& j, MenuSystem::ParsedScreen& screen) {
         } else if (key == "elements" && j.peek() == '[') {
             j.next();
             while (j.peek() != ']') {
-                if (j.next() != '{') break;
+                if (j.next() != '{')
+                    break;
                 MenuSystem::ParsedElement el;
                 parse_element(j, el);
                 screen.elements.push_back(std::move(el));
@@ -215,41 +307,45 @@ static void parse_screen_body(MiniJson& j, MenuSystem::ParsedScreen& screen) {
 static void parse_theme(MenuSystem::ParsedTheme& theme, MiniJson& j) {
     while (j.peek() != 0) {
         std::string key = j.read_string();
-        if (key.empty()) break;
-        if (j.next() != ':') break;
+        if (key.empty())
+            break;
+        if (j.next() != ':')
+            break;
         if (key == "colors" && j.peek() == '{') {
             j.next();
             while (j.peek() != '}') {
                 std::string cname = j.read_string();
-                if (j.next() != ':') break;
+                if (j.next() != ':')
+                    break;
                 auto vals = j.read_float_array();
-                if (vals.size() >= 4) theme.colors[cname] = {vals[0], vals[1], vals[2], vals[3]};
+                if (vals.size() >= 4)
+                    theme.colors[cname] = {vals[0], vals[1], vals[2], vals[3]};
             }
             j.next();
-        }
-        else if (key == "fonts" && j.peek() == '{') {
+        } else if (key == "fonts" && j.peek() == '{') {
             j.next();
             while (j.peek() != '}') {
                 std::string fname = j.read_string();
-                if (j.next() != ':') break;
+                if (j.next() != ':')
+                    break;
                 theme.fonts[fname] = j.read_number();
             }
             j.next();
-        }
-        else if (key == "spacing" && j.peek() == '{') {
+        } else if (key == "spacing" && j.peek() == '{') {
             j.next();
             while (j.peek() != '}') {
                 std::string sname = j.read_string();
-                if (j.next() != ':') break;
+                if (j.next() != ':')
+                    break;
                 theme.spacing[sname] = j.read_number();
             }
             j.next();
-        }
-        else j.skip_value();
+        } else
+            j.skip_value();
     }
 }
 
-}  // namespace
+} // namespace
 
 // ── MenuSystem ─────────────────────────────────────────────────────────────────
 
@@ -319,17 +415,20 @@ bool MenuSystem::load_from_directory(const std::string& dir_path) {
             j.next(); // {
             parse_theme(theme_, j);
             log_info_cat(AE_LOG_CATEGORY, "Loaded theme (" + std::to_string(theme_.colors.size()) + " colors, " +
-                          std::to_string(theme_.fonts.size()) + " fonts)");
+                                              std::to_string(theme_.fonts.size()) + " fonts)");
         }
     }
 
     // Load all .json files except theme
     for (const auto& entry : std::filesystem::directory_iterator(dir_path)) {
-        if (!entry.is_regular_file()) continue;
+        if (!entry.is_regular_file())
+            continue;
         std::string name = entry.path().filename().stem().string();
-        if (name == "theme") continue;
+        if (name == "theme")
+            continue;
         std::string ext = entry.path().extension().string();
-        if (ext != ".json") continue;
+        if (ext != ".json")
+            continue;
 
         load_screen(entry.path().string(), name);
     }
@@ -340,7 +439,8 @@ bool MenuSystem::load_from_directory(const std::string& dir_path) {
 
 bool MenuSystem::load_screen(const std::string& path, const std::string& name) {
     std::ifstream f(path);
-    if (!f.is_open()) return false;
+    if (!f.is_open())
+        return false;
 
     std::string content((std::istreambuf_iterator<char>(f)), {});
     MiniJson j(content);
@@ -369,28 +469,43 @@ struct LayoutPos {
 };
 
 LayoutPos compute_position(float el_x, float el_y, const std::string& anchor,
-                            float parent_x, float parent_y, float parent_w, float parent_h,
-                            float el_w, float el_h) {
+                           float parent_x, float parent_y, float parent_w, float parent_h,
+                           float el_w, float el_h) {
     LayoutPos p;
     float base_x = parent_x + el_x;
     float base_y = parent_y + el_y;
 
-    if (anchor == "center")           { p.x = base_x - el_w * 0.5f; p.y = base_y - el_h * 0.5f; }
-    else if (anchor == "top_center")  { p.x = base_x - el_w * 0.5f; p.y = base_y; }
-    else if (anchor == "bottom_center") { p.x = base_x - el_w * 0.5f; p.y = base_y - el_h; }
-    else if (anchor == "top_left")    { p.x = base_x; p.y = base_y; }
-    else if (anchor == "top_right")   { p.x = base_x - el_w; p.y = base_y; }
-    else { p.x = base_x; p.y = base_y; }
+    if (anchor == "center") {
+        p.x = base_x - el_w * 0.5f;
+        p.y = base_y - el_h * 0.5f;
+    } else if (anchor == "top_center") {
+        p.x = base_x - el_w * 0.5f;
+        p.y = base_y;
+    } else if (anchor == "bottom_center") {
+        p.x = base_x - el_w * 0.5f;
+        p.y = base_y - el_h;
+    } else if (anchor == "top_left") {
+        p.x = base_x;
+        p.y = base_y;
+    } else if (anchor == "top_right") {
+        p.x = base_x - el_w;
+        p.y = base_y;
+    } else {
+        p.x = base_x;
+        p.y = base_y;
+    }
     return p;
 }
 
-}  // namespace
+} // namespace
 
 void MenuSystem::render() {
-    if (screen_stack_.empty()) return;
+    if (screen_stack_.empty())
+        return;
     const std::string& name = screen_stack_.back();
     auto it = screens_.find(name);
-    if (it == screens_.end()) return;
+    if (it == screens_.end())
+        return;
 
     const auto& screen = it->second;
     auto& io = ImGui::GetIO();
@@ -625,7 +740,7 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         std::string text = resolve_variable(el.content);
         const float font_size = get_theme_float(theme_.fonts, el.font, 22.0f);
         ImFont* font = menu_font_for_role(el.font);
-        auto color = get_theme_color(theme_.colors, el.color, {1,1,1,1});
+        auto color = get_theme_color(theme_.colors, el.color, {1, 1, 1, 1});
 
         const ImVec2 text_size = font != nullptr
                                      ? font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, text.c_str())
@@ -646,15 +761,16 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
                                     menu_coordinate_to_pixels(el.y, parent_h), el.anchor,
                                     offset_x, offset_y, parent_w, parent_h, btn_w, btn_h);
 
-        auto c_normal  = get_theme_color(theme_.colors, "button_" + el.style);
-        auto c_hover   = get_theme_color(theme_.colors, "button_" + el.style + "_hover", c_normal);
+        auto c_normal = get_theme_color(theme_.colors, "button_" + el.style);
+        auto c_hover = get_theme_color(theme_.colors, "button_" + el.style + "_hover", c_normal);
         auto c_primary = get_theme_color(theme_.colors, "button_primary");
 
         if (el.style == "danger") {
             c_normal = get_theme_color(theme_.colors, "button_danger");
             c_hover = ImVec4(c_normal.x * 1.1f, c_normal.y * 0.9f, c_normal.z * 0.9f, 1.0f);
         }
-        if (c_normal.x == 0 && c_normal.y == 0 && c_normal.z == 0) c_normal = c_primary;
+        if (c_normal.x == 0 && c_normal.y == 0 && c_normal.z == 0)
+            c_normal = c_primary;
 
         const float button_font_size = get_theme_float(theme_.fonts, "button", 22.0f);
         ImFont* button_font = menu_font_for_role("button");
@@ -722,8 +838,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         std::string child_name = "##mapcard_" + el.map_id;
         if (ImGui::BeginChild(child_name.c_str(), {el_w, el_h}, ImGuiChildFlags_Border)) {
             auto accent = get_theme_color(theme_.colors, "accent");
-            auto text1  = get_theme_color(theme_.colors, "text_primary");
-            auto text2  = get_theme_color(theme_.colors, "text_secondary");
+            auto text1 = get_theme_color(theme_.colors, "text_primary");
+            auto text2 = get_theme_color(theme_.colors, "text_secondary");
 
             ImGui::PushStyleColor(ImGuiCol_Text, accent);
             ImGui::SetWindowFontScale(1.1f);
@@ -743,7 +859,8 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
 
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 4);
             if (ImGui::Button(("SELECT##" + el.map_id).c_str(), {el_w - 16, 26})) {
-                if (!el.action.empty()) execute_action(el.action);
+                if (!el.action.empty())
+                    execute_action(el.action);
             }
         }
         ImGui::EndChild();
@@ -761,7 +878,7 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         ImGui::SetCursorScreenPos({pos.x, pos.y});
 
         auto fill = get_theme_color(theme_.colors, "progress_fill");
-        auto bg   = get_theme_color(theme_.colors, "progress_bg");
+        auto bg = get_theme_color(theme_.colors, "progress_bg");
         float r = el.rounding > 0 ? (float)el.rounding : 4.0f;
 
         ImDrawList* dl = ImGui::GetWindowDrawList();
@@ -941,7 +1058,6 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
         if (ImGui::BeginChild(sbar_id.c_str(), {sidebar_w, el_h_scaled}, ImGuiChildFlags_Border)) {
             auto accent = get_theme_color(theme_.colors, "accent");
             auto text_primary = get_theme_color(theme_.colors, "text_primary");
-            auto text_secondary = get_theme_color(theme_.colors, "text_secondary");
             auto btn_sec = get_theme_color(theme_.colors, "button_secondary");
             auto btn_sec_hover = get_theme_color(theme_.colors, "button_secondary_hover");
 
@@ -992,8 +1108,6 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
     if (el.type == "docs_section") {
         // Render section content: title + children
         auto accent = get_theme_color(theme_.colors, "accent");
-        auto text_primary = get_theme_color(theme_.colors, "text_primary");
-
         ImGui::PushStyleColor(ImGuiCol_Text, accent);
         ImGui::SetWindowFontScale(1.5f);
         ImGui::TextUnformatted(el.label.c_str());
@@ -1011,6 +1125,7 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
     if (el.type == "code_block") {
         // Simple syntax highlighting: keywords in magenta, strings green, numbers yellow, rest white
         auto text_primary = get_theme_color(theme_.colors, "text_primary");
+        auto text_secondary = get_theme_color(theme_.colors, "text_secondary");
         ImVec4 keyword_col = {0.85f, 0.25f, 0.85f, 1.0f}; // magenta
         ImVec4 string_col = {0.35f, 0.85f, 0.35f, 1.0f};  // green
         ImVec4 number_col = {0.90f, 0.80f, 0.20f, 1.0f};  // yellow
@@ -1036,7 +1151,6 @@ void MenuSystem::render_element(const ParsedElement& el, float offset_x, float o
 
         // Language label
         if (!el.language.empty()) {
-            auto text_secondary = get_theme_color(theme_.colors, "text_secondary");
             ImGui::PushStyleColor(ImGuiCol_Text, text_secondary);
             ImGui::SetWindowFontScale(0.75f);
             ImGui::TextUnformatted(el.language.c_str());
@@ -1230,14 +1344,16 @@ void MenuSystem::push_screen(const std::string& name) {
 }
 
 void MenuSystem::pop_screen() {
-    if (!screen_stack_.empty()) screen_stack_.pop_back();
+    if (!screen_stack_.empty())
+        screen_stack_.pop_back();
     current_screen_ = screen_stack_.empty() ? "" : screen_stack_.back();
 }
 
 void MenuSystem::pop_to_root() {
     if (!screen_stack_.empty()) {
         screen_stack_.erase(screen_stack_.begin() + 1, screen_stack_.end());
-        if (!screen_stack_.empty()) current_screen_ = screen_stack_[0];
+        if (!screen_stack_.empty())
+            current_screen_ = screen_stack_[0];
     }
 }
 
@@ -1260,7 +1376,8 @@ void MenuSystem::set_active_screen(const std::string& name, bool active) {
 
 void MenuSystem::set_variable(const std::string& key, const std::string& value) {
     str_vars_[key] = value;
-    if (key == "loading_progress") loading_progress_ = hex_to_float(value);
+    if (key == "loading_progress")
+        loading_progress_ = hex_to_float(value);
 }
 
 void MenuSystem::set_variable(const std::string& key, float value) {
@@ -1293,7 +1410,8 @@ std::string MenuSystem::resolve_variable(const std::string& content) const {
 
 void MenuSystem::poll_hot_reload() {
     for (auto& [name, screen] : screens_) {
-        if (!std::filesystem::exists(screen.path)) continue;
+        if (!std::filesystem::exists(screen.path))
+            continue;
         auto current = std::filesystem::last_write_time(screen.path);
         if (current > screen.last_write) {
             screen.last_write = current;
@@ -1303,4 +1421,4 @@ void MenuSystem::poll_hot_reload() {
     }
 }
 
-}  // namespace ae::ui
+} // namespace ae::ui

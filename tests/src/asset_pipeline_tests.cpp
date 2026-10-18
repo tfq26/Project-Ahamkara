@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -114,22 +115,34 @@ bool write_test_tga(const std::filesystem::path& path) {
     }
 
     const std::uint8_t header[18] = {
-        0,    // id length
-        0,    // color map type
-        2,    // image type: uncompressed true-color
-        0, 0, 0, 0, 0, // color map spec
-        0, 0, // x origin
-        0, 0, // y origin
-        2, 0, // width = 2
-        1, 0, // height = 1
+        0, // id length
+        0, // color map type
+        2, // image type: uncompressed true-color
+        0,
+        0,
+        0,
+        0,
+        0, // color map spec
+        0,
+        0, // x origin
+        0,
+        0, // y origin
+        2,
+        0, // width = 2
+        1,
+        0,    // height = 1
         24,   // bits per pixel
         0x20, // top-left origin
     };
     file.write(reinterpret_cast<const char*>(header), sizeof(header));
 
     const std::uint8_t pixels[6] = {
-        0, 0, 255,   // red in BGR
-        0, 255, 0,   // green in BGR
+        0,
+        0,
+        255, // red in BGR
+        0,
+        255,
+        0, // green in BGR
     };
     file.write(reinterpret_cast<const char*>(pixels), sizeof(pixels));
     return static_cast<bool>(file);
@@ -363,8 +376,14 @@ int test_texture_import_roundtrip() {
     }
 
     const std::vector<std::uint8_t> expected_pixels = {
-        255, 0, 0, 255,
-        0, 255, 0, 255,
+        255,
+        0,
+        0,
+        255,
+        0,
+        255,
+        0,
+        255,
     };
     if (texture.pixels != expected_pixels) {
         return fail("compiled texture pixels were not preserved");
@@ -851,8 +870,13 @@ int test_asset_packing_alignment() {
         }
 
         file.seekg(static_cast<std::streamoff>(entry.offset));
-        std::vector<char> data(entry.size);
-        file.read(data.data(), entry.size);
+        if (entry.size > static_cast<std::uint64_t>(std::numeric_limits<std::streamsize>::max())) {
+            std::filesystem::remove_all(temp_root, error);
+            return fail("assets.pkg entry is too large to read");
+        }
+        const auto entry_stream_size = static_cast<std::streamsize>(entry.size);
+        std::vector<char> data(static_cast<std::size_t>(entry.size));
+        file.read(data.data(), entry_stream_size);
 
         // Determine which compiled file to compare against
         std::filesystem::path compiled_path;
@@ -872,9 +896,13 @@ int test_asset_packing_alignment() {
                         std::to_string(expected_size) + ", got " + std::to_string(entry.size));
         }
 
+        if (expected_size > static_cast<std::uintmax_t>(std::numeric_limits<std::streamsize>::max())) {
+            std::filesystem::remove_all(temp_root, error);
+            return fail("compiled asset is too large to read");
+        }
         std::ifstream comp_file(compiled_path, std::ios::binary);
-        std::vector<char> expected_data(expected_size);
-        comp_file.read(expected_data.data(), expected_size);
+        std::vector<char> expected_data(static_cast<std::size_t>(expected_size));
+        comp_file.read(expected_data.data(), static_cast<std::streamsize>(expected_size));
 
         if (data != expected_data) {
             std::filesystem::remove_all(temp_root, error);
@@ -891,9 +919,9 @@ int test_compiled_mesh_uv_roundtrip() {
     ae::render::GltfModel source;
     ae::render::GltfMesh mesh;
     mesh.positions = {0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 0.0F, 1.0F, 0.0F};
-    mesh.normals   = {0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 1.0F};
-    mesh.uvs       = {0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 1.0F};
-    mesh.indices   = {0, 1, 2};
+    mesh.normals = {0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 1.0F};
+    mesh.uvs = {0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 1.0F};
+    mesh.indices = {0, 1, 2};
     source.meshes.push_back(mesh);
 
     const auto output_path = std::filesystem::temp_directory_path() / "ahamkara_uv_roundtrip.aemesh";

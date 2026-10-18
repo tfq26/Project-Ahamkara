@@ -24,6 +24,7 @@
 #include "wish/integrations/nakama/mock_session_services.h"
 #include "wish/types.h"
 
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <cstddef>
@@ -219,7 +220,6 @@ void test_independent_admission_no_first_slot_shortcut() {
     });
 
     auto mock_act = std::make_unique<MockActivity>();
-    auto* mock_ptr = mock_act.get();
     activity_mgr.start_activity(static_cast<wish::core::ActivityId>(1), std::move(mock_act));
 
     ahamkara::game::adapters::WishSessionAdapter adapter(
@@ -354,7 +354,6 @@ void test_snapshot_broadcast() {
     });
 
     auto mock_act = std::make_unique<MockActivity>();
-    auto* mock_ptr = mock_act.get();
     activity_mgr.start_activity(static_cast<wish::core::ActivityId>(3), std::move(mock_act));
 
     ahamkara::game::adapters::WishSessionAdapter adapter(

@@ -82,3 +82,14 @@ endif()
 set_target_properties(ahamkara_client PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/client
 )
+
+
+# Keep the optional development bridge analyzable even when the feature is off.
+if(AHAMKARA_BUILD_CLIENT AND NOT AHAMKARA_ENABLE_GAME_MCP)
+    add_library(ahamkara_game_mcp_compile_check OBJECT EXCLUDE_FROM_ALL
+        src/game_mcp_bridge.cpp
+    )
+    target_compile_features(ahamkara_game_mcp_compile_check PRIVATE cxx_std_20)
+    target_include_directories(ahamkara_game_mcp_compile_check PRIVATE include)
+    target_link_libraries(ahamkara_game_mcp_compile_check PRIVATE ae_core ae_runtime ae_render ae_ui ahamkara_game)
+endif()

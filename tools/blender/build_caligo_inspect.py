@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import math
+from contextlib import suppress
 from pathlib import Path
 
 import bpy
@@ -25,10 +26,8 @@ RADIUS = 5.0
 def collection(name: str):
     col = bpy.data.collections.get(name) or bpy.data.collections.new(name)
     if col.name not in bpy.context.scene.collection.children:
-        try:
+        with suppress(RuntimeError):
             bpy.context.scene.collection.children.link(col)
-        except RuntimeError:
-            pass
     return col
 
 
@@ -153,7 +152,7 @@ def add_curve(name, points, mat, col, bevel=0.025):
     curve.bevel_resolution = 3
     spline = curve.splines.new("BEZIER")
     spline.bezier_points.add(len(points) - 1)
-    for bp, point in zip(spline.bezier_points, points):
+    for bp, point in zip(spline.bezier_points, points, strict=True):
         bp.co = point
         bp.handle_left_type = "AUTO"
         bp.handle_right_type = "AUTO"
@@ -269,10 +268,8 @@ def create_atmosphere(cols, mats):
         48,
     )
     mat = mats["atmosphere"]
-    try:
+    with suppress(AttributeError):
         mat.surface_render_method = "DITHERED"
-    except AttributeError:
-        pass
     bsdf = next((node for node in mat.node_tree.nodes if node.bl_idname == "ShaderNodeBsdfPrincipled"), None)
     if bsdf and "Alpha" in bsdf.inputs:
         bsdf.inputs["Alpha"].default_value = 0.10

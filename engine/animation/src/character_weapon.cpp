@@ -1,5 +1,7 @@
 #include "ae/animation/character_weapon.h"
 
+#include <algorithm>
+
 #include <cmath>
 
 namespace ae::animation {
@@ -9,7 +11,7 @@ namespace ae::animation {
 // ============================================================
 
 void CharacterAnimInstance::set_skeleton(int joint_count,
-                                          const std::vector<int>& parent_indices) {
+                                         const std::vector<int>& parent_indices) {
     joint_count_ = joint_count;
     parent_indices_ = parent_indices;
     last_pose_.resize(static_cast<std::size_t>(joint_count));
@@ -19,7 +21,7 @@ void CharacterAnimInstance::set_skeleton(int joint_count,
 }
 
 void CharacterAnimInstance::set_leg_ik(const IKChain& left_leg_chain,
-                                        const IKChain& right_leg_chain) {
+                                       const IKChain& right_leg_chain) {
     left_leg_ik_chain_ = ik_solver_.add_chain(left_leg_chain);
     right_leg_ik_chain_ = ik_solver_.add_chain(right_leg_chain);
 }
@@ -46,8 +48,8 @@ void CharacterAnimInstance::set_aim_offset(float yaw, float pitch) {
 }
 
 void CharacterAnimInstance::set_foot_targets(const IKTarget& left_foot,
-                                              const IKTarget& right_foot,
-                                              float left_weight, float right_weight) {
+                                             const IKTarget& right_foot,
+                                             float left_weight, float right_weight) {
     if (left_leg_ik_chain_ >= 0) {
         ik_solver_.set_target(left_leg_ik_chain_, left_foot);
     }
@@ -75,7 +77,7 @@ void CharacterAnimInstance::set_on_ground(bool on_ground) {
 namespace {
 // Small epsilon for float comparisons
 constexpr float kLayerEpsilon = 0.0001F;
-}  // namespace
+} // namespace
 
 // ============================================================
 // Weapon animation layers
@@ -101,7 +103,8 @@ void evaluate_sway_layer(WeaponAnimState& state,
 
     // Accumulate phase for idle oscillation
     state.sway_phase += dt * config.sway_frequency;
-    if (state.sway_phase > 1000.0F) state.sway_phase -= 1000.0F;
+    if (state.sway_phase > 1000.0F)
+        state.sway_phase -= 1000.0F;
 
     float sway_x = state.sway_velocity_x +
                    std::sin(state.sway_phase) * effective_amp * 0.5F;
@@ -147,7 +150,8 @@ void evaluate_bob_layer(WeaponAnimState& state,
 
     float speed_factor = std::min(player_speed / 6.0F, 1.0F);
     state.bob_phase += dt * freq * speed_factor;
-    if (state.bob_phase > 1000.0F) state.bob_phase -= 1000.0F;
+    if (state.bob_phase > 1000.0F)
+        state.bob_phase -= 1000.0F;
 
     float bob_vert = std::sin(state.bob_phase * 2.0F) *
                      config.bob_amplitude_vertical * speed_factor;
@@ -178,7 +182,8 @@ void evaluate_recoil_kick_layer(WeaponAnimState& state,
 
     if (state.fire_anim_time > 0.0F) {
         state.fire_anim_time -= dt;
-        if (state.fire_anim_time < 0.0F) state.fire_anim_time = 0.0F;
+        if (state.fire_anim_time < 0.0F)
+            state.fire_anim_time = 0.0F;
     }
 
     constexpr float kKickDuration = 0.11F;
@@ -221,9 +226,9 @@ void evaluate_weapon_animation(WeaponAnimState& state,
     // ── Evaluate each layer ───────────────────────────────────
     skeleton::Mat4 sway_offset, bob_offset, recoil_offset;
     evaluate_sway_layer(state, config, dt, look_delta_x, look_delta_y,
-                         state.ads_blend, sway_offset);
+                        state.ads_blend, sway_offset);
     evaluate_bob_layer(state, config, dt, player_speed, is_moving,
-                        bob_offset);
+                       bob_offset);
     evaluate_recoil_kick_layer(state, config, dt, recoil_offset);
 
     // ── Compose layers: sway * bob * recoil ──────────────────
@@ -239,4 +244,4 @@ void evaluate_weapon_animation(WeaponAnimState& state,
                     skeleton::Mat4::translation(0.0F, ads_y, ads_z);
 }
 
-}  // namespace ae::animation
+} // namespace ae::animation

@@ -4,6 +4,7 @@
 import os
 import re
 import sys
+from pathlib import Path
 
 SITE_DIR = os.path.join(os.path.dirname(__file__), "..", "site")
 INDEX = os.path.join(SITE_DIR, "index.html")
@@ -17,7 +18,7 @@ checks.append(("index.html exists", os.path.isfile(INDEX)))
 checks.append(("logo.svg exists", os.path.isfile(LOGO)))
 
 if os.path.isfile(INDEX):
-    html = open(INDEX).read()
+    html = Path(INDEX).read_text(encoding="utf-8")
     checks.append(("Vue.js CDN loaded", "unpkg.com/vue@3" in html))
     checks.append(("Responsive viewport meta", "viewport" in html))
     checks.append(("Section: Ahamkara", bool(re.search(r"What is.*Ahamkara", html))))

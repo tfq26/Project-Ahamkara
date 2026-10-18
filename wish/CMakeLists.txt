@@ -196,3 +196,19 @@ target_link_libraries(wish_auth_tests
 )
 
 add_test(NAME wish_auth_tests COMMAND wish_auth_tests)
+
+
+# Wish core and Flashback adapter unit tests.
+function(add_wish_source_test target source)
+    add_executable(${target} ${source})
+    target_compile_features(${target} PRIVATE cxx_std_20)
+    target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+    target_link_libraries(${target} PRIVATE wish_engine)
+    add_test(NAME ${target} COMMAND ${target})
+endfunction()
+
+add_wish_source_test(wish_session_orchestrator_tests core/tests/session_orchestrator_tests.cpp)
+add_wish_source_test(
+    wish_flashback_adapter_tests
+    integrations/flashback/tests/flashback_adapter_tests.cpp
+)

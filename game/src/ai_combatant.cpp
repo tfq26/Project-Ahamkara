@@ -10,8 +10,10 @@ namespace ahamkara::game::ai {
 
 float angle_diff_deg(float a, float b) {
     float diff = a - b;
-    if (diff > 180.0F) diff -= 360.0F;
-    else if (diff < -180.0F) diff += 360.0F;
+    if (diff > 180.0F)
+        diff -= 360.0F;
+    else if (diff < -180.0F)
+        diff += 360.0F;
     return diff;
 }
 
@@ -19,10 +21,12 @@ bool los_clear_2d(Vec3 from, Vec3 to, const std::vector<ColliderBox>& colliders)
     float dx = to.x - from.x;
     float dz = to.z - from.z;
     float dist = std::sqrt(dx * dx + dz * dz);
-    if (dist < 0.5F) return true;
+    if (dist < 0.5F)
+        return true;
 
     for (const auto& c : colliders) {
-        if (!c.wall) continue;
+        if (!c.wall)
+            continue;
         float min_x = std::min(c.min_x, c.max_x);
         float max_x = std::max(c.min_x, c.max_x);
         float min_z = std::min(c.min_z, c.max_z);
@@ -31,13 +35,16 @@ bool los_clear_2d(Vec3 from, Vec3 to, const std::vector<ColliderBox>& colliders)
         float top_y = std::max(c.top_y, c.bottom_y);
         float bottom_y = std::min(c.top_y, c.bottom_y);
 
-        if (top_y < from.y && top_y < to.y) continue;
-        if (bottom_y > from.y + 2.0F && bottom_y > to.y + 2.0F) continue;
+        if (top_y < from.y && top_y < to.y)
+            continue;
+        if (bottom_y > from.y + 2.0F && bottom_y > to.y + 2.0F)
+            continue;
 
         float dx_line = to.x - from.x;
         float dz_line = to.z - from.z;
         float len = std::sqrt(dx_line * dx_line + dz_line * dz_line);
-        if (len < 0.0001F) continue;
+        if (len < 0.0001F)
+            continue;
 
         float nx = -dz_line / len;
         float nz = dx_line / len;
@@ -129,117 +136,117 @@ void tick_behavior(AICombatantComponent& self,
     auto& p = self.perception;
 
     switch (self.behavior) {
-        case BehaviorState::Idle:
-            if (p.alertness > 0.3F) {
-                if (p.target_visible) {
-                    self.behavior = BehaviorState::Engage;
-                } else {
-                    self.behavior = BehaviorState::Investigate;
-                    self.investigate_point = {p.last_known_position.x, p.last_known_position.z};
-                }
-                self.state_timer = 0.0F;
-            }
-            break;
-
-        case BehaviorState::Investigate:
-            // Move toward last known position
+    case BehaviorState::Idle:
+        if (p.alertness > 0.3F) {
             if (p.target_visible) {
                 self.behavior = BehaviorState::Engage;
-                self.state_timer = 0.0F;
-            } else if (self.state_timer > 5.0F || p.alertness < 0.1F) {
-                // Give up searching
-                self.behavior = BehaviorState::Idle;
-                self.state_timer = 0.0F;
-            } else if (self.state_timer > 3.0F && !p.target_visible) {
-                // After investigating, if still no target, patrol
-                self.behavior = BehaviorState::Patrol;
-                self.state_timer = 0.0F;
-            }
-            break;
-
-        case BehaviorState::Engage: {
-            // Check distance for ideal range
-            float dx = self.target_world_pos.x - self_world_pos.x;
-            float dz = self.target_world_pos.z - self_world_pos.z;
-            float dist = std::sqrt(dx * dx + dz * dz);
-
-            // Retreat if low health
-            if (self.health < self.max_health * 0.25F && dist < 10.0F) {
-                self.behavior = BehaviorState::Retreat;
-                self.state_timer = 0.0F;
-                break;
-            }
-
-            // Flank if we've been in combat too long without progress
-            if (self.state_timer > 8.0F && !p.target_visible) {
-                self.behavior = BehaviorState::Flank;
-                self.state_timer = 0.0F;
-                break;
-            }
-
-            // Too far → move closer; too close → back up
-            if (dist > self.cfg.engage_range_max) {
-                // Move closer (transition to flank to reposition)
-                if (self.state_timer > 3.0F) {
-                    self.behavior = BehaviorState::Flank;
-                    self.state_timer = 0.0F;
-                }
-            }
-
-            // Check if we lost the target
-            if (!p.target_visible && p.last_seen_timer > 2.0F) {
+            } else {
                 self.behavior = BehaviorState::Investigate;
                 self.investigate_point = {p.last_known_position.x, p.last_known_position.z};
-                self.state_timer = 0.0F;
             }
+            self.state_timer = 0.0F;
+        }
+        break;
+
+    case BehaviorState::Investigate:
+        // Move toward last known position
+        if (p.target_visible) {
+            self.behavior = BehaviorState::Engage;
+            self.state_timer = 0.0F;
+        } else if (self.state_timer > 5.0F || p.alertness < 0.1F) {
+            // Give up searching
+            self.behavior = BehaviorState::Idle;
+            self.state_timer = 0.0F;
+        } else if (self.state_timer > 3.0F && !p.target_visible) {
+            // After investigating, if still no target, patrol
+            self.behavior = BehaviorState::Patrol;
+            self.state_timer = 0.0F;
+        }
+        break;
+
+    case BehaviorState::Engage: {
+        // Check distance for ideal range
+        float dx = self.target_world_pos.x - self_world_pos.x;
+        float dz = self.target_world_pos.z - self_world_pos.z;
+        float dist = std::sqrt(dx * dx + dz * dz);
+
+        // Retreat if low health
+        if (self.health < self.max_health * 0.25F && dist < 10.0F) {
+            self.behavior = BehaviorState::Retreat;
+            self.state_timer = 0.0F;
             break;
         }
 
-        case BehaviorState::Flank:
-            // Reposition for a better angle
-            if (p.target_visible && self.state_timer > 2.0F) {
-                self.behavior = BehaviorState::Engage;
-                self.state_timer = 0.0F;
-            } else if (self.state_timer > 5.0F) {
-                // Return to engage even without seeing target
-                self.behavior = BehaviorState::Engage;
-                self.state_timer = 0.0F;
-            }
+        // Flank if we've been in combat too long without progress
+        if (self.state_timer > 8.0F && !p.target_visible) {
+            self.behavior = BehaviorState::Flank;
+            self.state_timer = 0.0F;
             break;
+        }
 
-        case BehaviorState::Retreat: {
-            // Back off and recover
+        // Too far → move closer; too close → back up
+        if (dist > self.cfg.engage_range_max) {
+            // Move closer (transition to flank to reposition)
             if (self.state_timer > 3.0F) {
-                if (p.target_visible && self.health > self.max_health * 0.4F) {
-                    self.behavior = BehaviorState::Engage;
-                } else {
-                    self.behavior = BehaviorState::Patrol;
-                }
+                self.behavior = BehaviorState::Flank;
                 self.state_timer = 0.0F;
             }
-            break;
         }
 
-        case BehaviorState::Patrol:
-            // Wander and scan
-            if (p.target_visible) {
-                self.behavior = BehaviorState::Engage;
-                self.state_timer = 0.0F;
-            } else if (p.alertness > 0.5F) {
-                self.behavior = BehaviorState::Alert;
-                self.state_timer = 0.0F;
-            }
-            break;
+        // Check if we lost the target
+        if (!p.target_visible && p.last_seen_timer > 2.0F) {
+            self.behavior = BehaviorState::Investigate;
+            self.investigate_point = {p.last_known_position.x, p.last_known_position.z};
+            self.state_timer = 0.0F;
+        }
+        break;
+    }
 
-        case BehaviorState::Alert:
-            if (p.target_visible) {
+    case BehaviorState::Flank:
+        // Reposition for a better angle
+        if (p.target_visible && self.state_timer > 2.0F) {
+            self.behavior = BehaviorState::Engage;
+            self.state_timer = 0.0F;
+        } else if (self.state_timer > 5.0F) {
+            // Return to engage even without seeing target
+            self.behavior = BehaviorState::Engage;
+            self.state_timer = 0.0F;
+        }
+        break;
+
+    case BehaviorState::Retreat: {
+        // Back off and recover
+        if (self.state_timer > 3.0F) {
+            if (p.target_visible && self.health > self.max_health * 0.4F) {
                 self.behavior = BehaviorState::Engage;
-                self.state_timer = 0.0F;
-            } else if (p.alertness < 0.2F || self.state_timer > 4.0F) {
+            } else {
                 self.behavior = BehaviorState::Patrol;
-                self.state_timer = 0.0F;
             }
-            break;
+            self.state_timer = 0.0F;
+        }
+        break;
+    }
+
+    case BehaviorState::Patrol:
+        // Wander and scan
+        if (p.target_visible) {
+            self.behavior = BehaviorState::Engage;
+            self.state_timer = 0.0F;
+        } else if (p.alertness > 0.5F) {
+            self.behavior = BehaviorState::Alert;
+            self.state_timer = 0.0F;
+        }
+        break;
+
+    case BehaviorState::Alert:
+        if (p.target_visible) {
+            self.behavior = BehaviorState::Engage;
+            self.state_timer = 0.0F;
+        } else if (p.alertness < 0.2F || self.state_timer > 4.0F) {
+            self.behavior = BehaviorState::Patrol;
+            self.state_timer = 0.0F;
+        }
+        break;
     }
 }
 
@@ -248,7 +255,8 @@ void tick_ai_combatants(entt::registry& registry,
                         const Vec3& player_pos,
                         const std::vector<ColliderBox>& world_colliders,
                         bool is_server) {
-    if (!is_server) return;
+    if (!is_server)
+        return;
 
     auto view = registry.view<AICombatantComponent>();
     for (auto entity : view) {
@@ -292,7 +300,7 @@ void tick_ai_combatants(entt::registry& registry,
                 if (self.burst_remaining > 0) {
                     self.burst_timer -= delta_seconds;
                     if (self.burst_timer <= 0.0F) {
-                        self.burst_timer = 0.12F;  // burst shot interval (120ms)
+                        self.burst_timer = 0.12F; // burst shot interval (120ms)
                         self.burst_remaining--;
                         if (self.burst_remaining <= 0) {
                             self.fire_timer = self.cfg.fire_interval;
@@ -633,8 +641,6 @@ void update_ai_movement(AICombatantComponent& self,
         // Move perpendicular to target, then toward flank position
         const float dx = self.target_world_pos.x - self.position_2d.x;
         const float dz = self.target_world_pos.z - self.position_2d.y;
-        const float dist = std::sqrt(dx * dx + dz * dz);
-
         // Compute flank offset (move 90 degrees around the target)
         const float flank_angle = std::atan2(dz, dx) + 1.2F; // ~69 degrees
         const float flank_dist = 12.0F;
@@ -724,4 +730,4 @@ void tick_ai_combatants_movement(entt::registry& registry,
     }
 }
 
-}  // namespace ahamkara::game::ai
+} // namespace ahamkara::game::ai

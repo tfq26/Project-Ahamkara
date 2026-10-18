@@ -194,7 +194,7 @@ update_budgets() {
 
     if [[ -z "$baseline_file" ]]; then
         # Use the most recent baseline
-        baseline_file="$(ls -t "$BASELINE_DIR"/*.json 2>/dev/null | head -1)"
+        baseline_file="$(find "$BASELINE_DIR" -maxdepth 1 -type f -name "*.json" -printf "%T@ %p\n" 2>/dev/null | sort -nr | head -1 | cut -d" " -f2-)"
         if [[ -z "$baseline_file" ]]; then
             echo "ERROR: No baselines found. Run 'record' first or specify --baseline."
             exit 1

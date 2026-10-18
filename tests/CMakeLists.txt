@@ -925,3 +925,37 @@ target_include_directories(ahamkara_client_config_tests PRIVATE
 )
 target_link_libraries(ahamkara_client_config_tests PRIVATE ae_core)
 add_test(NAME ahamkara_client_config_tests COMMAND ahamkara_client_config_tests)
+
+
+# Compile fixtures mirror the separate consumer projects while giving clang-tidy
+# commands from this build's compilation database.
+add_library(ahamkara_cross_product_lint_fixture OBJECT EXCLUDE_FROM_ALL
+    cross_product_compatibility/main.cpp
+)
+target_link_libraries(ahamkara_cross_product_lint_fixture PRIVATE ae_core ae_runtime)
+
+add_library(wish_out_of_tree_consumer_lint_fixture OBJECT EXCLUDE_FROM_ALL
+    wish_out_of_tree_consumer/main.cpp
+)
+target_include_directories(wish_out_of_tree_consumer_lint_fixture PRIVATE ${CMAKE_SOURCE_DIR})
+target_link_libraries(wish_out_of_tree_consumer_lint_fixture PRIVATE wish_engine)
+
+# Register C++ test files in the build so they run with CTest and receive compile
+# commands for the branch-wide clang-tidy gate.
+function(add_ahamkara_source_test target source)
+    add_executable(${target} ${source})
+    target_compile_features(${target} PRIVATE cxx_std_20)
+    target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+    target_link_libraries(${target} PRIVATE ${ARGN})
+    add_test(NAME ${target} COMMAND ${target})
+endfunction()
+
+add_ahamkara_source_test(ahamkara_inventory_tests src/inventory_tests.cpp ahamkara_game)
+add_ahamkara_source_test(ahamkara_pickup_model_tests src/pickup_model_tests.cpp ahamkara_game)
+add_ahamkara_source_test(
+    ahamkara_session_adapter_integration_tests
+    src/session_adapter_integration_tests.cpp
+    ahamkara_game
+)
+add_ahamkara_source_test(ahamkara_vfx_feedback_tests src/vfx_feedback_tests.cpp ahamkara_game)
+add_ahamkara_source_test(ahamkara_viewmodel_ik_tests src/viewmodel_ik_tests.cpp ae_skeleton)

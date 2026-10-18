@@ -19,6 +19,7 @@ add_library(ae_render STATIC
     src/map_geometry.cpp
     src/pbr_renderer.cpp
     src/ssao_pass.cpp
+    src/skeletal_animation.cpp
     src/temporal_aa.cpp
     src/render_backend_opengl.cpp
     src/shadow_pass.cpp

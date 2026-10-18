@@ -268,7 +268,7 @@ def add_character_geometry(armature) -> None:
         rotation=(0.0, 0.0, math.radians(7.0)),
     )
 
-    for side, prefix in (("Left", "L"), ("Right", "R")):
+    for side, _prefix in (("Left", "L"), ("Right", "R")):
         upper_leg = f"{side}UpLeg"
         lower_leg = f"{side}Leg"
         foot = f"{side}Foot"

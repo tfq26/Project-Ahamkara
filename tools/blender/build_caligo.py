@@ -305,13 +305,11 @@ def _write_fallback_gltf(out_dir: Path, name: str, scene: dict) -> None:
     flat_positions = [value for point in scene["positions"] for value in point]
     flat_normals = [value for point in scene["normals"] for value in point]
     flat_indices = [value for tri in scene["indices"] for value in tri]
-    append_bytes(
-        struct.pack("<%sf" % len(flat_positions), *flat_positions), 34962, 5126, len(scene["positions"]), "VEC3"
-    )
+    append_bytes(struct.pack(f"<{len(flat_positions)}f", *flat_positions), 34962, 5126, len(scene["positions"]), "VEC3")
     position_accessor = len(accessors) - 1
-    append_bytes(struct.pack("<%sf" % len(flat_normals), *flat_normals), 34962, 5126, len(scene["normals"]), "VEC3")
+    append_bytes(struct.pack(f"<{len(flat_normals)}f", *flat_normals), 34962, 5126, len(scene["normals"]), "VEC3")
     normal_accessor = len(accessors) - 1
-    append_bytes(struct.pack("<%sI" % len(flat_indices), *flat_indices), 34963, 5125, len(flat_indices), "SCALAR")
+    append_bytes(struct.pack(f"<{len(flat_indices)}I", *flat_indices), 34963, 5125, len(flat_indices), "SCALAR")
     index_accessor = len(accessors) - 1
 
     # The current runtime flattens glTF primitives into one compiled model and
@@ -404,14 +402,14 @@ def build_director(out_dir: Path, lod: int = 0) -> None:
 
     segments, landmark_count = object_count_for_lod(lod)
     radius = 5.0
-    sphere("caligo_planet_lod%d" % lod, (0, 0, 0), radius, planet_mat, segments, max(6, segments // 2))
+    sphere(f"caligo_planet_lod{lod}", (0, 0, 0), radius, planet_mat, segments, max(6, segments // 2))
 
     # Broad dune bands are intentionally geometric in the blockout. The final
     # material pass will replace them with displacement/normal detail.
     for i in range(max(1, landmark_count // 3)):
         angle = (2.0 * math.pi * i) / max(1, landmark_count // 3)
         torus(
-            "caligo_dune_band_%02d" % i,
+            f"caligo_dune_band_{i:02d}",
             (0, 0, 0),
             radius + 0.04 + i * 0.025,
             0.035,
@@ -426,13 +424,13 @@ def build_director(out_dir: Path, lod: int = 0) -> None:
             x = math.cos(angle) * (radius + 0.02)
             z = math.sin(angle) * (radius + 0.02)
             y = math.sin(angle * 2.0) * 0.7
-            cube("buried_colony_shell_%02d" % i, (x, y, z), (0.18, 0.42, 0.08), ruin_mat)
+            cube(f"buried_colony_shell_{i:02d}", (x, y, z), (0.18, 0.42, 0.08), ruin_mat)
 
         for i, angle in enumerate((0.35, 2.4, 4.7)):
             x = math.cos(angle) * (radius + 0.08)
             z = math.sin(angle) * (radius + 0.08)
             torus(
-                "habitat_crown_%02d" % i,
+                f"habitat_crown_{i:02d}",
                 (x, math.sin(angle) * 0.7, z),
                 0.42,
                 0.055,
@@ -451,7 +449,7 @@ def build_director(out_dir: Path, lod: int = 0) -> None:
             rotation=(math.radians(90), 0, 0),
         )
 
-    export_scene(out_dir, "caligo_director" if lod == 0 else "caligo_director_lod%d" % lod)
+    export_scene(out_dir, "caligo_director" if lod == 0 else f"caligo_director_lod{lod}")
 
 
 def build_cutaway(out_dir: Path) -> None:
@@ -474,7 +472,7 @@ def build_cutaway(out_dir: Path) -> None:
     cylinder("artificial_sun_spine", (0, 0.0, 0), 0.16, 4.4, steel_mat, 12)
     sphere("artificial_sun", (0, 0.0, 0), 0.58, sun_mat, 24, 12)
     for x in (-3.0, -1.5, 1.5, 3.0):
-        cylinder("habitat_support_%s" % str(x).replace("-", "m"), (x, 0.0, -0.7), 0.09, 4.0, electric_mat, 8)
+        cylinder(f"habitat_support_{str(x).replace('-', 'm')}", (x, 0.0, -0.7), 0.09, 4.0, electric_mat, 8)
     export_scene(out_dir, "caligo_cutaway")
 
 
@@ -492,10 +490,10 @@ def add_building(name: str, x: float, z: float, width: float, depth: float, heig
     for i in range(3):
         px = x - width * 0.65 + (i * width * 0.65)
         cube(
-            name + "_rib_%d" % i,
+            f"{name}_rib_{i}",
             (px, height * 0.5, z - depth * 1.02),
             (0.06, height, 0.07),
-            material(name + "_rib_mat_%d" % i, "steel"),
+            material(f"{name}_rib_mat_{i}", "steel"),
         )
 
 
@@ -520,7 +518,7 @@ def build_surface_ruins(out_dir: Path) -> None:
             (0, 170, 160, 22, 20),
         )
     ):
-        cube("dune_ridge_%02d" % i, (x, h * 0.5 - 0.3, z), (w, h, d), sand_mat)
+        cube(f"dune_ridge_{i:02d}", (x, h * 0.5 - 0.3, z), (w, h, d), sand_mat)
 
     # The playable slice is deliberately denser than the distant skyline: a
     # recognisable concourse, cover and route markers give the player a real
@@ -537,10 +535,10 @@ def build_surface_ruins(out_dir: Path) -> None:
             (-5, 53, 5, 8, 2.0),
         )
     ):
-        cube("concourse_cover_%02d" % i, (x, height * 0.5, z), (width, height, depth), steel_mat)
+        cube(f"concourse_cover_{i:02d}", (x, height * 0.5, z), (width, height, depth), steel_mat)
     for i, (x, z) in enumerate(((-75, 18), (-10, -15), (39, 30), (-2, 114))):
-        cylinder("route_beacon_%02d" % i, (x, 3.0, z), 0.55, 6.0, warning_mat, 12)
-        sphere("route_beacon_light_%02d" % i, (x, 6.3, z), 0.85, electric_mat, 16, 8)
+        cylinder(f"route_beacon_{i:02d}", (x, 3.0, z), 0.55, 6.0, warning_mat, 12)
+        sphere(f"route_beacon_light_{i:02d}", (x, 6.3, z), 0.85, electric_mat, 16, 8)
 
     # Three hero research buildings.
     add_building("planetary_sciences_admin", -70, -20, 38, 32, 34, concrete_mat, True)
@@ -560,20 +558,20 @@ def build_surface_ruins(out_dir: Path) -> None:
         (150, 145, 26, 20, 72),
     ]
     for i, (x, z, w, d, h) in enumerate(skyline):
-        add_building("colonial_skyline_%02d" % i, x, z, w, d, h, concrete_mat, i % 3 == 0)
+        add_building(f"colonial_skyline_{i:02d}", x, z, w, d, h, concrete_mat, i % 3 == 0)
 
     # Buried transit, power and frontier infrastructure.
     cube("buried_maglev_track", (0, 0.2, -115), (170, 0.25, 4), steel_mat)
     for i, x in enumerate(range(-150, 151, 50)):
-        cube("maglev_pylon_%02d" % i, (x, 4.0, -115), (1.2, 4.0, 1.2), steel_mat)
+        cube(f"maglev_pylon_{i:02d}", (x, 4.0, -115), (1.2, 4.0, 1.2), steel_mat)
     for i, x in enumerate((-190, -150, -110, 110, 150, 190)):
-        cylinder("storm_grounding_tower_%02d" % i, (x, 12, 145), 2.2, 24, warning_mat, 12)
-        torus("grounding_ring_%02d" % i, (x, 24, 145), 2.8, 0.25, electric_mat)
+        cylinder(f"storm_grounding_tower_{i:02d}", (x, 12, 145), 2.2, 24, warning_mat, 12)
+        torus(f"grounding_ring_{i:02d}", (x, 24, 145), 2.8, 0.25, electric_mat)
     for i, (x, z) in enumerate(((-205, 80), (-185, 105), (-150, 75), (165, 85), (200, 105))):
-        cube("frontier_shelter_%02d" % i, (x, 3, z), (12, 3, 9), rock_mat)
+        cube(f"frontier_shelter_{i:02d}", (x, 3, z), (12, 3, 9), rock_mat)
     for i in range(5):
         cylinder(
-            "petrified_electrorganic_tree_%02d" % i, (-120 + i * 18, 8, 160 - (i % 2) * 15), 2.5, 16, ecology_mat, 8
+            f"petrified_electrorganic_tree_{i:02d}", (-120 + i * 18, 8, 160 - (i % 2) * 15), 2.5, 16, ecology_mat, 8
         )
 
     export_scene(out_dir, "caligo_surface_ruins")

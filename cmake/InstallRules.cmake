@@ -1,6 +1,7 @@
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
+# Set a target's public include paths for build-tree and installed consumers.
 function(ahamkara_set_export_includes target rel_include)
     if(NOT TARGET ${target})
         return()
@@ -30,7 +31,10 @@ install(TARGETS ${_AHAMKARA_EXPORT_LIBS}
 )
 
 set(_AHAMKARA_EXTRA_LIBS)
-foreach(_lib IN ITEMS ae_collision ae_physics ae_skeleton ae_animation ae_audio ae_input ae_ui ae_render ae_platform ahamkara_game wish_engine)
+foreach(_lib IN ITEMS
+    ae_collision ae_physics ae_skeleton ae_animation ae_audio ae_input
+    ae_ui ae_render ae_platform ahamkara_game wish_engine
+)
     if(TARGET ${_lib})
         list(APPEND _AHAMKARA_EXTRA_LIBS ${_lib})
     endif()

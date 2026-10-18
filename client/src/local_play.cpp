@@ -13,7 +13,7 @@ namespace {
 const ahamkara::game::ParticleState kEmptyParticles[1] {};
 const ahamkara::game::DecalState kEmptyDecals[1] {};
 
-}  // namespace
+} // namespace
 
 // --- LocalPlaySimulation -----------------------------------------------------
 
@@ -168,10 +168,18 @@ const std::string& LocalPlaySimulation::get_last_interaction_label() const {
     return world_.get_last_interaction_label();
 }
 
-const ahamkara::game::ParticleState* LocalPlaySimulation::get_particles() const { return world_.get_particles(); }
-int LocalPlaySimulation::get_particle_count() const { return world_.get_particle_count(); }
-const ahamkara::game::DecalState* LocalPlaySimulation::get_decals() const { return world_.get_decals(); }
-int LocalPlaySimulation::get_decal_count() const { return world_.get_decal_count(); }
+const ahamkara::game::ParticleState* LocalPlaySimulation::get_particles() const {
+    return world_.get_particles();
+}
+int LocalPlaySimulation::get_particle_count() const {
+    return world_.get_particle_count();
+}
+const ahamkara::game::DecalState* LocalPlaySimulation::get_decals() const {
+    return world_.get_decals();
+}
+int LocalPlaySimulation::get_decal_count() const {
+    return world_.get_decal_count();
+}
 
 ahamkara::game::Vec3 LocalPlaySimulation::get_interpolated_player_position(float alpha) const {
     if (!has_previous_state_) {
@@ -182,8 +190,7 @@ ahamkara::game::Vec3 LocalPlaySimulation::get_interpolated_player_position(float
     return {
         prev.x + (curr.x - prev.x) * alpha,
         prev.y + (curr.y - prev.y) * alpha,
-        prev.z + (curr.z - prev.z) * alpha
-    };
+        prev.z + (curr.z - prev.z) * alpha};
 }
 
 ahamkara::game::CameraAnchor LocalPlaySimulation::get_interpolated_camera_anchor(float alpha) const {
@@ -197,8 +204,7 @@ ahamkara::game::CameraAnchor LocalPlaySimulation::get_interpolated_camera_anchor
     result.position = {
         prev.position.x + (curr.position.x - prev.position.x) * alpha,
         prev.position.y + (curr.position.y - prev.position.y) * alpha,
-        prev.position.z + (curr.position.z - prev.position.z) * alpha
-    };
+        prev.position.z + (curr.position.z - prev.position.z) * alpha};
 
     float diff_yaw = ae::wrap_degrees(curr.yaw - prev.yaw);
     result.yaw = prev.yaw + diff_yaw * alpha;
@@ -211,7 +217,10 @@ ahamkara::game::CameraAnchor LocalPlaySimulation::get_interpolated_camera_anchor
 
 ahamkara::game::TargetDummyState LocalPlaySimulation::get_interpolated_dummy(int idx, float alpha) const {
     const auto* curr_dummies = world_.get_dummies();
-    if (!has_previous_state_ || idx < 0 || idx >= ahamkara::game::World::kMaxDummies) {
+    if (idx < 0 || idx >= ahamkara::game::World::kMaxDummies) {
+        return {};
+    }
+    if (!has_previous_state_) {
         return curr_dummies[idx];
     }
 
@@ -222,8 +231,7 @@ ahamkara::game::TargetDummyState LocalPlaySimulation::get_interpolated_dummy(int
     result.position = {
         prev.position.x + (curr.position.x - prev.position.x) * alpha,
         prev.position.y + (curr.position.y - prev.position.y) * alpha,
-        prev.position.z + (curr.position.z - prev.position.z) * alpha
-    };
+        prev.position.z + (curr.position.z - prev.position.z) * alpha};
 
     float diff_yaw = ae::wrap_degrees(curr.yaw - prev.yaw);
     result.yaw = prev.yaw + diff_yaw * alpha;
@@ -303,4 +311,4 @@ void LocalPlaySimulation::restart_match() {
     has_previous_state_ = false;
 }
 
-}  // namespace ahamkara::client
+} // namespace ahamkara::client

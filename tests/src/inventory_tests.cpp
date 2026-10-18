@@ -346,7 +346,7 @@ void test_inventory_equip_invalid_slot() {
     Inventory inv {};
     ae::u32 id = inv.add_item(2001);
     // Use ItemSlot::None which is beyond valid range
-    bool ok = inv.equip_item(id, static_cast<ItemSlot>(99));
+    bool ok = inv.equip_item(id, ItemSlot::None);
     assert(!ok);
     std::cout << "test_inventory_equip_invalid_slot passed.\n";
 }
@@ -386,7 +386,7 @@ void test_inventory_unequip() {
 
 void test_inventory_unequip_invalid_slot() {
     Inventory inv {};
-    bool ok = inv.unequip_item(static_cast<ItemSlot>(99));
+    bool ok = inv.unequip_item(ItemSlot::None);
     assert(!ok);
     std::cout << "test_inventory_unequip_invalid_slot passed.\n";
 }

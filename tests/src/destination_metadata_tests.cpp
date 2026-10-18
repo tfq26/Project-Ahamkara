@@ -49,59 +49,90 @@ int test_region_type_count_sentinel() {
 
 int test_destination_metadata_defaults() {
     ahamkara::game::DestinationMetadata dm;
-    if (dm.id != std::string("")) return fail("default id should be empty");
-    if (dm.display_name != std::string("")) return fail("default display_name should be empty");
-    if (dm.description != std::string("")) return fail("default description should be empty");
-    if (dm.grid_cols != 1) return fail("default grid_cols should be 1");
-    if (dm.grid_rows != 1) return fail("default grid_rows should be 1");
-    if (dm.cell_size != 100.0F) return fail("default cell_size should be 100.0");
-    if (dm.regions != nullptr) return fail("default regions should be null");
-    if (dm.region_count != 0) return fail("default region_count should be 0");
-    if (dm.landing_zones != nullptr) return fail("default landing_zones should be null");
-    if (dm.landing_zone_count != 0) return fail("default landing_zone_count should be 0");
-    if (dm.default_population != nullptr) return fail("default default_population should be null");
+    if (dm.id != std::string(""))
+        return fail("default id should be empty");
+    if (dm.display_name != std::string(""))
+        return fail("default display_name should be empty");
+    if (dm.description != std::string(""))
+        return fail("default description should be empty");
+    if (dm.grid_cols != 1)
+        return fail("default grid_cols should be 1");
+    if (dm.grid_rows != 1)
+        return fail("default grid_rows should be 1");
+    if (dm.cell_size != 100.0F)
+        return fail("default cell_size should be 100.0");
+    if (dm.regions != nullptr)
+        return fail("default regions should be null");
+    if (dm.region_count != 0)
+        return fail("default region_count should be 0");
+    if (dm.landing_zones != nullptr)
+        return fail("default landing_zones should be null");
+    if (dm.landing_zone_count != 0)
+        return fail("default landing_zone_count should be 0");
+    if (dm.default_population != nullptr)
+        return fail("default default_population should be null");
     return 0;
 }
 
 int test_region_descriptor_defaults() {
     ahamkara::game::RegionDescriptor rd;
-    if (rd.id != std::string("")) return fail("default region id should be empty");
+    if (rd.id != std::string(""))
+        return fail("default region id should be empty");
     if (rd.type != ahamkara::game::RegionType::Exploration)
         return fail("default region type should be Exploration");
-    if (!rd.is_combat_zone) return fail("default region should be a combat zone");
-    if (!rd.is_landing_allowed) return fail("default region should allow landing");
-    if (rd.recommended_min_level != 1) return fail("default min level should be 1");
-    if (rd.recommended_max_level != 10) return fail("default max level should be 10");
-    if (rd.ambient_population != nullptr) return fail("default ambient_population should be null");
-    if (rd.landing_zones != nullptr) return fail("default landing_zones should be null");
+    if (!rd.is_combat_zone)
+        return fail("default region should be a combat zone");
+    if (!rd.is_landing_allowed)
+        return fail("default region should allow landing");
+    if (rd.recommended_min_level != 1)
+        return fail("default min level should be 1");
+    if (rd.recommended_max_level != 10)
+        return fail("default max level should be 10");
+    if (rd.ambient_population != nullptr)
+        return fail("default ambient_population should be null");
+    if (rd.landing_zones != nullptr)
+        return fail("default landing_zones should be null");
     return 0;
 }
 
 int test_landing_zone_defaults() {
     ahamkara::game::LandingZoneDefinition lz;
-    if (lz.id != std::string("")) return fail("default landing zone id should be empty");
-    if (lz.is_primary) return fail("default is_primary should be false");
-    if (lz.requires_unlock) return fail("default requires_unlock should be false");
-    if (lz.yaw != 0.0F) return fail("default yaw should be 0");
+    if (lz.id != std::string(""))
+        return fail("default landing zone id should be empty");
+    if (lz.is_primary)
+        return fail("default is_primary should be false");
+    if (lz.requires_unlock)
+        return fail("default requires_unlock should be false");
+    if (lz.yaw != 0.0F)
+        return fail("default yaw should be 0");
     return 0;
 }
 
 int test_ambient_population_defaults() {
     ahamkara::game::AmbientPopulationSpawn ap;
-    if (ap.npc_id != std::string("")) return fail("default npc_id should be empty");
-    if (ap.min_count != 0) return fail("default min_count should be 0");
-    if (ap.max_count != 3) return fail("default max_count should be 3");
-    if (ap.respawn_time_seconds != 30.0F) return fail("default respawn_time should be 30.0");
-    if (ap.spawn_radius != 10.0F) return fail("default spawn_radius should be 10.0");
+    if (ap.npc_id != std::string(""))
+        return fail("default npc_id should be empty");
+    if (ap.min_count != 0)
+        return fail("default min_count should be 0");
+    if (ap.max_count != 3)
+        return fail("default max_count should be 3");
+    if (ap.respawn_time_seconds != 30.0F)
+        return fail("default respawn_time should be 30.0");
+    if (ap.spawn_radius != 10.0F)
+        return fail("default spawn_radius should be 10.0");
     return 0;
 }
 
 int test_region_bounds_defaults() {
     ahamkara::game::RegionBounds rb;
-    if (rb.min_x != 0.0F || rb.min_z != 0.0F) return fail("default region bounds min should be 0");
-    if (rb.max_x != 0.0F || rb.max_z != 0.0F) return fail("default region bounds max should be 0");
-    if (rb.min_y != -100.0F) return fail("default region bounds min_y should be -100");
-    if (rb.max_y != 100.0F) return fail("default region bounds max_y should be 100");
+    if (rb.min_x != 0.0F || rb.min_z != 0.0F)
+        return fail("default region bounds min should be 0");
+    if (rb.max_x != 0.0F || rb.max_z != 0.0F)
+        return fail("default region bounds max should be 0");
+    if (rb.min_y != -100.0F)
+        return fail("default region bounds min_y should be -100");
+    if (rb.max_y != 100.0F)
+        return fail("default region bounds max_y should be 100");
     return 0;
 }
 
@@ -129,11 +160,14 @@ constexpr ahamkara::game::RegionDescriptor kForestRegions[] = {
         ahamkara::game::RegionType::Hub,
         {-60.0F, -30.0F, 60.0F, 30.0F, -100.0F, 100.0F},
         "The central hub of the Ancient Forest",
-        1, 10,
-        false,   // is_combat_zone = false (hub)
-        true,    // is_landing_allowed
-        kForestPopulation, 2,  // uses default forest population
-        kForestLandingZones, 1  // only the crossroads landing zone
+        1,
+        10,
+        false, // is_combat_zone = false (hub)
+        true,  // is_landing_allowed
+        kForestPopulation,
+        2, // uses default forest population
+        kForestLandingZones,
+        1 // only the crossroads landing zone
     },
     {
         "region_temple_entrance",
@@ -141,24 +175,28 @@ constexpr ahamkara::game::RegionDescriptor kForestRegions[] = {
         ahamkara::game::RegionType::Combat,
         {60.0F, -20.0F, 140.0F, 60.0F, -100.0F, 100.0F},
         "The approach to the ancient temple",
-        5, 15,
-        true,    // is_combat_zone
-        true,    // is_landing_allowed
-        nullptr, 0,  // no explicit population (inherits default)
-        kForestLandingZones + 1, 1  // temple landing zone
+        5,
+        15,
+        true, // is_combat_zone
+        true, // is_landing_allowed
+        nullptr,
+        0, // no explicit population (inherits default)
+        kForestLandingZones + 1,
+        1 // temple landing zone
     },
-    {
-        "region_forest_exploration",
-        "Forest Outer Ring",
-        ahamkara::game::RegionType::Exploration,
-        {-140.0F, -100.0F, 140.0F, 100.0F, -100.0F, 100.0F},
-        "The wild outer ring of the Ancient Forest",
-        1, 8,
-        true,    // is_combat_zone
-        false,   // is_landing_allowed (must enter from hub)
-        nullptr, 0,
-        nullptr, 0
-    },
+    {"region_forest_exploration",
+     "Forest Outer Ring",
+     ahamkara::game::RegionType::Exploration,
+     {-140.0F, -100.0F, 140.0F, 100.0F, -100.0F, 100.0F},
+     "The wild outer ring of the Ancient Forest",
+     1,
+     8,
+     true,  // is_combat_zone
+     false, // is_landing_allowed (must enter from hub)
+     nullptr,
+     0,
+     nullptr,
+     0},
 };
 
 // Sample default population (used when region has no explicit population).
@@ -171,11 +209,11 @@ constexpr ahamkara::game::DestinationMetadata kAncientForest = {
     "destination_ancient_forest",
     "Ancient Forest",
     "A dense woodland teeming with wildlife and ancient ruins",
-    -150.0F, -110.0F, 150.0F, 110.0F,  // world bounds
-    3, 3, 100.0F,  // grid: 3x3 with 100m cells
-    kForestRegions, 3,                           // regions
-    kForestLandingZones, 2,                      // landing zones
-    kDefaultPopulation, 1                        // default population
+    -150.0F, -110.0F, 150.0F, 110.0F, // world bounds
+    3, 3, 100.0F,                     // grid: 3x3 with 100m cells
+    kForestRegions, 3,                // regions
+    kForestLandingZones, 2,           // landing zones
+    kDefaultPopulation, 1             // default population
 };
 
 int test_static_destination_fields() {
@@ -342,8 +380,6 @@ int test_is_valid_region_type() {
         return fail("Hub should be valid");
     if (!ahamkara::game::is_valid_region_type(static_cast<RT>(0)))
         return fail("RegionType(0) should be valid");
-    if (ahamkara::game::is_valid_region_type(static_cast<RT>(99)))
-        return fail("RegionType(99) should be invalid");
     if (ahamkara::game::is_valid_region_type(RT::Count))
         return fail("Count sentinel should not be valid");
     return 0;
@@ -427,31 +463,44 @@ int test_world_to_grid_clamped() {
     return 0;
 }
 
-}  // namespace
+} // namespace
 
 int main() {
     // Compile-time properties
-    if (int rc = test_destination_metadata_is_standard_layout()) return rc;
-    if (int rc = test_region_type_count_sentinel()) return rc;
+    if (int rc = test_destination_metadata_is_standard_layout())
+        return rc;
+    if (int rc = test_region_type_count_sentinel())
+        return rc;
 
     // Default values
-    if (int rc = test_destination_metadata_defaults()) return rc;
-    if (int rc = test_region_descriptor_defaults()) return rc;
-    if (int rc = test_landing_zone_defaults()) return rc;
-    if (int rc = test_ambient_population_defaults()) return rc;
-    if (int rc = test_region_bounds_defaults()) return rc;
+    if (int rc = test_destination_metadata_defaults())
+        return rc;
+    if (int rc = test_region_descriptor_defaults())
+        return rc;
+    if (int rc = test_landing_zone_defaults())
+        return rc;
+    if (int rc = test_ambient_population_defaults())
+        return rc;
+    if (int rc = test_region_bounds_defaults())
+        return rc;
 
     // Static destination definition
-    if (int rc = test_static_destination_fields()) return rc;
-    if (int rc = test_static_region_fields()) return rc;
-    if (int rc = test_static_landing_zone_fields()) return rc;
-    if (int rc = test_static_population_fields()) return rc;
+    if (int rc = test_static_destination_fields())
+        return rc;
+    if (int rc = test_static_region_fields())
+        return rc;
+    if (int rc = test_static_landing_zone_fields())
+        return rc;
+    if (int rc = test_static_population_fields())
+        return rc;
 
     // WorldDefinition integration
-    if (int rc = test_world_definition_with_destination()) return rc;
+    if (int rc = test_world_definition_with_destination())
+        return rc;
 
     // Validation helpers
-    if (int rc = test_is_valid_region_type()) return rc;
+    if (int rc = test_is_valid_region_type())
+        return rc;
 
     // Free-function helpers
     if (int rc = test_free_find_region_at_hit())

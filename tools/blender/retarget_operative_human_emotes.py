@@ -137,7 +137,7 @@ def retarget_dance(
     source_action = source_rig.animation_data.action
     if source_action is None:
         raise RuntimeError("Motion source has no active dance action")
-    start_frame, end_frame = (int(round(value)) for value in source_action.frame_range)
+    start_frame, end_frame = (round(value) for value in source_action.frame_range)
     bpy.context.scene.frame_set(start_frame)
     reset_pose(target_rig)
     target_rig.animation_data_create()

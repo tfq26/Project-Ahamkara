@@ -9,15 +9,18 @@
 #include <chrono>
 
 // Simple test framework macros
-#define TEST(name)                                   \
-    do {                                             \
-        printf("  TEST: %s ... ", name);              \
+#define TEST(name)                         \
+    do {                                   \
+        printf("  TEST: %s ... ", (name)); \
         fflush(stdout);
 
-#define END_TEST(result)                             \
-        printf(result ? "PASSED\n" : "FAILED\n");    \
-        if (!(result)) { failures++; }               \
-    } while(0)
+#define END_TEST(result)                        \
+    printf((result) ? "PASSED\n" : "FAILED\n"); \
+    if (!(result)) {                            \
+        failures++;                             \
+    }                                           \
+    }                                           \
+    while (0)
 
 static int failures = 0;
 
@@ -330,9 +333,7 @@ static void test_config_reload_via_file_watcher() {
     }
 
     // Poll — should detect change and call reload
-    int before_poll = watch_fire_count;
     fw.poll();
-    bool watcher_fired = watch_fire_count > before_poll;
 
     // After reloading invalid content, the valid value should still be preserved
     // because reload_from_file only applies valid key=value lines.

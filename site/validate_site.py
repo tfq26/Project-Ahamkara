@@ -4,6 +4,7 @@
 import os
 import re
 import sys
+from pathlib import Path
 
 SITE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -48,7 +49,7 @@ def main():
         for img in imgs:
             if 'alt=""' in img or "alt=" not in img:
                 errors.append(f"Image missing alt text: {img[:80]}")
-        if "@media" not in open(os.path.join(SITE_DIR, "styles.css")).read():
+        if "@media" not in (Path(SITE_DIR) / "styles.css").read_text(encoding="utf-8"):
             errors.append("CSS missing media queries")
 
     if errors:

@@ -9,15 +9,18 @@
 #include <vector>
 
 // Simple test framework macros
-#define TEST(name)                                   \
-    do {                                             \
-        printf("  TEST: %s ... ", name);              \
+#define TEST(name)                         \
+    do {                                   \
+        printf("  TEST: %s ... ", (name)); \
         fflush(stdout);
 
-#define END_TEST(result)                             \
-        printf(result ? "PASSED\n" : "FAILED\n");    \
-        if (!(result)) { failures++; }               \
-    } while(0)
+#define END_TEST(result)                        \
+    printf((result) ? "PASSED\n" : "FAILED\n"); \
+    if (!(result)) {                            \
+        failures++;                             \
+    }                                           \
+    }                                           \
+    while (0)
 
 static int failures = 0;
 
@@ -77,14 +80,14 @@ static void test_console_register_custom() {
 
     bool custom_called = false;
     console.register_command("greet", "A test command",
-        [&custom_called](const std::vector<std::string>& args, ae::Console& self) {
-            custom_called = true;
-            if (args.size() == 1) {
-                self.print("Hello, " + args[0] + "!");
-            } else {
-                self.print("Hello, world!");
-            }
-        });
+                             [&custom_called](const std::vector<std::string>& args, ae::Console& self) {
+                                 custom_called = true;
+                                 if (args.size() == 1) {
+                                     self.print("Hello, " + args[0] + "!");
+                                 } else {
+                                     self.print("Hello, world!");
+                                 }
+                             });
 
     console.execute("greet Agent");
     bool found_greet = false;
@@ -311,7 +314,7 @@ static void test_config_reload_invalid_file_preserves_old_state() {
     // Reload from invalid file — first two lines are malformed,
     // but the third is valid.  The old valid value for the malformed
     // lines doesn't apply (they aren't cvars). The valid line applies.
-    updated = registry.reload_from_file(tmp_path);
+    registry.reload_from_file(tmp_path);
 
     // The valid line should still apply since it has correct syntax
     TEST("valid line in mixed file still applies");
@@ -325,13 +328,13 @@ static void test_config_reload_invalid_file_preserves_old_state() {
     }
 
     std::string before_reload = current_value;
-    updated = registry.reload_from_file(tmp_path);
+    const int invalid_reload_count = registry.reload_from_file(tmp_path);
 
     // Old state should be preserved since no valid key=value lines
     TEST("state preserved after fully invalid config reload");
     END_TEST(current_value == before_reload);
     TEST("reload returns 0 for invalid file");
-    END_TEST(updated == 0);
+    END_TEST(invalid_reload_count == 0);
 
     // Clean up
     std::filesystem::remove(tmp_path);
@@ -361,16 +364,19 @@ static void test_config_registry_iteration() {
     // Manually register test cvars with the registry
     auto& registry = ae::ConfigRegistry::instance();
     registry.register_var("test.alpha", [](std::string_view v) {}, []() { return std::string("1.0"); });
-    registry.register_var("test.beta",  [](std::string_view v) {}, []() { return std::string("42"); });
+    registry.register_var("test.beta", [](std::string_view v) {}, []() { return std::string("42"); });
     registry.register_var("test.gamma", [](std::string_view v) {}, []() { return std::string("hello"); });
 
     auto keys = registry.all_keys();
 
     bool found_a = false, found_b = false, found_c = false;
     for (const auto& k : keys) {
-        if (k == "test.alpha") found_a = true;
-        if (k == "test.beta")  found_b = true;
-        if (k == "test.gamma") found_c = true;
+        if (k == "test.alpha")
+            found_a = true;
+        if (k == "test.beta")
+            found_b = true;
+        if (k == "test.gamma")
+            found_c = true;
     }
 
     TEST("ConfigRegistry iteration finds registered cvars");
@@ -382,9 +388,7 @@ static void test_config_registry_iteration() {
 
 static void test_config_registry_get_set() {
     auto& registry = ae::ConfigRegistry::instance();
-    registry.register_var("test.get_set_var",
-        [](std::string_view v) { /* would set value */ },
-        []() { return std::string("99.000000"); });
+    registry.register_var("test.get_set_var", [](std::string_view v) { /* would set value */ }, []() { return std::string("99.000000"); });
 
     std::string val = registry.get_value("test.get_set_var");
     TEST("ConfigRegistry get_value returns correct value");
