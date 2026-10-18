@@ -209,6 +209,16 @@ struct PbrRenderer::Impl {
             out vec4 fragColor;
             const float PI = 3.14159265359;
 
+            vec3 sample_probe(int index, vec3 direction) {
+                switch (index) {
+                    case 0: return texture(uProbeCubemaps[0], direction).rgb;
+                    case 1: return texture(uProbeCubemaps[1], direction).rgb;
+                    case 2: return texture(uProbeCubemaps[2], direction).rgb;
+                    case 3: return texture(uProbeCubemaps[3], direction).rgb;
+                    default: return vec3(0.0);
+                }
+            }
+
             float D_GGX(vec3 N, vec3 H, float a) {
                 float a2 = a*a; float NdH = max(dot(N,H),0.0);
                 float d = NdH*NdH*(a2-1.0)+1.0; return a2/(PI*d*d);
@@ -330,7 +340,7 @@ struct PbrRenderer::Impl {
                     if (dist > uProbeRadius[i]) continue;
                     float weight = clamp(1.0 - dist / uProbeRadius[i], 0.0, 1.0);
                     // Simple cubemap lookup (no mip-level selection without pre-filter)
-                    vec3 probe_col = texture(uProbeCubemaps[i], R).rgb;
+                    vec3 probe_col = sample_probe(i, R);
                     ibl_reflection += probe_col * weight * uProbeIntensity[i];
                 }
 
