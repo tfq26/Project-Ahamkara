@@ -754,10 +754,6 @@ struct PbrRenderer::Impl {
         ssao_enabled_ = enabled;
     }
 
-    void set_ao_texture(TextureHandle texture) {
-        ao_texture_ = texture;
-    }
-
     void set_frame_index(int index) {
         frame_index_ = index;
     }
@@ -785,9 +781,6 @@ void PbrRenderer::set_color_grading(const ColorGradingParams& params) { impl_->s
 void PbrRenderer::set_fog(const FogParams& params) { impl_->set_fog(params); }
 void PbrRenderer::set_ssao_enabled(bool enabled) {
     impl_->set_ssao_enabled(enabled);
-}
-void PbrRenderer::set_ao_texture(TextureHandle texture) {
-    impl_->set_ao_texture(texture);
 }
 void PbrRenderer::set_frame_index(int index) {
     impl_->set_frame_index(index);
