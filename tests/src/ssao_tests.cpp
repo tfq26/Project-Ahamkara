@@ -67,10 +67,19 @@ int test_ssaopass_ao_texture_default() {
 
 int test_taa_default_construction() {
     ae::render::TemporalAA taa;
-    if (taa.prev_view() != nullptr)
-        return fail("prev_view should be null before init");
-    if (taa.prev_proj() != nullptr)
-        return fail("prev_proj should be null before init");
+    // The accessors return pointers into fixed arrays that PbrRenderer uploads
+    // directly with glUniformMatrix4fv, so they must never be null; before any
+    // frame is stored they hold zeros.
+    if (taa.prev_view() == nullptr)
+        return fail("prev_view must never be null");
+    if (taa.prev_proj() == nullptr)
+        return fail("prev_proj must never be null");
+    for (int i = 0; i < 16; ++i) {
+        if (taa.prev_view()[i] != 0.0F)
+            return fail("prev_view should be zero before any frame is stored");
+        if (taa.prev_proj()[i] != 0.0F)
+            return fail("prev_proj should be zero before any frame is stored");
+    }
     return 0;
 }
 
