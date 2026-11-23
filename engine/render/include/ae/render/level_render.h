@@ -32,6 +32,12 @@ struct LodSettings {
     // Distance at which to switch to an impostor/billboard when no LOD2 mesh is
     // available or as an alternative to LOD2.  Default matches distances[2].
     float billboard_distance = 100.0F;
+
+    // Impostor rendering is opt-in.  Nothing in the renderer draws impostors
+    // yet, so while this is false use_impostor() always returns false and
+    // distant instances keep rendering with their best available mesh LOD
+    // instead of disappearing.  Enable only once an impostor pass exists.
+    bool impostors_enabled = false;
 };
 
 // ---------------------------------------------------------------------------
@@ -120,9 +126,11 @@ void compose_model_matrix(const LevelMeshInstance& instance, float out_matrix[16
     const float* camera_position,
     const LodSettings& settings = LodSettings {});
 
-// Returns true if, in the given sorted batch list, every group of consecutive
-// calls sharing the same mesh also shares the same material identity.  This
-// verifies that material-aware secondary sorting is correct.
+// Returns true if, within every run of consecutive calls sharing the same
+// mesh, the material identity keys are in non-decreasing order.  This verifies
+// the secondary (material) sort applied by batch_level_draw_calls.  A mesh used
+// with several materials is valid as long as the materials are grouped in key
+// order.
 [[nodiscard]] bool sorted_by_material(const std::vector<LodBatchedCall>& calls);
 
 // Measure batch efficiency as the fraction of consecutive same-mesh runs that

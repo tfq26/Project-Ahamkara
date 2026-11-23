@@ -327,6 +327,7 @@ int test_impostor_beyond_billboard_distance() {
 
     ae::render::LodSettings settings;
     settings.billboard_distance = 50.0F;
+    settings.impostors_enabled = true;
 
     // Camera at 60 units -> beyond billboard distance, no LOD2 -> impostor
     float cam_far[3] = {60.0F, 0.0F, 0.0F};
@@ -356,6 +357,7 @@ int test_impostor_not_used_when_lod2_exists() {
 
     ae::render::LodSettings settings;
     settings.billboard_distance = 50.0F;
+    settings.impostors_enabled = true;
     settings.distances[2] = 100.0F;
 
     float cam[3] = {60.0F, 0.0F, 0.0F};
@@ -394,6 +396,7 @@ int test_impostor_batched_calls_excluded() {
 
     ae::render::LodSettings settings;
     settings.billboard_distance = 50.0F;
+    settings.impostors_enabled = true;
 
     // Camera at 60 units -> b has no LOD2 -> impostor, but a has LOD2
     float cam[3] = {60.0F, 0.0F, 0.0F};
@@ -403,6 +406,39 @@ int test_impostor_batched_calls_excluded() {
     // a should still produce draws (it has LOD2), b should be excluded (impostor)
     if (calls.size() != 1) {
         return fail("expected 1 draw call (instance a with LOD2), b excluded as impostor");
+    }
+    return 0;
+}
+
+int test_impostors_disabled_by_default() {
+    // Regression: nothing renders impostors yet, so with default settings a far
+    // instance that has no LOD2 mesh must NOT be culled; it keeps drawing with
+    // its best available LOD instead of vanishing.
+    ae::render::LodSettings defaults;
+    if (defaults.impostors_enabled) {
+        return fail("impostors must be opt-in (default off)");
+    }
+
+    ae::render::LevelRenderInstance far_instance;
+    far_instance.lod_models[0].meshes.resize(1);
+    far_instance.lod_models[0].meshes[0].vbo_positions = {1};
+    far_instance.lod_models[0].meshes[0].ibo_indices = {10};
+    // No LOD1/LOD2 meshes at all; placed at origin.
+
+    float cam_far[3] = {500.0F, 0.0F, 0.0F}; // far beyond billboard_distance (100)
+    if (ae::render::use_impostor(far_instance, cam_far)) {
+        return fail("default settings must never select an impostor");
+    }
+
+    std::vector<ae::render::LevelRenderInstance> instances;
+    instances.push_back(std::move(far_instance));
+    std::vector<ae::render::LodBatchedCall> calls =
+        ae::render::batch_level_draw_calls(instances, cam_far);
+    if (calls.size() != 1) {
+        return fail("far instance without LOD2 vanished with default settings");
+    }
+    if (calls[0].mesh->vbo_positions.id != 1) {
+        return fail("far instance should fall back to its highest available LOD mesh");
     }
     return 0;
 }
@@ -745,6 +781,8 @@ int main() {
     if (int rc = test_impostor_not_used_when_lod2_exists(); rc != 0)
         return rc;
     if (int rc = test_impostor_batched_calls_excluded(); rc != 0)
+        return rc;
+    if (int rc = test_impostors_disabled_by_default(); rc != 0)
         return rc;
 
     // Material-aware sorting

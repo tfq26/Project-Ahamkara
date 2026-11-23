@@ -295,6 +295,12 @@ std::uint64_t compute_material_key(const LevelRenderInstance& instance) {
 bool use_impostor(const LevelRenderInstance& instance,
                   const float* camera_position,
                   const LodSettings& settings) {
+    // Without an impostor pass, skipping the mesh would make the instance
+    // vanish, so impostors are only reported when explicitly enabled.
+    if (!settings.impostors_enabled) {
+        return false;
+    }
+
     // Compute squared distance from camera to instance center.
     const float dx = instance.model_matrix[12] - camera_position[0];
     const float dy = instance.model_matrix[13] - camera_position[1];
@@ -360,30 +366,17 @@ std::vector<LodBatchedCall> batch_level_draw_calls(
 }
 
 bool sorted_by_material(const std::vector<LodBatchedCall>& calls) {
-    if (calls.size() <= 1) {
-        return true;
-    }
-
-    // Walk through the list.  Whenever we see a mesh change, that's a new
-    // group.  Within each mesh group, verify that all instances share the same
-    // material identity.
-    std::size_t group_start = 0;
-    for (std::size_t i = 1; i <= calls.size(); ++i) {
-        const bool same_mesh = (i < calls.size()) &&
-                               calls[i].mesh->vbo_positions.id == calls[group_start].mesh->vbo_positions.id &&
-                               calls[i].mesh->ibo_indices.id == calls[group_start].mesh->ibo_indices.id;
-
-        if (!same_mesh) {
-            // Check that all instances in [group_start, i) have the same material.
-            if (i - group_start > 1) {
-                const std::uint64_t ref_key = compute_material_key(*calls[group_start].instance);
-                for (std::size_t j = group_start + 1; j < i; ++j) {
-                    if (compute_material_key(*calls[j].instance) != ref_key) {
-                        return false;
-                    }
-                }
-            }
-            group_start = i;
+    // Within each run of consecutive calls that share a mesh, material keys
+    // must be non-decreasing.  Different materials on one mesh are legitimate;
+    // they just have to be grouped in key order, which batch_level_draw_calls
+    // guarantees via its secondary sort key.
+    for (std::size_t i = 1; i < calls.size(); ++i) {
+        const bool same_mesh =
+            calls[i].mesh->vbo_positions.id == calls[i - 1].mesh->vbo_positions.id &&
+            calls[i].mesh->ibo_indices.id == calls[i - 1].mesh->ibo_indices.id;
+        if (same_mesh &&
+            compute_material_key(*calls[i].instance) < compute_material_key(*calls[i - 1].instance)) {
+            return false;
         }
     }
     return true;
